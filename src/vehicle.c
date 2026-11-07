@@ -1265,10 +1265,31 @@ void process_my_land_vehicle(struct Thing *p_vehicle)
         : : "a" (p_vehicle));
 }
 
-void set_vehicle_alt(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void set_vehicle_alt_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_set_vehicle_alt\n"
         : : "a" (p_vehicle));
+}
+
+void set_vehicle_alt(struct Thing *p_vehicle)
+{
+    struct MyMapElement *p_mapel;
+    s32 alt, dt_alt;
+
+    DIFFTEST_SHADOW(set_vehicle_alt, set_vehicle_alt_asm(p_vehicle));
+    if (p_vehicle->U.UVehicle.TNode >= 0)
+        return;
+
+    p_mapel = &game_my_big_map[128 * (p_vehicle->Z >> 16) + (p_vehicle->X >> 16)];
+    if ((p_mapel->Flags2 & MEF2_Unkn08) != 0)
+        return;
+    if ((p_mapel->ColumnHead & 0xFFF) != 0)
+        return;
+
+    alt = alt_at_point(p_vehicle->X >> 8, p_vehicle->Z >> 8);
+    dt_alt = (alt + 0xF00 - p_vehicle->Y) >> 3;
+    p_vehicle->Y += dt_alt;
+    p_vehicle->U.UVehicle.AngleX = (-dt_alt) >> 3;
 }
 
 void process_unstopping(struct Thing *p_vehicle)
