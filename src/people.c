@@ -2548,10 +2548,27 @@ void person_init_pickup(struct Thing *p_person, ThingIdx item)
         : : "a" (p_person), "d" (item));
 }
 
-void check_weapon(struct Thing *p_person, int range)
+static DIFFTEST_REF_FUNC void check_weapon_asm(struct Thing *p_person, int range)
 {
     asm volatile ("call ASM_check_weapon\n"
         : : "a" (p_person), "d" (range));
+}
+
+void check_weapon(struct Thing *p_person, int range)
+{
+    DIFFTEST_SHADOW(check_weapon, check_weapon_asm(p_person, range));
+    if (p_person->State == PerSt_PERSON_BURNING)
+        return;
+    if (p_person->U.UPerson.CurrentWeapon != 0)
+        return;
+    // TODO: the original ignores the range argument and always uses 0x500
+    choose_best_weapon_for_range(p_person, 0x500);
+    if (p_person->U.UPerson.CurrentWeapon == 0)
+        return;
+    p_person->U.UPerson.AnimMode = gun_out_anim(p_person, 0);
+    p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+      + p_person->U.UPerson.Angle];
+    p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
 }
 
 void get_weapon_out(struct Thing *p_person)
