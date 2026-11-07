@@ -1629,10 +1629,40 @@ short get_new_sthing(void)
     DIFFTEST_RETURN(new_sthing);
 }
 
-void remove_sthing(short tngno)
+static DIFFTEST_REF_FUNC void remove_sthing_asm(short tngno)
 {
     asm volatile ("call ASM_remove_sthing\n"
         : : "a" (tngno));
+}
+
+void remove_sthing(short tngno)
+{
+    struct SimpleThing *p_sthing;
+    ThingIdx link_parent, link_child, empty_head, nxt_empty;
+
+    DIFFTEST_SHADOW(remove_sthing, remove_sthing_asm(tngno));
+    p_sthing = &sthings[tngno];
+    link_child = p_sthing->LinkChild;
+    p_sthing->Type = 0;
+    link_parent = p_sthing->LinkParent;
+    if (link_child < 0)
+        sthings[link_child].LinkParent = link_parent;
+
+    if (sthings_used_head == tngno)
+        sthings_used_head = link_child;
+    else
+        sthings[link_parent].LinkChild = link_child;
+
+    empty_head = sthings_empty_head;
+    // TODO the asm reads the upper 16 bits of a 32-bit load from `sthings_used`,
+    // ie. the short placed right after it in memory; originally that was most
+    // likely the previous `sthings_empty_head`. Replicated exactly.
+    nxt_empty = *(((short *)&sthings_used) + 1);
+    p_sthing->LinkParent = 0;
+    p_sthing->LinkChild = empty_head;
+    sthings_empty_head = tngno;
+    sthings_used--;
+    sthings[nxt_empty].LinkParent = tngno;
 }
 
 short add_static(int x, int y, int z, ushort frame, int timer)
