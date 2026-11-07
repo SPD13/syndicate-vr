@@ -136,6 +136,7 @@ enum ProcessProximityWieldWeaponTargetSelect {
 };
 
 struct Thing;
+struct SimpleThing;
 
 enum WeaponDefFlags
 {
@@ -360,6 +361,7 @@ s32 laser_hit_at(s32 cor1_x, s32 cor1_y, s32 cor1_z,
 void finalise_razor_wire(struct Thing *p_person);
 void init_lay_razor(struct Thing *p_thing, short x, short y, short z, int flag);
 void init_mgun_laser(struct Thing *p_owner, ushort start_age);
+struct SimpleThing *init_spark(int x, int y, int z);
 
 void process_clone_disguise(struct Thing *p_person);
 

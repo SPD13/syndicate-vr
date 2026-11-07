@@ -50,6 +50,7 @@
 #include "thing_fire.h"
 #include "thing_search.h"
 #include "vehicle.h"
+#include "weapon.h"
 #include "game.h"
 #include "swlog.h"
 /******************************************************************************/
@@ -721,11 +722,25 @@ void process_unkn35(struct Thing *p_thing)
     //TODO implement the rest of the state update
 }
 
-void process_laser(struct Thing *p_laser)
+static DIFFTEST_REF_FUNC void process_laser_asm(struct Thing *p_laser)
 {
     asm volatile (
       "call ASM_process_laser\n"
         : : "a" (p_laser));
+}
+
+void process_laser(struct Thing *p_laser)
+{
+    DIFFTEST_SHADOW(process_laser, process_laser_asm(p_laser));
+    p_laser->Timer1--;
+    if (p_laser->Timer1 == 0)
+    {
+        remove_thing((ushort)(p_laser - things));
+        delete_node(p_laser);
+        return;
+    }
+    // Beam end point is stored in velocity fields
+    init_spark(p_laser->VX, p_laser->VY, p_laser->VZ);
 }
 
 struct SimpleThing *create_temp_light(int prc_x, int prc_y, int prc_z,
