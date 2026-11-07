@@ -28,6 +28,7 @@
 
 #include "bigmap.h"
 #include "bmbang.h"
+#include "difftest.h"
 #include "enginpriobjs.h"
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
@@ -1028,10 +1029,23 @@ void start_crashing(struct Thing *p_vehicle)
         : : "a" (p_vehicle));
 }
 
-void start_landing(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void start_landing_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_start_landing\n"
         : : "a" (p_vehicle));
+}
+
+void start_landing(struct Thing *p_vehicle)
+{
+    DIFFTEST_SHADOW(start_landing, start_landing_asm(p_vehicle));
+    if ((ushort)p_vehicle->State == VehSt_FLY_LANDING)
+        return;
+    if (is_this_a_nice_place_for_a_picnic(p_vehicle->X, p_vehicle->Z))
+    {
+        p_vehicle->U.UVehicle.PathIndex = 0;
+        p_vehicle->State = VehSt_FLY_LANDING;
+        p_vehicle->U.UVehicle.TNode = 0;
+    }
 }
 
 void process_shuttle_pod(struct Thing *p_vehicle)
