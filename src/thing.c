@@ -1562,12 +1562,33 @@ TbResult delete_node(struct Thing *p_thing)
     return ret;
 }
 
-TbResult delete_snode(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC TbResult delete_snode_asm(struct SimpleThing *p_sthing)
 {
     TbResult ret;
     asm volatile ("call ASM_delete_snode\n"
-        : "=r" (ret) : "a" (p_sthing));
+        : "=a" (ret) : "a" (p_sthing));
     return ret;
+}
+
+TbResult delete_snode(struct SimpleThing *p_sthing)
+{
+    short parent, nxt;
+
+    DIFFTEST_SHADOW_RET(delete_snode, TbResult, delete_snode_asm(p_sthing));
+    parent = p_sthing->Parent;
+    if (parent > 0)
+        things[parent].Next = p_sthing->Next;
+    else if (parent < 0)
+        sthings[parent].Next = p_sthing->Next;
+    else
+        game_my_big_map[(p_sthing->Z >> 16) * 128 + (p_sthing->X >> 16)].Child = p_sthing->Next;
+
+    nxt = p_sthing->Next;
+    if (nxt > 0)
+        things[nxt].Parent = p_sthing->Parent;
+    else if (nxt < 0)
+        sthings[nxt].Parent = p_sthing->Parent;
+    DIFFTEST_RETURN((TbResult)0);
 }
 
 static DIFFTEST_REF_FUNC void add_node_thing_asm(ThingIdx new_thing)
