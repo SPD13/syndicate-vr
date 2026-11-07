@@ -31,6 +31,7 @@
 #include "building.h"
 #include "bmbang.h"
 #include "command.h"
+#include "difftest.h"
 #include "display.h"
 #include "engindrwlstx.h"
 #include "enginsngobjs.h"
@@ -1580,12 +1581,37 @@ void add_node_sthing(ThingIdx new_thing)
         : : "a" (new_thing));
 }
 
-short get_new_sthing(void)
+static DIFFTEST_REF_FUNC short get_new_sthing_asm(void)
 {
     short ret;
     asm volatile ("call ASM_get_new_sthing\n"
-        : "=r" (ret) : );
+        : "=a" (ret) : );
     return ret;
+}
+
+short get_new_sthing(void)
+{
+    ThingIdx new_sthing, used_head, next_empty;
+
+    DIFFTEST_SHADOW_RET(get_new_sthing, short, get_new_sthing_asm());
+    // Few slots are always left unused
+    if (sthings_used >= STHINGS_LIMIT - 4)
+        DIFFTEST_RETURN((short)0);
+
+    new_sthing = sthings_empty_head;
+    used_head = sthings_used_head;
+
+    sthings[used_head].LinkParent = new_sthing;
+    sthings[new_sthing].LinkParent = 0;
+    next_empty = sthings[new_sthing].LinkChild;
+    sthings[new_sthing].Flag = 0;
+    sthings[new_sthing].LinkChild = used_head;
+    sthings[next_empty].LinkParent = 0;
+    sthings_used++;
+
+    sthings_used_head = new_sthing;
+    sthings_empty_head = next_empty;
+    DIFFTEST_RETURN(new_sthing);
 }
 
 void remove_sthing(short tngno)
