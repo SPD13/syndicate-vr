@@ -6694,10 +6694,55 @@ void person_dieing(struct Thing *p_person)
         : : "a" (p_person));
 }
 
-void person_dead(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_dead_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_dead\n"
         : : "a" (p_person));
+}
+
+void person_dead(struct Thing *p_person)
+{
+    s32 i;
+
+    DIFFTEST_SHADOW(person_dead, person_dead_asm(p_person));
+    if (p_person->SubState == 0x1A)
+    {
+        ushort nxframe;
+
+        p_person->Timer1 -= fifties_per_gameturn;
+        p_person->Radius = 40;
+        if (p_person->Timer1 < 0)
+        {
+            p_person->Timer1 = p_person->StartTimer1;
+            nxframe = frame[(ushort)p_person->Frame].Next;
+            if ((frame[nxframe].Flags & 0x01) != 0) {
+                p_person->SubState = 0;
+                p_person->Flag |= TngF_Unkn02000000;
+            } else {
+                p_person->Frame = nxframe;
+            }
+        }
+    }
+
+    if (!in_network_game)
+        return;
+    if ((net_game_play_flags & NGPF_Unkn04) == 0)
+        return;
+    if ((p_person->Flag & TngF_SelectedAgent) == 0)
+        return;
+
+    for (i = 0; (ushort)i < 8; i++)
+    {
+        PlayerIdx plyr;
+
+        if ((ingame.InNetGame_UNSURE & (1 << i)) == 0)
+            continue;
+        plyr = (ushort)i;
+        p_person->Flag &= ~TngF_SelectedAgent;
+        if (players[plyr].DirectControl[0] != (ushort)p_person->ThingOffset)
+            continue;
+        place_default_player(plyr, 0);
+    }
 }
 
 void person_kill_person(struct Thing *p_person)
