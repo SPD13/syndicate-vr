@@ -1584,10 +1584,35 @@ short get_new_thing(void)
     return ret;
 }
 
-void remove_thing(short tngno)
+static DIFFTEST_REF_FUNC void remove_thing_asm(short tngno)
 {
     asm volatile ("call ASM_remove_thing\n"
         : : "a" (tngno));
+}
+
+void remove_thing(short tngno)
+{
+    struct Thing *p_thing;
+    ushort link_parent, link_child, empty_head;
+
+    DIFFTEST_SHADOW(remove_thing, remove_thing_asm(tngno));
+    p_thing = &things[(ushort)tngno];
+    link_child = p_thing->LinkChild;
+    link_parent = p_thing->LinkParent;
+    if (link_child != 0)
+        things[link_child].LinkParent = link_parent;
+
+    if (link_parent != 0)
+        things[link_parent].LinkChild = link_child;
+    else
+        things_used_head = link_child;
+
+    p_thing->LinkChild = things_empty_head;
+    empty_head = things_empty_head;
+    p_thing->LinkParent = 0;
+    things_empty_head = tngno;
+    things[empty_head].LinkParent = tngno;
+    things_used--;
 }
 
 void add_node_sthing(ThingIdx new_thing)
