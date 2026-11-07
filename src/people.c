@@ -3864,11 +3864,38 @@ void person_init_command(struct Thing *p_person, ushort from)
     }
 }
 
-void assign_next_target_from_group(struct Thing *p_person, ushort group, ubyte flag)
+static DIFFTEST_REF_FUNC void assign_next_target_from_group_asm(struct Thing *p_person, ushort group, ubyte flag)
 {
     asm volatile ("call ASM_assign_next_target_from_group\n"
         : : "a" (p_person), "d" (group), "b" (flag));
-    return;
+}
+
+void assign_next_target_from_group(struct Thing *p_person, ushort group, ubyte flag)
+{
+    ThingIdx target;
+    s32 range;
+
+    DIFFTEST_SHADOW(assign_next_target_from_group,
+      assign_next_target_from_group_asm(p_person, group, flag));
+    if (p_person->U.UPerson.Group == group)
+        return;
+
+    target = find_nearest_from_group(p_person, group, flag);
+    if (target == 0)
+    {
+        p_person->State = PerSt_NONE;
+        return;
+    }
+    check_weapon(p_person, 1280);
+    p_person->State = PerSt_KILL_PERSON;
+    p_person->U.UPerson.ComTimer = -1;
+    p_person->PTarget = &things[target];
+    p_person->GotoThingIndex = target;
+    range = get_weapon_range(p_person);
+    p_person->U.UPerson.Timer2 = 10;
+    p_person->U.UPerson.StartTimer2 = 10;
+    p_person->SubState = 0;
+    p_person->U.UPerson.ComRange = range >> 6;
 }
 
 short is_group_all_persuaded_by_me(ushort group, struct Thing *p_me, short count)
