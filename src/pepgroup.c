@@ -23,6 +23,8 @@
 #include <assert.h>
 
 #include "command.h"
+#include "difftest.h"
+#include "lvobjctv.h"
 #include "player.h"
 #include "swlog.h"
 #include "thing.h"
@@ -429,14 +431,45 @@ TbBool all_group_persuaded(ushort group)
     return true;
 }
 
-ubyte all_group_arrived(ushort group, short x, short y, short z, int radius)
+static DIFFTEST_REF_FUNC ubyte all_group_arrived_asm(ushort group, short x, short y, short z, int radius)
 {
     ubyte ret;
     asm volatile (
       "push %5\n"
       "call ASM_all_group_arrived\n"
-        : "=r" (ret) : "a" (group), "d" (x), "b" (y), "c" (z), "g" (radius));
+        : "=a" (ret) : "a" (group), "d" (x), "b" (y), "c" (z), "g" (radius));
     return ret;
+}
+
+ubyte all_group_arrived(ushort group, short x, short y, short z, int radius)
+{
+    struct Thing *p_thing;
+    ThingIdx thing;
+    s32 radius_sq;
+    s32 count;
+
+    DIFFTEST_SHADOW_RET(all_group_arrived, ubyte,
+      all_group_arrived_asm(group, x, y, z, radius));
+    radius_sq = (radius * radius) << 12;
+    count = 0;
+    thing = same_type_head[256 + group];
+    while (thing > 0)
+    {
+        p_thing = &things[thing];
+        if ((p_thing->Flag & TngF_Destroyed) != 0) {
+            thing = p_thing->LinkSameGroup;
+            continue;
+        }
+        count++;
+        if (!thing_arrived_at_obj_radius(thing, x, y, z, radius_sq)) {
+            thing = -1;
+            continue;
+        }
+        thing = things[thing].LinkSameGroup;
+    }
+    if (thing == 0 && count != 0)
+        DIFFTEST_RETURN((ubyte)1);
+    DIFFTEST_RETURN((ubyte)0);
 }
 
 TbBool group_has_all_killed_or_persuaded_by_player(ushort group, ushort plyr)
