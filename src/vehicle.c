@@ -1072,10 +1072,40 @@ void process_tank(struct Thing *p_vehicle)
         : : "a" (p_vehicle));
 }
 
-void set_passengers_location(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void set_passengers_location_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_set_passengers_location\n"
         : : "a" (p_vehicle));
+}
+
+void set_passengers_location(struct Thing *p_vehicle)
+{
+    struct Thing *p_passngr;
+    ushort passngr;
+    ushort k;
+
+    DIFFTEST_SHADOW(set_passengers_location, set_passengers_location_asm(p_vehicle));
+    p_vehicle->Flag2 &= ~TgF2_Unkn2000;
+    k = 0;
+    passngr = p_vehicle->U.UVehicle.PassengerHead;
+    while (passngr != 0)
+    {
+        if (k >= 410)
+            break;
+        p_passngr = &things[passngr];
+        p_passngr->X = p_vehicle->X;
+        if (p_vehicle->SubType == SubTT_VEH_FLYING)
+            p_passngr->Y = p_vehicle->Y >> 3;
+        else
+            p_passngr->Y = p_vehicle->Y;
+        p_passngr->Z = p_vehicle->Z;
+        passngr = p_passngr->U.UPerson.LinkPassenger;
+        if ((p_passngr->Flag & TngF_SelectedAgent) != 0)
+            p_vehicle->Flag2 |= TgF2_Unkn2000;
+        k++;
+    }
+    // TODO the original then walks the passenger list again, up to 100
+    // entries, without any side effect (likely stripped debug code)
 }
 
 void move_flying_vehicle(struct Thing *p_vehicle)
