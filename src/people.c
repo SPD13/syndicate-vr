@@ -2143,10 +2143,40 @@ short person_shield_glow_brightness(struct Thing *p_thing)
     return br_inc;
 }
 
-void process_stamina(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void process_stamina_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_process_stamina\n"
         : : "a" (p_person));
+}
+
+void process_stamina(struct Thing *p_person)
+{
+    s32 mood_limit;
+
+    DIFFTEST_SHADOW(process_stamina, process_stamina_asm(p_person));
+    if (p_person->Type != TT_PERSON)
+        return;
+
+    // TODO: division by zero if MaxStamina is 0, as in the original
+    mood_limit = (88 * (s32)p_person->U.UPerson.Stamina) /
+      (s32)p_person->U.UPerson.MaxStamina;
+    if (p_person->U.UPerson.Mood > mood_limit)
+    {
+        p_person->U.UPerson.Mood = mood_limit;
+    }
+    else if (p_person->U.UPerson.Mood < -mood_limit)
+    {
+        p_person->U.UPerson.Mood = mood_limit;
+        p_person->U.UPerson.Mood = -mood_limit;
+    }
+
+    if (p_person->U.UPerson.Stamina < p_person->U.UPerson.MaxStamina)
+    {
+        p_person->U.UPerson.Stamina = p_person->U.UPerson.Stamina +
+          cybmod_chest_level(&p_person->U.UPerson.UMod) + 2;
+    }
+    if (p_person->U.UPerson.Stamina < 0)
+        p_person->U.UPerson.Stamina = 0;
 }
 
 void process_shield(struct Thing *p_person)
