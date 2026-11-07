@@ -31,9 +31,35 @@ static long fuzz_int(ulong *p_seed)
     return (long)(v >> (difftest_fuzz_rand(p_seed) % 32));
 }
 
+static void fuzz_vec_cross_prod(ulong *p_seed)
+{
+    struct M31 vecr, vec1, vec2;
+    int i;
+
+    for (i = 0; i < 3; i++) {
+        vecr.R[i] = fuzz_int(p_seed);
+        vec1.R[i] = fuzz_int(p_seed);
+        vec2.R[i] = fuzz_int(p_seed);
+    }
+    // Sometimes check aliasing of result with inputs
+    switch (difftest_fuzz_rand(p_seed) % 8)
+    {
+    case 0:
+        vec_cross_prod(&vec1, &vec1, &vec2);
+        break;
+    case 1:
+        vec_cross_prod(&vec2, &vec1, &vec2);
+        break;
+    default:
+        vec_cross_prod(&vecr, &vec1, &vec2);
+        break;
+    }
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
+    {"vec_cross_prod", fuzz_vec_cross_prod},
     {NULL, NULL},
 };
 

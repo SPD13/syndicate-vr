@@ -17,6 +17,7 @@
  */
 /******************************************************************************/
 #include "matrix.h"
+#include "difftest.h"
 #include "swlog.h"
 /******************************************************************************/
 
@@ -106,10 +107,21 @@ void rotate_object_axis(struct M33 *p_base, short xangle, short yangle, short za
         : : "a" (p_base), "d" (xangle), "b" (yangle), "c" (zangle));
 }
 
-void vec_cross_prod(struct M31 *vecr, struct M31 *vec1, struct M31 *vec2)
+static DIFFTEST_REF_FUNC void vec_cross_prod_asm(struct M31 *vecr,
+  struct M31 *vec1, struct M31 *vec2)
 {
     asm volatile ("call ASM_vec_cross_prod\n"
         : : "a" (vecr), "d" (vec1), "b" (vec2));
+}
+
+void vec_cross_prod(struct M31 *vecr, struct M31 *vec1, struct M31 *vec2)
+{
+    DIFFTEST_SHADOW(vec_cross_prod, vec_cross_prod_asm(vecr, vec1, vec2));
+    // Each component is stored before the next is computed, like in the
+    // original - matters if the result vector is also one of the inputs
+    vecr->R[0] = vec1->R[1] * vec2->R[2] - vec1->R[2] * vec2->R[1];
+    vecr->R[1] = vec1->R[2] * vec2->R[0] - vec1->R[0] * vec2->R[2];
+    vecr->R[2] = vec1->R[0] * vec2->R[1] - vec2->R[0] * vec1->R[1];
 }
 
 void object_vec_normalisation(struct M33 *vec, ubyte col)
