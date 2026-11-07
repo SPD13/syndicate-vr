@@ -471,8 +471,8 @@ void do_shockwave_person(int dx, int dz, int dist, int intensity,
         : "cc", "memory");
 }
 
-void do_shockwave_scale_effect(int dx, int dz, int dist, int intensity,
-  struct SimpleThing *p_sthing, struct Thing *p_owner)
+static DIFFTEST_REF_FUNC void do_shockwave_scale_effect_asm(int dx, int dz,
+  int dist, int intensity, struct SimpleThing *p_sthing, struct Thing *p_owner)
 {
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
@@ -487,5 +487,24 @@ void do_shockwave_scale_effect(int dx, int dz, int dist, int intensity,
       "call ASM_do_shockwave_scale_effect\n"
         : : "a" (dx), "d" (dz), "b" (dist), "c" (intensity), "S" (stkargs)
         : "cc", "memory");
+}
+
+void do_shockwave_scale_effect(int dx, int dz, int dist, int intensity,
+  struct SimpleThing *p_sthing, struct Thing *p_owner)
+{
+    s32 dist_sq, force;
+
+    DIFFTEST_SHADOW(do_shockwave_scale_effect,
+      do_shockwave_scale_effect_asm(dx, dz, dist, intensity, p_sthing, p_owner));
+
+    force = intensity;
+    if (force > 2000)
+        force = 2000;
+    dist_sq = (dist >> 5) * (dist >> 5);
+    if (dist_sq > 0)
+        force /= dist_sq;
+
+    p_sthing->U.UEffect.VX += (dx * force) >> 3;
+    p_sthing->U.UEffect.VZ += (dz * force) >> 3;
 }
 /******************************************************************************/
