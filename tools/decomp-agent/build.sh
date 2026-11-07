@@ -10,6 +10,7 @@ set -e
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 export CCACHE_BASEDIR="$REPO"
 export CCACHE_DIR="${CCACHE_DIR:-$HOME/.ccache}"
+export USERPROFILE="${USERPROFILE:-$(cygpath -w "$HOME" 2>/dev/null)}"
 CHECK=0; RECONF=0; VARIANT=release; EXTRA_CONF=""
 for a in "$@"; do
     case "$a" in
