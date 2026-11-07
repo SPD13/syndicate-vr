@@ -340,10 +340,49 @@ void move_mapwho(struct Thing *p_thing, int x, int y, int z)
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z));
 }
 
-void init_just_things(void)
+static DIFFTEST_REF_FUNC void init_just_things_asm(void)
 {
     asm volatile ("call ASM_init_just_things\n"
         :  :  : "eax" );
+}
+
+void init_just_things(void)
+{
+    short i;
+
+    DIFFTEST_SHADOW(init_just_things, init_just_things_asm());
+
+    // Simple things use negative indices, linked as an empty list
+    for (i = 1; i < STHINGS_LIMIT; i++)
+    {
+        struct SimpleThing *p_sthing;
+
+        p_sthing = &sthings[-i];
+        memset(p_sthing, 0, sizeof(struct SimpleThing));
+        p_sthing->LinkParent = -(i - 1);
+        p_sthing->U.UEffect.VZ = 0;
+        p_sthing->ThingOffset = -i;
+        p_sthing->LinkChild = -(i + 1);
+    }
+    sthings_empty_head = -1;
+    sthings_used_head = 0;
+
+    for (i = 1; i < THINGS_LIMIT; i++)
+    {
+        struct Thing *p_thing;
+
+        p_thing = &things[i];
+        memset(p_thing, 0, sizeof(struct Thing));
+        p_thing->LinkParent = i - 1;
+        p_thing->ThingOffset = i;
+        p_thing->LinkChild = i + 1;
+    }
+    things_empty_head = 1;
+    things_used_head = 0;
+    things_used = 0;
+    sthings_used = 0;
+    // TODO the original writes past the last valid thing, maybe a bug
+    things[THINGS_LIMIT].ThingOffset = THINGS_LIMIT;
 }
 
 void init_things(void)
