@@ -18,3 +18,8 @@ test-driver
 /build/
 /worktrees/
 autom4te.cache/
+RESULT.json
+/tools/decomp-agent/queue.json
+/tools/decomp-agent/ledger.jsonl
+/tools/decomp-agent/attempts/
+/tools/decomp-agent/STOP

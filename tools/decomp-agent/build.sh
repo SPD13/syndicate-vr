@@ -2,8 +2,13 @@
 # Build syndwarsfx (32-bit, MSYS2 MINGW32 or Linux -m32).
 # Usage: tools/decomp-agent/build.sh [--check] [--reconf] [--difftest]
 #   Builds into <repo>/build/release (or build/difftest with --difftest).
+# On Windows, re-run inside MSYS2 MINGW32 when called from another shell
+if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
+    exec "$(dirname "$0")/msys.sh" "$(printf "%q " "$0" "$@")"
+fi
 set -e
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+export CCACHE_BASEDIR="$REPO"
 CHECK=0; RECONF=0; VARIANT=release; EXTRA_CONF=""
 for a in "$@"; do
     case "$a" in
