@@ -2601,10 +2601,26 @@ void check_weapon(struct Thing *p_person, int range)
     p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
 }
 
-void get_weapon_out(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void get_weapon_out_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_get_weapon_out\n"
         : : "a" (p_person));
+}
+
+void get_weapon_out(struct Thing *p_person)
+{
+    DIFFTEST_SHADOW(get_weapon_out, get_weapon_out_asm(p_person));
+    if (p_person->U.UPerson.CurrentWeapon != 0)
+        return;
+    choose_best_weapon_for_range(p_person, 0x500);
+    if (p_person->U.UPerson.CurrentWeapon == 0)
+        return;
+    p_person->Frame -= nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+      + p_person->U.UPerson.Angle];
+    p_person->U.UPerson.AnimMode = gun_out_anim(p_person, 0);
+    p_person->Frame += nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+      + p_person->U.UPerson.Angle];
+    p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
 }
 
 #define CMD_CONDITION_CONTINUE 0xFFFF
