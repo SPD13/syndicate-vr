@@ -11,6 +11,7 @@
 #include "bfjoyst.h"
 
 #include "campaign.h"
+#include "difftest.h"
 #include "display.h"
 #include "guitext.h"
 #include "game.h"
@@ -191,6 +192,9 @@ static void tests_execute(void)
     // TODO prpare tests
     //if (!test_gpoly())
     //    exit(51);
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+    difftest_run_fuzz();
+#endif
     exit(0);
 }
 

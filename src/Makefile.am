@@ -52,6 +52,9 @@ syndwarsfx_SOURCES = \
 	devcreds.h \
 	display.c \
 	display.h \
+	difftest.c \
+	difftest.h \
+	difftest_fuzz.c \
 	dos.c \
 	dos.h \
 	drawtext_wrp.c \

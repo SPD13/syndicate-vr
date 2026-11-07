@@ -130,6 +130,7 @@
 #include "lvobjctv.h"
 #include "lvfiles.h"
 #include "bigmap.h"
+#include "difftest.h"
 #include "display.h"
 #include "dos.h"
 #include "frame_sprani.h"
@@ -6211,6 +6212,7 @@ void game_process(void)
         update_unkn_changing_colors();
         game_process_orbital_station_explode();
         gameturn++;
+        difftest_game_turn();
         scene_post_effect_prepare();
     }
     PacketRecord_Close();
@@ -6230,7 +6232,7 @@ static void game_update_full(bool wait)
 
     game_handle_sdl_events();
 
-    if (wait)
+    if (wait && !difftest_skip_turn_wait())
     {
         wait_next_gameturn();
     }

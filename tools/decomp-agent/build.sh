@@ -1,0 +1,45 @@
+#!/bin/bash
+# Build syndwarsfx (32-bit, MSYS2 MINGW32 or Linux -m32).
+# Usage: tools/decomp-agent/build.sh [--check] [--reconf] [--difftest]
+#   Builds into <repo>/build/release (or build/difftest with --difftest).
+set -e
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+CHECK=0; RECONF=0; VARIANT=release; EXTRA_CONF=""
+for a in "$@"; do
+    case "$a" in
+    --check) CHECK=1 ;;
+    --reconf) RECONF=1 ;;
+    --difftest) VARIANT=difftest; EXTRA_CONF="--enable-difftest" ;;
+    *) echo "unknown arg $a" >&2; exit 2 ;;
+    esac
+done
+BDIR="$REPO/build/$VARIANT"
+JOBS="$(nproc 2>/dev/null || echo 4)"
+cd "$REPO"
+mkdir -p "$REPO/build"
+if [ $RECONF -eq 1 ] || [ ! -f configure ]; then
+    autoreconf -i > "$REPO/build/autoreconf.log" 2>&1 || { tail -20 "$REPO/build/autoreconf.log"; exit 1; }
+    # autoreconf --install refreshes the vendored pkg.m4 copies; keep the committed ones
+    git checkout -q -- $(git ls-files '*pkg.m4') 2>/dev/null || true
+fi
+mkdir -p "$BDIR"; cd "$BDIR"
+if [ $RECONF -eq 1 ] || [ ! -f Makefile ]; then
+    FL="-m32 -fno-PIC -fno-PIE"
+    CC="ccache gcc"; command -v ccache >/dev/null || CC=gcc
+    CC="$CC" CFLAGS="$FL -g" CXXFLAGS="$FL -g" LDFLAGS="$FL" \
+        "$REPO/configure" --prefix=/ --disable-lb-wscreen-control $EXTRA_CONF \
+        > configure.log 2>&1 || { tail -30 configure.log; exit 1; }
+fi
+if ! make -j"$JOBS" > make.log 2>&1; then
+    grep -E -B2 -A6 '(error|Error)[: ]' make.log | head -80
+    echo "BUILD FAILED (full log: $BDIR/make.log)"; exit 1
+fi
+echo "BUILD OK: $BDIR/src/syndwarsfx.exe"
+if [ $CHECK -eq 1 ]; then
+    if ! make -j"$JOBS" check > check.log 2>&1; then
+        grep -E '^(FAIL|ERROR|# )' check.log | head -40
+        echo "CHECK FAILED (log: $BDIR/check.log)"; exit 1
+    fi
+    grep -E '^# (TOTAL|PASS|FAIL)' check.log | head -20
+    echo "CHECK OK"
+fi

@@ -206,6 +206,14 @@ AS_IF([test "x$have_wildmidi" == "xyes"], [
 AC_SUBST(WILDMIDI_CFLAGS, )
 AC_MSG_RESULT([$have_wildmidi])
 
+AC_ARG_ENABLE([difftest],
+  AS_HELP_STRING([--enable-difftest],
+    [build with differential testing of remade C functions against original asm @<:@default=no@:>@]),
+  [enable_difftest=$enableval], [enable_difftest=no])
+AS_IF([test "x$enable_difftest" = "xyes"], [
+  AC_DEFINE([ENABLE_DIFFTEST], [1], [Define to enable asm vs C differential testing])
+])
+
 # libraries from within this project are only built after `make` is executed
 AC_SUBST(BFLIBRARY_LIBS, "-L\"\$(top_builddir)/lib\" -lbullfrog")
 # the 2nd include folder is just a temp workaround
