@@ -38,6 +38,7 @@
 #include "bigmap.h"
 #include "building.h"
 #include "command.h"
+#include "difftest.h"
 #include "drawshape.h"
 #include "drawtext_wrp.h"
 #include "enginsngobjs.h"
@@ -5870,10 +5871,31 @@ void person_intel(struct Thing *p_person)
         : : "a" (p_person));
 }
 
-void process_im_shoved(struct Thing *p_person)
+short person_move(struct Thing *p_person);
+
+static DIFFTEST_REF_FUNC void process_im_shoved_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_process_im_shoved\n"
         : : "a" (p_person));
+}
+
+void process_im_shoved(struct Thing *p_person)
+{
+    short prev_vx, prev_vz;
+    s32 dir;
+
+    DIFFTEST_SHADOW(process_im_shoved, process_im_shoved_asm(p_person));
+    prev_vx = p_person->VX;
+    prev_vz = p_person->VZ;
+    dir = (p_person->U.UPerson.BumpMode + 7) & 7;
+    p_person->VX = angle_direction[dir].DiX >> 4;
+    p_person->VZ = angle_direction[dir].DiY >> 4;
+    if (person_move(p_person))
+        p_person->U.UPerson.BumpMode--;
+    else
+        p_person->U.UPerson.BumpMode = 0;
+    p_person->VX = prev_vx;
+    p_person->VZ = prev_vz;
 }
 
 void try_and_kill_target(struct Thing *p_person)
