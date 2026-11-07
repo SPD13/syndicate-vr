@@ -1351,12 +1351,56 @@ int create_train_carriage(short cor_dx, short cor_dy, short cor_dz, short otype)
     return ret;
 }
 
-struct Thing *find_unused_train_track(void)
+static DIFFTEST_REF_FUNC struct Thing *find_unused_train_track_asm(void)
 {
     struct Thing *ret;
     asm volatile ("call ASM_find_unused_train_track\n"
-        : "=r" (ret) : );
+        : "=a" (ret) : );
     return ret;
+}
+
+struct Thing *find_unused_train_track(void)
+{
+    struct Thing *p_things;
+    ThingIdx thing;
+    ushort remain;
+    ushort count;
+
+    DIFFTEST_SHADOW_RET(find_unused_train_track, struct Thing *,
+      find_unused_train_track_asm());
+    p_things = things;
+    count = 0;
+    remain = things_used;
+    for (thing = things_used_head; thing > 0; )
+    {
+        struct Thing *p_thing;
+
+        remain--;
+        if (remain == 0xFFFF)
+            break;
+        p_thing = &p_things[thing];
+        thing = p_thing->LinkChild;
+        if (p_thing->Type != TT_BUILDING)
+            continue;
+        if (p_thing->SubType != SubTT_BLD_TRAINTRK)
+            continue;
+        if (p_thing->U.UObject.PrevThing != 0)
+            continue;
+        if ((p_thing->Flag & TngF_Unkn08000000) != 0)
+            continue;
+        if (p_thing->U.UObject.ComCur == 0)
+            continue;
+        if ((short)p_thing->U.UObject.ComHead == 0)
+            continue;
+        count++;
+        if ((s32)count > ingame.fld_unkC59)
+        {
+            things = p_things;
+            DIFFTEST_RETURN(p_thing);
+        }
+    }
+    things = p_things;
+    DIFFTEST_RETURN((struct Thing *)NULL);
 }
 void create_train_for_each_track(void)
 {
