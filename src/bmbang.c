@@ -23,6 +23,8 @@
 #include "bfmath.h"
 #include "bfutility.h"
 #include "bigmap.h"
+#include "building.h"
+#include "difftest.h"
 #include "thing.h"
 #include "swlog.h"
 /******************************************************************************/
@@ -409,11 +411,28 @@ void do_shockwave(int x, int y, int z, int radius, int intensity, struct Thing *
 }
 
 
-void do_shockwave_building(int dist, int intensity, struct Thing *p_thing, struct Thing *p_owner)
+static DIFFTEST_REF_FUNC void do_shockwave_building_asm(int dist, int intensity,
+  struct Thing *p_thing, struct Thing *p_owner)
 {
     asm volatile (
       "call ASM_do_shockwave_building\n"
         : : "a" (dist), "d" (intensity), "b" (p_thing), "c" (p_owner));
+}
+
+void do_shockwave_building(int dist, int intensity, struct Thing *p_thing, struct Thing *p_owner)
+{
+    DIFFTEST_SHADOW(do_shockwave_building,
+      do_shockwave_building_asm(dist, intensity, p_thing, p_owner));
+
+    if ((p_thing->Flag & TngF_Destroyed) != 0)
+        return;
+
+    p_thing->Health -= (intensity >> 4);
+    if (p_thing->Health < 0)
+    {
+        collapse_building(p_thing->X >> 8, p_thing->Y >> 8,
+          p_thing->Z >> 8, p_thing);
+    }
 }
 
 void do_shockwave_vehicle(int dx, int dz, int dist, int intensity,
