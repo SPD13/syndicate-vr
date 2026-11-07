@@ -32,22 +32,26 @@ done
 
 # Symbol table for resolving DIFF addresses
 NM_FILE="$OUT/symbols.txt"
-nm -n "$EXE" 2>/dev/null | grep -E ' [bBdDrR] ' > "$NM_FILE"
+nm -n "$EXE" 2>/dev/null | grep -E ' [bBdDrR] |__image_base__' > "$NM_FILE"
 
 symbolize() {
     # Appends "sym+off" to DIFF lines whose address is within static data
     python -I - "$NM_FILE" "$1" <<'PYEOF'
 import sys, bisect, re
 syms = []
+base = 0
 for l in open(sys.argv[1]):
     p = l.split()
     if len(p) == 3:
-        syms.append((int(p[0], 16), p[2]))
+        if p[2] == '__image_base__':
+            base = int(p[0], 16)
+        else:
+            syms.append((int(p[0], 16), p[2]))
 addrs = [a for a, _ in syms]
 for l in open(sys.argv[2]):
-    m = re.search(r'DIFF region=(\S+) addr=0x([0-9a-f]+)', l)
+    m = re.search(r'DIFF region=(\S+) addr=0x[0-9a-f]+ rva=0x([0-9a-f]+)', l)
     if m and m.group(1) not in ('arena0', 'arena1', 'stack') and addrs:
-        a = int(m.group(2), 16)
+        a = base + int(m.group(2), 16)
         i = bisect.bisect_right(addrs, a) - 1
         if i >= 0:
             l = l.rstrip('\n') + ' sym=%s+0x%x\n' % (syms[i][1], a - syms[i][0])

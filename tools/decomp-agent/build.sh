@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build syndwarsfx (32-bit, MSYS2 MINGW32 or Linux -m32).
-# Usage: tools/decomp-agent/build.sh [--check] [--reconf] [--difftest]
+# Usage: tools/decomp-agent/build.sh [--check] [--reconf] [--difftest|--coverage]
 #   Builds into <repo>/build/release (or build/difftest with --difftest).
 # On Windows, re-run inside MSYS2 MINGW32 when called from another shell
 if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
@@ -11,12 +11,13 @@ REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 export CCACHE_BASEDIR="$REPO"
 export CCACHE_DIR="${CCACHE_DIR:-$HOME/.ccache}"
 export USERPROFILE="${USERPROFILE:-$(cygpath -w "$HOME" 2>/dev/null)}"
-CHECK=0; RECONF=0; VARIANT=release; EXTRA_CONF=""
+CHECK=0; RECONF=0; VARIANT=release; EXTRA_CONF=""; EXTRA_CFLAGS=""
 for a in "$@"; do
     case "$a" in
     --check) CHECK=1 ;;
     --reconf) RECONF=1 ;;
     --difftest) VARIANT=difftest; EXTRA_CONF="--enable-difftest" ;;
+    --coverage) VARIANT=coverage; EXTRA_CONF="--enable-difftest"; EXTRA_CFLAGS="-finstrument-functions" ;;
     *) echo "unknown arg $a" >&2; exit 2 ;;
     esac
 done
@@ -40,6 +41,18 @@ fi
 if ! make -j"$JOBS" > make.log 2>&1; then
     grep -E -B2 -A6 '(error|Error)[: ]' make.log | head -80
     echo "BUILD FAILED (full log: $BDIR/make.log)"; exit 1
+fi
+if [ -n "$EXTRA_CFLAGS" ]; then
+    # Instrument only the game sources; configure link probes lack the hooks
+    ORIG_CFLAGS="$(sed -n 's/^CFLAGS = //p' src/Makefile)"
+    if ! grep -q -- "$EXTRA_CFLAGS" src/.extra_cflags 2>/dev/null; then
+        rm -f src/*.o src/syndwarsfx.exe
+        echo "$EXTRA_CFLAGS" > src/.extra_cflags
+    fi
+    if ! make -C src -j"$JOBS" CFLAGS="$ORIG_CFLAGS $EXTRA_CFLAGS" >> make.log 2>&1; then
+        grep -E -B2 -A6 '(error|Error)[: ]' make.log | tail -40
+        echo "BUILD FAILED (full log: $BDIR/make.log)"; exit 1
+    fi
 fi
 echo "BUILD OK: $BDIR/src/syndwarsfx.exe"
 if [ $CHECK -eq 1 ]; then

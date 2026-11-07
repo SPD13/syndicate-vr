@@ -18,6 +18,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 QUEUE = os.path.join(HERE, 'queue.json')
 LEDGER = os.path.join(HERE, 'ledger.jsonl')
+COVERAGE = os.path.join(HERE, 'coverage.json')
+# Calls in the scenarios needed for a target to be verifiable (coverage.sh)
+MIN_COVERAGE_CALLS = 5
 
 # Subsystems left for platform rewrites instead of conversion
 EXCLUDE_FILE_RE = re.compile(r'(radica|net|ailssa|bfsmack|sound|dos)', re.I)
@@ -147,6 +150,7 @@ def main():
     wr = wrappers()
     recent = recent_upstream_names()
     ledger = ledger_state()
+    coverage = json.load(open(COVERAGE)) if os.path.exists(COVERAGE) else None
     targets = []
     for name, info in live.items():
         a = asm.get('ASM_' + name)
@@ -160,10 +164,14 @@ def main():
             excluded = 'subsystem'
         elif name in recent:
             excluded = 'upstream-recent'
+        cov_calls = coverage.get(name, {}).get('calls', 0) if coverage is not None else None
+        if excluded is None and cov_calls is not None and cov_calls < MIN_COVERAGE_CALLS:
+            excluded = 'low-coverage'
         attempts = ledger.get(name, [])
         if any(e.get('status') == 'merged' for e in attempts):
             continue
-        fails = sum(1 for e in attempts if e.get('status') != 'merged')
+        fails = sum(1 for e in attempts
+                    if e.get('status') not in ('merged', 'base-build-failed'))
         if fails >= 3:
             excluded = 'failed-3x'
         targets.append({
@@ -178,6 +186,7 @@ def main():
             'ret': w.get('ret'),
             'args': w.get('args'),
             'fails': fails,
+            'coverage_calls': cov_calls,
             'excluded': excluded,
         })
     # Priority: leaves first (no calls into unrouted asm), then by size;
@@ -195,8 +204,8 @@ def main():
         n = int(sys.argv[sys.argv.index('--print') + 1])
         print(json.dumps(stats))
         for t in targets[:n]:
-            print('%-40s %4d insns  calls=%-30s %s %s' % (
-                t['fn'], t['insns'], ','.join(t['internal_calls'])[:30],
+            print('%-36s %4d insns  cov=%-8s calls=%-24s %s %s' % (
+                t['fn'], t['insns'], t['coverage_calls'], ','.join(t['internal_calls'])[:24],
                 t['cfile'], t['excluded'] or ''))
 
 

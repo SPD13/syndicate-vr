@@ -23,3 +23,4 @@ RESULT.json
 /tools/decomp-agent/ledger.jsonl
 /tools/decomp-agent/attempts/
 /tools/decomp-agent/STOP
+/tools/decomp-agent/coverage.json

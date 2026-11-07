@@ -105,6 +105,19 @@ extern char __data_start[], _end[];
 
 static void dt_log(const char *fmt, ...) __attribute__((format(printf,1,2)));
 
+/** Returns address relative to our image base, which stays the same
+ * between runs even when the image is relocated.
+ */
+static ulong dt_rva(const void *addr) __attribute__((no_instrument_function));
+static ulong dt_rva(const void *addr)
+{
+#if defined(WIN32) || defined(_WIN32)
+    return (ulong)addr - (ulong)GetModuleHandle(NULL);
+#else
+    return (ulong)addr;
+#endif
+}
+
 static void dt_log(const char *fmt, ...)
 {
     va_list ap;
@@ -374,9 +387,9 @@ static ulong dt_compare(void)
                 if (reported < DT_MAX_REPORTED_DIFFS) {
                     size_t n = end - beg;
                     if (n > 32) n = 32;
-                    dt_log("  DIFF region=%s addr=0x%08lx off=0x%lx len=%lu\n",
-                      dt.regions[i].name, (ulong)(cur + beg), (ulong)beg,
-                      (ulong)(end - beg));
+                    dt_log("  DIFF region=%s addr=0x%08lx rva=0x%08lx off=0x%lx len=%lu\n",
+                      dt.regions[i].name, (ulong)(cur + beg), dt_rva(cur + beg),
+                      (ulong)beg, (ulong)(end - beg));
                     dt_log_bytes("asm", buf + beg, n);
                     dt_log_bytes("  c", cur + beg, n);
                 }
@@ -566,6 +579,67 @@ void difftest_run_fuzz(void)
         exit(DtExit_UNVERIFIED);
     }
     exit((dt.compares > 0) ? DtExit_PASS : DtExit_UNVERIFIED);
+}
+
+/******************************************************************************/
+/* Call coverage, for builds with -finstrument-functions */
+
+#define DT_COV_SLOTS 65536
+
+struct DtCovSlot {
+    void *fn;
+    ulong count;
+};
+
+static struct DtCovSlot *dt_cov;
+static TbBool dt_cov_checked;
+
+void __cyg_profile_func_enter(void *this_fn, void *call_site)
+  __attribute__((no_instrument_function));
+void __cyg_profile_func_exit(void *this_fn, void *call_site)
+  __attribute__((no_instrument_function));
+static void dt_cov_dump(void) __attribute__((no_instrument_function));
+
+static void dt_cov_dump(void)
+{
+    const char *fname = getenv("SWARS_COVERAGE");
+    FILE *fh;
+    ulong i;
+
+    if ((dt_cov == NULL) || (fname == NULL))
+        return;
+    fh = fopen(fname, "w");
+    if (fh == NULL)
+        return;
+    for (i = 0; i < DT_COV_SLOTS; i++) {
+        if (dt_cov[i].fn != NULL)
+            fprintf(fh, "%08lx %lu\n", dt_rva(dt_cov[i].fn), dt_cov[i].count);
+    }
+    fclose(fh);
+}
+
+void __cyg_profile_func_enter(void *this_fn, void *call_site)
+{
+    ulong h;
+
+    if (!dt_cov_checked) {
+        dt_cov_checked = true;
+        if (getenv("SWARS_COVERAGE") != NULL) {
+            dt_cov = calloc(DT_COV_SLOTS, sizeof(struct DtCovSlot));
+            atexit(dt_cov_dump);
+        }
+    }
+    if (dt_cov == NULL)
+        return;
+    h = ((ulong)this_fn >> 2) & (DT_COV_SLOTS - 1);
+    while ((dt_cov[h].fn != NULL) && (dt_cov[h].fn != this_fn))
+        h = (h + 1) & (DT_COV_SLOTS - 1);
+    dt_cov[h].fn = this_fn;
+    dt_cov[h].count++;
+}
+
+void __cyg_profile_func_exit(void *this_fn, void *call_site)
+{
 }
 
 #else
