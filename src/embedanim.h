@@ -20,6 +20,7 @@
 #define EMBEDANIM_H
 
 #include "bftypes.h"
+#include "bfflic.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +43,8 @@ enum AnimSlot {
 };
 
 /******************************************************************************/
+extern struct Animation animations[2];
+
 uint embanim_current_frame_number(ubyte anislot);
 
 /** Decode and draw next frame of the animation.

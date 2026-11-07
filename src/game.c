@@ -1118,10 +1118,35 @@ void init_syndwars(void)
     setup_heaps(SHSC_GameSndAutoQ, language_3str);
 }
 
-void setup_host_sub6(void)
+static DIFFTEST_REF_FUNC void setup_host_sub6_asm(void)
 {
     asm volatile ("call ASM_setup_host_sub6\n"
         :  :  : "eax" );
+}
+
+void setup_host_sub6(void)
+{
+    uint k;
+
+    DIFFTEST_SHADOW(setup_host_sub6, setup_host_sub6_asm());
+    for (k = 0; k < 2; k++)
+    {
+        struct Animation *p_anim;
+        s32 val;
+
+        p_anim = &animations[k];
+        p_anim->FrameNumber = 0;
+        p_anim->Flags = 0;
+        p_anim->Type = 0;
+        // The original reads Ypos and FrameNumber as one dword, then shifts
+        val = *(s32 *)&p_anim->Ypos;
+        p_anim->Xpos = 0;
+        val >>= 16;
+        p_anim->Ypos = 0;
+        p_anim->anfield_4 = val;
+        p_anim->FileHandle = (TbFileHandle)-1;
+        p_anim->Filename[0] = (ubyte)p_anim->Type;
+    }
 }
 
 void setup_debug_obj_trace(void)
