@@ -17,6 +17,8 @@
  */
 /******************************************************************************/
 #include "matrix.h"
+
+#include "bfmath.h"
 #include "difftest.h"
 #include "swlog.h"
 /******************************************************************************/
@@ -124,10 +126,28 @@ void vec_cross_prod(struct M31 *vecr, struct M31 *vec1, struct M31 *vec2)
     vecr->R[2] = vec1->R[0] * vec2->R[1] - vec2->R[0] * vec1->R[1];
 }
 
-void object_vec_normalisation(struct M33 *vec, ubyte col)
+static DIFFTEST_REF_FUNC void object_vec_normalisation_asm(struct M33 *vec,
+  ubyte col)
 {
     asm volatile ("call ASM_object_vec_normalisation\n"
         : : "a" (vec), "d" (col));
+}
+
+void object_vec_normalisation(struct M33 *vec, ubyte col)
+{
+    s32 x, y, z;
+    s32 len;
+
+    DIFFTEST_SHADOW(object_vec_normalisation,
+      object_vec_normalisation_asm(vec, col));
+    x = vec->R[0][col];
+    y = vec->R[1][col];
+    z = vec->R[2][col];
+    // Unsigned arithmetic to get the same wrap-around as the original
+    len = LbSqrL((u32)y * (u32)y + (u32)x * (u32)x + (u32)z * (u32)z) + 1;
+    vec->R[0][col] = (s32)((u32)x << 14) / len;
+    vec->R[1][col] = (s32)((u32)y << 14) / len;
+    vec->R[2][col] = (s32)((u32)z << 14) / len;
 }
 
 void matrix_transform(struct M31 *p_result, struct M33 *p_trans, struct M31 *p_source)

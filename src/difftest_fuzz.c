@@ -56,10 +56,22 @@ static void fuzz_vec_cross_prod(ulong *p_seed)
     }
 }
 
+static void fuzz_object_vec_normalisation(ulong *p_seed)
+{
+    struct M33 mat;
+    int row, col;
+
+    for (row = 0; row < 3; row++)
+        for (col = 0; col < 3; col++)
+            mat.R[row][col] = fuzz_int(p_seed);
+    object_vec_normalisation(&mat, difftest_fuzz_rand(p_seed) % 3);
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"vec_cross_prod", fuzz_vec_cross_prod},
+    {"object_vec_normalisation", fuzz_object_vec_normalisation},
     {NULL, NULL},
 };
 
