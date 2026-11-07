@@ -1615,10 +1615,35 @@ void remove_thing(short tngno)
     things_used--;
 }
 
-void add_node_sthing(ThingIdx new_thing)
+static DIFFTEST_REF_FUNC void add_node_sthing_asm(ThingIdx new_thing)
 {
     asm volatile ("call ASM_add_node_sthing\n"
         : : "a" (new_thing));
+}
+
+void add_node_sthing(ThingIdx new_thing)
+{
+    struct SimpleThing *p_sthing;
+    struct MyMapElement *p_mapel;
+    s32 tile_x, tile_z;
+    short nxt;
+
+    DIFFTEST_SHADOW(add_node_sthing, add_node_sthing_asm(new_thing));
+    p_sthing = &sthings[new_thing];
+    p_sthing->Parent = 0;
+    tile_x = p_sthing->X >> 8;
+    tile_z = p_sthing->Z >> 8;
+    if (tile_x < 0 || tile_x >= 0x8000 || tile_z < 0 || tile_z >= 0x8000)
+        return;
+
+    p_mapel = &game_my_big_map[(p_sthing->Z >> 16) * 128 + (p_sthing->X >> 16)];
+    p_sthing->Next = p_mapel->Child;
+    nxt = p_sthing->Next;
+    if (nxt > 0)
+        things[nxt].Parent = new_thing;
+    else if (nxt < 0)
+        sthings[nxt].Parent = new_thing;
+    p_mapel->Child = new_thing;
 }
 
 static DIFFTEST_REF_FUNC short get_new_sthing_asm(void)
