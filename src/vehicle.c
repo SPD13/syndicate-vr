@@ -1295,10 +1295,45 @@ void process_vehicle_goto_point_fly(struct Thing *p_vehicle)
         : : "a" (p_vehicle));
 }
 
-void process_parked_flyer(struct Thing *p_vehicle)
+/** Hover oscillation offsets for parked flyers; 99 marks the loop end.
+ * Copy of the read-only `quiver` table from the asm data.
+ */
+static const sbyte quiver[] = {
+       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+      -1,   0,   1,   0,  -1,  -3,  -1,   0,
+       1,   3,   4,   3,   1,   0,  -2,  -5,
+      -7,  -8,  -7,  -5,  -2,   0,   2,   5,
+       8,  10,  12,  13,  13,  13,  12,  10,
+       8,   5,   2,  -2,  -5,  -8, -10, -12,
+     -13, -13, -13, -12, -10,  -8,  -5,  -2,
+      99,
+};
+
+static DIFFTEST_REF_FUNC void process_parked_flyer_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_parked_flyer\n"
         : : "a" (p_vehicle));
+}
+
+void process_parked_flyer(struct Thing *p_vehicle)
+{
+    ushort qv;
+
+    DIFFTEST_SHADOW(process_parked_flyer, process_parked_flyer_asm(p_vehicle));
+    // MaxSpeed is reused as the index into the quiver table
+    qv = p_vehicle->U.UVehicle.MaxSpeed;
+    if (qv == 0)
+    {
+        s32 alt;
+        alt = alt_at_point(p_vehicle->X >> 8, p_vehicle->Z >> 8);
+        p_vehicle->U.UVehicle.MaxSpeed = 1;
+        p_vehicle->Y = alt + 3000;
+        return;
+    }
+    p_vehicle->U.UVehicle.MaxSpeed = qv + 1;
+    p_vehicle->Y += quiver[qv] << 4;
+    if (quiver[p_vehicle->U.UVehicle.MaxSpeed] == 99)
+        p_vehicle->U.UVehicle.MaxSpeed -= 26;
 }
 
 void init_mech_explode(struct Thing *p_vehicle)
