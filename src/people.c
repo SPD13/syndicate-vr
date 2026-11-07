@@ -7004,13 +7004,43 @@ void set_angle_to_avoid_group(struct Thing *p_person)
 #endif
 }
 
-ubyte check_person_within(struct Command *p_cmd, int x, int z)
+static DIFFTEST_REF_FUNC ubyte check_person_within_asm(struct Command *p_cmd, int x, int z)
 {
     ubyte ret;
     asm volatile (
       "call ASM_check_person_within\n"
-        : "=r" (ret) : "a" (p_cmd), "d" (x), "b" (z));
+        : "=a" (ret) : "a" (p_cmd), "d" (x), "b" (z));
     return ret;
+}
+
+ubyte check_person_within(struct Command *p_cmd, int x, int z)
+{
+    ubyte revert;
+    TbBool inside;
+
+    DIFFTEST_SHADOW_RET(check_person_within, ubyte,
+      check_person_within_asm(p_cmd, x, z));
+    revert = (p_cmd->Flags & PCmdF_RevertFunct) != 0;
+
+    if ((p_cmd->Flags & PCmdF_AreaIsRect) != 0)
+    {
+        // Rectangle area from (X,Z) to (Arg1,Time), bounds exclusive
+        inside = (x > p_cmd->X) && (x < p_cmd->Arg1)
+          && (z > p_cmd->Z) && (z < p_cmd->Time);
+    }
+    else
+    {
+        // Circle area centered at (X,Z), radius Arg1 scaled by 64
+        u32 dx, dz, r;
+        dx = (u32)(x - p_cmd->X);
+        dz = (u32)(z - p_cmd->Z);
+        r = (u32)(s32)p_cmd->Arg1;
+        inside = (s32)(dx * dx + dz * dz) <= (s32)((r * r) << 12);
+    }
+
+    if (inside)
+        DIFFTEST_RETURN((ubyte)(revert == 0));
+    DIFFTEST_RETURN((ubyte)(revert != 0));
 }
 
 /** Finds a collision blocking move of a thing by given shift.

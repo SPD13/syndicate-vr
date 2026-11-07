@@ -20,6 +20,8 @@
 /******************************************************************************/
 #include "difftest.h"
 
+#include <string.h>
+#include "command.h"
 #include "matrix.h"
 /******************************************************************************/
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
@@ -67,11 +69,37 @@ static void fuzz_object_vec_normalisation(ulong *p_seed)
     object_vec_normalisation(&mat, difftest_fuzz_rand(p_seed) % 3);
 }
 
+ubyte check_person_within(struct Command *p_cmd, int x, int z);
+
+static void fuzz_check_person_within(ulong *p_seed)
+{
+    struct Command cmd;
+    int x, z;
+
+    memset(&cmd, 0, sizeof(cmd));
+    cmd.X = difftest_fuzz_rand(p_seed);
+    cmd.Z = difftest_fuzz_rand(p_seed);
+    cmd.Arg1 = difftest_fuzz_rand(p_seed);
+    cmd.Time = difftest_fuzz_rand(p_seed);
+    cmd.Flags = difftest_fuzz_rand(p_seed);
+    // Keep the point near the area most of the time
+    if (difftest_fuzz_rand(p_seed) % 4 != 0) {
+        cmd.Arg1 %= 256;
+        x = cmd.X + (short)difftest_fuzz_rand(p_seed) % 512;
+        z = cmd.Z + (short)difftest_fuzz_rand(p_seed) % 512;
+    } else {
+        x = fuzz_int(p_seed);
+        z = fuzz_int(p_seed);
+    }
+    check_person_within(&cmd, x, z);
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"vec_cross_prod", fuzz_vec_cross_prod},
     {"object_vec_normalisation", fuzz_object_vec_normalisation},
+    {"check_person_within", fuzz_check_person_within},
     {NULL, NULL},
 };
 
