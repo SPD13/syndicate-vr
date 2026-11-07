@@ -30,6 +30,7 @@
 #include "bigmap.h"
 #include "bmbang.h"
 #include "bmcrater.h"
+#include "difftest.h"
 #include "game_options.h"
 #include "game_speed.h"
 #include "game.h"
@@ -556,10 +557,44 @@ short create_a_pod(struct Thing *p_thing, struct Thing *p_loader, ushort pod_id)
     return ret;
 }
 
-void process_shuttle_loader(struct Thing *p_building)
+static DIFFTEST_REF_FUNC void process_shuttle_loader_asm(struct Thing *p_building)
 {
     asm volatile ("call ASM_process_shuttle_loader\n"
         : : "a" (p_building));
+}
+
+void process_shuttle_loader(struct Thing *p_building)
+{
+    s32 tile_x, tile_z;
+    ThingIdx thing;
+
+    DIFFTEST_SHADOW(process_shuttle_loader, process_shuttle_loader_asm(p_building));
+    // The loader keeps its tile coordinates in the velocity fields
+    tile_x = p_building->VX;
+    tile_z = p_building->VZ;
+    if ((tile_x < 0) || (tile_x >= MAP_TILE_WIDTH))
+        return;
+    if ((tile_z < 0) || (tile_z >= MAP_TILE_HEIGHT))
+        return;
+
+    thing = game_my_big_map[tile_z * MAP_TILE_WIDTH + tile_x].Child;
+    while (thing != 0)
+    {
+        if (thing > 0)
+        {
+            struct Thing *p_thing;
+
+            p_thing = &things[thing];
+            if ((p_thing->Type == TT_PERSON) && ((p_thing->Flag & TngF_Unkn0040) == 0))
+                thing = create_a_pod(p_thing, p_building, 0);
+            else
+                thing = p_thing->Next;
+        }
+        else
+        {
+            thing = sthings[thing].Next;
+        }
+    }
 }
 
 void bul_hit_vector(int x, int y, int z, short col, int hp, int type)
