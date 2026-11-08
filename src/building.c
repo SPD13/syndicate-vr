@@ -141,7 +141,8 @@ TbBool building_can_transform_open(ThingIdx bldng)
     return (p_building->SubType == SubTT_BLD_DOME);
 }
 
-struct Thing *create_building_thing(int x, int y, int z, ushort obj, ushort nobj, ushort a6)
+static DIFFTEST_REF_FUNC struct Thing *create_building_thing_asm(int x, int y,
+  int z, ushort obj, ushort nobj, ushort a6)
 {
     struct Thing *ret;
     // Pushed through a register holding them: a "g" operand may be placed
@@ -155,10 +156,42 @@ struct Thing *create_building_thing(int x, int y, int z, ushort obj, ushort nobj
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_create_building_thing\n"
-        : "=r" (ret)
+        : "=a" (ret)
         : "a" (x), "d" (y), "b" (z), "c" (obj), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+int get_new_thing_with_index(ThingIdx thing);
+
+struct Thing *create_building_thing(int x, int y, int z, ushort obj, ushort nobj, ushort a6)
+{
+    struct Thing *p_thing;
+    ushort thing;
+    ushort i;
+
+    DIFFTEST_SHADOW_RET(create_building_thing, struct Thing *,
+      create_building_thing_asm(x, y, z, obj, nobj, a6));
+    thing = a6;
+    if (((short)a6 < 0) || ((ushort)get_new_thing_with_index(a6) == 0))
+        thing = get_new_thing();
+
+    p_thing = &things[thing];
+    p_thing->Type = TT_BUILDING;
+    p_thing->X = x << 8;
+    p_thing->Z = z << 8;
+    p_thing->U.UObject.Angle = 0;
+    p_thing->Y = y;
+    p_thing->U.UObject.Object = obj;
+    if ((nobj == 0) || (nobj > 250))
+        nobj = 1;
+    p_thing->U.UObject.NumbObjects = nobj;
+    p_thing->Health = 8024;
+    for (i = 0; i < nobj; i++)
+        game_objects[(ushort)obj + i].ThingNo = thing;
+
+    add_node_thing(thing);
+    DIFFTEST_RETURN(p_thing);
 }
 
 void do_dome_rotate1(struct Thing *p_building)
