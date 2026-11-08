@@ -5286,10 +5286,178 @@ int person_goto_person_nav(struct Thing *p_person)
     return ret;
 }
 
-void person_goto_point(struct Thing *p_person)
+int do_next_navigate_index(int a1, int a2, int a3, int a4);
+short person_move(struct Thing *p_person);
+
+static DIFFTEST_REF_FUNC void person_goto_point_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_goto_point\n"
         : : "a" (p_person));
+}
+
+void person_goto_point(struct Thing *p_person)
+{
+    struct MyPath *p_path;
+    s32 dx, dz;
+    s32 dist, lim;
+    s32 adx, adz;
+    s32 vx, vz;
+    ushort angle;
+    short mv;
+    short tmp;
+
+    DIFFTEST_SHADOW(person_goto_point, person_goto_point_asm(p_person));
+
+    dx = 0;
+    dz = 0;
+    if ((p_person->Flag & TngF_Unkn00020000) != 0)
+        p_person->U.UPerson.LastDist = 0x7d00;
+    if (p_person->U.UPerson.PathIndex != 0)
+        unkn_path_func_001(p_person, 1);
+
+    if ((p_person->U.UPerson.AnimMode == 14) || (p_person->U.UPerson.AnimMode == 15))
+    {
+        p_person->U.UPerson.AnimMode = gun_out_anim(p_person, 0);
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+    }
+
+    if (p_person->U.UPerson.PathIndex != 0)
+    {
+        p_path = &my_paths[p_person->U.UPerson.PathIndex];
+        dx = p_path->X[p_person->PathOffset & 3] - (p_person->X >> 8);
+        dz = p_path->Z[p_person->PathOffset & 3] - (p_person->Z >> 8);
+        adx = abs(dx);
+        adz = abs(dz);
+        if (adx > adz)
+            dist = (adz >> 1) + adx;
+        else
+            dist = (adx >> 1) + adz;
+
+        if (p_person->PathOffset + 1 < p_path->Flag) {
+            lim = 30;
+        } else {
+            lim = p_person->U.UPerson.ComRange << 6;
+            if (lim < 30)
+                lim = 30;
+        }
+        if (dist < lim) {
+            p_person->U.UPerson.ComTimer = -100;
+        } else if ((p_person->Speed > 0) && (dist >= (ushort)p_person->U.UPerson.LastDist)) {
+            p_person->U.UPerson.ComTimer = -100;
+        }
+        p_person->U.UPerson.LastDist = dist;
+    }
+
+    if (p_person->U.UPerson.ComTimer < 0)
+    {
+        p_person->Flag &= ~TngF_Unkn00020000;
+        if (p_person->U.UPerson.PathIndex == 0)
+        {
+            build_navigate_path(p_person, p_person->U.UPerson.GotoX,
+              p_person->U.UPerson.GotoZ, 0);
+            p_path = &my_paths[p_person->U.UPerson.PathIndex];
+            dx = p_path->X[p_person->PathOffset & 3] - (p_person->X >> 8);
+            dz = p_path->Z[p_person->PathOffset & 3] - (p_person->Z >> 8);
+        }
+        dist = LbSqrL(dx * dx + dz * dz);
+        if (dist == 0)
+            dist = 1;
+        if (p_person->U.UPerson.ComTimer == -100)
+        {
+            p_person->U.UPerson.LastDist = 0x7d00;
+            if ((ubyte)do_next_navigate_index((int)p_person, 0, 0, 0) != 0)
+            {
+                p_person->U.UPerson.PathIndex = 0;
+                p_person->State = 0;
+            }
+            else
+            {
+                p_path = &my_paths[p_person->U.UPerson.PathIndex];
+                dx = p_path->X[p_person->PathOffset & 3] - (p_person->X >> 8);
+                dz = p_path->Z[p_person->PathOffset & 3] - (p_person->Z >> 8);
+                dist = LbSqrL(dx * dx + dz * dz);
+            }
+        }
+        if (dist == 0)
+            dist = 1;
+        vx = (dx << 8) / dist;
+        vz = (dz << 8) / dist;
+        if (p_person->Speed < 16)
+            p_person->U.UPerson.ComTimer = 10;
+        else
+            p_person->U.UPerson.ComTimer = dist / (p_person->Speed >> 4);
+        p_person->VX = vx;
+        p_person->VZ = vz;
+        angle = (((ushort)arctan(vx, -vz) + 0x80) & 0x7ff) >> 8;
+        if (angle != p_person->U.UPerson.Angle)
+        {
+            p_person->Frame -= nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+              + p_person->U.UPerson.Angle];
+            p_person->U.UPerson.Angle = angle;
+            p_person->Frame += nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+              + (ubyte)angle];
+        }
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+    }
+
+    p_person->U.UPerson.ComTimer--;
+    mv = person_move(p_person);
+    if (mv != 0)
+    {
+        if ((p_person->Flag & TngF_Destroyed) != 0)
+            return;
+        if ((p_person->Flag & TngF_Unkn00020000) != 0)
+        {
+            if (((p_person->Flag & TngF_Unkn01000000) != 0) && ((gameturn & 1) != 0))
+            {
+                p_person->U.UPerson.ComTimer = 2;
+                p_person->VX = p_person->VX * 2;
+                p_person->VZ = p_person->VZ * 2;
+            }
+            else
+            {
+                p_person->U.UPerson.ComTimer = 3;
+                p_person->VX = -p_person->VX;
+                p_person->VZ = -p_person->VZ;
+            }
+        }
+        else if ((word_1AA392 == 0) && ((p_person->Flag2 & TgF2_Unkn0080) == 0))
+        {
+            p_person->Flag |= TngF_Unkn00020000;
+            p_person->U.UPerson.ComTimer = 3;
+            p_person->U.UPerson.BumpCount++;
+            if (((p_person->Flag & TngF_Unkn01000000) != 0) && ((gameturn & 1) != 0))
+            {
+                p_person->U.UPerson.ComTimer = 5;
+                p_person->VX = -p_person->VX;
+                p_person->VZ = -p_person->VZ;
+            }
+            else if (mv < 0)
+            {
+                tmp = (short)p_person->VX;
+                p_person->VX = p_person->VZ >> 2;
+                p_person->VZ = (-(s32)tmp) >> 2;
+            }
+            else
+            {
+                tmp = (short)p_person->VX;
+                p_person->VX = p_person->VZ;
+                p_person->VZ = tmp;
+                p_person->VZ = -(s32)tmp;
+            }
+        }
+    }
+
+    p_person->Timer1 -= fifties_per_gameturn;
+    if (p_person->Timer1 < 0)
+    {
+        p_person->Timer1 = p_person->StartTimer1;
+        p_person->Frame = frame[(ushort)p_person->Frame].Next;
+    }
+    if ((p_person->State == 0) && ((p_person->Flag2 & TgF2_Unkn0001) != 0))
+        finalise_razor_wire(p_person);
 }
 
 void person_goto_point_rel(struct Thing *p_person)
