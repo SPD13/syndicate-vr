@@ -1739,12 +1739,39 @@ void add_node_thing(ThingIdx new_thing)
     p_mapel->Child = new_thing;
 }
 
-short get_new_thing(void)
+static DIFFTEST_REF_FUNC short get_new_thing_asm(void)
 {
     short ret;
     asm volatile ("call ASM_get_new_thing\n"
-        : "=r" (ret) : );
+        : "=a" (ret) : );
     return ret;
+}
+
+short get_new_thing(void)
+{
+    ThingIdx new_thing, used_head, next_empty;
+
+    DIFFTEST_SHADOW_RET(get_new_thing, short, get_new_thing_asm());
+    // Few slots are always left unused
+    if (things_used >= THINGS_LIMIT - 4)
+        DIFFTEST_RETURN((short)0);
+
+    new_thing = things_empty_head;
+    used_head = things_used_head;
+
+    things[(ushort)used_head].LinkParent = new_thing;
+    things[(ushort)new_thing].LinkParent = 0;
+    things[(ushort)new_thing].Flag = 0;
+    next_empty = things[(ushort)new_thing].LinkChild;
+    things[(ushort)new_thing].Flag2 = 0;
+    things[(ushort)new_thing].U.UPerson.Flag3 = 0;
+    things[(ushort)new_thing].LinkChild = used_head;
+    things[(ushort)next_empty].LinkParent = 0;
+    things_used++;
+
+    things_used_head = new_thing;
+    things_empty_head = next_empty;
+    DIFFTEST_RETURN(new_thing);
 }
 
 static DIFFTEST_REF_FUNC void remove_thing_asm(short tngno)
