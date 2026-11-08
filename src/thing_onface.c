@@ -20,6 +20,7 @@
 #include "thing_onface.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include "bfendian.h"
 #include "bfscreen.h"
 #include "poly.h"
@@ -141,15 +142,91 @@ int inside_the_triangle(struct SingleObjectFace3 *p_face, int x, int z)
     DIFFTEST_RETURN((int)1);
 }
 
-/** Sets the thing height from the triangle face plane at the point.
- * The asm does not preserve ebx, ecx and edx.
+/** The asm does not preserve ebx, ecx and edx.
  */
-int set_thing_height_on_face_tri64(struct Thing *p_thing, int x, int z, int face)
+static DIFFTEST_REF_FUNC int set_thing_height_on_face_tri64_asm(struct Thing *p_thing,
+  int x, int z, int face)
 {
     int ret;
     asm volatile ("call ASM_set_thing_height_on_face_tri64\n"
         : "=a" (ret), "+d" (x), "+b" (z), "+c" (face) : "a" (p_thing) : "cc", "memory");
     return ret;
+}
+
+static s32 quad64_fmul(s32 a, s32 b);
+
+/** Sets the thing height from the triangle face plane at the point.
+ * Returns 0 if the point is too far or outside the triangle, 1 otherwise.
+ */
+int set_thing_height_on_face_tri64(struct Thing *p_thing, int x, int z, int face)
+{
+    struct SingleObjectFace3 *p_face;
+    struct SingleObject *p_sobj;
+    struct SinglePoint *p_pt;
+    s32 map_x, map_z, ofs_y;
+    s32 x0, y0, z0, x1, y1, z1, x2, y2, z2;
+    s32 dx1, dy1, dz1, dx2, dy2, dz2;
+    s32 px, pz, apx, apz, dist, num, den, a, b, y;
+
+    DIFFTEST_SHADOW_RET(set_thing_height_on_face_tri64, int,
+      set_thing_height_on_face_tri64_asm(p_thing, x, z, face));
+    if ((ushort)face > next_object_face3)
+        DIFFTEST_RETURN((int)0);
+
+    p_face = &game_object_faces3[(ushort)face];
+    p_sobj = &game_objects[p_face->Object];
+    map_x = p_sobj->MapX;
+    map_z = p_sobj->MapZ;
+    ofs_y = p_sobj->OffsetY;
+
+    p_pt = &game_object_points[(ushort)p_face->PointNo[0]];
+    x0 = map_x + p_pt->X;
+    y0 = ofs_y + p_pt->Y;
+    z0 = map_z + p_pt->Z;
+    p_pt = &game_object_points[(ushort)p_face->PointNo[1]];
+    x1 = map_x + p_pt->X;
+    y1 = ofs_y + p_pt->Y;
+    z1 = map_z + p_pt->Z;
+    p_pt = &game_object_points[(ushort)p_face->PointNo[2]];
+    x2 = map_x + p_pt->X;
+    y2 = ofs_y + p_pt->Y;
+    z2 = map_z + p_pt->Z;
+
+    dx1 = (x1 - x0) << 8;
+    dy1 = (y1 - y0) << 8;
+    dz1 = (z1 - z0) << 8;
+    dx2 = (x2 - x0) << 8;
+    dy2 = (y2 - y0) << 8;
+    dz2 = (z2 - z0) << 8;
+    px = x - (x0 << 8);
+    pz = z - (z0 << 8);
+
+    // Approximate distance from the first point: max + min / 2
+    apx = abs(px >> 8);
+    apz = abs(pz >> 8);
+    if (apz < apx)
+        dist = apx + (apz >> 1);
+    else
+        dist = apz + (apx >> 1);
+    if (dist > 0xa00)
+        DIFFTEST_RETURN((int)0);
+
+    num = quad64_fmul(px, dz2) - quad64_fmul(pz, dx2);
+    den = quad64_fmul(dz2, dx1) - quad64_fmul(dx2, dz1);
+    if (den == 0)
+        den = 1;
+    a = (s32)(((s64)num * 0x10000) / den);
+    num = quad64_fmul(pz, dx1) - quad64_fmul(px, dz1);
+    b = (s32)(((s64)num * 0x10000) / den);
+
+    if (a < 0 || a > 0x10000 || b < 0 || b > 0x10000)
+        DIFFTEST_RETURN((int)0);
+    if (a + b > 0x10000)
+        DIFFTEST_RETURN((int)0);
+
+    y = (y0 << 8) + quad64_fmul(a, dy1) + quad64_fmul(b, dy2);
+    p_thing->Y = y >> 3;
+    DIFFTEST_RETURN((int)1);
 }
 
 ushort set_thing_height_on_face_tri(struct Thing *p_thing, int x, int z, short face)
