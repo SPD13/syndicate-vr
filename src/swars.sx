@@ -113815,7 +113815,7 @@ GLOBAL (scrollinfo_text)	/* 0x1553C8 */
 
 GLOBAL(rand_d)	/* 0x1554F4 */
 		.ascii  "\x93\xa0\x69\x3f"
-data_1554f8:
+GLOBAL(data_1554f8)
 		.fill   0x8
 		.ascii  "\xba\xff\xff\xff\xf6\xff\xff\xff"
 		.ascii  "\x46\x00\x00\x00\x0a"
@@ -113823,7 +113823,7 @@ data_1554f8:
 		.ascii  "\xd8\xff\xff\xff\x28\x00\x00\x00"
 		.ascii  "\x28\x00\x00\x00\xd8\xff\xff\xff"
 		.long	0x0
-data_155528:
+GLOBAL(data_155528)
 		.long	0x0
 		.ascii  "\xf6\xff\xff\xff"
 		.long	0x0
@@ -113833,7 +113833,7 @@ data_155528:
 		.ascii  "\x14\x00\x00\x00\x14\x00\x00\x00"
 		.ascii  "\x14\x00\x00\x00\x14\x00\x00\x00"
 		.ascii  "\x41\x00\x00\x00"
-data_155558:
+GLOBAL(data_155558)
 		.fill   0xc
 		.byte	0xa
 		.fill   0x7
@@ -113922,7 +113922,7 @@ ascD_55:	/* 0x15D641 */
 
 aShaggedTrainSt:	/* 0x15D660 */
 		.string "Shagged train state %d"
-aTellMdFailedEx:	/* 0x15D677 */
+GLOBAL(aTellMdFailedEx)	/* 0x15D677 */
 		.string "TELL MD failed exit car person ret %d \n"
 		.byte	0x0
 aTriIdDDTriangu:	/* 0x15D6A0 */
@@ -113937,7 +113937,7 @@ aL002ldN02ldL10:	/* 0x15D707 */
 		.string "l0:%02ld n:%02ld l1:%02ld"
 aDelete_pointND:	/* 0x15D721 */
 		.string "delete_point : n:%d loop:%d"
-ascDDDD:	/* 0x15D824 */
+GLOBAL(ascDDDD)	/* 0x15D824 */
 		.string "(%d,%d)(%d,%d)"
 		.byte	0x0
 aCraterAtDDDept:	/* 0x15d834 */
@@ -113965,7 +113965,7 @@ aPathlengthDPat:	/* 0x15E820 */
 		.string "Pathlength == %d, path_count = %d"
 		.short  0x0
 
-aNext_trafficD:	/* 0x15E914 */
+GLOBAL(aNext_trafficD)	/* 0x15E914 */
 		.string "next_traffic = %d\n"
 
 ascS_5:	/* 0x15EB51 */
@@ -114088,7 +114088,7 @@ GLOBAL (last_swoosh_thing)	/* 0x1AABD8 */
 
 /* Path fwd_path;
  */
-fwd_path:
+GLOBAL(fwd_path)
 		.fill   0x814
 GLOBAL(heap)	/* 0x1C30BC */
 		.long	0x0
@@ -114220,7 +114220,7 @@ GLOBAL(data_1c84f4)
 		.long	0x0
 GLOBAL(data_1c84f8)
 		.fill   0x40
-data_1c8538:
+GLOBAL(data_1c8538)
 		.short  0x0
 GLOBAL(VNAV_nearnodes)	/* 0x1C853A */
 		.fill   0x6
@@ -114228,7 +114228,7 @@ GLOBAL(data_1c8540)
 		.long	0x0
 GLOBAL(VNAV_nodedists)	/* 0x1C8544 */
 		.fill   0x14
-VNAV_route:	/* 0x1C8558 */
+GLOBAL(VNAV_route)	/* 0x1C8558 */
 		.short  0x0
 GLOBAL(data_1c855a)
 		.long	0x0
@@ -114236,11 +114236,11 @@ GLOBAL(VNAV_route__route)	/* 0x1C855E */
 		.short  0x0
 GLOBAL(data_1c8560)
 		.fill   0xf8
-veh_ma_heap:	/* 0x1C8658 */
+GLOBAL(veh_ma_heap)	/* 0x1C8658 */
 		.long	0x0
-data_1c865c:
+GLOBAL(data_1c865c)
 		.fill   0x400
-data_1c8a5c:
+GLOBAL(data_1c8a5c)
 		.fill   0x2104
 		.align  4
 
