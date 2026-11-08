@@ -1637,12 +1637,44 @@ TbBool thing_is_pickup_item(ThingIdx thing)
     return thing_type_is_pickup_item(p_sthing->Type);
 }
 
-TbResult delete_node(struct Thing *p_thing)
+static DIFFTEST_REF_FUNC TbResult delete_node_asm(struct Thing *p_thing)
 {
     TbResult ret;
     asm volatile ("call ASM_delete_node\n"
-        : "=r" (ret) : "a" (p_thing));
+        : "=a" (ret) : "a" (p_thing));
     return ret;
+}
+
+TbResult delete_node(struct Thing *p_thing)
+{
+    s32 tile_x, tile_z;
+    short parent, nxt;
+
+    DIFFTEST_SHADOW_RET(delete_node, TbResult, delete_node_asm(p_thing));
+    tile_x = p_thing->X >> 8;
+    if (tile_x < 0 || tile_x >= 0x8000)
+        DIFFTEST_RETURN((TbResult)0);
+    tile_z = p_thing->Z >> 8;
+    if (tile_z < 0 || tile_z >= 0x8000)
+        DIFFTEST_RETURN((TbResult)0);
+
+    parent = p_thing->Parent;
+    if (parent > 0)
+        things[parent].Next = p_thing->Next;
+    else if (parent < 0)
+        sthings[parent].Next = p_thing->Next;
+    else
+        game_my_big_map[(p_thing->Z >> 16) * 128 + (p_thing->X >> 16)].Child = p_thing->Next;
+
+    nxt = p_thing->Next;
+    if (nxt > 0)
+        things[nxt].Parent = p_thing->Parent;
+    else if (nxt < 0)
+        sthings[nxt].Parent = p_thing->Parent;
+
+    p_thing->Parent = 0;
+    p_thing->Next = 0;
+    DIFFTEST_RETURN((TbResult)0);
 }
 
 static DIFFTEST_REF_FUNC TbResult delete_snode_asm(struct SimpleThing *p_sthing)
