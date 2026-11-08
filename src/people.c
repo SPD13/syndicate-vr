@@ -6578,10 +6578,185 @@ void process_protect_person(struct Thing *p_person)
     }
 }
 
-void process_wander(struct Thing *p_person)
+void process_wander_and_fly(struct Thing *p_person, struct Thing *p_vehicle);
+
+static DIFFTEST_REF_FUNC void process_wander_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_process_wander\n"
         : : "a" (p_person));
+}
+
+void process_wander(struct Thing *p_person)
+{
+    ubyte dirs[32];
+    struct MyMapElement *p_mapel;
+    int count;
+    ubyte old_angle;
+    ubyte angle;
+
+    DIFFTEST_SHADOW(process_wander, process_wander_asm(p_person));
+
+    if ((p_person->Flag & TngF_InVehicle) != 0)
+    {
+        struct Thing *p_vehicle;
+
+        p_vehicle = &things[p_person->U.UPerson.Vehicle];
+        if (p_vehicle->SubType == SubTT_VEH_FLYING)
+            process_wander_and_fly(p_person, p_vehicle);
+        if (conditional_command_state_true(p_person->U.UPerson.ComCur, p_person, 0))
+            p_person->State = 0;
+        return;
+    }
+
+    if ((p_person->Flag2 & TgF2_Unkn00080000) != 0)
+        set_person_animmode_walk(p_person);
+
+    if ((p_person->U.UPerson.AnimMode == ANIM_PERS_Unkn14) ||
+      (p_person->U.UPerson.AnimMode == ANIM_PERS_WEPHEAVY_Unkn15))
+    {
+        p_person->U.UPerson.AnimMode = gun_out_anim(p_person, 0);
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+    }
+
+    if (p_person->U.UPerson.RecoilTimer != 0)
+        return;
+
+    p_person->Flag |= TngF_Unkn0004;
+    p_person->VX = angle_direction[p_person->U.UPerson.Angle].DiX;
+    p_person->VZ = angle_direction[p_person->U.UPerson.Angle].DiY;
+
+    if (person_move(p_person) != 0)
+    {
+        if (((p_person->Flag2 & TgF2_Unkn40000000) == 0) ||
+          ((things[game_col_vects_list[word_1AA390].Object].Flag & TngF_TriggerUse) != 0))
+        {
+            angle = p_person->U.UPerson.Angle;
+            p_person->U.UPerson.Angle = angle + 1;
+            p_person->U.UPerson.Angle = (angle + 9) & 7;
+            p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+              + p_person->U.UPerson.Angle];
+            p_person->U.UPerson.Timer2 = (LbRandomAnyShort() & 3) + 6;
+        }
+        p_person->Flag2 &= ~TgF2_Unkn40000000;
+    }
+
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+
+    if (conditional_command_state_true(p_person->U.UPerson.ComCur, p_person, 1))
+        p_person->State = 0;
+
+    p_person->Timer1 -= fifties_per_gameturn;
+    if (p_person->Timer1 < 0)
+    {
+        p_person->Timer1 = p_person->StartTimer1;
+        p_person->Frame = frame[p_person->Frame].Next;
+    }
+
+    {
+        short timer;
+
+        timer = p_person->U.UPerson.Timer2;
+        p_person->U.UPerson.Timer2 = timer - 1;
+        if (timer >= 0)
+            return;
+    }
+
+    old_angle = p_person->U.UPerson.Angle;
+    p_person->U.UPerson.Timer2 = p_person->U.UPerson.StartTimer2 + (LbRandomAnyShort() & 7);
+
+    p_mapel = &game_my_big_map[(p_person->Z >> 16) * MAP_TILE_WIDTH + (p_person->X >> 16)];
+    count = 0;
+    if ((p_mapel->Flags2 & 0x10) != 0)
+    {
+        int diff;
+
+        diff = p_person->U.UPerson.Angle - (p_mapel->Flags2 >> 5);
+        if (diff > 4)
+            diff -= 8;
+        if (diff < -4)
+            diff += 8;
+        if (diff < 0)
+            diff = -diff;
+        if (diff <= 2)
+            dirs[count++] = p_mapel->Flags2 >> 5;
+        if (diff <= 1)
+            dirs[count++] = p_mapel->Flags2 >> 5;
+    }
+
+    if (count == 0)
+    {
+        int dt_x, dt_z;
+
+        for (dt_x = -1; dt_x <= 1; dt_x++)
+        {
+            for (dt_z = -1; dt_z <= 1; dt_z++)
+            {
+                int tl_x, tl_z;
+                int diff;
+
+                tl_x = (p_person->X >> 16) + dt_x;
+                if ((tl_x < 0) || (tl_x >= MAP_TILE_WIDTH))
+                    continue;
+                tl_z = (p_person->Z >> 16) + dt_z;
+                if ((tl_z < 0) || (tl_z >= MAP_TILE_HEIGHT))
+                    continue;
+                p_mapel = &game_my_big_map[tl_z * MAP_TILE_WIDTH + tl_x];
+                if ((p_mapel->Flags2 & 0x10) == 0)
+                    continue;
+                diff = p_person->U.UPerson.Angle - (p_mapel->Flags2 >> 5);
+                if (diff > 4)
+                    diff -= 8;
+                if (diff < -4)
+                    diff += 8;
+                if (diff < 0)
+                    diff = -diff;
+                if (diff <= 2)
+                    dirs[count++] = p_mapel->Flags2 >> 5;
+                if (diff <= 1)
+                    dirs[count++] = p_mapel->Flags2 >> 5;
+            }
+        }
+    }
+
+    if (count == 0)
+    {
+        u32 turn_offs;
+
+        turn_offs = (ushort)p_person->ThingOffset;
+        if (((gameturn + turn_offs) & 3) == 0)
+        {
+            u32 rv;
+
+            rv = ((gameturn >> 1) + turn_offs) & 0xF;
+            if (rv == 0)
+            {
+                angle = p_person->U.UPerson.Angle + 1;
+                p_person->U.UPerson.Angle = angle;
+                p_person->U.UPerson.Angle = angle & 7;
+            }
+            else if (rv == 1)
+            {
+                angle = p_person->U.UPerson.Angle - 1;
+                p_person->U.UPerson.Angle = angle;
+                p_person->U.UPerson.Angle = angle & 7;
+            }
+        }
+    }
+    else
+    {
+        s32 rnd;
+
+        rnd = (ushort)LbRandomAnyShort();
+        p_person->U.UPerson.Angle = dirs[rnd % count] & 7;
+    }
+
+    if (old_angle != p_person->U.UPerson.Angle)
+    {
+        p_person->Frame = nstart_ani[(ushort)p_person->StartFrame + p_person->U.UPerson.Angle + 1];
+    }
 }
 
 void person_recoil(struct Thing *p_person)
