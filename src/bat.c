@@ -27,8 +27,10 @@
 #include <string.h>
 
 #include "engincolour.h"
+#include "engintxtrmap.h"
 
 #include "bigmap.h"
+#include "difftest.h"
 #include "game.h"
 #include "game_options.h"
 #include "keyboard.h"
@@ -633,12 +635,49 @@ void BAT_play(void)
 #endif
 }
 
-void BAT_unknsub_20(int a1, int a2, int a3, int a4, ubyte *p_screen)
+static DIFFTEST_REF_FUNC void BAT_unknsub_20_asm(int a1, int a2, int a3, int a4, ubyte *p_screen)
 {
     asm volatile (
       "push %4\n"
       "call ASM_BAT_unknsub_20\n"
         : : "a" (a1), "d" (a2), "b" (a3), "c" (a4), "g" (p_screen));
+}
+
+void BAT_unknsub_20(int a1, int a2, int a3, int a4, ubyte *p_screen)
+{
+    ubyte *p_brick_colours;
+    int i;
+
+    DIFFTEST_SHADOW(BAT_unknsub_20, BAT_unknsub_20_asm(a1, a2, a3, a4, p_screen));
+    // The brick colours table (data_1e2710, 9 bytes) is not exported from
+    // the asm; it directly follows the 4-byte BAT_bricks_remain.
+    p_brick_colours = (ubyte *)&BAT_bricks_remain + 4;
+
+    bat_unknvalA_min = a1;
+    p_brick_colours[0] = colour_lookup[2];
+    p_brick_colours[1] = colour_lookup[3];
+    p_brick_colours[2] = colour_lookup[4];
+    p_brick_colours[3] = colour_lookup[1];
+    p_brick_colours[4] = colour_lookup[9];
+    p_brick_colours[5] = colour_lookup[5];
+    bat_unknvalB_min = a2;
+    p_brick_colours[6] = colour_lookup[8];
+    bat_unknvalA_max = a3;
+    p_brick_colours[7] = colour_lookup[7];
+    bat_unknvalB_max = a4;
+    p_brick_colours[8] = colour_lookup[10];
+
+    for (i = 0; i < 8; i++)
+        p_brick_colours[i] = pixmap.fade_table[32 * PALETTE_8b_COLORS + p_brick_colours[i]];
+    p_brick_colours[8] = pixmap.fade_table[48 * PALETTE_8b_COLORS + p_brick_colours[8]];
+
+    BAT_lives_colour = colour_lookup[1];
+    BAT_bricks_clear();
+    BAT_reset_free_balls();
+    BAT_reset_free_bonuses();
+    // TODO the asm ignores p_screen argument and uses a fixed position instead
+    BAT_screen = vec_tmap[4] + 0xA040;
+    BAT_state = BATSt_Reset;
 }
 
 /******************************************************************************/
