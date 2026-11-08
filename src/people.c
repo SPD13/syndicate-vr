@@ -7359,12 +7359,69 @@ void process_tasered_person(struct Thing *p_person)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int find_target_from_persuaded_peeps(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int find_target_from_persuaded_peeps_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_find_target_from_persuaded_peeps\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
-    return ra;
+    // Only al is set by the asm; upper bits are leftovers
+    return (ubyte)ra;
+}
+
+int find_target_from_persuaded_peeps(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_other;
+    struct WarFlag *p_wflag;
+    u32 kill_on_sight, kill_weapon_out, kill_armed;
+    u32 mask;
+    s32 range_sq;
+    ubyte see_flags;
+    ushort i;
+
+    DIFFTEST_SHADOW_RET(find_target_from_persuaded_peeps, int,
+      find_target_from_persuaded_peeps_asm(a1, a2, a3, a4));
+
+    see_flags = (ubyte)a3;
+    // TODO the asm does not mask the group with 0x1f here, unlike find_target_from_group()
+    p_wflag = &war_flags[p_person->U.UPerson.EffectiveGroup];
+    kill_on_sight = p_wflag->KillOnSight;
+    kill_weapon_out = p_wflag->KillIfWeaponOut;
+    kill_armed = p_wflag->KillIfArmed;
+
+    if (word_1531DA <= 1)
+        DIFFTEST_RETURN((int)0);
+    range_sq = a2 * a2;
+
+    for (i = 1; i < word_1531DA; i++)
+    {
+        p_other = &things[word_17FA58[i]];
+        if ((p_other->Flag & TngF_Destroyed) != 0)
+            continue;
+        mask = 1u << (p_other->U.UPerson.EffectiveGroup & 0x1f);
+        if ((kill_on_sight & mask) == 0)
+        {
+            if ((p_other->U.UPerson.CurrentWeapon == 0) || ((kill_weapon_out & mask) == 0))
+            {
+                if ((p_other->U.UPerson.WeaponsCarried & 0x283ceff) == 0)
+                    continue;
+                if ((kill_armed & mask) == 0)
+                    continue;
+            }
+        }
+        if ((p_other->Flag2 & TgF2_AlteredSubType) != 0)
+            continue;
+        if ((ushort)p_other->State == 0x24 || (ushort)p_other->State == 0x0c)
+            continue;
+        if ((p_other->Flag & TngF_Destroyed) != 0)
+            continue;
+        if (can_i_see_thing(p_person, p_other, range_sq, see_flags) != 0)
+        {
+            set_interrupt_target(p_person, p_other);
+            DIFFTEST_RETURN((int)1);
+        }
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
