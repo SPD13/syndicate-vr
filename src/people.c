@@ -1422,7 +1422,8 @@ int check_col_collision_floor(int cor_x, int cor_y, int cor_z)
     DIFFTEST_RETURN(0);
 }
 
-short do_vect_colide(struct MyMapElement *p_me, int x1, int y1, int z1, int x2, int y2, int z2)
+static DIFFTEST_REF_FUNC short do_vect_colide_asm(struct MyMapElement *p_me,
+  int x1, int y1, int z1, int x2, int y2, int z2)
 {
     short ret;
     // Pushed through a register holding them: a "g" operand may be placed
@@ -1438,10 +1439,56 @@ short do_vect_colide(struct MyMapElement *p_me, int x1, int y1, int z1, int x2, 
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_do_vect_colide\n"
-        : "=r" (ret)
+        : "=a" (ret)
         : "a" (p_me), "d" (x1), "b" (y1), "c" (z1), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+short do_vect_colide(struct MyMapElement *p_me, int x1, int y1, int z1, int x2, int y2, int z2)
+{
+    struct ColVectList *p_cvlist;
+    struct ColVect *p_colvect;
+    ushort cvlist;
+    ushort count;
+    short face;
+    s32 dy;
+
+    DIFFTEST_SHADOW_RET(do_vect_colide, short,
+      do_vect_colide_asm(p_me, x1, y1, z1, x2, y2, z2));
+    cvlist = p_me->ColHead;
+    count = 0;
+    while (cvlist != 0)
+    {
+        if (count >= 30)
+            break;
+        p_cvlist = &game_col_vects_list[cvlist];
+        count++;
+        if (p_cvlist->Object >= 0)
+        {
+            p_colvect = &game_col_vects[p_cvlist->Vect];
+            face = p_colvect->Face;
+            if ((face >= 0) || (game_object_faces4[-face].GFlags & FGFlg_Unkn04) == 0)
+            {
+                // TODO the original indexes faces3 with a negated positive
+                // face, reading before the array start; kept as is
+                if ((face <= 0) || (game_object_faces3[-face].GFlags & FGFlg_Unkn04) == 0)
+                {
+                    dy = (short)((y1 << 3) - p_colvect->Y1);
+                    if (dy < 0)
+                        dy = -dy;
+                    if (dy < 160)
+                    {
+                        if (two4_line_intersection(p_colvect->X1, p_colvect->Z1,
+                          p_colvect->X2, p_colvect->Z2, x1, z1, x2, z2))
+                            DIFFTEST_RETURN((short)cvlist);
+                    }
+                }
+            }
+        }
+        cvlist = game_col_vects_list[cvlist].NextColList & 0x7FFF;
+    }
+    DIFFTEST_RETURN((short)0);
 }
 
 int can_i_see_thing(struct Thing *p_me, struct Thing *p_him, int max_dist, ushort flags)
