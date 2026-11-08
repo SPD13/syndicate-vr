@@ -101,6 +101,14 @@ def changed_files(wt):
         path = line[3:].strip()
         if path.endswith('pkg.m4') or path == 'RESULT.json':
             continue
+        if line.startswith('??') and not path.startswith('src/'):
+            # agent's scratch files; never committed, so drop them
+            p = os.path.join(wt, path)
+            if os.path.isdir(p):
+                shutil.rmtree(p, ignore_errors=True)
+            elif os.path.exists(p):
+                os.remove(p)
+            continue
         files.append(path)
     return files
 
