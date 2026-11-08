@@ -305,6 +305,17 @@ LABEL_184:
     }
     add_node_sthing(firetng);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void apply_unkn_vehicle50_damage(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_apply_unkn_vehicle50_damage\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void set_static_on_fire(struct SimpleThing *p_static)
 {

@@ -870,6 +870,18 @@ void fix_level_indexes(short missi, u32 fmtver, ubyte reload, TbBool deep)
         sthings[-thing].ThingOffset = -thing;
     }
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int is_animating(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_is_animating\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 int map_things_unkn_func_04(short subtype)
 {

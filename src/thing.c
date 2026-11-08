@@ -952,6 +952,17 @@ int process_things_bang(int affected_max)
         : "=r" (ret) : "a" (affected_max));
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void light_cmd_unkn_func_06(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_light_cmd_unkn_func_06\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void unkn_update_lights(void)
 {
@@ -1520,6 +1531,40 @@ void process_soul(struct SimpleThing *p_sthing)
       "call ASM_process_soul\n"
         : : "a" (p_sthing));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int get_some_phwoar(int a1, int a2, int a3)
+{
+    int ra = a1, rd = a2, rb = a3;
+    asm volatile ("call ASM_get_some_phwoar\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
+    return ra;
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void give_some_phwoar(int a1, int a2, int a3)
+{
+    int ra = a1, rd = a2, rb = a3;
+    asm volatile ("call ASM_give_some_phwoar\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void give_some_shrapnel(int a1, int a2, int a3)
+{
+    int ra = a1, rd = a2, rb = a3;
+    asm volatile ("call ASM_give_some_shrapnel\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
+}
+
+
+
 
 void process_bang(struct SimpleThing *p_sthing)
 {

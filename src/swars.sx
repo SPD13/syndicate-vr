@@ -7739,7 +7739,7 @@ rotate_texture:	/* 0x042AB8 */
 		je     jump_42b93
 		and    $0x3f,%ah
 		cwtl
-		call   is_animating
+		call   ac_is_animating
 		mov    %eax,%esi
 		test   %ax,%ax
 		je     jump_42b47
@@ -7917,7 +7917,7 @@ GLOBAL_FUNC(ASM_apply_full_light)	/* 0x042BA0 */
 
 
 /*----------------------------------------------------------------*/
-is_animating:	/* 0x042D00 */
+GLOBAL_FUNC(ASM_is_animating)	/* 0x042D00 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -8026,7 +8026,7 @@ light_cmd_unkn_func_05:	/* 0x043410 */
 
 
 /*----------------------------------------------------------------*/
-light_cmd_unkn_func_06:	/* 0x0434A4 */
+GLOBAL_FUNC(ASM_light_cmd_unkn_func_06)	/* 0x0434A4 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -8230,7 +8230,7 @@ func_436a5:
 		testb  $0x10,(%ebx)
 		je     jump_436b1
 		mov    %ebx,%eax
-		call   light_cmd_unkn_func_06
+		call   ac_light_cmd_unkn_func_06
 	jump_436b1:
 		testb  $0x20,(%ebx)
 		je     jump_436c3
@@ -41868,7 +41868,7 @@ GLOBAL_FUNC(ASM_on_mapwho)	/* 0x0618A0 */
 
 
 /*----------------------------------------------------------------*/
-apply_unkn_vehicle50_damage:	/* 0x061E30 */
+GLOBAL_FUNC(ASM_apply_unkn_vehicle50_damage)	/* 0x061E30 */
 /*----------------------------------------------------------------*/
 		push   %ecx
 		push   %esi
@@ -49037,7 +49037,7 @@ func_67864:
 	jump_6799e:
 		mov    0x20(%esi),%edx
 		mov    0x18(%esi),%eax
-		call   apply_unkn_vehicle50_damage
+		call   ac_apply_unkn_vehicle50_damage
 		push   $0x0
 		mov    $0x300,%ecx
 		mov    0x20(%esi),%ebx
@@ -73490,7 +73490,7 @@ GLOBAL_FUNC(ASM_ma_triangle_route)
 
 
 /*----------------------------------------------------------------*/
-triangle_route_do_unkn3:	/* 0x083834 */
+GLOBAL_FUNC(ASM_triangle_route_do_unkn3)	/* 0x083834 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -74018,7 +74018,7 @@ triangle_route_do_unkn3:	/* 0x083834 */
 
 
 /*----------------------------------------------------------------*/
-triangle_route_do_unkn4:	/* 0x083FA4 */
+GLOBAL_FUNC(ASM_triangle_route_do_unkn4)	/* 0x083FA4 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -74542,7 +74542,7 @@ triangle_route_do_unkn4:	/* 0x083FA4 */
 
 
 /*----------------------------------------------------------------*/
-ma_triangle_route_5:	/* 0x0846FC */
+GLOBAL_FUNC(ASM_ma_triangle_route_5)	/* 0x0846FC */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -74552,7 +74552,7 @@ ma_triangle_route_5:	/* 0x0846FC */
 		mov    %edx,0x8(%esp)
 		mov    %ebx,%edi
 		mov    %ecx,%ebp
-		call   triangle_route_do_unkn3
+		call   ac_triangle_route_do_unkn3
 		mov    %eax,0xc(%esp)
 		cmp    $0xffffffff,%eax
 		je     jump_8482e
@@ -74581,7 +74581,7 @@ ma_triangle_route_5:	/* 0x0846FC */
 		mov    %ebx,EXPORT_SYMBOL(tree_By8)
 		mov    $EXPORT_SYMBOL(route_bak),%ebx
 		mov    0x8(%esp),%eax
-		call   triangle_route_do_unkn4
+		call   ac_triangle_route_do_unkn4
 		mov    %eax,%esi
 		mov    %eax,%ebp
 		cmp    $0xffffffff,%eax
@@ -77513,7 +77513,7 @@ path_init8_tank:	/* 0x087028 */
 		mov    %eax,%edx
 		mov    $EXPORT_SYMBOL(tree_route),%ebx
 		mov    0x4(%esp),%eax
-		call   ma_triangle_route_5
+		call   ac_ma_triangle_route_5
 		mov    %eax,EXPORT_SYMBOL(tree_routelen)
 		cmp    $0xffffffff,%eax
 		je     jump_8710d
@@ -90978,7 +90978,7 @@ GLOBAL_FUNC (ASM_bang_set_detail)
 
 
 /*----------------------------------------------------------------*/
-get_some_phwoar:	/* 0x0B1110 */
+GLOBAL_FUNC(ASM_get_some_phwoar)	/* 0x0B1110 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %edx
@@ -91010,7 +91010,7 @@ get_some_phwoar:	/* 0x0B1110 */
 
 
 /*----------------------------------------------------------------*/
-give_some_shrapnel:	/* 0x0B1160 */
+GLOBAL_FUNC(ASM_give_some_shrapnel)	/* 0x0B1160 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %edx
@@ -91028,7 +91028,7 @@ give_some_shrapnel:	/* 0x0B1160 */
 
 
 /*----------------------------------------------------------------*/
-give_some_phwoar:	/* 0x0B118C */
+GLOBAL_FUNC(ASM_give_some_phwoar)	/* 0x0B118C */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %edx
@@ -110316,7 +110316,7 @@ func_ca166:
 		cmp    %edx,%ebp
 		jge    jump_ca9ea
 	jump_ca192:
-		call   get_some_phwoar
+		call   ac_get_some_phwoar
 		test   %ax,%ax
 		je     jump_ca17d
 		xor    %edx,%edx
@@ -110538,7 +110538,7 @@ func_ca37b:
 		cmp    %edx,%ecx
 		jge    jump_ca4e4
 	jump_ca418:
-		call   get_some_phwoar
+		call   ac_get_some_phwoar
 		test   %ax,%ax
 		je     jump_ca403
 		xor    %edx,%edx
@@ -110644,7 +110644,7 @@ func_ca500:
 		mov    %ecx,0x3c(%esp)
 		mov    %ecx,0x38(%esp)
 	jump_ca57c:
-		call   get_some_phwoar
+		call   ac_get_some_phwoar
 		test   %ax,%ax
 		je     jump_ca726
 		xor    %edx,%edx
@@ -110787,7 +110787,7 @@ func_ca6a3:
 	jump_ca726:
 		cmpl   $0x0,0xc(%esp)
 		je     jump_ca859
-		call   get_some_phwoar
+		call   ac_get_some_phwoar
 		test   %ax,%ax
 		je     jump_ca859
 		xor    %edx,%edx
@@ -110960,7 +110960,7 @@ func_ca88e:
 		cmp    %ebp,%ecx
 		jge    jump_ca9ea
 	jump_ca92a:
-		call   get_some_phwoar
+		call   ac_get_some_phwoar
 		test   %ax,%ax
 		je     jump_ca915
 		xor    %edx,%edx
@@ -111022,7 +111022,7 @@ func_ca88e:
 		xor    %eax,%eax
 		mov    0x48(%esp),%ax
 		mov    %cx,(%edi)
-		call   give_some_phwoar
+		call   ac_give_some_phwoar
 		mov    %ecx,0x48(%esp)
 		jmp    jump_cab40
 	jump_caa17:
@@ -111256,7 +111256,7 @@ func_ca88e:
 		mov    %ax,0x0(%ebp)
 		xor    %eax,%eax
 		mov    %di,%ax
-		call   give_some_shrapnel
+		call   ac_give_some_shrapnel
 		mov    0x50(%esp),%edi
 		jmp    jump_cae63
 	jump_caca5:
@@ -111370,7 +111370,7 @@ func_ca88e:
 		mov    %ax,0x0(%ebp)
 		xor    %eax,%eax
 		mov    %di,%ax
-		call   give_some_shrapnel
+		call   ac_give_some_shrapnel
 		mov    0x50(%esp),%edi
 		test   %di,%di
 		jne    jump_cab5c
@@ -111396,7 +111396,7 @@ func_ca88e:
 		xor    %eax,%eax
 		mov    %di,%ax
 		mov    $0x14,%ecx
-		call   give_some_shrapnel
+		call   ac_give_some_shrapnel
 		mov    0x8(%esi),%ebx
 		mov    0x4(%esi),%edx
 		mov    (%esi),%eax
