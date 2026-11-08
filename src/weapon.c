@@ -34,6 +34,7 @@
 #include "enginsngtxtr.h"
 #include "engintrns.h"
 #include "enginzoom.h"
+#include "frame_sprani.h"
 
 #include "bigmap.h"
 #include "bmbang.h"
@@ -44,6 +45,7 @@
 #include "game.h"
 #include "packet.h"
 #include "game_data.h"
+#include "game_options.h"
 #include "game_speed.h"
 #include "guitext.h"
 #include "matrix.h"
@@ -3168,11 +3170,96 @@ void init_minigun(struct Thing *p_owner)
         alert_peeps(cor_fin_x, cor_fin_y, cor_fin_z, p_owner);
 }
 
-void init_flamer(struct Thing *p_owner)
+static DIFFTEST_REF_FUNC void init_flamer_asm(struct Thing *p_owner)
 {
-    //TODO add alerting people
     asm volatile ("call ASM_init_flamer\n"
         : : "a" (p_owner));
+}
+
+void init_flamer(struct Thing *p_owner)
+{
+    struct SimpleThing *p_sthing;
+    s32 cor_x, cor_y, cor_z;
+    s32 vel_x, vel_y, vel_z;
+    s32 step_x, step_y, step_z;
+    short dangl;
+    sbyte dwdir;
+    ubyte angl;
+    ushort i;
+    int k;
+
+    //TODO add alerting people
+    DIFFTEST_SHADOW(init_flamer, init_flamer_asm(p_owner));
+
+    angl = p_owner->U.UPerson.Angle;
+    cor_x = p_owner->X + (angle_direction[angl].DiX << 6);
+    cor_z = p_owner->Z + (angle_direction[angl].DiY << 6);
+    cor_y = p_owner->Y + 0xf00;
+
+    if (p_owner->PTarget != NULL)
+    {
+        struct Thing *p_target;
+        s32 tng_x, tng_z;
+        short ret;
+
+        p_target = p_owner->PTarget;
+        tng_z = p_target->Z >> 8;
+        tng_x = p_target->X >> 8;
+        ret = arctan(tng_x - (p_owner->X >> 8), -(tng_z - (p_owner->Z >> 8)));
+        change_person_angle(p_owner, ((((s32)ret + 0x80) >> 8) + 8) & 7);
+    }
+
+    dangl = (short)(((s32)p_owner->U.UPerson.Angle << 5) - (s32)p_owner->U.UPerson.WeaponDir);
+    if (dangl < -128)
+        dwdir = 32;
+    else if (dangl > 128)
+        dwdir = -32;
+    else if (dangl < -9)
+        dwdir = -8;
+    else if (dangl > 9)
+        dwdir = 8;
+    else
+        dwdir = 0;
+    p_owner->U.UPerson.WeaponDir += dwdir;
+
+    vel_x = lbSinTable[p_owner->U.UPerson.WeaponDir << 3] >> 8;
+    vel_z = lbSinTable[(p_owner->U.UPerson.WeaponDir << 3) + LbFPMath_PI/2] >> 8;
+    vel_x += (s32)(LbRandomAnyShort() & 0xF) - 8;
+    vel_y = (s32)(LbRandomAnyShort() & 0xF) - 8;
+    vel_z += (s32)(LbRandomAnyShort() & 0xF) - 8;
+
+    step_x = vel_x << 5;
+    step_y = vel_y * 2;
+    step_z = vel_z << 5;
+
+    for (i = 0; i < 3; i++,
+      cor_x += step_x, cor_y += step_y, cor_z += step_z)
+    {
+        p_sthing = create_scale_effect(cor_x >> 8, cor_y >> 8, cor_z >> 8, 900, 15);
+        if (p_sthing == NULL)
+            continue;
+        ingame.FlameCount++;
+        {
+            ushort rnd;
+            short timer;
+
+            rnd = LbRandomAnyShort();
+            p_sthing->SubType = 46;
+            timer = p_sthing->Timer1;
+            p_sthing->Object = 40;
+            p_sthing->StartFrame = 9;
+            p_sthing->Timer1 = timer + ((s32)(rnd & 7) - 4);
+        }
+        for (k = 0; k < 5; k++)
+            p_sthing->Frame = frame[p_sthing->Frame].Next;
+        p_sthing->U.UEffect.VX = ((s32)(LbRandomAnyShort() & 0xF) + vel_x - 8) << 4;
+        p_sthing->U.UEffect.VY = (s32)(LbRandomAnyShort() & 0xF) + vel_y - 8;
+        p_sthing->U.UEffect.VZ = ((s32)(LbRandomAnyShort() & 0xF) + vel_z - 8) << 4;
+        p_sthing->U.UEffect.OX = (-vel_x) >> 1;
+        p_sthing->U.UEffect.OZ = (-vel_z) >> 1;
+        p_sthing->U.UEffect.OY = 0;
+        p_sthing->Owner2 = p_owner->ThingOffset;
+    }
 }
 
 void init_long_range(struct Thing *p_owner)
