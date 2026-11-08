@@ -333,11 +333,55 @@ ubyte on_mapwho(struct Thing *p_thing)
     return ret;
 }
 
-void move_mapwho(struct Thing *p_thing, int x, int y, int z)
+static DIFFTEST_REF_FUNC void move_mapwho_asm(struct Thing *p_thing, int x, int y, int z)
 {
     asm volatile (
       "call ASM_move_mapwho\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z));
+}
+
+void move_mapwho(struct Thing *p_thing, int x, int y, int z)
+{
+    ushort tile_x, tile_z;
+    ushort mapel_idx;
+    short nxt;
+    short tng_offs;
+
+    DIFFTEST_SHADOW(move_mapwho, move_mapwho_asm(p_thing, x, y, z));
+    if ((x >> 8) >= 0x8000 || (z >> 8) >= 0x8000)
+        return;
+    if ((x >> 8) < 0 || (z >> 8) < 0)
+        return;
+
+    if ((x >> 16) >= 0x80 || (z >> 16) >= 0x80 ||
+      (x >> 16) < 0 || (z >> 16) < 0)
+    {
+        // Wrap tile coords into the map; this modifies the stored coords too
+        x = (x & 0xFFFF) | (((x >> 16) & 0x7F) << 16);
+        z = (z & 0xFFFF) | (((z >> 16) & 0x7F) << 16);
+    }
+    tile_x = (ushort)(x >> 16);
+    tile_z = (ushort)(z >> 16);
+
+    if ((p_thing->Flag2 & TgF2_ExistsOffMap) == 0 &&
+      (tile_x != (ushort)(p_thing->X >> 16) || tile_z != (ushort)(p_thing->Z >> 16)))
+    {
+        // The asm calls an empty function (nullsub_3) here for TT_PERSON
+        mapel_idx = (ushort)((tile_z << 7) + tile_x);
+        delete_node(p_thing);
+        nxt = game_my_big_map[mapel_idx].Child;
+        p_thing->Next = nxt;
+        tng_offs = p_thing->ThingOffset;
+        if (nxt > 0)
+            things[nxt].Parent = tng_offs;
+        else if (nxt < 0)
+            sthings[nxt].Parent = tng_offs;
+        p_thing->Parent = 0;
+        game_my_big_map[mapel_idx].Child = tng_offs;
+    }
+    p_thing->Y = y;
+    p_thing->X = x;
+    p_thing->Z = z;
 }
 
 static DIFFTEST_REF_FUNC void init_just_things_asm(void)
