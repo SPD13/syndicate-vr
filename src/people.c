@@ -7486,12 +7486,73 @@ int find_target_from_persuaded_peeps(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int find_target_from_players(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int find_target_from_players_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_find_target_from_players\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
-    return ra;
+    // Only al is set by the asm; upper bits are leftovers
+    return (ubyte)ra;
+}
+
+int find_target_from_players(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_agent;
+    u32 visible[8];
+    u32 count;
+    s32 range_sq;
+    ubyte see_flags;
+    ubyte plyr;
+    ubyte i;
+    ubyte pick;
+
+    DIFFTEST_SHADOW_RET(find_target_from_players, int,
+      find_target_from_players_asm(a1, a2, a3, a4));
+
+    see_flags = (ubyte)a3;
+    // TODO the asm always uses players[0], not the local player
+    plyr = 0;
+    count = 0;
+    p_person->PTarget = NULL;
+    p_agent = NULL;
+    if (playable_agents > 0)
+    {
+        range_sq = a2 * a2;
+        for (i = 0; i < playable_agents; i++)
+        {
+            p_agent = players[0].MyAgent[i];
+            if (((p_agent->Flag2 & TgF2_AlteredSubType) == 0) &&
+              ((ushort)p_agent->State != 0x24) &&
+              ((ushort)p_agent->State != 0x0c) &&
+              ((p_agent->Flag & TngF_Destroyed) == 0))
+            {
+                if (can_i_see_thing(p_person, p_agent, range_sq, see_flags) != 0)
+                    visible[i] = ++count;
+                else
+                    visible[i] = 0;
+            }
+            else
+            {
+                visible[i] = 0;
+            }
+        }
+    }
+    if (count == 0)
+        DIFFTEST_RETURN((int)0);
+
+    pick = (gameturn + (u32)(ushort)p_person->ThingOffset) % count + 1;
+    for (i = 0; i < playable_agents; i++)
+    {
+        if (visible[i] == pick)
+        {
+            p_agent = players[plyr].MyAgent[i];
+            break;
+        }
+    }
+    set_interrupt_target(p_person, p_agent);
+    ingame.fld_unkC8B = 1;
+    DIFFTEST_RETURN((int)1);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
