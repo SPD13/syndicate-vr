@@ -24,6 +24,7 @@
 #include "command.h"
 #include "game.h"
 #include "matrix.h"
+#include "pathtrig.h"
 /******************************************************************************/
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
 
@@ -174,6 +175,44 @@ static void fuzz_check_big_point_triangle(ulong *p_seed)
     check_big_point_triangle(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
 }
 
+static void fuzz_two4_line_intersection(ulong *p_seed)
+{
+    int v[8];
+    int i;
+
+    // Map-like coordinates, sometimes full-range values
+    for (i = 0; i < 8; i++)
+    {
+        if (difftest_fuzz_rand(p_seed) % 4 == 0)
+            v[i] = fuzz_int(p_seed);
+        else
+            v[i] = (short)difftest_fuzz_rand(p_seed) % 2048;
+    }
+    // Sometimes shared endpoints, parallel or degenerate segments
+    switch (difftest_fuzz_rand(p_seed) % 8)
+    {
+    case 0:
+        v[4] = v[0];
+        v[5] = v[1];
+        break;
+    case 1:
+        v[6] = v[4] + (v[2] - v[0]);
+        v[7] = v[5] + (v[3] - v[1]);
+        break;
+    case 2:
+        v[2] = v[0];
+        v[3] = v[1];
+        break;
+    case 3:
+        v[3] = v[1];
+        v[7] = v[5];
+        break;
+    default:
+        break;
+    }
+    two4_line_intersection(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
@@ -183,6 +222,7 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"rotate_object_axis", fuzz_rotate_object_axis},
     {"check_person_within", fuzz_check_person_within},
     {"check_big_point_triangle", fuzz_check_big_point_triangle},
+    {"two4_line_intersection", fuzz_two4_line_intersection},
     {NULL, NULL},
 };
 

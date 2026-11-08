@@ -424,7 +424,8 @@ int edge_find(int x1, int y1, int x2, int y2, int *ntri1, int *ncor1)
     return ret;
 }
 
-TbBool two4_line_intersection(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4)
+static DIFFTEST_REF_FUNC TbBool two4_line_intersection_asm(int x1, int y1,
+  int x2, int y2, int x3, int y3, int x4, int y4)
 {
     TbBool ret;
     // Pushed through a register holding them: a "g" operand may be placed
@@ -442,10 +443,83 @@ TbBool two4_line_intersection(int x1, int y1, int x2, int y2, int x3, int y3, in
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_two4_line_intersection\n"
-        : "=r" (ret)
+        : "=a" (ret)
         : "a" (x1), "d" (y1), "b" (x2), "c" (y2), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+TbBool two4_line_intersection(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4)
+{
+    s32 dx12, dx43, dy12, dy43;
+    s32 dx31, dy31;
+    s32 num_a, num_b, denom;
+    short lo, hi;
+
+    DIFFTEST_SHADOW_RET(two4_line_intersection, TbBool,
+      two4_line_intersection_asm(x1, y1, x2, y2, x3, y3, x4, y4));
+
+    // Bounding box rejection; the asm compares only the low 16 bits
+    dx12 = x2 - x1;
+    dx43 = x3 - x4;
+    if (dx12 < 0) {
+        lo = x2;
+        hi = x1;
+    } else {
+        lo = x1;
+        hi = x2;
+    }
+    if (dx43 > 0) {
+        if (hi < (short)x4 || (short)x3 < lo)
+            DIFFTEST_RETURN((TbBool)0);
+    } else {
+        if (hi < (short)x3 || (short)x4 < lo)
+            DIFFTEST_RETURN((TbBool)0);
+    }
+
+    dy12 = y2 - y1;
+    dy43 = y3 - y4;
+    if (dy12 < 0) {
+        lo = y2;
+        hi = y1;
+    } else {
+        lo = y1;
+        hi = y2;
+    }
+    if (dy43 > 0) {
+        if (hi < (short)y4 || lo > (short)y3)
+            DIFFTEST_RETURN((TbBool)0);
+    } else {
+        if (hi < (short)y3 || lo > (short)y4)
+            DIFFTEST_RETURN((TbBool)0);
+    }
+
+    // Segment parameters along both lines must lie within [0, denom]
+    dx31 = x1 - x3;
+    dy31 = y1 - y3;
+    num_a = dy43 * dx31 - dx43 * dy31;
+    denom = dy12 * dx43 - dy43 * dx12;
+    if (denom > 0) {
+        if (num_a < 0 || num_a > denom)
+            DIFFTEST_RETURN((TbBool)0);
+    } else {
+        if (num_a > 0 || num_a < denom)
+            DIFFTEST_RETURN((TbBool)0);
+    }
+
+    num_b = dy31 * dx12 - dy12 * dx31;
+    if (denom > 0) {
+        if (num_b < 0 || num_b > denom)
+            DIFFTEST_RETURN((TbBool)0);
+    } else {
+        if (num_b > 0 || num_b < denom)
+            DIFFTEST_RETURN((TbBool)0);
+    }
+
+    // Parallel (collinear) segments return 1, proper crossing 2
+    if (denom == 0)
+        DIFFTEST_RETURN((TbBool)1);
+    DIFFTEST_RETURN((TbBool)2);
 }
 
 /**
