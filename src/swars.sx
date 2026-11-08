@@ -67488,7 +67488,7 @@ GLOBAL_FUNC(ASM_triangle_contains8)	/* 0x07F128 */
 
 
 /*----------------------------------------------------------------*/
-point_quad_status:	/* 0x7F264 */
+GLOBAL_FUNC(ASM_point_quad_status)	/* 0x7F264 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -71460,7 +71460,7 @@ GLOBAL_FUNC(ASM_func_81db4)
 		mov    %ecx,0x0(%ebp)
 		mov    (%eax),%ebx
 		mov    %edi,%eax
-		call   point_quad_status
+		call   ac_point_quad_status
 		cmp    $0xffffffff,%eax
 		jne    jump_81df6
 		mov    0x20(%esp),%ebx
@@ -73388,7 +73388,7 @@ triangle_route_do_bak:
 
 
 /*----------------------------------------------------------------*/
-ma_triangle_route:
+GLOBAL_FUNC(ASM_ma_triangle_route)
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -76173,7 +76173,7 @@ GLOBAL_FUNC(ASM_triangle_route_do_unkn7)	/* 0x0857AC */
 
 
 /*----------------------------------------------------------------*/
-ma_triangle_route_3:	/* 0x085F18 */
+GLOBAL_FUNC(ASM_ma_triangle_route_3)	/* 0x085F18 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -77337,7 +77337,7 @@ jump_86e7a:
 		mov    %eax,%edx
 		mov    $EXPORT_SYMBOL(tree_route),%ebx
 		mov    0x4(%esp),%eax
-		call   ma_triangle_route_3
+		call   ac_ma_triangle_route_3
 		mov    %eax,EXPORT_SYMBOL(tree_routelen)
 		cmp    $0xffffffff,%eax
 		je     jump_86ef8
@@ -77429,7 +77429,7 @@ GLOBAL_FUNC(ASM_path_init8_wide)
 		mov    %eax,%edx
 		mov    $EXPORT_SYMBOL(tree_route),%ebx
 		mov    0x44(%esp),%eax
-		call   ma_triangle_route
+		call   ac_ma_triangle_route
 		mov    %eax,EXPORT_SYMBOL(tree_routelen)
 		cmp    $0xffffffff,%eax
 		je     jump_8701e
@@ -77674,7 +77674,7 @@ GLOBAL_FUNC(ASM_tri_path_init8)	/* 0x08723C */
 		mov    $EXPORT_SYMBOL(tree_routecost),%ecx
 		mov    %ebx,%eax
 		mov    $EXPORT_SYMBOL(tree_route),%ebx
-		call   ma_triangle_route_3
+		call   ac_ma_triangle_route_3
 		mov    %eax,EXPORT_SYMBOL(tree_routelen)
 		cmp    $0xffffffff,%eax
 		je     jump_8734d
@@ -85707,7 +85707,7 @@ GLOBAL_FUNC(ASM_VNAV_find_nearnodes)	/* 0x0A9540 */
 
 
 /*----------------------------------------------------------------*/
-VNAV_qwertyuiop:	/* 0x0A9684 */
+GLOBAL_FUNC(ASM_VNAV_qwertyuiop)	/* 0x0A9684 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -86407,7 +86407,7 @@ GLOBAL_FUNC(ASM_VNAV_find_dropoff_point)	/* 0x0A9870 */
 		push   %ecx
 		mov    0x30(%esp),%ecx
 		mov    0x2c(%esp),%esi
-		call   VNAV_qwertyuiop
+		call   ac_VNAV_qwertyuiop
 		cmp    (%esp),%esi
 		jle    jump_a9e35
 		mov    0x18(%esp),%eax
@@ -86573,7 +86573,7 @@ GLOBAL_FUNC(ASM_VNAV_find_start_dropoff_point)	/* 0x0A9F0C */
 		push   %ebx
 		lea    0x18(%esp),%edx
 		mov    0x2c(%esp),%ebx
-		call   VNAV_qwertyuiop
+		call   ac_VNAV_qwertyuiop
 		mov    0x4(%esp),%eax
 		cmp    0x14(%esp),%eax
 		jge    jump_a9f94
