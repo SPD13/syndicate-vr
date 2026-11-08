@@ -1613,10 +1613,76 @@ void train_unkn_st18_func_2(struct Thing *p_vehicle)
         : : "a" (p_vehicle));
 }
 
-void move_vehicle(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void move_vehicle_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_move_vehicle\n"
         : : "a" (p_vehicle));
+}
+
+void move_vehicle(struct Thing *p_vehicle)
+{
+    struct M33 *p_mat;
+    short angle, dt_angle;
+    ushort state;
+    int new_x, new_y, new_z;
+
+    DIFFTEST_SHADOW(move_vehicle, move_vehicle_asm(p_vehicle));
+    if (((gameturn + (ushort)p_vehicle->ThingOffset) & 3) == 0)
+        swoosh_veh((int)p_vehicle, gameturn, 0, 0);
+
+    if ((p_vehicle->SubType != SubTT_VEH_TRAIN) &&
+      (p_vehicle->SubType != SubTT_VEH_FLYING))
+        check_vehicle_col(p_vehicle);
+
+    angle = p_vehicle->U.UVehicle.AngleY + (p_vehicle->U.UVehicle.AngleDY >> 3);
+    p_vehicle->U.UVehicle.AngleY = angle;
+    p_vehicle->U.UVehicle.AngleY = (angle + 0x800) & 0x7FF;
+
+    dt_angle = p_vehicle->U.UVehicle.AngleZ - p_vehicle->U.UVehicle.AngleDY;
+    if (p_vehicle->SubType == SubTT_VEH_TRAIN)
+        p_vehicle->U.UVehicle.AngleZ = 0;
+    else if (dt_angle < -100)
+        p_vehicle->U.UVehicle.AngleZ += 100;
+    else if (dt_angle > 100)
+        p_vehicle->U.UVehicle.AngleZ -= 100;
+    else if (abs(dt_angle) > 50)
+        p_vehicle->U.UVehicle.AngleZ = p_vehicle->U.UVehicle.AngleDY;
+
+    p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY),
+      (short)(-(p_vehicle->U.UVehicle.AngleZ >> 1)), (int)p_mat);
+    // The asm also rotates a second matrix pointer here, which is always NULL
+    if (p_vehicle->U.UVehicle.AngleX != 0)
+        rotate_object_axis(p_mat, 0, p_vehicle->U.UVehicle.AngleX, 0);
+
+    p_vehicle->VX = (p_vehicle->Speed * (-p_mat->R[0][2])) >> 10;
+    if (p_vehicle->SubType == SubTT_VEH_TRAIN)
+        p_vehicle->VY = (p_vehicle->Speed * (-p_mat->R[1][2])) >> 10;
+    else
+        p_vehicle->VY = 0;
+    p_vehicle->VZ = (p_vehicle->Speed * (-p_mat->R[2][2])) >> 10;
+
+    // TODO the pitch rotation is applied a second time; looks like an original bug
+    if (p_vehicle->U.UVehicle.AngleX != 0)
+        rotate_object_axis(p_mat, 0, p_vehicle->U.UVehicle.AngleX, 0);
+
+    state = (ushort)p_vehicle->State;
+    if (state == VehSt_UNKN_36)
+    {
+        p_vehicle->VX += p_vehicle->U.UVehicle.AccelX << 5;
+        p_vehicle->VZ += p_vehicle->U.UVehicle.AccelZ << 5;
+    }
+    else if ((state == VehSt_UNKN_38) &&
+      ((p_vehicle->U.UVehicle.WorkPlace & VWPFlg_Unkn0200) == 0))
+    {
+        p_vehicle->VX -= p_vehicle->U.UVehicle.AccelX << 5;
+        p_vehicle->VZ -= p_vehicle->U.UVehicle.AccelZ << 5;
+    }
+
+    new_x = p_vehicle->X + p_vehicle->VX;
+    new_y = p_vehicle->Y + p_vehicle->VY;
+    new_z = p_vehicle->Z + p_vehicle->VZ;
+    move_mapwho(p_vehicle, new_x, new_y, new_z);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
