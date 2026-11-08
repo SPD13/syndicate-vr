@@ -7076,10 +7076,70 @@ void process_persuaded(struct Thing *p_person)
 
 /** Looks around the person for threats to react to.
  */
-void search_for_danger(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void search_for_danger_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_search_for_danger\n"
         : : "a" (p_person) : "cc", "memory");
+}
+
+void search_for_danger(struct Thing *p_person)
+{
+    s32 best_dist;
+    s32 flee_x, flee_z;
+    short plyr, i;
+
+    DIFFTEST_SHADOW(search_for_danger, search_for_danger_asm(p_person));
+    best_dist = 0x7fffffff;
+    flee_x = 0;
+    flee_z = 0;
+    if (!in_network_game)
+    {
+        ubyte group;
+
+        group = p_person->U.UPerson.EffectiveGroup & 0x1F;
+        // TODO the asm returns 1 in eax when it made the person flee, 0 otherwise;
+        // the wrapper is declared void, so the value is dropped
+        if ((war_flags[group].Truce & (1 << level_def.PlayableGroups[0])) != 0)
+            return;
+    }
+    for (plyr = 0; plyr < PLAYERS_LIMIT; plyr++)
+    {
+        if (((1 << plyr) & ingame.InNetGame_UNSURE) == 0)
+            continue;
+        for (i = 0; i < playable_agents; i++)
+        {
+            struct Thing *p_agent;
+            s32 dx, dz;
+            s32 adx, adz;
+            s32 dist;
+
+            p_agent = players[plyr].MyAgent[i];
+            if (p_agent == NULL)
+                continue;
+            if (p_agent->U.UPerson.CurrentWeapon == WEP_NULL)
+                continue;
+            if (p_agent->U.UPerson.CurrentWeapon == WEP_CLONESHLD)
+                continue;
+            dx = (p_person->X - p_agent->X) >> 8;
+            dz = (p_person->Z - p_agent->Z) >> 8;
+            adx = abs(dx);
+            adz = abs(dz);
+            if (adx > adz)
+                dist = adx + (adz >> 1);
+            else
+                dist = adz + (adx >> 1);
+            if (dist >= best_dist || dist >= 0x600)
+                continue;
+            if (!in_network_game &&
+              !can_i_see_thing(p_person, p_agent, 0x190000, 1))
+                continue;
+            best_dist = dist;
+            flee_x = dx;
+            flee_z = dz;
+        }
+    }
+    if (best_dist < 0x500)
+        make_peep_flee(flee_x, flee_z, p_person);
 }
 
 void process_danger(struct Thing *p_person)
