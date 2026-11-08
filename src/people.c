@@ -2942,13 +2942,221 @@ ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face)
     return ret;
 }
 
-ushort build_navigate_path_to_person(struct Thing *p_thing, struct Thing *p_thing_to)
+static DIFFTEST_REF_FUNC ushort build_navigate_path_to_person_asm(struct Thing *p_thing, struct Thing *p_thing_to)
 {
     ushort ret;
     asm volatile (
       "call ASM_build_navigate_path_to_person\n"
-        : "=r" (ret) : "a" (p_thing), "d" (p_thing_to));
+        : "=a" (ret) : "a" (p_thing), "d" (p_thing_to));
     return ret;
+}
+
+extern struct Path g_nav_data;
+extern u32 nav_stats__ThisTurn;
+extern s32 gamep_unknval_14;
+extern s32 navi2_unkn_counter;
+
+void path_init8_unkn3(struct Path *p_path, int ax8, int ay8, int bx8, int by8, int a6);
+ubyte check_person_within(struct Command *p_cmd, int x, int z);
+void count_fnavs(TbBool now_draw);
+void set_xz_for_quad210(int a1, int a2, int a3, int a4);
+void set_xz_for_quad_unkn03(int a1, int a2, int a3, int a4);
+void use_nav_data(int a1, int a2, int a3, int a4);
+void fatter_than_nothing(int a1, int a2, int a3, int a4);
+int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+
+/** Set the position of a face for navigation into x and z, depending on
+ * the face index sign (positive - triangle, negative - quad).
+ */
+static void build_navigate_face_xz(struct Thing *p_thing, struct Thing *p_thing_to,
+  short face, int *p_x, int *p_z, short *p_tringl)
+{
+    struct SingleObjectFace3 *p_face3;
+    struct SingleObjectFace4 *p_face4;
+
+    if (face > 0)
+    {
+        p_face3 = &game_object_faces3[face];
+        *p_tringl = p_face3->UnknTringl;
+        set_xz_for_tri(p_face3, p_x, p_z);
+    }
+    else if ((p_thing->Flag & TngF_Unkn0020) != 0)
+    {
+        p_face4 = &game_object_faces4[-face];
+        *p_tringl = p_face4->UnknTringl2;
+        set_xz_for_quad210((int)(intptr_t)p_face4, (int)(intptr_t)p_x,
+          (int)(intptr_t)p_z, (int)(intptr_t)p_thing_to);
+    }
+    else
+    {
+        p_face4 = &game_object_faces4[-face];
+        *p_tringl = p_face4->UnknTringl1;
+        set_xz_for_quad_unkn03((int)(intptr_t)p_face4, (int)(intptr_t)p_x,
+          (int)(intptr_t)p_z, (int)(intptr_t)p_thing_to);
+    }
+    *p_x <<= 8;
+    *p_z <<= 8;
+}
+
+ushort build_navigate_path_to_person(struct Thing *p_thing, struct Thing *p_thing_to)
+{
+    struct Thing *p_vehicle;
+    struct Command *p_cmd;
+    struct SingleObjectFace4 *p_face4;
+    int x0, z0, x1, z1;
+    s32 dx, dz, dist;
+    short face0, face1;
+    ubyte zip;
+
+    DIFFTEST_SHADOW_RET(build_navigate_path_to_person, ushort,
+      build_navigate_path_to_person_asm(p_thing, p_thing_to));
+
+    face0 = -1;
+    face1 = -1;
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+    {
+        p_vehicle = &things[p_thing->U.UPerson.Vehicle];
+        if (p_vehicle->SubType != SubTT_VEH_TRAIN)
+            DIFFTEST_RETURN((ushort)0);
+    }
+    if ((p_thing->Flag & TngF_PlayerAgent) == 0 && (p_thing->Flag2 & TgF2_Unkn00020000) != 0)
+    {
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        DIFFTEST_RETURN((ushort)0);
+    }
+
+    if (p_thing->U.UPerson.Within != 0)
+    {
+        p_cmd = &game_commands[p_thing->U.UPerson.ComCur];
+        if (!check_person_within(p_cmd, p_thing_to->X >> 8, p_thing_to->Z >> 8))
+        {
+            s32 cx, cz;
+
+            dx = (p_thing_to->X - p_thing->X) >> 8;
+            cx = dx;
+            if (cx > 0x800)
+                cx = 0x800;
+            if (cx < -0x800)
+                cx = -0x800;
+            // TODO the original clamps the X difference for Z as well; looks like a bug
+            cz = dx;
+            if (cz > 0x800)
+                cz = 0x800;
+            if (cz < -0x800)
+                cz = -0x800;
+            cz += p_thing->Z >> 8;
+            cx += p_thing->X >> 8;
+            DIFFTEST_RETURN(build_navigate_path(p_thing, (short)cx, (short)cz, 0));
+        }
+    }
+
+    if ((p_thing->Flag2 & TgF2_Unkn0008) == 0)
+        p_thing->U.UPerson.BumpCount = 0;
+    p_thing->U.UPerson.LastDist = 0x7d00;
+    p_thing->Flag2 |= TgF2_Unkn8000;
+
+    if ((p_thing->X >> 8) < 0 || (p_thing->X >> 8) >= 0x8000 ||
+      (p_thing->Z >> 8) < 0 || (p_thing->Z >> 8) >= 0x8000 ||
+      (p_thing_to->X >> 8) < 0 || (p_thing_to->X >> 8) >= 0x8000 ||
+      (p_thing_to->Z >> 8) < 0 || (p_thing_to->Z >> 8) >= 0x8000)
+    {
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        DIFFTEST_RETURN((ushort)0);
+    }
+
+    zip = game_my_big_map[((p_thing->Z >> 16) << 7) + (p_thing->X >> 16)].Zip;
+    if (zip != 0 &&
+      game_my_big_map[((p_thing_to->Z >> 16) << 7) + (p_thing_to->X >> 16)].Zip == zip)
+    {
+        g_fat_data.PathLength = 1;
+        g_fat_data.WayPoints[0].x8 = p_thing_to->X;
+        g_fat_data.WayPoints[0].y8 = p_thing_to->Z;
+        gamep_unknval_14++;
+        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        DIFFTEST_RETURN((ushort)1);
+    }
+
+    if (p_thing->U.UPerson.OnFace != 0)
+    {
+        build_navigate_face_xz(p_thing, p_thing_to, p_thing->U.UPerson.OnFace,
+          &x0, &z0, &face0);
+    }
+    else
+    {
+        x0 = p_thing->X;
+        z0 = p_thing->Z;
+    }
+
+    if (p_thing_to->U.UPerson.OnFace != 0)
+    {
+        build_navigate_face_xz(p_thing_to, p_thing_to, p_thing_to->U.UPerson.OnFace,
+          &x1, &z1, &face1);
+    }
+    else if ((p_thing_to->Flag & TngF_InVehicle) != 0 &&
+      things[p_thing_to->U.UPerson.Vehicle].SubType == SubTT_VEH_TRAIN)
+    {
+        p_vehicle = &things[p_thing_to->U.UPerson.Vehicle];
+        if (p_vehicle->Type != TT_VEHICLE)
+            DIFFTEST_RETURN((ushort)0);
+        p_face4 = &game_object_faces4[(short)p_vehicle->U.UVehicle.ComHead];
+        face1 = p_face4->UnknTringl2;
+        set_xz_for_quad210((int)(intptr_t)p_face4, (int)(intptr_t)&x1,
+          (int)(intptr_t)&z1, (int)(intptr_t)p_thing_to);
+        x1 <<= 8;
+        z1 <<= 8;
+    }
+    else
+    {
+        x1 = p_thing_to->X;
+        z1 = p_thing_to->Z;
+    }
+
+    nav_stats__ThisTurn++;
+    dx = abs(x0 - x1);
+    dz = abs(z0 - z1);
+    if (dx > dz)
+        dist = dx + (dz >> 1);
+    else
+        dist = dz + (dx >> 1);
+
+    if (dist < 0x100000 && face0 == -1 && face1 == -1 &&
+      (p_thing->Flag & TngF_PlayerAgent) == 0 &&
+      p_thing->U.UPerson.Target2 != 0 &&
+      p_thing->U.UPerson.Within == 0 &&
+      (p_thing->Flag & TngF_Persuaded) == 0 &&
+      p_thing->SubType != SubTT_PERS_MECH_SPIDER &&
+      (LbRandomAnyShort() & 1) != 0)
+    {
+        p_thing->U.UPerson.Flag3 |= 0x10;
+        navi2_unkn_counter++;
+        path_init8_unkn3(&g_nav_data, x0, z0, x1, z1, -2);
+        set_person_animmode_run(p_thing);
+    }
+    else
+    {
+        p_thing->U.UPerson.Flag3 &= ~0x10;
+        navi2_unkn_counter++;
+        tri_path_init8(face0, face1, (int)(intptr_t)&g_nav_data, x0, z0, x1, z1, -2);
+    }
+
+    if (g_nav_data.PathLength == 0)
+    {
+        g_fat_data.ax8 = x0;
+        g_fat_data.ay8 = z0;
+        g_fat_data.bx8 = x1;
+        g_fat_data.by8 = z1;
+        g_fat_data.WayPoints[0].x8 = x1;
+        g_fat_data.WayPoints[0].y8 = z1;
+        g_fat_data.PathLength = 1;
+        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        count_fnavs(0);
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        DIFFTEST_RETURN((ushort)0);
+    }
+
+    fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data, 0x80, 0);
+    use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+    DIFFTEST_RETURN((ushort)1);
 }
 
 void build_navigate_path_to_face(struct Thing *p_thing, short face)
