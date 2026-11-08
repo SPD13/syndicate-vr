@@ -1623,16 +1623,45 @@ void map_lights_update(void)
     asm volatile ("call ASM_map_lights_update\n"
         :  :  : "eax" );
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int train_related_func_01(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int train_related_func_01_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_train_related_func_01\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Routed asm (internal label). Arguments are the raw registers the asm
+ * takes (eax, edx, ebx, ecx); only eax (the train thing) is used.
+ */
+int train_related_func_01(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_train = (struct Thing *)a1;
+    struct Thing *p_station;
+    ThingIdx station;
+    short face1, face2;
+
+    DIFFTEST_SHADOW_RET(train_related_func_01, int,
+      train_related_func_01_asm(a1, a2, a3, a4));
+    station = search_for_station(p_train->X >> 8, p_train->Z >> 8);
+    if (station == 0)
+        DIFFTEST_RETURN((int)0);
+    p_station = &things[station];
+    face1 = search_object_for_qface(p_station->U.UObject.Object, 4, 2, 0);
+    if ((ushort)face1 == 0)
+        DIFFTEST_RETURN((int)0);
+    // TODO the train is a vehicle, but the asm stores the faces at the
+    // offsets of UObject.ComHead/ComCur (UVehicle.AngleZ/GotoX)
+    p_train->U.UVehicle.AngleZ = face1;
+    p_station->U.UObject.ComHead = face1;
+    face2 = search_object_for_qface(p_station->U.UObject.Object, 4, 2,
+      (ushort)face1);
+    if ((ushort)face2 == 0)
+        DIFFTEST_RETURN((int)0);
+    p_train->U.UVehicle.GotoX = face2;
+    p_station->U.UObject.ComCur = face2;
+    p_station->GotoThingIndex = p_train->ThingOffset;
+    DIFFTEST_RETURN((int)1);
 }
 
 
