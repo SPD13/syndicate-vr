@@ -1019,11 +1019,69 @@ int process_things_bang(int affected_max)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void light_cmd_unkn_func_06(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void light_cmd_unkn_func_06_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_light_cmd_unkn_func_06\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void light_cmd_unkn_func_06(int a1, int a2, int a3, int a4)
+{
+    struct LightCommand *p_lcmd = (struct LightCommand *)a1;
+    ubyte *p_fld = p_lcmd->lcfld_0;
+    s32 tile_x, tile_z;
+    s32 row_beg, row_end, offs;
+    TbBool found;
+
+    DIFFTEST_SHADOW(light_cmd_unkn_func_06,
+      light_cmd_unkn_func_06_asm(a1, a2, a3, a4));
+    found = false;
+    // The asm tests (flags | 0x20) for zero, which is never true
+    p_fld[0x14]--;
+    if ((sbyte)p_fld[0x14] <= 0)
+        p_fld[0] &= ~0x20;
+    if ((sbyte)p_fld[0x14] > 0)
+        return;
+
+    for (tile_x = p_fld[0xc]; tile_x < p_fld[0xe]; tile_x++)
+    {
+        row_beg = tile_x * (s32)sizeof(struct MyMapElement);
+        row_end = row_beg + 0x48000;
+        offs = p_fld[0xd] * 0x900 + row_beg;
+        for (tile_z = p_fld[0xd]; tile_z < p_fld[0xf]; tile_z++, offs += 0x900)
+        {
+            short thing;
+
+            if (tile_x < 0 || tile_x >= 128)
+                return;
+            if (offs < row_beg || offs >= row_end)
+                return;
+            thing = ((struct MyMapElement *)((ubyte *)game_my_big_map + offs))->Child;
+            if (thing <= 0)
+                continue;
+            if (things[thing].Type == TT_PERSON)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (found)
+            break;
+    }
+
+    if (found)
+    {
+        p_fld[0x14] = 20;
+        p_fld[0x9] = 0;
+        p_fld[0] &= ~0x20;
+    }
+    else
+    {
+        p_fld[0x14] = 4;
+        p_fld[0x9] = 0;
+        p_fld[0] |= 0x20;
+    }
 }
 
 
