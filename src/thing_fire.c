@@ -18,15 +18,18 @@
 /******************************************************************************/
 #include "thing_fire.h"
 
+#include <stdlib.h>
 #include "bfutility.h"
 
 #include "enginshrapn.h"
 
 #include "bigmap.h"
+#include "difftest.h"
 #include "enginfexpl.h"
 #include "sound.h"
 #include "swlog.h"
 #include "thing.h"
+#include "vehicle.h"
 
 /******************************************************************************/
 
@@ -309,11 +312,92 @@ LABEL_184:
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void apply_unkn_vehicle50_damage(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void apply_unkn_vehicle50_damage_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_apply_unkn_vehicle50_damage\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void apply_unkn_vehicle50_damage(int a1, int a2, int a3, int a4)
+{
+    s32 x, z, damage;
+    s32 tile_x, tile_z;
+    s32 tl_x, tl_z;
+
+    DIFFTEST_SHADOW(apply_unkn_vehicle50_damage, apply_unkn_vehicle50_damage_asm(a1, a2, a3, a4));
+    x = a1;
+    z = a2;
+    damage = a3;
+    tile_x = x >> 16;
+    tile_z = z >> 16;
+
+    for (tl_x = tile_x - 2; tl_x != tile_x + 3; tl_x++)
+    {
+        if (tl_x < 0 || tl_x > 127)
+            continue;
+        for (tl_z = tile_z - 2; tl_z != tile_z + 3; tl_z++)
+        {
+            struct MyMapElement *p_mapel;
+            ThingIdx thing;
+
+            if (tl_z < 0 || tl_z > 127)
+                continue;
+            p_mapel = &game_my_big_map[128 * tl_z + tl_x];
+            thing = p_mapel->Child;
+            while (thing != 0)
+            {
+                struct Thing *p_thing;
+                s32 dx, dz, dist, dmg;
+
+                if (thing < 0)
+                {
+                    thing = sthings[thing].Next;
+                    continue;
+                }
+                p_thing = &things[thing];
+                thing = p_thing->Next;
+                if (p_thing->Type != TT_VEHICLE)
+                    continue;
+                if (p_thing->SubType != SubTT_VEH_FLYING)
+                    continue;
+                if ((ushort)p_thing->State != 0x3A && (ushort)p_thing->State != 0x41
+                  && (ushort)p_thing->State != 0x42 && (ushort)p_thing->State != 0x43)
+                    continue;
+
+                dz = abs(p_thing->Z - z);
+                dx = abs(p_thing->X - x);
+                if (dx >= dz)
+                    dist = dx - (dx >> 5) - (dx >> 7) + (dz >> 2) + (dz >> 3) + (dz >> 6) + (dz >> 7);
+                else
+                    dist = dz - (dz >> 5) - (dz >> 7) + (dx >> 2) + (dx >> 3) + (dx >> 6) + (dx >> 7);
+
+                dmg = ((600 - (dist >> 8)) * damage) >> 9;
+                if (dmg <= 0)
+                    continue;
+                p_thing->U.UVehicle.WorkPlace |= VWPFlg_Unkn0080;
+                // TODO SubType is always SubTT_VEH_FLYING here, so these reductions never apply
+                if (p_thing->SubType == SubTT_VEH_TANK)
+                    dmg >>= 1;
+                if (p_thing->SubType == SubTT_VEH_MECH)
+                    dmg >>= 2;
+                p_thing->Health -= (short)dmg;
+                if (p_thing->Health > 0)
+                    continue;
+                if (p_thing->SubType == SubTT_VEH_MECH)
+                {
+                    p_thing->Flag |= TngF_Destroyed;
+                    init_mech_explode(p_thing);
+                }
+                else
+                {
+                    p_thing->Flag |= TngF_Destroyed;
+                    start_crashing(p_thing);
+                    play_dist_sample(p_thing, 0x5F, 0x7F, 0x40, 100, 0, 1);
+                }
+            }
+        }
+    }
 }
 
 
