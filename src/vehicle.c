@@ -631,10 +631,155 @@ void VNAV_find_start_dropoff_point(int a1, int a2, int a3, int a4, int a5)
 
 
 
-void VNAV_unkn_func_207(struct Thing *p_thing)
+int func_4225c(int a1, int a2, int a3, int a4);
+int rotate_obj(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC void VNAV_unkn_func_207_asm(struct Thing *p_thing)
 {
     asm volatile ("call ASM_VNAV_unkn_func_207\n"
         : : "a" (p_thing));
+}
+
+static void VNAV_unkn_func_207_radius_health(struct Thing *p_thing)
+{
+    ushort radius;
+    s32 health;
+
+    radius = func_4225c(p_thing->U.UVehicle.Object, 0, 0, 0);
+    p_thing->Radius = radius;
+    health = 5 * (s32)radius * p_thing->U.UVehicle.Armour;
+    if (health > 0x7d00)
+        p_thing->Health = 0x7d00;
+    else
+        p_thing->Health = (short)(p_thing->Radius * 5) * p_thing->U.UVehicle.Armour;
+}
+
+void VNAV_unkn_func_207(struct Thing *p_thing)
+{
+    struct TrafficNode *p_tnode1;
+    struct TrafficNode *p_tnode2;
+    struct M33 *p_mat;
+    s32 frac;
+    short tnode;
+    ubyte link;
+    short cor_x, cor_z;
+    s32 nx, nz;
+    ThingIdx tng_offs;
+    short angle;
+
+    DIFFTEST_SHADOW(VNAV_unkn_func_207, VNAV_unkn_func_207_asm(p_thing));
+    switch (p_thing->SubType)
+    {
+    case SubTT_VEH_TANK:
+        p_thing->Speed = 0;
+        p_thing->State = VehSt_PARKED_PARAL;
+        VNAV_unkn_func_207_radius_health(p_thing);
+        p_thing->Speed = 0;
+        p_thing->U.UVehicle.PathIndex = 0;
+        p_thing->PathOffset = 0;
+        p_thing->U.UVehicle.WorkPlace = 0;
+        p_thing->U.UVehicle.AngleDY = 0;
+        p_thing->U.UVehicle.MaxSpeed = 0;
+        p_thing->U.UVehicle.MaxHealth = p_thing->Health;
+        p_thing->U.UVehicle.ZebraOldHealth = p_thing->Health;
+        return;
+    case SubTT_VEH_SHIP:
+        p_thing->Speed = 0;
+        p_thing->U.UVehicle.LeisurePlace = 0;
+        VNAV_unkn_func_207_radius_health(p_thing);
+        p_thing->U.UVehicle.WorkPlace = 0;
+        p_thing->U.UVehicle.AngleDY = 0;
+        p_thing->U.UVehicle.MaxSpeed = 0;
+        p_thing->U.UVehicle.PathIndex = 0;
+        p_thing->PathOffset = 0;
+        p_thing->U.UVehicle.MaxHealth = p_thing->Health;
+        p_thing->U.UVehicle.ZebraOldHealth = p_thing->Health;
+        return;
+    case SubTT_VEH_FLYING:
+        VNAV_unkn_func_207_radius_health(p_thing);
+        p_thing->Speed = 0;
+        p_thing->U.UVehicle.PathIndex = 0;
+        p_thing->PathOffset = 0;
+        p_thing->U.UVehicle.WorkPlace = 0;
+        p_thing->U.UVehicle.AngleDY = 0;
+        p_thing->U.UVehicle.MaxSpeed = 0;
+        p_thing->U.UVehicle.MaxHealth = p_thing->Health;
+        p_thing->U.UVehicle.ZebraOldHealth = p_thing->Health;
+        return;
+    case SubTT_VEH_MECH:
+        p_thing->Radius = 300;
+        p_thing->Health = 25000;
+        p_thing->Speed = 0;
+        p_thing->U.UVehicle.PathIndex = 0;
+        p_thing->PathOffset = 0;
+        p_thing->U.UVehicle.WorkPlace = 0;
+        p_thing->U.UVehicle.AngleDY = 0;
+        p_thing->U.UVehicle.MaxSpeed = 0;
+        p_thing->U.UVehicle.MaxHealth = p_thing->Health;
+        p_thing->U.UVehicle.ZebraOldHealth = p_thing->Health;
+        return;
+    default:
+        break;
+    }
+
+    p_thing->U.UVehicle.MaxSpeed = 0;
+    p_thing->U.UVehicle.PathIndex = 0;
+    p_thing->PathOffset = 0;
+    p_thing->Speed = 0;
+    p_thing->U.UVehicle.WorkPlace = 0;
+    p_thing->U.UVehicle.AngleDY = 0;
+    p_thing->U.UVehicle.AccelZ = 0;
+    p_thing->U.UVehicle.AccelX = 0;
+    cor_x = p_thing->X >> 8;
+    cor_z = p_thing->Z >> 8;
+    p_thing->U.UVehicle.ZebraOldHealth = p_thing->Health;
+    p_thing->U.UVehicle.MaxSpeed = 0;
+    VNAV_find_nearnodes(cor_x, cor_z, cor_z, cor_x);
+    // TODO the asm leaves these uninitialized; the callee may not write them
+    frac = 0;
+    tnode = 0;
+    link = 0;
+    VNAV_find_start_dropoff_point((int)&tnode, (int)&link, (int)&frac, cor_x, cor_z);
+
+    p_thing->U.UVehicle.Dummy4b = 0;
+    p_thing->U.UVehicle.Dummy4b |= -tnode;
+    p_thing->U.UVehicle.Dummy4a &= 0xff3f;
+    p_thing->U.UVehicle.Dummy4a |= ((ushort)link) << 6;
+    p_tnode1 = &game_traffic_nodes[tnode];
+    p_thing->U.UVehicle.TNode = p_tnode1->UTraffic.Link[link];
+
+    if ((p_thing->U.UVehicle.TNode < 0) &&
+      (game_traffic_nodes[-p_thing->U.UVehicle.TNode].Flags & 0x0800))
+    {
+        p_thing->U.UVehicle.Dummy4a &= 0xffc0;
+        p_thing->State = VehSt_PARKED_PERPN;
+        p_thing->U.UVehicle.Dummy4a |= 0x13;
+        p_tnode1 = &game_traffic_nodes[tnode];
+        p_tnode2 = &game_traffic_nodes[-p_thing->U.UVehicle.TNode];
+        nx = (((p_tnode2->X - p_tnode1->X) * frac) >> 8) + p_tnode1->X;
+        nz = (((p_tnode2->Z - p_tnode1->Z) * frac) >> 8) + p_tnode1->Z;
+        nx <<= 8;
+        nz <<= 8;
+        tng_offs = p_thing->ThingOffset;
+        p_thing->ThingOffset = p_thing - things;
+        move_mapwho(p_thing, nx, p_thing->Y, nz);
+        p_tnode2 = &game_traffic_nodes[-p_thing->U.UVehicle.TNode];
+        p_thing->ThingOffset = tng_offs;
+        angle = arctan(p_tnode2->X - (p_thing->X >> 8),
+          p_tnode2->Z - (p_thing->Z >> 8));
+        p_thing->U.UVehicle.AngleY = angle;
+        p_mat = &local_mats[p_thing->U.UVehicle.MatrixIndex];
+        rotate_obj(0, (short)(-p_thing->U.UVehicle.AngleY), 0, (int)p_mat);
+    }
+    else
+    {
+        p_thing->State = VehSt_PARKED_PARAL;
+        p_thing->U.UVehicle.Dummy4a &= 0xffc0;
+    }
+
+    VNAV_unkn_func_207_radius_health(p_thing);
+    p_thing->U.UVehicle.EffectiveGroup = 0x63;
+    p_thing->U.UVehicle.MaxHealth = p_thing->Health;
 }
 
 int check_for_a_vehicle_here(int x, int z, struct Thing *p_vehicle)
