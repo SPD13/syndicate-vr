@@ -2641,12 +2641,77 @@ void VNAV_goto_and_unstop(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int func_5fe50(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int func_5fe50_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_func_5fe50\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+extern s32 dword_1AA3AC;
+extern s32 dword_1AA3B0;
+
+/** Returns true if the map tile at given coords has a collision column
+ * with bit 0x40 set in any of its QBits.
+ */
+static TbBool func_5fe50_tile_blocked(s32 cor_x, s32 cor_z)
+{
+    struct ColColumn *p_ccol;
+    ushort ccol;
+
+    ccol = game_my_big_map[(cor_z >> 8) * 128 + (cor_x >> 8)].ColumnHead & COL_COLUMN_MASK;
+    if (ccol == 0)
+        return false;
+    p_ccol = &game_col_columns[ccol];
+    return ((p_ccol->QBits[0] | p_ccol->QBits[1] | p_ccol->QBits[2] | p_ccol->QBits[3]) & 0x40) != 0;
+}
+
+int func_5fe50(int a1, int a2, int a3, int a4)
+{
+    s32 x, z, dt_x, dt_z, adt_x, adt_z;
+    s32 dist, n, wid_x, wid_z;
+
+    DIFFTEST_SHADOW_RET(func_5fe50, int, func_5fe50_asm(a1, a2, a3, a4));
+    dt_x = a3 - a1;
+    dt_z = a4 - a2;
+    adt_z = abs(dt_z);
+    adt_x = abs(dt_x);
+    if (adt_x < adt_z)
+        dist = adt_z - (adt_z >> 5) - (adt_z >> 7)
+          + (adt_x >> 2) + (adt_x >> 3) + (adt_x >> 6) + (adt_x >> 7);
+    else
+        dist = adt_x - (adt_x >> 5) - (adt_x >> 7)
+          + (adt_z >> 2) + (adt_z >> 3) + (adt_z >> 6) + (adt_z >> 7);
+
+    dword_1AA3AC = a1;
+    dword_1AA3B0 = a2;
+    if (dist < 0x100)
+        DIFFTEST_RETURN((int)0);
+
+    n = dist >> 7;
+    dt_x /= n;
+    dt_z /= n;
+    wid_x = 2 * dt_z;
+    wid_z = 2 * dt_x;
+    x = a1;
+    z = a2;
+    while (1)
+    {
+        n--;
+        if (n == -1)
+            DIFFTEST_RETURN((int)0x2a);
+        if (func_5fe50_tile_blocked(x, z))
+            DIFFTEST_RETURN((int)0);
+        if (func_5fe50_tile_blocked(x + wid_x, z - wid_z))
+            DIFFTEST_RETURN((int)0);
+        if (func_5fe50_tile_blocked(x - wid_x, z + wid_z))
+            DIFFTEST_RETURN((int)0);
+        dword_1AA3AC = x - dt_x;
+        x += dt_x;
+        dword_1AA3B0 = z - dt_z;
+        z += dt_z;
+    }
 }
 
 /** Routed asm (internal label). Arguments and return value are the
