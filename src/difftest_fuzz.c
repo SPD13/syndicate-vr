@@ -94,12 +94,43 @@ static void fuzz_check_person_within(ulong *p_seed)
     check_person_within(&cmd, x, z);
 }
 
+ubyte check_big_point_triangle(int x, int y, int ux, int uy, int vx, int vy,
+  int wx, int wy);
+
+static void fuzz_check_big_point_triangle(ulong *p_seed)
+{
+    int v[8];
+    int i;
+
+    // Map-like coordinates; huge values could trap on idiv overflow
+    for (i = 0; i < 8; i++)
+        v[i] = (short)difftest_fuzz_rand(p_seed) % 2048;
+    // Sometimes axis-aligned or degenerate triangles
+    switch (difftest_fuzz_rand(p_seed) % 8)
+    {
+    case 0:
+        v[6] = v[2];
+        break;
+    case 1:
+        v[7] = v[3];
+        break;
+    case 2:
+        v[4] = v[2];
+        v[5] = v[3];
+        break;
+    default:
+        break;
+    }
+    check_big_point_triangle(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"vec_cross_prod", fuzz_vec_cross_prod},
     {"object_vec_normalisation", fuzz_object_vec_normalisation},
     {"check_person_within", fuzz_check_person_within},
+    {"check_big_point_triangle", fuzz_check_big_point_triangle},
     {NULL, NULL},
 };
 

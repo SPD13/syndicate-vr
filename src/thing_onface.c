@@ -29,6 +29,7 @@
 #include "engintrns.h"
 
 #include "bigmap.h"
+#include "difftest.h"
 #include "game.h"
 #include "packet.h"
 #include "player.h"
@@ -40,7 +41,8 @@ struct Thing thing_on_face;
 
 /******************************************************************************/
 
-ubyte check_big_point_triangle(int x, int y, int ux, int uy, int vx, int vy, int wx, int wy)
+static DIFFTEST_REF_FUNC ubyte check_big_point_triangle_asm(int x, int y,
+  int ux, int uy, int vx, int vy, int wx, int wy)
 {
     ubyte ret;
     // Pushed through a register holding them: a "g" operand may be placed
@@ -58,10 +60,39 @@ ubyte check_big_point_triangle(int x, int y, int ux, int uy, int vx, int vy, int
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_check_big_point_triangle\n"
-        : "=r" (ret)
+        : "=a" (ret)
         : "a" (x), "d" (y), "b" (ux), "c" (uy), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+ubyte check_big_point_triangle(int x, int y, int ux, int uy, int vx, int vy, int wx, int wy)
+{
+    s32 dwx, dwy, dvx, dvy;
+    s32 num, den, a, b;
+
+    DIFFTEST_SHADOW_RET(check_big_point_triangle, ubyte,
+      check_big_point_triangle_asm(x, y, ux, uy, vx, vy, wx, wy));
+    dwx = wx - ux;
+    dwy = wy - uy;
+    dvx = vx - ux;
+    dvy = vy - uy;
+    num = (y - uy) * dwx + (ux - x) * dwy;
+    den = dvy * dwx - dvx * dwy;
+    if (den == 0)
+        DIFFTEST_RETURN((ubyte)0);
+    a = (num << 8) / den;
+    if (a < 0)
+        DIFFTEST_RETURN((ubyte)0);
+    if (dwx == 0)
+        b = ((y << 8) - (uy << 8) - dvy * a) / dwy;
+    else
+        b = ((x << 8) - (ux << 8) - dvx * a) / dwx;
+    if (b < 0)
+        DIFFTEST_RETURN((ubyte)0);
+    if (a + b >= 0x100)
+        DIFFTEST_RETURN((ubyte)0);
+    DIFFTEST_RETURN((ubyte)1);
 }
 
 ushort set_thing_height_on_face_tri(struct Thing *p_thing, int x, int z, short face)
