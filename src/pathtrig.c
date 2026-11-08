@@ -342,12 +342,59 @@ int triangle_find8(TrFineCoord pt_x, TrFineCoord pt_y)
 #endif
 }
 
-int triangle_findSE8(int x, int y)
+static DIFFTEST_REF_FUNC int triangle_findSE8_asm(int x, int y)
 {
     int ret;
     asm volatile ("call ASM_triangle_findSE8\n"
-        : "=r" (ret) : "a" (x), "d" (y));
+        : "=a" (ret) : "a" (x), "d" (y));
     return ret;
+}
+
+int triangle_findSE8(int x, int y)
+{
+    struct TrTriangle *p_tri;
+    struct TrPoint *p_pt;
+    int tri, cor;
+
+    DIFFTEST_SHADOW_RET(triangle_findSE8, int, triangle_findSE8_asm(x, y));
+    tri = triangle_find8(x, y);
+    if (tri < 0)
+        DIFFTEST_RETURN(tri);
+
+    // If the point is exactly at a triangle tip, rotate around that tip
+    for (cor = 0; cor < 3; cor++)
+    {
+        p_tri = &triangulation[0].Triangles[tri];
+        p_pt = &triangulation[0].Points[(ushort)p_tri->point[cor]];
+        if ((p_pt->x << 8) == x && (p_pt->y << 8) == y)
+        {
+            pointed_at8(0x10100, 0x10100, &tri, &cor);
+            DIFFTEST_RETURN(tri);
+        }
+    }
+
+    // If the point lies on an edge, select the neighbour on the SE side
+    for (cor = 0; cor < 3; cor++)
+    {
+        TrFineCoord pt1_x, pt1_y;
+        TrFineCoord pt2_x, pt2_y;
+
+        p_tri = &triangulation[0].Triangles[tri];
+        p_pt = &triangulation[0].Points[(ushort)p_tri->point[cor]];
+        pt1_x = p_pt->x << 8;
+        pt1_y = p_pt->y << 8;
+        p_pt = &triangulation[0].Points[(ushort)p_tri->point[MOD3[cor+1]]];
+        pt2_x = p_pt->x << 8;
+        pt2_y = p_pt->y << 8;
+        if (path_compare_multiplications(pt2_x - pt1_x, y - pt2_y,
+          pt2_y - pt1_y, x - pt2_x) != 0)
+            continue;
+        if (path_compare_multiplications(pt2_x - pt1_x, 0x10100 - pt2_y,
+          pt2_y - pt1_y, 0x10100 - pt2_x) <= 0)
+            continue;
+        DIFFTEST_RETURN((int)p_tri->tri[cor]);
+    }
+    DIFFTEST_RETURN(tri);
 }
 
 void make_edge(int x1, int y1, int x2, int y2)
