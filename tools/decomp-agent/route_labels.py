@@ -435,7 +435,14 @@ def main():
         f = funcs.get('ASM_' + t['fn'])
         if not f:
             continue
-        for i, line in f['lines']:
+        # the body may go on past plain labels (e.g. func_67864 inside
+        # set_static_on_fire), up to the next global function
+        body = list(f['lines'])
+        k = order.index(f['name']) + 1
+        while k < len(order) and not order[k].startswith('ASM_'):
+            body += funcs[order[k]]['lines']
+            k += 1
+        for i, line in body:
             ins = parse_insn(line)
             if ins and ins[0].startswith('call') and ins[1]:
                 c = ins[1][0]
