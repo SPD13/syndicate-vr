@@ -7548,13 +7548,63 @@ short person_hit_razor_wire(struct Thing *p_person, ThingIdx thing)
     return ret;
 }
 
-ubyte create_intelligent_door(short col)
+static DIFFTEST_REF_FUNC ubyte create_intelligent_door_asm(short col)
 {
     ubyte ret;
     asm volatile (
       "call ASM_create_intelligent_door\n"
-        : "=r" (ret) : "a" (col));
+        : "=a" (ret) : "a" (col));
     return ret;
+}
+
+ubyte create_intelligent_door(short col)
+{
+    struct ColVect *p_colvect;
+    struct SingleObjectFace4 *p_face;
+    struct SimpleThing *p_sthing;
+    ThingIdx thing;
+    short sthing;
+
+    DIFFTEST_SHADOW_RET(create_intelligent_door, ubyte,
+      create_intelligent_door_asm(col));
+
+    thing = game_col_vects_list[word_1AA390].Object;
+    if ((things[thing].Flag & TngF_TriggerUse) != 0)
+        DIFFTEST_RETURN((ubyte)0);
+
+    p_colvect = &game_col_vects[col];
+    p_face = &game_object_faces4[-p_colvect->Face];
+    if (p_face->WalkHeader != 0)
+    {
+        sthings[(short)p_face->WalkHeader].Flag |= 0x01;
+        p_face = &game_object_faces4[-p_colvect->Face];
+        if ((sthings[(short)p_face->WalkHeader].Flag & 0x02) == 0)
+            DIFFTEST_RETURN((ubyte)0);
+        DIFFTEST_RETURN((ubyte)1);
+    }
+
+    if (sthings_used > STHINGS_LIMIT - 5)
+        DIFFTEST_RETURN((ubyte)0);
+    sthing = get_new_sthing();
+    if (sthing == 0)
+        DIFFTEST_RETURN((ubyte)0);
+    if (sthing > -1 || sthing < -STHINGS_LIMIT)
+        DIFFTEST_RETURN((ubyte)0);
+
+    p_colvect = &game_col_vects[col];
+    game_object_faces4[-p_colvect->Face].WalkHeader = sthing;
+    p_sthing = &sthings[sthing];
+    p_sthing->X = (p_colvect->X1 + p_colvect->X2) << 7;
+    p_sthing->Z = (p_colvect->Z1 + p_colvect->Z2) << 7;
+    p_sthing->Frame = 0;
+    p_sthing->StartFrame = 0;
+    p_sthing->Y = (p_colvect->Y1 + p_colvect->Y2) << 7;
+    p_sthing->Next = 0;
+    p_sthing->Type = SmTT_INTELLIG_DOOR;
+    p_sthing->Parent = -p_colvect->Face;
+    p_sthing->State = 1;
+    play_dist_ssample(p_sthing, 0x32, 0x7F, 0x40, 100, 0, 1);
+    DIFFTEST_RETURN((ubyte)0);
 }
 
 /** Get collision vector which would collide with given thing at given position.
