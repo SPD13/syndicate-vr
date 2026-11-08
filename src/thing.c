@@ -1050,11 +1050,41 @@ void process_spark(struct SimpleThing *p_sthing)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void apply_texture_to_face(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void apply_texture_to_face_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_apply_texture_to_face\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
+}
+
+void apply_texture_to_face(int a1, int a2, int a3, int a4)
+{
+    ushort frame = (ushort)a1;
+    ushort anim = (ushort)a2;
+    ushort face = (ushort)a3;
+    struct SingleObjectFace4 *p_face4;
+    struct SingleFloorTexture *p_fltextr;
+    struct AnimPage *p_anpg;
+    ubyte x, y, x2, y2;
+
+    DIFFTEST_SHADOW(apply_texture_to_face, apply_texture_to_face_asm(a1, a2, a3, a4));
+    p_face4 = &game_object_faces4[face];
+    p_fltextr = &game_textures[p_face4->Texture];
+    p_anpg = &door_anim_page[anim];
+
+    x = p_anpg->X + frame * p_anpg->Width;
+    y = p_anpg->Y;
+    p_fltextr->Page = p_anpg->PageNo;
+    p_fltextr->TMapX2 = x;
+    p_fltextr->TMapY2 = y;
+    p_fltextr->TMapY4 = y;
+    x2 = p_anpg->Width + x;
+    p_fltextr->TMapX4 = x2;
+    p_fltextr->TMapX3 = x2;
+    p_fltextr->TMapX1 = x;
+    y2 = p_anpg->Height + y;
+    p_fltextr->TMapY3 = y2;
+    p_fltextr->TMapY1 = y2;
 }
 
 
