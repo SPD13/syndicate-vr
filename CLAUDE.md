@@ -74,6 +74,12 @@ lack clobber lists and break under optimisation.
    - `#include "difftest.h"` in the .c file (alphabetical order).
 3. Keep the asm body in `.sx` untouched: it is the reference. Do not edit
    `.sx` files or `wrappers_game.conf` unless the plan step requires it.
+   - Wrappers marked "Routed asm (internal label)" take raw registers
+     (`int a1..a4` = eax, edx, ebx, ecx; often more than the asm really
+     uses). Keep that signature, since the conf line must stay as is, and
+     cast inside, e.g. `struct Thing *p_thing = (struct Thing *)a1;`. Only
+     the registers the asm reads matter; the reference function passes
+     all of them.
 4. Pure functions (no globals, only pointer args) also get a random-input
    case in `src/difftest_fuzz.c`, see `fuzz_vec_cross_prod`.
 5. Build with `build.sh --difftest`, then run `difftest_run.sh <fn>`.
