@@ -6262,10 +6262,40 @@ void person_recoil(struct Thing *p_person)
         : : "a" (p_person));
 }
 
-void calc_lighting(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void calc_lighting_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_calc_lighting\n"
         : : "a" (p_person));
+}
+
+void calc_lighting(struct Thing *p_person)
+{
+    struct MyMapElement *p_map;
+    s32 tile;
+    short sh00, sh01, sh10, sh11;
+    s32 frx, frz;
+    s32 light;
+
+    DIFFTEST_SHADOW(calc_lighting, calc_lighting_asm(p_person));
+    p_map = game_my_big_map;
+    tile = (p_person->X >> 16) + ((p_person->Z >> 16) << 7);
+    sh00 = p_map[tile].ShadeR;
+    sh01 = p_map[tile + 1].ShadeR;
+    sh10 = p_map[tile + 128].ShadeR;
+    sh11 = p_map[tile + 129].ShadeR;
+    frx = (ubyte)(p_person->X >> 8);
+    frz = (ubyte)(p_person->Z >> 8);
+    if (frx + frz < 256)
+    {
+        light = sh00 + (((sh01 - sh00) * frx) >> 8);
+        light += ((sh10 - sh00) * frz) >> 8;
+    }
+    else
+    {
+        light = sh11 + (((sh10 - sh11) * (256 - frx)) >> 8);
+        light += ((sh01 - sh11) * (256 - frz)) >> 8;
+    }
+    p_person->U.UPerson.Brightness = (ubyte)light;
 }
 
 void process_persuaded(struct Thing *p_person)
