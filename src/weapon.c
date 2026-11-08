@@ -51,6 +51,7 @@
 #include "matrix.h"
 #include "network.h"
 #include "thing.h"
+#include "people.h"
 #include "pepgroup.h"
 #include "player.h"
 #include "plyr_net.h"
@@ -1562,8 +1563,8 @@ ThingIdx thing_fire_shot_finish_position_toward_target(struct M31 *prc_fin_pt,
     return 0;
 }
 
-int bul_path_end(int x1, int y1, int z1, int *x2, int *y2, int *z2,
-  int radius, struct Thing *p_owner, ubyte *status)
+static DIFFTEST_REF_FUNC int bul_path_end_asm(int x1, int y1, int z1,
+  int *x2, int *y2, int *z2, int radius, struct Thing *p_owner, ubyte *status)
 {
     int ret;
     // The five arguments which go on the stack are gathered first, and pushed
@@ -1590,6 +1591,104 @@ int bul_path_end(int x1, int y1, int z1, int *x2, int *y2, int *z2,
         : "0" (x1), "d" (y1), "b" (z1), "c" (x2), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+int do_fvect_colide(int a1, int a2, int a3, int a4, int a5);
+
+int bul_path_end(int x1, int y1, int z1, int *x2, int *y2, int *z2,
+  int radius, struct Thing *p_owner, ubyte *status)
+{
+    struct Thing *p_hit;
+    struct MyMapElement *p_mapel;
+    int orig_x, orig_y, orig_z;
+    short dx, dy, dz;
+    s32 dist, count, colide, wait;
+    u32 dist_sq;
+    int x, z;
+
+    DIFFTEST_SHADOW_RET(bul_path_end, int,
+      bul_path_end_asm(x1, y1, z1, x2, y2, z2, radius, p_owner, status));
+    colide = 0;
+    wait = 0;
+    dx = (short)(*x2 - x1);
+    dy = (short)(*y2 - y1);
+    dz = (short)(*z2 - z1);
+    orig_x = *x2;
+    orig_y = *y2;
+    orig_z = *z2;
+    dist_sq = (u32)((s32)dx * dx) + (u32)((s32)dz * dz)
+      + ((u32)((s32)dy * dy) << 7);
+    dist = LbSqrL(dist_sq) / 128;
+    if (dist == 0)
+        dist = 1;
+    dx = (short)(dx / dist);
+    dy = (short)(dy / dist);
+    dz = (short)(dz / dist);
+    *x2 = x1;
+    *y2 = y1;
+    *z2 = z1;
+    for (count = dist + 1; count > 0; count--)
+    {
+        if (colide != 0)
+        {
+            // TODO wait starts at 0, so this only triggers after wrapping around
+            wait--;
+            if (wait == 0)
+                DIFFTEST_RETURN(-1);
+        }
+        x = *x2;
+        z = *z2;
+        // TODO the asm compares x against 0x8000 twice; upper bound of z is never checked
+        if (x < 0 || x > 0x8000 || z < 0)
+        {
+            *x2 -= dx;
+            *y2 -= dy;
+            *z2 -= dz;
+            DIFFTEST_RETURN(0);
+        }
+        p_hit = check_for_radius_hit_person(*x2 << 8, *y2 << 8, z << 8,
+          (ushort)radius, p_owner, 1, 0);
+        if (p_hit != NULL)
+        {
+            *status = 3;
+            if (p_hit->Type == SmTT_STATIC)
+                DIFFTEST_RETURN(-(int)(short)p_hit->ThingOffset | 0x40000000);
+            DIFFTEST_RETURN((int)(ushort)p_hit->ThingOffset);
+        }
+        p_mapel = &game_my_big_map[(*x2 >> 8) + ((*z2 >> 8) << 7)];
+        if (p_mapel->Alt < *y2 && p_mapel->Alt + 32 > *y2)
+        {
+            if (p_mapel->ColHead != 0)
+            {
+                colide = do_fvect_colide(x1, z1, orig_x, orig_z,
+                  (int)(intptr_t)p_mapel);
+                if (colide > 0)
+                {
+                    *status = 1;
+                    DIFFTEST_RETURN(-colide);
+                }
+            }
+        }
+        else if (colide == 0)
+        {
+            colide = check_col_collision(*x2, *y2, *z2);
+            if (colide != 0)
+            {
+                *status = 2;
+                DIFFTEST_RETURN(-1);
+            }
+        }
+        *x2 += dx;
+        *y2 += dy;
+        *z2 += dz;
+        if ((*x2 >> 8) < 0 || (*x2 >> 8) >= 128
+          || (*z2 >> 8) < 0 || (*z2 >> 8) >= 128)
+            DIFFTEST_RETURN(0);
+    }
+    *x2 = orig_x;
+    *y2 = orig_y;
+    *z2 = orig_z;
+    DIFFTEST_RETURN(0);
 }
 
 /** Shot causes people in area around destination to be alert.
