@@ -176,78 +176,70 @@ TbBool triangle_contains8(int tri, int x, int y)
     DIFFTEST_RETURN((TbBool)true);
 }
 
-int pointed_at8(TrFineCoord pt_x, TrFineCoord pt_y, int *r_tri, int *r_cor)
+static DIFFTEST_REF_FUNC int pointed_at8_asm(TrFineCoord pt_x, TrFineCoord pt_y, int *r_tri, int *r_cor)
 {
-#if 1
     int ret;
     asm volatile ("call ASM_pointed_at8\n"
-        : "=r" (ret) : "a" (pt_x), "d" (pt_y), "b" (r_tri), "c" (r_cor));
+        : "=a" (ret) : "a" (pt_x), "d" (pt_y), "b" (r_tri), "c" (r_cor));
     return ret;
-#else
-    //TODO this does not work exactly like original
+}
+
+int pointed_at8(TrFineCoord pt_x, TrFineCoord pt_y, int *r_tri, int *r_cor)
+{
     struct TrTriangle *p_tri;
     struct TrPoint *p_pt;
+    int tri, cor;
+    int lnk_tri, lnk_cor;
+    TrFineCoord ptA_x, ptA_y;
+    TrFineCoord ptB_x, ptB_y;
+    TrFineCoord ptC_x, ptC_y;
+    TbBool eqC, eqB;
 
-    TrTipId cor;
-    TrTriangId tri;
-    TrFineCoord ptAx, ptAy;
-    TrFineCoord ptBx, ptBy;
-
+    DIFFTEST_SHADOW_RET(pointed_at8, int, pointed_at8_asm(pt_x, pt_y, r_tri, r_cor));
     tri = *r_tri;
     cor = *r_cor;
-
-    if (!tri_is_allocated(tri)) {
-        return -1;
-    }
     p_tri = &triangulation[0].Triangles[tri];
+    p_pt = &triangulation[0].Points[(ushort)p_tri->point[cor]];
+    ptA_x = p_pt->x << 8;
+    ptA_y = p_pt->y << 8;
 
-    p_pt = &triangulation[0].Points[p_tri->point[cor]];
-    ptAx = (p_pt->x << 8) - pt_x;
-    ptAy = (p_pt->y << 8) - pt_y;
-    p_pt = &triangulation[0].Points[p_tri->point[MOD3[cor+2]]];
-    ptBx = (p_pt->x << 8) - pt_x;
-    ptBy = (p_pt->y << 8) - pt_y;
-    TbBool pt_rel;
-    pt_rel = path_compare_multiplications(ptBy, ptAx, ptBx, ptAy) > 0;
-    TbBool prev_rel;
-    long k;
-    k = 0;
-    while ( 1 )
+    while (1)
     {
-        prev_rel = pt_rel;
         p_tri = &triangulation[0].Triangles[tri];
-        p_pt = &triangulation[0].Points[p_tri->point[MOD3[cor+1]]];
-        ptBy = (p_pt->y << 8) - pt_y;
-        ptBx = (p_pt->x << 8) - pt_x;
-        pt_rel = path_compare_multiplications(ptBy, ptAx, ptBx, ptAy) > 0;
+        p_pt = &triangulation[0].Points[(ushort)p_tri->point[MOD3[cor+1]]];
+        ptB_x = p_pt->x << 8;
+        ptB_y = p_pt->y << 8;
+        p_pt = &triangulation[0].Points[(ushort)p_tri->point[MOD3[cor+2]]];
+        ptC_x = p_pt->x << 8;
+        ptC_y = p_pt->y << 8;
 
-        if ( prev_rel && !pt_rel )
+        eqC = path_compare_multiplications(ptC_x - ptA_x, pt_y - ptC_y,
+          ptC_y - ptA_y, pt_x - ptC_x) > 0;
+        eqB = path_compare_multiplications(ptB_x - ptA_x, pt_y - ptB_y,
+          ptB_y - ptA_y, pt_x - ptB_x) > 0;
+        if (eqC && !eqB)
         {
             *r_tri = tri;
             *r_cor = cor;
-            return MOD3[cor+1];
+            DIFFTEST_RETURN((int)MOD3[cor+1]);
         }
-        TrTriangId lnk_tri;
-        TrTipId lnk_cor;
+
         lnk_tri = p_tri->tri[cor];
-        if (lnk_tri < 0) {
-            break;
-        }
-        lnk_cor = link_find(lnk_tri, tri);
-        if (lnk_cor < 0) {
-            LOGERR("no tri link from %d to %d", (int)lnk_tri, (int)tri);
-            break;
-        }
+        if (lnk_tri == -1)
+            DIFFTEST_RETURN(lnk_tri);
+        // TODO no guard against an endless loop, same as the original
+        p_tri = &triangulation[0].Triangles[lnk_tri];
+        if (p_tri->tri[0] == tri)
+            lnk_cor = 0;
+        else if (p_tri->tri[1] == tri)
+            lnk_cor = 1;
+        else if (p_tri->tri[2] == tri)
+            lnk_cor = 2;
+        else
+            lnk_cor = -1;
         cor = MOD3[lnk_cor+1];
         tri = lnk_tri;
-        k++;
-        if (k >= triangulation[0].max_Triangles) {
-            LOGERR("Infinite loop detected");
-            break;
-        }
     }
-    return -1;
-#endif
 }
 
 int triangle_find8(TrFineCoord pt_x, TrFineCoord pt_y)
