@@ -35,10 +35,12 @@
 #include "difftest.h"
 #include "display.h"
 #include "engindrwlstx.h"
+#include "engincam.h"
 #include "enginlights.h"
 #include "enginshrapn.h"
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
+#include "enginzoom.h"
 #include "frame_sprani.h"
 #include "game.h"
 #include "game_data.h"
@@ -922,13 +924,73 @@ void quick_light_unkn_func_05(int a1, int a2, int a3, int a4)
 }
 
 
+static DIFFTEST_REF_FUNC void apply_full_light_asm(short lx, short lz, ushort b, ushort intens, ushort lid)
+{
+    int ra = lx, rd = lz, rb = b, rc = intens;
+    int stkargs[1];
+    int *p_stk = stkargs;
+    stkargs[0] = lid;
+    asm volatile ("push 0(%4)\n""call ASM_apply_full_light\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+extern ushort data_17fa52;
+
 void apply_full_light(short lx, short lz, ushort b, ushort intens, ushort lid)
 {
-    asm volatile (
-      "push %4\n"
-      "call ASM_apply_full_light\n"
-        : : "a" (lx), "d" (lz), "b" (b), "c" (intens), "g" ((u32)lid));
-    return;
+    struct UnkFLight *p_ufl;
+    ushort ufl;
+    s32 x, z, range;
+
+    DIFFTEST_SHADOW(apply_full_light,
+      apply_full_light_asm(lx, lz, b, intens, lid));
+    ufl = next_unkn_full_light;
+    if (lid != 0)
+    {
+        s32 i;
+        for (i = 0; i < (s32)ufl; i++)
+        {
+            // the asm compares a 16-bit value at offset 8
+            if (*(ushort *)&unkn_full_lights[i].unfulgt_8 == lid)
+            {
+                next_unkn_full_light = ufl;
+                return;
+            }
+        }
+    }
+    x = lx;
+    z = b;
+    range = (s32)render_area_a << 7;
+    if (engn_xc - range >= x)
+        goto out;
+    if (engn_xc + range <= x)
+        goto out;
+    if (engn_zc - ((s32)render_area_b << 7) >= z)
+        goto out;
+    // TODO the asm uses render_area_a for the upper Z bound, maybe an original bug
+    if (engn_zc + range <= z)
+        goto out;
+    if ((s32)ufl >= 10)
+        goto out;
+    if (data_17fa52 != 0)
+        goto out;
+    if ((ingame.Flags & GamF_AdvLights) == 0)
+        goto out;
+    if (in_network_game != 0)
+        goto out;
+
+    next_unkn_full_light = ufl;
+    quick_light_unkn_func_05(lx, lz, (short)b, intens);
+    ufl = next_unkn_full_light;
+    p_ufl = &unkn_full_lights[ufl];
+    p_ufl->unfulgt_2 = lx;
+    p_ufl->unfulgt_4 = lz;
+    p_ufl->unfulgt_6 = b;
+    *(ushort *)&p_ufl->unfulgt_8 = lid;
+    p_ufl->unfulgt_0 = next_full_light - 1;
+    ufl++;
+out:
+    next_unkn_full_light = ufl;
 }
 
 int process_things_mines_explode(int affected_max)
