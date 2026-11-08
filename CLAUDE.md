@@ -80,6 +80,10 @@ lack clobber lists and break under optimisation.
      cast inside, e.g. `struct Thing *p_thing = (struct Thing *)a1;`. Only
      the registers the asm reads matter; the reference function passes
      all of them.
+   - Asm data exported with `GLOBAL(name)` in swars.sx (also `data_xxxx`
+     labels) can be used from C: declare `extern` with the right type next
+     to the function (or in its header), e.g. `extern short heap[];`. Keep
+     the data in the asm; other asm code still uses it.
 4. Pure functions (no globals, only pointer args) also get a random-input
    case in `src/difftest_fuzz.c`, see `fuzz_vec_cross_prod`.
 5. Build with `build.sh --difftest`, then run `difftest_run.sh <fn>`.

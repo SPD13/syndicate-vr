@@ -110183,7 +110183,7 @@ vtable_ca058:
 		.long   func_ca663
 		.long   func_ca683
 
-vtable_ca068:
+GLOBAL(vtable_ca068)
 		.long   func_ca166
 		.long   func_ca6a3
 		.long   func_ca37b
@@ -111834,7 +111834,7 @@ GLOBAL_FUNC (ASM_find_and_stasis)	/* 0x0CB0E4 */
 		pop    %ebx
 		ret
 
-vtable_cb2e8:
+GLOBAL(vtable_cb2e8)
 		.long   func_cb31e
 		.long   func_cb3ac
 		.long   func_cb3d4
@@ -113749,7 +113749,7 @@ effect_52_angle_div:	/* 0x154F78, used in unused_create_effects_52_circle */
 plasma_width:
 		.ascii  "\x03\x02\x01\x01\x01\x02\x03\x00"
 
-quiver:	/* 0x155020 */
+GLOBAL(quiver)	/* 0x155020 */
 		.ascii  "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 		.ascii  "\xff\x00\x01\x00\xff\xfd\xff\x00"
 		.ascii  "\x01\x03\x04\x03\x01\x00\xfe\xfb"
@@ -113804,7 +113804,7 @@ rand_c:	/* 0x155304 */
 GLOBAL (scrollinfo_text)	/* 0x1553C8 */
 		.long   aNoObjective
 
-rand_d:	/* 0x1554F4 */
+GLOBAL(rand_d)	/* 0x1554F4 */
 		.ascii  "\x93\xa0\x69\x3f"
 data_1554f8:
 		.fill   0x8
@@ -113972,32 +113972,32 @@ GLOBAL (dword_176D6C)	/* 0x176d6c */
 
 GLOBAL (save_mortal_salt)	/* 0x176E3C */
 		.long	0x0
-save_hashtbl_01:	/* 0x176E40 */
+GLOBAL(save_hashtbl_01)	/* 0x176E40 */
 		.fill   0xdc
-data_176f1c:
+GLOBAL(data_176f1c)
 		.long	0x0
-save_hashtbl_02:	/* 0x176F20 */
+GLOBAL(save_hashtbl_02)	/* 0x176F20 */
 		.fill   0xe4
-data_177004:
+GLOBAL(data_177004)
 		.long	0x0
-save_hashtbl_03:	/* 0x177008 */
+GLOBAL(save_hashtbl_03)	/* 0x177008 */
 		.fill   0xec
 GLOBAL (save_crypto_tables_state)	/* 0x1770F4 */
 		.byte	0x0
-data_1770f5:
+GLOBAL(data_1770f5)
 		.byte	0x0
-data_1770f6:
+GLOBAL(data_1770f6)
 		.short  0x0
 GLOBAL (save_crypto_data_state)	/* 0x1770F8 */
 		.byte	0x0
-data_1770f9:
+GLOBAL(data_1770f9)
 		.byte	0x0
-data_1770fa:
+GLOBAL(data_1770fa)
 		.short  0x0
 GLOBAL (save_hashtbl_verify_code)	/* 0x1770FC */
 		.long	0x0
 
-data_17fa52:	/* 0x17fa52 remove pending */
+GLOBAL(data_17fa52)	/* 0x17fa52 remove pending */
 		.short  0x0
 		.align	4
 
@@ -114040,11 +114040,11 @@ GLOBAL (unkn01_pos_y)	/* 0x1AA3C0 */
 		.long	0x0
 GLOBAL (redo_scanner)	/* 0x1AA3C4 */
 		.byte	0x0
-data_1aa3c5:
+GLOBAL(data_1aa3c5)
 		.byte	0x0
-data_1aa3c6:
+GLOBAL(data_1aa3c6)
 		.byte	0x0
-data_1aa3c7:
+GLOBAL(data_1aa3c7)
 		.fill   0x1fd
 GLOBAL (redo_scanner_last)	/* 0x1AA5C4 */
 		.long	0x0
@@ -114081,11 +114081,11 @@ GLOBAL (last_swoosh_thing)	/* 0x1AABD8 */
  */
 fwd_path:
 		.fill   0x814
-heap:	/* 0x1C30BC */
+GLOBAL(heap)	/* 0x1C30BC */
 		.long	0x0
-data_1c30c0:
+GLOBAL(data_1c30c0)
 		.fill   0x400
-heap_end:	/* 0x1C34C0 */
+GLOBAL(heap_end)	/* 0x1C34C0 */
 		.long	0x0
 dfs_node:	/* 0x1C34C4 */
 		.fill   0x200
@@ -114112,47 +114112,47 @@ data_1c42f6:
 		.fill   0x6
 GLOBAL (crater_unkn_texture_flags)	/* 0x1C42FC */
 		.short  0x0
-data_1c42fe:
+GLOBAL(data_1c42fe)
 		.short  0x0
-data_1c4300:
+GLOBAL(data_1c4300)
 		.short  0x0
-data_1c4302:
+GLOBAL(data_1c4302)
 		.short  0x0
 GLOBAL (map_craters)	/* 0x1C4304 */
 		.short  0x0
-data_1c4306:
+GLOBAL(data_1c4306)
 		.short  0x0
-data_1c4308:
+GLOBAL(data_1c4308)
 		.short  0x0
-data_1c430a:
+GLOBAL(data_1c430a)
 		.fill   0x3f8
-data_1c4702:
+GLOBAL(data_1c4702)
 		.short  0x0
 GLOBAL (map_cratunkn2) 	/* 0x1C4704 */
 		.short  0x0
-data_1c4706:
+GLOBAL(data_1c4706)
 		.short  0x0
-data_1c4708:
+GLOBAL(data_1c4708)
 		.short  0x0
-data_1c470a:
+GLOBAL(data_1c470a)
 		.short  0x0
-data_1c470c:
+GLOBAL(data_1c470c)
 		.byte	0x0
-data_1c470d:
+GLOBAL(data_1c470d)
 		.byte	0x0
-data_1c470e:
+GLOBAL(data_1c470e)
 		.short  0x0
-data_1c4710:
+GLOBAL(data_1c4710)
 		.short  0x0
-data_1c4712:
+GLOBAL(data_1c4712)
 		.short  0x0
-data_1c4714:
+GLOBAL(data_1c4714)
 		.fill   0x51
-data_1c4765:
+GLOBAL(data_1c4765)
 		.byte	0x0
 data_1c4766:
 		.byte	0x0
-data_1c4767:
+GLOBAL(data_1c4767)
 		.byte	0x0
 GLOBAL (map_crater_first)	/* 0x1C4768 */
 		.byte	0x0
@@ -114160,13 +114160,13 @@ GLOBAL (map_crater_next)	/* 0x1C4769 */
 		.byte	0x0
 GLOBAL (map_crater_last)	/* 0x1C476A */
 		.byte	0x0
-data_1c476b:
+GLOBAL(data_1c476b)
 		.byte	0x0
-data_1c476c:
+GLOBAL(data_1c476c)
 		.short  0x0
-data_1c476e:
+GLOBAL(data_1c476e)
 		.short  0x0
-data_1c4770:
+GLOBAL(data_1c4770)
 		.long	0x0
 		.align  4
 
@@ -114207,25 +114207,25 @@ GLOBAL (dword_1C8470)	/* 0x1C8470 */
 		.long	0x0
 GLOBAL (dword_1C8474)	/* 0x1C8474 */
 		.fill   0x80
-data_1c84f4:
+GLOBAL(data_1c84f4)
 		.long	0x0
-data_1c84f8:
+GLOBAL(data_1c84f8)
 		.fill   0x40
 data_1c8538:
 		.short  0x0
-VNAV_nearnodes:	/* 0x1C853A */
+GLOBAL(VNAV_nearnodes)	/* 0x1C853A */
 		.fill   0x6
-data_1c8540:
+GLOBAL(data_1c8540)
 		.long	0x0
-VNAV_nodedists:	/* 0x1C8544 */
+GLOBAL(VNAV_nodedists)	/* 0x1C8544 */
 		.fill   0x14
 VNAV_route:	/* 0x1C8558 */
 		.short  0x0
-data_1c855a:
+GLOBAL(data_1c855a)
 		.long	0x0
-VNAV_route__route:	/* 0x1C855E */
+GLOBAL(VNAV_route__route)	/* 0x1C855E */
 		.short  0x0
-data_1c8560:
+GLOBAL(data_1c8560)
 		.fill   0xf8
 veh_ma_heap:	/* 0x1C8658 */
 		.long	0x0
@@ -114306,37 +114306,37 @@ GLOBAL (g_nav_data)	/* 0x1DC8D0 */
 		.fill   0x7fc
 GLOBAL (g_fat_data)	/* 0x1DD0E4 */
 		.long	0x0
-data_1dd0e8:
+GLOBAL(data_1dd0e8)
 		.long	0x0
-data_1dd0ec:
+GLOBAL(data_1dd0ec)
 		.long	0x0
-data_1dd0f0:
+GLOBAL(data_1dd0f0)
 		.long	0x0
-g_fat_data__PathLength:	/* 0x1DD0F4 */
+GLOBAL(g_fat_data__PathLength)	/* 0x1DD0F4 */
 		.long	0x0
-g_fat_data__WayPoints__x8:	/* 0x1DD0F8 */
+GLOBAL(g_fat_data__WayPoints__x8)	/* 0x1DD0F8 */
 		.long	0x0
-g_fat_data__WayPoints__y8:	/* 0x1DD0FC */
+GLOBAL(g_fat_data__WayPoints__y8)	/* 0x1DD0FC */
 		.fill   0x7fc
 GLOBAL (byte_1DD8F8)	/* 0x1DD8F8 */
 		.long	0x0
-data_1dd8fc:
+GLOBAL(data_1dd8fc)
 		.long	0x0
-data_1dd900:
+GLOBAL(data_1dd900)
 		.long	0x0
-data_1dd904:
+GLOBAL(data_1dd904)
 		.long	0x0
-data_1dd908:
+GLOBAL(data_1dd908)
 		.short  0x0
-data_1dd90a:
+GLOBAL(data_1dd90a)
 		.short  0x0
-data_1dd90c:
+GLOBAL(data_1dd90c)
 		.long	0x0
-data_1dd910:
+GLOBAL(data_1dd910)
 		.long	0x0
-data_1dd914:
+GLOBAL(data_1dd914)
 		.long	0x0
-data_1dd918:
+GLOBAL(data_1dd918)
 		.long	0x0
 GLOBAL (data_1dd91c)	/* 0x1dd91c */
 		.long	0x0
