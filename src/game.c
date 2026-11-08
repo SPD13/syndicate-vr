@@ -1652,12 +1652,35 @@ void init_crater_textures(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int calc_object_height(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int calc_object_height_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_calc_object_height\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
     return ra;
+}
+
+int calc_object_height(int a1, int a2, int a3, int a4)
+{
+    struct SingleObject *p_sobj;
+    struct SinglePoint *p_spoints;
+    s32 pt, pt_end;
+    s32 height, y;
+
+    DIFFTEST_SHADOW_RET(calc_object_height, int,
+      calc_object_height_asm(a1, a2, a3, a4));
+    p_spoints = game_object_points;
+    p_sobj = &game_objects[(ushort)a1];
+    height = 0;
+    pt_end = p_sobj->EndPoint;
+    for (pt = p_sobj->StartPoint; pt <= pt_end; pt++)
+    {
+        y = p_spoints[pt].Y;
+        if (y > height)
+            height = y;
+    }
+    game_object_points = p_spoints;
+    DIFFTEST_RETURN(height);
 }
 
 
