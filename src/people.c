@@ -7383,11 +7383,132 @@ int find_target_from_players(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void find_target_from_group(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void find_target_from_group_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_find_target_from_group\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void find_target_from_group(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_other;
+    struct WarFlag *p_wflag;
+    u32 not_truce, kill_on_sight, kill_weapon_out, kill_armed;
+    u32 mask;
+    s32 range, brain;
+    ubyte see_flags, other_grp;
+    TbBool any_group;
+    ushort thing;
+
+    DIFFTEST_SHADOW(find_target_from_group, find_target_from_group_asm(a1, a2, a3, a4));
+
+    any_group = false;
+    see_flags = 1;
+    p_wflag = &war_flags[p_person->U.UPerson.EffectiveGroup & 0x1f];
+    not_truce = ~p_wflag->Truce;
+    p_wflag->KillOnSight &= not_truce;
+    p_wflag = &war_flags[p_person->U.UPerson.EffectiveGroup & 0x1f];
+    p_wflag->KillIfWeaponOut &= not_truce;
+    p_wflag = &war_flags[p_person->U.UPerson.EffectiveGroup & 0x1f];
+    p_wflag->KillIfArmed &= not_truce;
+    p_wflag = &war_flags[p_person->U.UPerson.EffectiveGroup & 0x1f];
+    kill_on_sight = p_wflag->KillOnSight;
+    kill_weapon_out = p_wflag->KillIfWeaponOut;
+    kill_armed = p_wflag->KillIfArmed;
+
+    if ((p_person->U.UPerson.EffectiveGroup & 0x80) != 0)
+        kill_on_sight = 0xFFFFFFFF;
+    else if (p_person->PTarget != NULL)
+        see_flags = 0;
+
+    if (p_person->U.UPerson.CurrentWeapon == 0)
+    {
+        choose_best_weapon_for_range(p_person, 0x500);
+        range = weapon_defs[p_person->U.UPerson.CurrentWeapon].RangeBlocks;
+        p_person->U.UPerson.CurrentWeapon = 0;
+    }
+    else
+    {
+        range = weapon_defs[p_person->U.UPerson.CurrentWeapon].RangeBlocks;
+    }
+    range <<= 8;
+    if (range == 0)
+        return;
+
+    brain = (p_person->U.UPerson.UMod.Mods >> 9) & 7;
+    if ((p_person->Flag & TngF_PlayerAgent) != 0)
+    {
+        brain = 0;
+    }
+    else if ((kill_on_sight | kill_weapon_out | kill_armed) == 0)
+    {
+        return;
+    }
+
+    if (p_person->U.UPerson.Target2 == 0)
+        p_person->PTarget = NULL;
+    // TODO the asm reduces brain levels 4 and above to 1; likely an original bug
+    if (brain >= 4)
+        brain = 1;
+    range += brain << 8;
+
+    if (!in_network_game && (p_person->Flag2 & TgF2_Unkn0008) == 0 &&
+      (kill_on_sight & (1u << (level_def.PlayableGroups[0] & 0x1f))) != 0)
+    {
+        if ((ubyte)find_target_from_players((int)p_person, range, see_flags, see_flags) != 0)
+            return;
+        if ((ubyte)find_target_from_persuaded_peeps((int)p_person, range, see_flags, see_flags) != 0)
+            return;
+        if (((~(1u << (level_def.PlayableGroups[0] & 0x1f)) & kill_on_sight) |
+          kill_weapon_out | kill_armed) == 0)
+            return;
+    }
+
+    if (((p_person->Flag & TngF_PlayerAgent) != 0 && p_person->U.UPerson.Mood < -50) ||
+      (p_person->Flag2 & TgF2_Unkn0008) != 0)
+    {
+        any_group = true;
+        see_flags = 1;
+    }
+
+    thing = same_type_head[1];
+    if (thing == 0)
+        return;
+    range = (s32)((u32)range * (u32)range);
+    do
+    {
+        p_other = &things[thing];
+        other_grp = p_other->U.UPerson.EffectiveGroup;
+        if (!any_group || other_grp == p_person->U.UPerson.EffectiveGroup)
+        {
+            mask = 1u << (other_grp & 0x1f);
+            if ((kill_on_sight & mask) == 0)
+            {
+                if ((p_other->U.UPerson.CurrentWeapon == 0) || ((kill_weapon_out & mask) == 0))
+                {
+                    if ((p_other->U.UPerson.WeaponsCarried & 0x283ceff) == 0)
+                        goto next;
+                    if ((kill_armed & mask) == 0)
+                        goto next;
+                }
+            }
+        }
+        if ((p_other->Flag2 & TgF2_AlteredSubType) != 0)
+            goto next;
+        if ((ushort)p_other->State == 0x24 || (ushort)p_other->State == 0x0c)
+            goto next;
+        if ((p_other->Flag & TngF_Destroyed) != 0)
+            goto next;
+        if (can_i_see_thing(p_person, p_other, range, see_flags) != 0)
+        {
+            set_interrupt_target(p_person, p_other);
+            return;
+        }
+next:
+        thing = p_other->LinkSame;
+    } while (thing != 0);
 }
 
 
