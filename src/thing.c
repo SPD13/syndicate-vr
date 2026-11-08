@@ -678,6 +678,37 @@ void unkn_full_update_lights(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
+void quick_light_unkn_func_06(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[3];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    stkargs[2] = a7;
+    asm volatile ("push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_quick_light_unkn_func_06\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[2];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_quick_light_unkn_func_08\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
 void quick_light_unkn_func_05(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;

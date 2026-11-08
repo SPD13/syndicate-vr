@@ -2553,11 +2553,36 @@ int build_tank_path(struct Thing *p_thing, int x, int z)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
+void veh_heap_add(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_veh_heap_add\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
 void VNAV_do(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_VNAV_do\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void VNAV_find_dropoff_point(int a1, int a2, int a3, int a4, int a5)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[1];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    asm volatile ("push 0(%4)\n""call ASM_VNAV_find_dropoff_point\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
 /** Routed asm (internal label). Arguments and return value are the
@@ -2622,6 +2647,21 @@ int func_5fe50(int a1, int a2, int a3, int a4)
     asm volatile ("call ASM_func_5fe50\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void path_init8_wide(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[2];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_path_init8_wide\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
 /** Routed asm (internal label). Arguments and return value are the
@@ -3085,6 +3125,24 @@ void use_nav_data(int a1, int a2, int a3, int a4)
     p_thing->PathOffset = 0;
     head_my_path = next_path;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[4];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    stkargs[2] = a7;
+    stkargs[3] = a8;
+    asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_tri_path_init8\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+    return ra;
+}
+
 
 
 
@@ -4602,6 +4660,21 @@ ubyte is_command_completed(struct Thing *p_person)
     }
 #endif
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int do_fvect_colide(int a1, int a2, int a3, int a4, int a5)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[1];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    asm volatile ("push 0(%4)\n""call ASM_do_fvect_colide\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+    return ra;
+}
+
 
 int can_i_see_building(struct Thing *p_i, struct Thing *p_thing,
         int max_dist, ushort flags)

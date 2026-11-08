@@ -572,6 +572,40 @@ TbBool point_find(TrCoord pt_x, TrCoord pt_y, int *r_tri, int *r_cor)
     return false;
 #endif
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void func_81db4(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[2];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_func_81db4\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[6];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    stkargs[2] = a7;
+    stkargs[3] = a8;
+    stkargs[4] = a9;
+    stkargs[5] = a10;
+    asm volatile ("push 20(%4)\n""push 16(%4)\n""push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_line_intersect8\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+
 
 void make_clip_list(int x1, int y1, int x2, int y2)
 {
@@ -682,6 +716,22 @@ int fov_region(int a1, int a2, int a3, int a4)
         DIFFTEST_RETURN((int)1);
     DIFFTEST_RETURN((int)0);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int edge_points8(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[2];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_edge_points8\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+    return ra;
+}
+
 
 
 s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,

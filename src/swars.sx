@@ -8812,7 +8812,7 @@ GLOBAL_FUNC(ASM_quick_light_unkn_func_05)	/* 0x043D2C */
 		sar    $0x10,%ecx
 		sar    $0x10,%edx
 		and    $0xffff,%eax
-		call   quick_light_unkn_func_06
+		call   ac_quick_light_unkn_func_06
 		inc    %edi
 	jump_43e55:
 		movswl %si,%eax
@@ -8881,7 +8881,7 @@ GLOBAL_FUNC(ASM_quick_light_unkn_func_05)	/* 0x043D2C */
 		xor    %eax,%eax
 		sar    $0x10,%ebx
 		mov    0x8(%esp),%ax
-		call   quick_light_unkn_func_08
+		call   ac_quick_light_unkn_func_08
 		mov    EXPORT_SYMBOL(game_my_big_map),%eax
 		mov    0x8(%esi,%eax,1),%si
 		test   %si,%si
@@ -8913,7 +8913,7 @@ GLOBAL_FUNC(ASM_quick_light_unkn_func_05)	/* 0x043D2C */
 
 
 /*----------------------------------------------------------------*/
-quick_light_unkn_func_06:	/* 0x043F88 */
+GLOBAL_FUNC(ASM_quick_light_unkn_func_06)	/* 0x043F88 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -10083,7 +10083,7 @@ GLOBAL_FUNC(ASM_quick_light_unkn_func_07)	/* 0x044850 */
 
 
 /*----------------------------------------------------------------*/
-quick_light_unkn_func_08:	/* 0x044D74 */
+GLOBAL_FUNC(ASM_quick_light_unkn_func_08)	/* 0x044D74 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -36313,7 +36313,7 @@ GLOBAL_FUNC(ASM_check_for_radius_hit_person)	/* 0x05BBE0 */
 
 
 /*----------------------------------------------------------------*/
-do_fvect_colide:	/* 0x05C054 */
+GLOBAL_FUNC(ASM_do_fvect_colide)	/* 0x05C054 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -36646,7 +36646,7 @@ GLOBAL_FUNC(ASM_bul_path_end)	/* 0x05C1C0 */
 		push   %eax
 		mov    0x18(%esp),%edx
 		mov    0x14(%esp),%eax
-		call   do_fvect_colide
+		call   ac_do_fvect_colide
 		mov    %eax,0x20(%esp)
 		test   %eax,%eax
 		jle    jump_5c44d
@@ -36888,7 +36888,7 @@ GLOBAL_FUNC(ASM_laser_hit_at)	/* 0x05C4C8 */
 		push   %eax
 		mov    0x18(%esp),%edx
 		mov    0x1c(%esp),%eax
-		call   do_fvect_colide
+		call   ac_do_fvect_colide
 		test   %eax,%eax
 		jle    jump_5c6b1
 		mov    %eax,%edx
@@ -52245,7 +52245,7 @@ GLOBAL_FUNC(ASM_can_i_see_building)	/* 0x06C978 */
 		mov    %edi,%edx
 		mov    %esi,%eax
 		add    %esi,%ebx
-		call   do_fvect_colide
+		call   ac_do_fvect_colide
 		test   %ax,%ax
 		je     jump_6ca77
 		movswl %ax,%edx
@@ -69459,7 +69459,7 @@ GLOBAL_FUNC(ASM_edge_split)	/* 0x80630 */
 
 
 /*----------------------------------------------------------------*/
-line_intersect8:	/* 0x80720 */
+GLOBAL_FUNC(ASM_line_intersect8)	/* 0x80720 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -71444,7 +71444,7 @@ GLOBAL_FUNC(ASM_make_edge)	/* 0x81964 */
 
 
 /*----------------------------------------------------------------*/
-func_81db4:
+GLOBAL_FUNC(ASM_func_81db4)
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -71821,7 +71821,7 @@ GLOBAL_FUNC(ASM_make_clip_list)	/* 0x81eac */
 		push   %edx
 		mov    0x5c(%esp),%ecx
 		mov    0x40(%esp),%edx
-		call   line_intersect8
+		call   ac_line_intersect8
 		mov    0x10(%esp),%eax
 		add    $0x80,%eax
 		sar    $0x8,%eax
@@ -71879,7 +71879,7 @@ GLOBAL_FUNC(ASM_make_clip_list)	/* 0x81eac */
 		push   %eax
 		mov    0x54(%esp),%edx
 		mov    %esi,%eax
-		call   func_81db4
+		call   ac_func_81db4
 		lea    0x4(%esp),%ecx
 		mov    %esp,%ebx
 		mov    0xc(%esp),%edx
@@ -72378,7 +72378,7 @@ GLOBAL_FUNC(ASM_tri_set_rectangle)	/* 0x827a0 */
 
 
 /*----------------------------------------------------------------*/
-edge_points8:	/* 0x8297C */
+GLOBAL_FUNC(ASM_edge_points8)	/* 0x8297C */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -77044,7 +77044,7 @@ GLOBAL_FUNC(ASM_route_to_path)	/* 0x086AB0 */
 		mov    0x4(%edx),%edx
 		mov    (%eax),%eax
 		mov    %esi,0x38(%esp)
-		call   edge_points8
+		call   ac_edge_points8
 		cmp    $0xffffffd6,%eax
 		jne    jump_86b6f
 		mov    $0xffffffff,%eax
@@ -77069,7 +77069,7 @@ GLOBAL_FUNC(ASM_route_to_path)	/* 0x086AB0 */
 		lea    0x24(%esp),%ecx
 		mov    0x4(%eax),%edx
 		mov    (%eax),%eax
-		call   edge_points8
+		call   ac_edge_points8
 		cmp    $0xffffffd6,%eax
 		jne    jump_86bb6
 		mov    $0xffffffff,%eax
@@ -77174,7 +77174,7 @@ GLOBAL_FUNC(ASM_route_to_path)	/* 0x086AB0 */
 		mov    0x4(%eax),%edx
 		mov    (%eax),%eax
 		inc    %esi
-		call   edge_points8
+		call   ac_edge_points8
 		cmp    $0xffffffd6,%eax
 		jne    jump_86daa
 		mov    $0xffffffff,%eax
@@ -77228,7 +77228,7 @@ GLOBAL_FUNC(ASM_route_to_path)	/* 0x086AB0 */
 		mov    0x4(%eax),%edx
 		mov    (%eax),%eax
 		inc    %esi
-		call   edge_points8
+		call   ac_edge_points8
 		cmp    $0xffffffd6,%eax
 		jne    jump_86daa
 		mov    $0xffffffff,%eax
@@ -77361,7 +77361,7 @@ jump_86e7a:
 
 
 /*----------------------------------------------------------------*/
-path_init8_wide:
+GLOBAL_FUNC(ASM_path_init8_wide)
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -77605,7 +77605,7 @@ GLOBAL_FUNC(ASM_path_init8_unkn3)	/* 0x087118 */
 
 
 /*----------------------------------------------------------------*/
-tri_path_init8:	/* 0x08723C */
+GLOBAL_FUNC(ASM_tri_path_init8)	/* 0x08723C */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -85500,7 +85500,7 @@ GLOBAL_FUNC (ASM_init_mission_states)	/* 0x0A8EE8 */
 
 
 /*----------------------------------------------------------------*/
-veh_heap_add:	/* 0x0A9248 */
+GLOBAL_FUNC(ASM_veh_heap_add)	/* 0x0A9248 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -85866,7 +85866,7 @@ VNAV_qwertyuiop:	/* 0x0A9684 */
 
 
 /*----------------------------------------------------------------*/
-VNAV_find_dropoff_point:	/* 0x0A9870 */
+GLOBAL_FUNC(ASM_VNAV_find_dropoff_point)	/* 0x0A9870 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -86491,7 +86491,7 @@ VNAV_find_dropoff_point:	/* 0x0A9870 */
 
 
 /*----------------------------------------------------------------*/
-VNAV_find_start_dropoff_point:	/* 0x0A9F0C */
+GLOBAL_FUNC(ASM_VNAV_find_start_dropoff_point)	/* 0x0A9F0C */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -86660,7 +86660,7 @@ GLOBAL_FUNC(ASM_VNAV_do)	/* 0x0AA04C */
 		xor    %esi,%esi
 		mov    %esi,data_1c8a5c
 		movw   $0x0,0x18(%ecx,%ebx,1)
-		call   veh_heap_add
+		call   ac_veh_heap_add
 		cmpl   $0xabcd,data_1c865c
 		je     jump_aa430
 	jump_aa11c:
@@ -86853,7 +86853,7 @@ GLOBAL_FUNC(ASM_VNAV_do)	/* 0x0AA04C */
 		mov    %ax,0x18(%esi,%ebp,1)
 		mov    %ebx,%eax
 		mov    %cx,0x16(%esi,%ebp,1)
-		call   veh_heap_add
+		call   ac_veh_heap_add
 	jump_aa389:
 		test   %ebx,%ebx
 		jle    jump_aa40b
@@ -86891,7 +86891,7 @@ GLOBAL_FUNC(ASM_VNAV_do)	/* 0x0AA04C */
 		mov    %ax,0x18(%esi)
 		mov    %ebx,%eax
 		mov    %cx,0x16(%esi)
-		call   veh_heap_add
+		call   ac_veh_heap_add
 	jump_aa40b:
 		mov    0x14(%esp),%ebx
 		add    $0x2,%ebx
@@ -86992,7 +86992,7 @@ GLOBAL_FUNC(ASM_VNAV_can_i_get_there)	/* 0x0AA4D8 */
 		push   %ebx
 		lea    0x8(%esp),%eax
 		lea    0x4(%esp),%ebx
-		call   VNAV_find_dropoff_point
+		call   ac_VNAV_find_dropoff_point
 		mov    0x2(%esp),%edx
 		sar    $0x10,%edx
 		cmp    $0x270f,%edx
@@ -87048,7 +87048,7 @@ GLOBAL_FUNC(ASM_VNAV_goto)	/* 0x0AA554 */
 		push   %ebx
 		lea    0x28(%esp),%eax
 		lea    0x4(%esp),%ebx
-		call   VNAV_find_dropoff_point
+		call   ac_VNAV_find_dropoff_point
 		mov    0x22(%esp),%eax
 		sar    $0x10,%eax
 		cmp    $0x270f,%eax
@@ -87917,7 +87917,7 @@ GLOBAL_FUNC(ASM_VNAV_unkn_func_207)	/* 0x0AACF4 */
 		push   %ebx
 		lea    0x10(%esp),%eax
 		lea    0x4(%esp),%ebx
-		call   VNAV_find_start_dropoff_point
+		call   ac_VNAV_find_start_dropoff_point
 		movw   $0x0,0x8a(%esi)
 		mov    0xa(%esp),%eax
 		sar    $0x10,%eax
@@ -93473,7 +93473,7 @@ GLOBAL_FUNC(ASM_process_mech_unknown1)	/* 0x0BBEA4 */
 
 
 /*----------------------------------------------------------------*/
-init_unkn1thing:	/* 0x0BBFC0 */
+GLOBAL_FUNC(ASM_init_unkn1thing)	/* 0x0BBFC0 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -93716,7 +93716,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		push   %edx
 		mov    0xbc(%esp),%eax
 		xor    %edx,%edx
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ecx
 		mov    %edx,%eax
@@ -93784,7 +93784,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		mov    0xbc(%esp),%eax
 		mov    %edx,EXPORT_SYMBOL(unkn_mech_var10)
 		xor    %edx,%edx
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -93842,7 +93842,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		push   %edi
 		mov    %eax,EXPORT_SYMBOL(unkn_mech_var10)
 		mov    0xbc(%esp),%eax
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -93890,7 +93890,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		push   %edi
 		mov    %eax,EXPORT_SYMBOL(unkn_mech_var10)
 		mov    0xbc(%esp),%eax
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -93927,7 +93927,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		xor    %edx,%edx
 		mov    %eax,EXPORT_SYMBOL(unkn_mech_var10)
 		mov    0xbc(%esp),%eax
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -93974,7 +93974,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		push   %edi
 		mov    0xbc(%esp),%eax
 		xor    %ecx,%ecx
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -94011,7 +94011,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		xor    %edx,%edx
 		mov    %eax,EXPORT_SYMBOL(unkn_mech_var10)
 		mov    0xbc(%esp),%eax
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ecx
 		mov    %edx,%eax
@@ -94090,7 +94090,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		mov    0xbc(%esp),%eax
 		mov    %edx,EXPORT_SYMBOL(unkn_mech_var10)
 		xor    %edx,%edx
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -94128,7 +94128,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		xor    %edx,%edx
 		mov    %eax,EXPORT_SYMBOL(unkn_mech_var10)
 		mov    0xbc(%esp),%eax
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -94165,7 +94165,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		xor    %edx,%edx
 		mov    %eax,EXPORT_SYMBOL(unkn_mech_var10)
 		mov    0xbc(%esp),%eax
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -94202,7 +94202,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		xor    %edx,%edx
 		mov    %eax,EXPORT_SYMBOL(unkn_mech_var10)
 		mov    0xbc(%esp),%eax
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -94239,7 +94239,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_09)	/* 0x0BC178 */
 		xor    %edx,%edx
 		mov    %eax,EXPORT_SYMBOL(unkn_mech_var10)
 		mov    0xbc(%esp),%eax
-		call   init_unkn1thing
+		call   ac_init_unkn1thing
 		mov    EXPORT_SYMBOL(unkn_mech_var10),%edx
 		mov    %eax,%ebx
 		mov    %edx,%eax
@@ -96610,7 +96610,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_19)	/* 0x0BE884 */
 		lea    0xc(%eax),%edx
 		lea    0xd8(%esp),%esi
 		lea    0x49(%edi),%eax
-		call   mech_unkn_func_20
+		call   ac_mech_unkn_func_20
 		mov    0xf4(%esp),%edi
 		mov    0xf8(%esp),%edx
 		mov    EXPORT_SYMBOL(unkn_mech_arr3),%eax
@@ -96749,7 +96749,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_19)	/* 0x0BE884 */
 
 
 /*----------------------------------------------------------------*/
-mech_unkn_func_20:	/* 0x0BEBC0 */
+GLOBAL_FUNC(ASM_mech_unkn_func_20)	/* 0x0BEBC0 */
 /*----------------------------------------------------------------*/
 		push   %ecx
 		push   %edi
@@ -98458,7 +98458,7 @@ GLOBAL_FUNC(ASM_build_navigate_path_to_person)	/* 0x0BFD00 */
 		push   %edx
 		movswl %di,%edx
 		sar    $0x10,%eax
-		call   tri_path_init8
+		call   ac_tri_path_init8
 	jump_c01ff:
 		cmpl   $0x0,EXPORT_SYMBOL(g_nav_data)+0x10
 		jne    jump_c026d
@@ -98655,7 +98655,7 @@ GLOBAL_FUNC(ASM_build_navigate_path_to_face)	/* 0x0C0298 */
 		push   %eax
 		movswl %cx,%eax
 		mov    0x18(%esp),%ecx
-		call   tri_path_init8
+		call   ac_tri_path_init8
 		cmpl   $0x0,EXPORT_SYMBOL(g_nav_data)+0x10
 		jne    jump_c04a3
 		mov    0x8(%esp),%eax
@@ -98836,7 +98836,7 @@ GLOBAL_FUNC(ASM_build_navigate_path_to_face_xz)	/* 0x0C04C8 */
 		movswl %ax,%edx
 		movswl %cx,%eax
 		mov    0x10(%esp),%ecx
-		call   tri_path_init8
+		call   ac_tri_path_init8
 		cmpl   $0x0,EXPORT_SYMBOL(g_nav_data)+0x10
 		jne    jump_c06a2
 		mov    (%esp),%eax
@@ -99059,7 +99059,7 @@ GLOBAL_FUNC(ASM_build_navigate_path)	/* 0x0C06D0 */
 		movswl %cx,%eax
 		mov    %ebx,%ecx
 		mov    $EXPORT_SYMBOL(g_nav_data),%ebx
-		call   tri_path_init8
+		call   ac_tri_path_init8
 		mov    EXPORT_SYMBOL(g_nav_data)+0x10,%ax
 		and    $0xffff,%eax
 		jne    jump_c0a61
@@ -99293,7 +99293,7 @@ GLOBAL_FUNC(ASM_ariadne_initialise_route)
 		mov    %edx,%ecx
 		mov    %eax,%edx
 		mov    $EXPORT_SYMBOL(g_nav_data),%eax
-		call   path_init8_wide
+		call   ac_path_init8_wide
 		mov    EXPORT_SYMBOL(g_nav_data)+0x10,%eax
 		test   %eax,%eax
 		je     jump_c0c13

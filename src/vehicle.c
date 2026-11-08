@@ -443,6 +443,24 @@ TbBool vehicle_is_destroyed(ThingIdx thing)
     p_thing = &things[thing];
     return thing_is_destroyed(thing) || (p_thing->Type != TT_VEHICLE);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int init_unkn1thing(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[4];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    stkargs[2] = a7;
+    stkargs[3] = a8;
+    asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_init_unkn1thing\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+    return ra;
+}
+
 
 void mech_unkn_func_09(ThingIdx thing)
 {
@@ -597,6 +615,20 @@ void VNAV_find_nearnodes(int a1, int a2, int a3, int a4)
     asm volatile ("call ASM_VNAV_find_nearnodes\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void VNAV_find_start_dropoff_point(int a1, int a2, int a3, int a4, int a5)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[1];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    asm volatile ("push 0(%4)\n""call ASM_VNAV_find_start_dropoff_point\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
 
 
 void VNAV_unkn_func_207(struct Thing *p_thing)
@@ -1572,6 +1604,17 @@ void matrix_transpose_cp(int a1, int a2, int a3)
     asm volatile ("call ASM_matrix_transpose_cp\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "esi", "edi", "cc", "memory");
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void mech_unkn_func_20(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_mech_unkn_func_20\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "cc", "memory");
+}
+
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
