@@ -96,15 +96,49 @@ ubyte check_big_point_triangle(int x, int y, int ux, int uy, int vx, int vy, int
     DIFFTEST_RETURN((ubyte)1);
 }
 
-/** Checks whether the point is inside the triangle face (precise coords).
- * The asm does not preserve ebx and edx.
+/** The asm does not preserve ebx and edx.
  */
-int inside_the_triangle(struct SingleObjectFace3 *p_face, int x, int z)
+static DIFFTEST_REF_FUNC int inside_the_triangle_asm(struct SingleObjectFace3 *p_face,
+  int x, int z)
 {
     int ret;
     asm volatile ("call ASM_inside_the_triangle\n"
         : "=a" (ret), "+d" (x), "+b" (z) : "a" (p_face) : "cc", "memory");
     return ret;
+}
+
+/** Checks whether the point is inside the triangle face (precise coords).
+ */
+int inside_the_triangle(struct SingleObjectFace3 *p_face, int x, int z)
+{
+    struct SingleObject *p_sobj;
+    struct SinglePoint *p_pt;
+    s32 px, pz;
+    s32 x0, z0, x1, z1, x2, z2;
+
+    DIFFTEST_SHADOW_RET(inside_the_triangle, int,
+      inside_the_triangle_asm(p_face, x, z));
+    px = x >> 8;
+    pz = z >> 8;
+    p_sobj = &game_objects[p_face->Object];
+    p_pt = &game_object_points[(ushort)p_face->PointNo[0]];
+    x0 = (short)p_sobj->MapX + p_pt->X;
+    z0 = (short)p_sobj->MapZ + p_pt->Z;
+    p_pt = &game_object_points[(ushort)p_face->PointNo[1]];
+    x1 = (short)p_sobj->MapX + p_pt->X;
+    z1 = (short)p_sobj->MapZ + p_pt->Z;
+    p_pt = &game_object_points[(ushort)p_face->PointNo[2]];
+    x2 = (short)p_sobj->MapX + p_pt->X;
+    z2 = (short)p_sobj->MapZ + p_pt->Z;
+
+    // Signed 64-bit products compared, like the imul/sbb pairs in asm
+    if ((s64)(x1 - x0) * (pz - z1) < (s64)(z1 - z0) * (px - x1))
+        DIFFTEST_RETURN((int)0);
+    if ((s64)(x2 - x1) * (pz - z2) < (s64)(z2 - z1) * (px - x2))
+        DIFFTEST_RETURN((int)0);
+    if ((s64)(x0 - x2) * (pz - z0) < (s64)(z0 - z2) * (px - x0))
+        DIFFTEST_RETURN((int)0);
+    DIFFTEST_RETURN((int)1);
 }
 
 /** Sets the thing height from the triangle face plane at the point.
