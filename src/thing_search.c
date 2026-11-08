@@ -24,6 +24,7 @@
 #include "building.h"
 #include "difftest.h"
 #include "enginsngobjs.h"
+#include "game.h"
 #include "people.h"
 #include "pepgroup.h"
 #include "swlog.h"
@@ -839,12 +840,89 @@ void find_nearest_player(int a1, int a2, int a3, int a4)
 }
 
 
-short find_nearest_from_group(struct Thing *p_person, ushort group, ubyte no_persuaded)
+static DIFFTEST_REF_FUNC short find_nearest_from_group_asm(struct Thing *p_person, ushort group, ubyte no_persuaded)
 {
     short ret;
     asm volatile ("call ASM_find_nearest_from_group\n"
-        : "=r" (ret) : "a" (p_person), "d" (group), "b" (no_persuaded));
+        : "=a" (ret) : "a" (p_person), "d" (group), "b" (no_persuaded));
     return ret;
+}
+
+static s32 find_nearest_from_group_dist(struct Thing *p_person, struct Thing *p_thing)
+{
+    s32 dx, dz;
+
+    dx = p_person->X - p_thing->X;
+    if (dx < 0)
+        dx = -dx;
+    dz = p_person->Z - p_thing->Z;
+    if (dz < 0)
+        dz = -dz;
+    dx >>= 8;
+    dz >>= 8;
+    if (dx > dz)
+        dz >>= 1;
+    else
+        dx >>= 1;
+    return dx + dz;
+}
+
+short find_nearest_from_group(struct Thing *p_person, ushort group, ubyte no_persuaded)
+{
+    struct Thing *p_thing;
+    u32 best_dist, dist;
+    s32 nearest;
+    short thing;
+    short i;
+
+    DIFFTEST_SHADOW_RET(find_nearest_from_group, short,
+      find_nearest_from_group_asm(p_person, group, no_persuaded));
+
+    if (in_network_game && (group == 0))
+    {
+        short ret;
+        // TODO: call find_nearest_player() directly once it returns its value
+        asm volatile ("call ASM_find_nearest_player\n"
+            : "=a" (ret) : "a" (p_person) : "cc", "memory");
+        DIFFTEST_RETURN(ret);
+    }
+
+    best_dist = 0xFFFFFFFF;
+    nearest = 0;
+
+    for (thing = same_type_head[256 + group]; thing != 0;
+      thing = p_thing->LinkSameGroup)
+    {
+        p_thing = &things[thing];
+        if (no_persuaded && (p_thing->Flag & TngF_Persuaded) != 0)
+            continue;
+        if ((p_thing->Flag & TngF_Destroyed) != 0)
+            continue;
+        dist = find_nearest_from_group_dist(p_person, p_thing);
+        if (dist < best_dist)
+        {
+            best_dist = dist;
+            nearest = (ushort)thing;
+        }
+    }
+
+    if (no_persuaded)
+        DIFFTEST_RETURN((short)nearest);
+
+    for (i = 1; i < (s32)word_1531DA; i++)
+    {
+        p_thing = &things[word_17FA58[i]];
+        if (p_thing->U.UPerson.EffectiveGroup != group)
+            continue;
+        dist = find_nearest_from_group_dist(p_person, p_thing);
+        if (dist < best_dist)
+        {
+            best_dist = dist;
+            nearest = p_thing->ThingOffset;
+        }
+    }
+
+    DIFFTEST_RETURN((short)nearest);
 }
 
 ThingIdx find_person_carrying_weapon(short weapon)
