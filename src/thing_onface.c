@@ -395,13 +395,30 @@ int set_thing_height_on_face_quad64(struct Thing *p_thing, int x, int z, int fac
     DIFFTEST_RETURN((int)1);
 }
 
-ushort set_thing_height_on_face_quad(struct Thing *p_thing, int x, int z, short face)
+static DIFFTEST_REF_FUNC ushort set_thing_height_on_face_quad_asm(struct Thing *p_thing,
+  int x, int z, short face)
 {
     ushort ret;
     asm volatile (
       "call ASM_set_thing_height_on_face_quad\n"
-        : "=r" (ret) : "a" (p_thing), "d" (x), "b" (z), "c" (face));
+        : "=a" (ret) : "a" (p_thing), "d" (x), "b" (z), "c" (face));
     return ret;
+}
+
+/** Sets the thing height on the quad face if the point is inside it.
+ * Returns the inside_the_quad() result, or 0 if outside.
+ */
+ushort set_thing_height_on_face_quad(struct Thing *p_thing, int x, int z, short face)
+{
+    int inside;
+
+    DIFFTEST_SHADOW_RET(set_thing_height_on_face_quad, ushort,
+      set_thing_height_on_face_quad_asm(p_thing, x, z, face));
+    inside = inside_the_quad(&game_object_faces4[(ushort)face], x, z);
+    if (inside == 0)
+        DIFFTEST_RETURN((ushort)0);
+    set_thing_height_on_face_quad64(p_thing, x, z, (ushort)face);
+    DIFFTEST_RETURN((ushort)inside);
 }
 
 ushort set_thing_height_on_face(struct Thing *p_thing, int x, int z, short face)
