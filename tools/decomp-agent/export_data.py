@@ -23,7 +23,8 @@ SX = os.path.join(REPO, 'src', 'swars.sx')
 DATA_DIR = re.compile(r'^\s+\.(long|short|word|byte|fill|ascii|asciz|string|space|zero|int|value)\b')
 DEF_RE = re.compile(r'^(\w+):(.*)$')
 FUNC_RE = re.compile(r'^\s*GLOBAL_FUNC\s*\(\s*(\w+)\s*\)|^(\w+):')
-TOKEN = re.compile(r'(?<![%$\w])([A-Za-z_]\w*)\b')
+# a label is also used as an immediate address ($fwd_path); registers are %name
+TOKEN = re.compile(r'(?<![%\w])([A-Za-z_]\w*)\b')
 
 
 def main():
