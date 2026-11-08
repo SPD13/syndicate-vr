@@ -3653,12 +3653,74 @@ int triangle_route_do_unkn6(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int ma_triangle_route_3(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int ma_triangle_route_3_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_ma_triangle_route_3\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Finds a triangle route between triA and triB in backward direction
+ * (stored reversed) and in forward direction, and keeps the one giving
+ * the shorter path.
+ * Arguments: a1 = triA, a2 = triB, a3 = s32 *route output, a4 passed
+ * through to the route search functions.
+ * Returns the route length, or -1.
+ */
+int ma_triangle_route_3(int a1, int a2, int a3, int a4)
+{
+    s32 *p_route = (s32 *)a3;
+    s32 *p_dst;
+    int len_fwd, len_bak;
+    s32 ret_fwd, ret_bak;
+    s32 tmp;
+    int i;
+
+    DIFFTEST_SHADOW_RET(ma_triangle_route_3, int, ma_triangle_route_3_asm(a1, a2, a3, a4));
+
+    tmp = tree_Ax8;
+    tree_Ax8 = tree_Bx8;
+    tree_Bx8 = tmp;
+    tmp = tree_Ay8;
+    tree_Ay8 = tree_By8;
+    tree_By8 = tmp;
+
+    ret_bak = triangle_route_do_unkn6(a2, a1, (int)(intptr_t)route_bak, a4);
+    if (ret_bak == -1)
+        DIFFTEST_RETURN((int)-1);
+
+    if (route_to_path(tree_Ax8, tree_Ay8, tree_Bx8, tree_By8, route_bak,
+      ret_bak, &fwd_path, &len_bak) == -1)
+        DIFFTEST_RETURN((int)-1);
+
+    tmp = tree_Ax8;
+    tree_Ax8 = tree_Bx8;
+    tree_Bx8 = tmp;
+    tmp = tree_Ay8;
+    tree_Ay8 = tree_By8;
+    tree_By8 = tmp;
+
+    ret_fwd = triangle_route_do_unkn5(a1, a2, a3, a4);
+    if (ret_fwd == -1)
+    {
+        len_fwd = 0x7fffffff;
+    }
+    else if (route_to_path(tree_Ax8, tree_Ay8, tree_Bx8, tree_By8, p_route,
+      ret_fwd, &fwd_path, &len_fwd) == -1)
+    {
+        DIFFTEST_RETURN((int)-1);
+    }
+
+    if (len_fwd < len_bak)
+        DIFFTEST_RETURN((int)ret_fwd);
+
+    // Store the backward route reversed
+    p_dst = p_route;
+    for (i = ret_bak; i >= 0; i--)
+        *p_dst++ = route_bak[i];
+
+    DIFFTEST_RETURN((int)ret_bak);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
