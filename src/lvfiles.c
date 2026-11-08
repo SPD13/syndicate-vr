@@ -37,6 +37,7 @@
 #include "bigmap.h"
 #include "campaign.h"
 #include "command.h"
+#include "difftest.h"
 #include "enginpriobjs.h"
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
@@ -874,12 +875,33 @@ void fix_level_indexes(short missi, u32 fmtver, ubyte reload, TbBool deep)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int is_animating(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int is_animating_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_is_animating\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Find the anim tmap whose Texture equals given texture.
+ * Returns the anim tmap index (searching from 10), 0 if not found,
+ * or the input unchanged if its low 16 bits are 0.
+ */
+int is_animating(int a1, int a2, int a3, int a4)
+{
+    short tex;
+    s32 i;
+
+    DIFFTEST_SHADOW_RET(is_animating, int, is_animating_asm(a1, a2, a3, a4));
+    tex = (short)a1;
+    if (tex == 0)
+        DIFFTEST_RETURN(a1);
+    for (i = 10; (s32)(short)i < (s32)next_anim_tmap; i++)
+    {
+        if ((s32)game_anim_tmaps[(short)i].Texture == (s32)tex)
+            DIFFTEST_RETURN((int)i);
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 
