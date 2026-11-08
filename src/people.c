@@ -5552,11 +5552,72 @@ int person_drops_weapons(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void scare_civs(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void scare_civs_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_scare_civs\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void make_peep_flee(int b_x, int b_z, struct Thing *p_person);
+
+void scare_civs(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_scarer = (struct Thing *)a1;
+    int cntr_x, cntr_z;
+    short tile_x, tile_z;
+
+    DIFFTEST_SHADOW(scare_civs, scare_civs_asm(a1, a2, a3, a4));
+
+    cntr_x = p_scarer->X >> 16;
+    cntr_z = p_scarer->Z >> 16;
+
+    for (tile_x = cntr_x - 5; tile_x < cntr_x + 5; tile_x++)
+    {
+        for (tile_z = cntr_z - 5; tile_z < cntr_z + 5; tile_z++)
+        {
+            short thing;
+
+            if ((tile_x < 0) || (tile_x >= MAP_TILE_WIDTH))
+                continue;
+            if ((tile_z < 0) || (tile_z >= MAP_TILE_HEIGHT))
+                continue;
+
+            thing = game_my_big_map[MAP_TILE_WIDTH * tile_z + tile_x].Child;
+            while (thing != 0)
+            {
+                struct Thing *p_thing;
+                ushort subtype;
+
+                if (thing <= 0)
+                {
+                    thing = sthings[thing].Next;
+                    continue;
+                }
+                p_thing = &things[thing];
+
+                if ((p_thing->Flag2 & TgF2_AlteredSubType) != 0)
+                    subtype = p_thing->U.UPerson.OldSubType;
+                else
+                    subtype = p_thing->SubType;
+
+                if ((p_thing->Type == TT_PERSON)
+                  && ((p_thing->Flag & (TngF_Destroyed|TngF_WepRecoil|TngF_Persuaded)) == 0)
+                  && ((subtype == SubTT_PERS_BRIEFCASE_M)
+                    || (subtype == SubTT_PERS_WHITE_BRUN_F)
+                    || (subtype == SubTT_PERS_WHIT_BLOND_F)
+                    || (subtype == SubTT_PERS_LETH_JACKT_M))
+                  && ((p_thing->Flag2 & TgF2_IgnoreEnemies) == 0)
+                  && (((p_thing->U.UPerson.UMod.Mods >> 9) & 7) < 3)
+                  && can_i_see_thing(p_thing, p_scarer, 0x400000, 1))
+                {
+                    make_peep_flee((p_thing->X - p_scarer->X) >> 8,
+                      (p_thing->Z - p_scarer->Z) >> 8, p_thing);
+                }
+                thing = p_thing->Next;
+            }
+        }
+    }
 }
 
 
