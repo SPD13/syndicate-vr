@@ -8716,10 +8716,67 @@ void process_wander(struct Thing *p_person)
     }
 }
 
-void person_recoil(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_recoil_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_recoil\n"
         : : "a" (p_person));
+}
+
+void person_recoil(struct Thing *p_person)
+{
+    s32 vel_x, vel_z;
+    short speed;
+    ubyte timer;
+
+    DIFFTEST_SHADOW(person_recoil, person_recoil_asm(p_person));
+
+    if (p_person->U.UPerson.RecoilTimer == 4)
+    {
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+    }
+
+    if (p_person->U.UPerson.RecoilTimer == 0)
+    {
+        p_person->Flag &= ~TngF_WepRecoil;
+        p_person->U.UPerson.AnimMode = p_person->U.UPerson.OldAnimMode;
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+        remove_path(p_person);
+        p_person->U.UPerson.ComTimer = -1;
+    }
+
+    timer = p_person->U.UPerson.RecoilTimer - 1;
+    p_person->U.UPerson.RecoilTimer = timer;
+    if (timer == 0)
+    {
+        p_person->Flag &= ~TngF_WepRecoil;
+        p_person->U.UPerson.AnimMode = p_person->U.UPerson.OldAnimMode;
+        p_person->U.UPerson.RecoilTimer = 0;
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+        remove_path(p_person);
+        p_person->U.UPerson.ComTimer = -1;
+        return;
+    }
+
+    speed = p_person->Speed;
+    p_person->Speed = 0x200;
+    vel_x = p_person->VX;
+    p_person->VX = lbSinTable[8 * p_person->U.UPerson.RecoilDir] >> 8;
+    vel_z = p_person->VZ;
+    p_person->VZ = lbSinTable[8 * p_person->U.UPerson.RecoilDir + LbFPMath_PI/2] >> 8;
+    person_move(p_person);
+
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+
+    p_person->VX = vel_x;
+    p_person->VZ = vel_z;
+    p_person->Speed = speed;
 }
 
 static DIFFTEST_REF_FUNC void calc_lighting_asm(struct Thing *p_person)
