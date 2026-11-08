@@ -245,6 +245,7 @@ ubyte mouse_sprite_anim_frame;
 ushort replay_intro_timer = 0;
 
 extern long dword_1DDECC;
+extern ushort data_1c8468;
 
 extern struct GamePanel unknstrct7_arr2[];
 
@@ -2318,10 +2319,57 @@ short test_single_mission(short missi)
     return ret;
 }
 
-void post_process_blips(void)
+static DIFFTEST_REF_FUNC void post_process_blips_asm(void)
 {
     asm volatile ("call ASM_post_process_blips\n"
         :  :  : "eax" );
+}
+
+void post_process_blips(void)
+{
+    struct Thing *p_dcthing;
+    s32 cor_x, cor_z;
+    s32 dist_x, dist_z, dist;
+    s32 min_dist, beep_period;
+    ushort prev_count;
+    int i;
+
+    DIFFTEST_SHADOW(post_process_blips, post_process_blips_asm());
+
+    p_dcthing = &things[players[local_player_no].DirectControl[0]];
+    cor_x = p_dcthing->X >> 8;
+    cor_z = p_dcthing->Z >> 8;
+    min_dist = 0x7FFFFFFF;
+    // TODO the asm checks only 15 of SCANNER_BIG_BLIP_COUNT (16) blips
+    for (i = 0; i < 15; i++)
+    {
+        struct BigBlip *p_bblip;
+
+        p_bblip = &ingame.Scanner.BigBlip[i];
+        if (p_bblip->Period == 0)
+            continue;
+        dist_x = abs((p_bblip->X >> 8) - cor_x);
+        dist_z = abs((p_bblip->Z >> 8) - cor_z);
+        if (dist_x <= dist_z)
+            dist = dist_z + (dist_x >> 1);
+        else
+            dist = dist_x + (dist_z >> 1);
+        if (dist < min_dist)
+            min_dist = dist;
+    }
+
+    beep_period = (min_dist >> 9) + 2;
+    if ((ingame.Flags & GamF_NoScannerBeep) != 0)
+        return;
+    if (ingame.TrackThing != 0)
+        return;
+    prev_count = data_1c8468;
+    data_1c8468 = prev_count + 1;
+    if ((s32)prev_count <= beep_period)
+        return;
+    if (beep_period < 60)
+        play_sample_using_heap(0, 94, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3);
+    data_1c8468 = 0;
 }
 
 short test_missions(ubyte flag)
