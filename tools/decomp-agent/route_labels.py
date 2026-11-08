@@ -260,11 +260,14 @@ def analyse(f, funcs, callers):
     frame = 4 * len(saved)
     if k < len(body) and body[k][1] in ('sub', 'subl') and body[k][2][1] == '%esp':
         frame += int(body[k][2][0].lstrip('$'), 0)
-    # every ret must pop the saved registers; no stack args
+    # every ret must pop the saved registers; stack args the same on all
+    nstack = None
     for n, (i, mn, ops) in enumerate(body):
         if mn == 'ret':
-            if ops:
-                return {'skip': 'stack args (ret %s)' % ops[0]}
+            ns = int(ops[0].lstrip('$'), 0) // 4 if ops else 0
+            if nstack is not None and ns != nstack:
+                return {'skip': 'rets pop different stack sizes'}
+            nstack = ns
             pops = []
             j = n - 1
             while j >= 0 and body[j][1] in ('pop', 'popl'):
@@ -315,6 +318,8 @@ def analyse(f, funcs, callers):
     for k2, r in enumerate(ARGREGS):
         if r in entry:
             nargs = k2 + 1
+    if nstack:
+        nargs = 4  # stack arguments come after all four registers
     written = written_regs(body)
     clobbered = [r for r in ALLREGS if r in written and r not in saved]
     # callers: outputs other than eax, flags, return use
@@ -343,7 +348,7 @@ def analyse(f, funcs, callers):
                             return {'skip': 'caller %s reads %s after call' % (cname, r)}
                     written |= d
     return {'args': ARGREGS[:nargs], 'ret': ret_used, 'saved': saved,
-            'clobbered': clobbered}
+            'clobbered': clobbered, 'nstack': nstack or 0}
 
 
 def callers_of(name, funcs):
@@ -363,7 +368,8 @@ def callers_of(name, funcs):
 
 
 def wrapper_c(name, a):
-    params = ', '.join('int a%d' % (k + 1) for k in range(len(a['args']))) or 'void'
+    nall = len(a['args']) + a['nstack']
+    params = ', '.join('int a%d' % (k + 1) for k in range(nall)) or 'void'
     rtype = 'int' if a['ret'] else 'void'
     lines = ['/** Routed asm (internal label). Arguments and return value are the',
              ' * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when',
@@ -383,12 +389,23 @@ def wrapper_c(name, a):
         elif r in a['clobbered']:
             clob.append('"%s"' % r)
     for r in ('esi', 'edi'):
-        if r in a['clobbered']:
+        if r in a['clobbered'] and not (r == 'esi' and a['nstack']):
             clob.append('"%s"' % r)
     clob += ['"cc"', '"memory"']
     if decl:
         lines.append('    int %s;' % ', '.join(decl))
-    lines.append('    asm volatile ("call ASM_%s\\n"' % name)
+    pushes = ''
+    if a['nstack']:
+        # pushed through a register holding the array, see bul_path_end()
+        lines.append('    int stkargs[%d];' % a['nstack'])
+        lines.append('    int *p_stk = stkargs;')
+        for k in range(a['nstack']):
+            lines.append('    stkargs[%d] = a%d;' % (k, 5 + k))
+        outs.append('"+S" (p_stk)')
+        idx = len(outs) - 1
+        for k in range(a['nstack'] - 1, -1, -1):
+            pushes += '"push %d(%%%d)\\n"' % (4 * k, idx)
+    lines.append('    asm volatile (%s"call ASM_%s\\n"' % (pushes, name))
     lines.append('        : %s : : %s);' % (', '.join(outs), ', '.join(clob)))
     if a['ret']:
         lines.append('    return ra;')
@@ -398,7 +415,8 @@ def wrapper_c(name, a):
 
 def conf_line(name, a):
     tabs = '\t' * max(1, (24 - len(name) + 3) // 4)
-    return '%s%sW\t%s\t%s\n' % (name, tabs, 'i' if a['ret'] else 'v', 'i' * len(a['args']))
+    return '%s%sW\t%s\t%s\n' % (name, tabs, 'i' if a['ret'] else 'v',
+                               'i' * (len(a['args']) + a['nstack']))
 
 
 def main():
