@@ -237,6 +237,7 @@ extern short word_1AA38E;
 extern short word_1AA390;
 extern short word_1AA392;
 extern short word_1AA394;
+extern ushort word_1AA678;
 
 short unkn01_thing_idx = 0;
 
@@ -9278,10 +9279,177 @@ int find_a_target(int a1, int a2, int a3, int a4)
 
 
 
-void people_intel(ubyte flag)
+static DIFFTEST_REF_FUNC void people_intel_asm(ubyte flag)
 {
     asm volatile ("call ASM_people_intel\n"
         : : "a" (flag));
+}
+
+/** Default target search step of people_intel() for a person.
+ */
+static void people_intel_group_search(struct Thing *p_thing)
+{
+    if (p_thing->U.UPerson.Target2 != 0)
+        return;
+    if ((p_thing->Flag & (TngF_ShootAtPos|TngF_PlayerAgent)) != (TngF_ShootAtPos|TngF_PlayerAgent))
+        p_thing->Flag &= ~TngF_TriggerUse;
+    if (p_thing->U.UPerson.WeaponTurn != 0)
+        return;
+    find_target_from_group((int)p_thing, 0, 0, 0);
+}
+
+void people_intel(ubyte flag)
+{
+    struct Thing *p_thing;
+    ushort plyr, plagent, cnt, limit;
+    ThingIdx thing;
+    ushort state;
+    s32 remain;
+
+    DIFFTEST_SHADOW(people_intel, people_intel_asm(flag));
+
+    if (flag == 1)
+    {
+        word_1AA678 = 0;
+        return;
+    }
+
+    // Agents with extreme mood search for targets periodically
+    for (plyr = 0; plyr < 8; plyr++)
+    {
+        if ((ingame.InNetGame_UNSURE & (1 << plyr)) == 0)
+            continue;
+        for (plagent = 0; plagent < playable_agents; plagent++)
+        {
+            short mood, period;
+
+            p_thing = players[plyr].MyAgent[plagent];
+            if (p_thing == NULL)
+                continue;
+            if ((p_thing->Flag & (TngF_SelectedAgent|TngF_Destroyed)) != 0)
+                continue;
+            mood = p_thing->U.UPerson.Mood;
+            if ((ushort)p_thing->State == 0x2b)
+            {
+                if ((mood > -10) && (mood < 20))
+                    continue;
+            }
+            period = (0x66 - abs(mood)) >> 2;
+            if (period <= 0)
+                continue;
+            if (((u32)gameturn % (u32)(s32)period) != 0)
+                continue;
+            find_target_from_group((int)p_thing, 0, 0, 0);
+        }
+    }
+
+    // Directly controlled agents
+    for (plyr = 0; plyr < 8; plyr++)
+    {
+        PlayerInfo *p_player;
+
+        if ((ingame.InNetGame_UNSURE & (1 << plyr)) == 0)
+            continue;
+        p_player = &players[plyr];
+        for (plagent = 0; plagent < p_player->DoubleMode + 1; plagent++)
+        {
+            ThingIdx target;
+
+            if ((p_player->UserInput[plagent].ControlMode & 0x1fff) == UInpCtr_Mouse)
+                continue;
+            p_thing = &things[p_player->DirectControl[plagent]];
+            if ((p_thing->Flag & TngF_SelectedAgent) == 0)
+                continue;
+            if ((p_thing->Flag2 & (TgF2_IgnoreEnemies|TgF2_Unkn00080000)) != 0)
+            {
+                check_unlock_target((int)p_thing, 0, 0, 0);
+                continue;
+            }
+            if (p_thing->PTarget == NULL)
+                p_thing->Flag2 &= ~TgF2_Unkn00200000;
+            if ((p_thing->Flag2 & TgF2_Unkn00200000) != 0)
+            {
+                check_unlock_target((int)p_thing, 0, 0, 0);
+                continue;
+            }
+            target = find_a_target((int)p_thing, 0, 0, 0);
+            if (target == 0)
+                p_thing->PTarget = NULL;
+            else
+                p_thing->PTarget = &things[(ushort)target];
+        }
+    }
+
+    // A few people from the list get to search for targets each turn
+    thing = same_type_head[1];
+    if (thing == 0)
+        return;
+
+    p_thing = NULL;
+    cnt = 0;
+    limit = word_1AA678;
+    while ((cnt < limit) && (thing != 0))
+    {
+        p_thing = &things[(ushort)thing];
+        cnt++;
+        thing = p_thing->LinkSame;
+    }
+    if (thing == 0)
+    {
+        word_1AA678 = 0;
+        thing = same_type_head[1];
+    }
+
+    remain = 15;
+    do
+    {
+        if (thing == 0)
+        {
+            // TODO The asm keeps the previous person here and re-reads its LinkSame,
+            // so the remaining iterations only re-set the counter
+            word_1AA678 = 0;
+            goto next_person;
+        }
+        p_thing = &things[(ushort)thing];
+        if (p_thing->U.UPerson.CurrentWeapon == 0x1e)
+            goto next_person;
+        if ((p_thing->Flag2 & (TgF2_IgnoreEnemies|TgF2_ExistsOffMap|TgF2_Unkn00080000|TgF2_KnockedOut)) != 0)
+            goto next_person;
+        if ((p_thing->Flag & (TngF_Unkn4000|TngF_PlayerAgent|TngF_Destroyed)) != 0)
+            goto next_person;
+
+        state = (ushort)p_thing->State & 0x7fff;
+        switch (state)
+        {
+        case 7: case 8: case 9: case 10:
+        case 0xc: case 0xd: case 0xe:
+        case 0x1c: case 0x1d:
+        case 0x24: case 0x33:
+            break;
+        case 0x1b:
+        {
+            struct Thing *p_target;
+
+            p_target = p_thing->PTarget;
+            people_intel_group_search(p_thing);
+            if (p_thing->PTarget == NULL)
+                p_thing->PTarget = p_target;
+            break;
+        }
+        case 0x2b:
+            if ((p_thing->Flag & TngF_PlayerAgent) != 0)
+                break;
+            people_intel_group_search(p_thing);
+            break;
+        default:
+            people_intel_group_search(p_thing);
+            break;
+        }
+next_person:
+        word_1AA678++;
+        thing = p_thing->LinkSame;
+        remain--;
+    } while ((ushort)remain != 0);
 }
 
 void process_person(struct Thing *p_person)
