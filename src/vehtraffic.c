@@ -23,6 +23,7 @@
 #include "bfutility.h"
 #include "bigmap.h"
 #include "building.h"
+#include "difftest.h"
 #include "game.h"
 #include "game_speed.h"
 #include "thing.h"
@@ -505,10 +506,89 @@ void vehicle_workplace_states_finish(struct Thing *p_vehicle)
     }
 }
 
-void VNAV_process_bezier(struct Thing *p_road)
+static DIFFTEST_REF_FUNC void VNAV_process_bezier_asm(struct Thing *p_road)
 {
     asm volatile ("call ASM_VNAV_process_bezier\n"
         : : "a" (p_road));
+}
+
+/** Fast approximation of distance: max + min/2.
+ */
+static int VNAV_bezier_approx_dist(int x1, int z1, int x2, int z2)
+{
+    int adx, adz;
+
+    adx = abs(x2 - x1);
+    adz = abs(z2 - z1);
+    if (adx > adz)
+        adz >>= 1;
+    else
+        adx >>= 1;
+    return adx + adz;
+}
+
+void VNAV_process_bezier(struct Thing *p_road)
+{
+    struct Thing *p_thing;
+    struct TrafficNode *p_tnode;
+    int prv_x, prv_z;
+    int cur_x, cur_z;
+    int dist;
+
+    DIFFTEST_SHADOW(VNAV_process_bezier, VNAV_process_bezier_asm(p_road));
+    if ((p_road->Type != TT_BUILDING) || (p_road->SubType != SubTT_BLD_BEZIER_ROAD))
+        return;
+
+    if (p_road->U.UObject.PrevThing < 0)
+    {
+        p_tnode = &game_traffic_nodes[-p_road->U.UObject.PrevThing];
+        prv_x = p_tnode->X;
+        prv_z = p_tnode->Z;
+        dist = 0;
+        p_thing = p_road;
+        while (1)
+        {
+            cur_x = (p_thing->X >> 8) + p_thing->U.UObject.OffX * 7;
+            cur_z = (p_thing->Z >> 8) + p_thing->U.UObject.OffZ * 7;
+            dist += VNAV_bezier_approx_dist(prv_x, prv_z, cur_x, cur_z);
+            prv_x = cur_x;
+            prv_z = cur_z;
+            if (p_thing->U.UObject.NextThing <= 0)
+                break;
+            p_thing = &things[p_thing->U.UObject.NextThing];
+        }
+        p_tnode = &game_traffic_nodes[-p_thing->U.UObject.NextThing];
+        dist += VNAV_bezier_approx_dist(prv_x, prv_z, p_tnode->X, p_tnode->Z);
+        p_road->U.UObject.TNode = p_thing->U.UObject.NextThing;
+        p_road->U.UObject.Cost = dist;
+        p_thing->U.UObject.TNode = p_road->U.UObject.PrevThing;
+        p_thing->U.UObject.Cost = dist;
+    }
+    else if (p_road->U.UObject.NextThing < 0)
+    {
+        p_tnode = &game_traffic_nodes[-p_road->U.UObject.NextThing];
+        prv_x = p_tnode->X;
+        prv_z = p_tnode->Z;
+        dist = 0;
+        p_thing = p_road;
+        while (1)
+        {
+            cur_x = (p_thing->X >> 8) - p_thing->U.UObject.OffX * 7;
+            cur_z = (p_thing->Z >> 8) - p_thing->U.UObject.OffZ * 7;
+            dist += VNAV_bezier_approx_dist(prv_x, prv_z, cur_x, cur_z);
+            prv_x = cur_x;
+            prv_z = cur_z;
+            if (p_thing->U.UObject.PrevThing <= 0)
+                break;
+            p_thing = &things[p_thing->U.UObject.PrevThing];
+        }
+        p_tnode = &game_traffic_nodes[-p_thing->U.UObject.PrevThing];
+        dist += VNAV_bezier_approx_dist(prv_x, prv_z, p_tnode->X, p_tnode->Z);
+        p_road->U.UObject.TNode = p_thing->U.UObject.PrevThing;
+        p_road->U.UObject.Cost = dist;
+        p_thing->U.UObject.TNode = p_road->U.UObject.NextThing;
+        p_thing->U.UObject.Cost = dist;
+    }
 }
 
 void VNAV_preprocess_bezier_turns(ulong nturns)
