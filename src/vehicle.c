@@ -1641,10 +1641,43 @@ int check_tank_collision(int a1, int a2, int a3, int a4)
 }
 
 
-void process_tank_stationary(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_tank_stationary_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_tank_stationary\n"
         : : "a" (p_vehicle));
+}
+
+void process_tank_stationary(struct Thing *p_vehicle)
+{
+    struct Thing *p_turret;
+    struct MyMapElement *p_mapel;
+    ubyte flags2;
+
+    DIFFTEST_SHADOW(process_tank_stationary, process_tank_stationary_asm(p_vehicle));
+    p_turret = &things[p_vehicle->U.UVehicle.SubThing];
+    rotate_obj(0, p_turret->U.UVehicle.AngleY, 0,
+      (int)&local_mats[p_turret->U.UVehicle.MatrixIndex]);
+
+    if ((gameturn & 7) == 0)
+    {
+        if (!IsSamplePlaying((ushort)p_vehicle->ThingOffset, 49, 0))
+        {
+            if (p_vehicle->U.UVehicle.PassengerHead != 0)
+                play_dist_sample(p_vehicle, 49, 127, 64, 100, -1, 1);
+        }
+        else if (p_vehicle->U.UVehicle.PassengerHead == 0)
+        {
+            stop_sample_using_heap((ushort)p_vehicle->ThingOffset, 49);
+        }
+    }
+
+    check_tank_collision((int)p_vehicle, 0, 0, 0);
+
+    // The asm reads the map flags twice, but the outcome is the same as one test
+    p_mapel = &game_my_big_map[((p_vehicle->Z >> 16) << 7) + (p_vehicle->X >> 16)];
+    flags2 = p_mapel->Flags2;
+    if (((flags2 & (MEF2_Unkn01|MEF2_Unkn04)) != 0) && ((flags2 & MEF2_Unkn08) == 0))
+        init_vehicle_explode(p_vehicle);
 }
 
 void process_tank(struct Thing *p_vehicle)
