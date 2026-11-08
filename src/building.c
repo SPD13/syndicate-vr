@@ -35,6 +35,7 @@
 #include "game_speed.h"
 #include "game.h"
 #include "matrix.h"
+#include "pepgroup.h"
 #include "sound.h"
 #include "thing.h"
 #include "tngcolisn.h"
@@ -666,12 +667,38 @@ int mounted_los(int x1, int y1, int z1, int x2, int y2, int z2)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int kill_flags(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int kill_flags_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_kill_flags\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
     return ra;
+}
+
+int kill_flags(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing = (struct Thing *)a1;
+    struct Thing *p_target = (struct Thing *)a2;
+    ubyte group, tgt_group;
+
+    DIFFTEST_SHADOW_RET(kill_flags, int, kill_flags_asm(a1, a2, a3, a4));
+    if ((p_target->Type == TT_PERSON) && (p_target->Flag2 & TgF2_AlteredSubType))
+        DIFFTEST_RETURN((int)0);
+
+    if (p_thing->Type == TT_BUILDING)
+        group = p_thing->U.UObject.Group;
+    else
+        group = p_thing->U.UObject.EffectiveGroup;
+
+    if (p_target->Type == TT_BUILDING)
+        tgt_group = p_target->U.UObject.Group;
+    else
+        tgt_group = p_target->U.UObject.EffectiveGroup;
+
+    // The asm shifts by cl, so the count is taken modulo 32
+    if ((war_flags[group].KillOnSight & (1u << (tgt_group & 0x1F))) == 0)
+        DIFFTEST_RETURN((int)0);
+    DIFFTEST_RETURN((int)1);
 }
 
 
