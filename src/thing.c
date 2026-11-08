@@ -2376,24 +2376,60 @@ struct SimpleThing *create_scale_effect(int x, int y, int z, ushort frame, short
     return ret;
 }
 
-struct SimpleThing *create_sound_effect(int x, int y, int z, ushort sample, int vol, int loop)
+static DIFFTEST_REF_FUNC struct SimpleThing *create_sound_effect_asm(int x,
+  int y, int z, ushort sample, int vol, int loop)
 {
     struct SimpleThing *ret;
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
     int stkargs[2];
+    int edx = y, ebx = z, ecx = sample;
 
     stkargs[0] = (int)(intptr_t)vol;
     stkargs[1] = (int)(intptr_t)loop;
 
     asm volatile (
-      "push 4(%5)\n"
-      "push 0(%5)\n"
+      "push 4(%4)\n"
+      "push 0(%4)\n"
       "call ASM_create_sound_effect\n"
-        : "=r" (ret)
-        : "a" (x), "d" (y), "b" (z), "c" (sample), "S" (stkargs)
+        : "=a" (ret), "+d" (edx), "+b" (ebx), "+c" (ecx)
+        : "S" (stkargs), "0" (x)
         : "cc", "memory");
     return ret;
+}
+
+struct SimpleThing *create_sound_effect(int x, int y, int z, ushort sample, int vol, int loop)
+{
+    struct SimpleThing *p_sthing;
+    short sthing;
+
+    DIFFTEST_SHADOW_RET(create_sound_effect, struct SimpleThing *,
+      create_sound_effect_asm(x, y, z, sample, vol, loop));
+    if (x < 0 || x >= 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if (z < 0 || z >= 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if ((s32)sthings_used > 1495)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    sthing = get_new_sthing();
+    if (sthing == 0)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if (sthing > -1 || sthing < -1500)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    p_sthing = &sthings[sthing];
+    p_sthing->Type = SmTT_SFX;
+    p_sthing->Timer1 = 100;
+    p_sthing->Flag = 0x04;
+    p_sthing->State = 0;
+    p_sthing->Z = z << 8;
+    p_sthing->Y = y << 8;
+    p_sthing->SubType = (ubyte)sample;
+    p_sthing->X = x << 8;
+    // TODO: the vol argument is ignored, sample always plays at full volume
+    play_dist_ssample(p_sthing, sample, 0x7F, 0x40, 100, (short)loop, 1);
+    DIFFTEST_RETURN(p_sthing);
 }
 
 struct SimpleThing *create_stasis_pod(MapCoord x, MapCoord y, MapCoord z,
