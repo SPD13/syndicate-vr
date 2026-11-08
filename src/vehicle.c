@@ -22,6 +22,7 @@
 #include "bfmemut.h"
 #include "bfutility.h"
 #include "ssampply.h"
+#include "frame_sprani.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,10 +35,12 @@
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
 #include "engintrns.h"
+#include "febrief.h"
 #include "game.h"
 #include "game_options.h"
 #include "game_speed.h"
 #include "matrix.h"
+#include "misstat.h"
 #include "pathtrig.h"
 #include "sound.h"
 #include "thing.h"
@@ -682,10 +685,118 @@ int person_poke(int a1, int a2, int a3, int a4)
 }
 
 
-void person_hit_by_car(struct Thing *p_person, struct Thing *p_vehicle)
+void person_go_sleep(struct Thing *p_person);
+
+static DIFFTEST_REF_FUNC void person_hit_by_car_asm(struct Thing *p_person, struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_person_hit_by_car\n"
         : : "a" (p_person), "d" (p_vehicle));
+}
+
+void person_hit_by_car(struct Thing *p_person, struct Thing *p_vehicle)
+{
+    struct MissionStatus *p_mistat;
+    struct Thing *p_passngr;
+    short dt_x, dt_z;
+    short angle;
+    ushort frm;
+    ubyte agents_lost;
+    ThingIdx passngr;
+
+    DIFFTEST_SHADOW(person_hit_by_car, person_hit_by_car_asm(p_person, p_vehicle));
+    dt_x = (p_person->X - p_vehicle->X) >> 8;
+    dt_z = (p_person->Z - p_vehicle->Z) >> 8;
+    person_poke((int)p_person, p_vehicle->VX, p_vehicle->VZ, (int)p_vehicle);
+    // TODO the asm mixes the axes: VZ is added to X distance and VX to Z distance
+    dt_z = dt_z - (short)p_vehicle->VX;
+    dt_x = dt_x + (short)p_vehicle->VZ;
+    angle = arctan(dt_x, -dt_z);
+
+    p_person->U.UPerson.RecoilTimer = 9;
+    p_person->U.UPerson.RecoilDir = (ubyte)(angle >> 3);
+    p_person->U.UPerson.Angle = (ubyte)((ushort)((angle + 0x400) & 0x7FF) >> 8);
+    if (((p_person->Flag & TngF_WepRecoil) == 0) && (p_person->U.UPerson.AnimMode != 16))
+        p_person->U.UPerson.OldAnimMode = p_person->U.UPerson.AnimMode;
+    p_person->U.UPerson.AnimMode = 16;
+    frm = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+    p_person->Frame = nstart_ani[frm + p_person->U.UPerson.Angle];
+    p_person->U.UPerson.ShieldEnergy -= 35;
+    p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+    p_person->Flag |= TngF_WepRecoil;
+
+    if (p_person->U.UPerson.ShieldEnergy > 0)
+    {
+        if ((p_person->U.UPerson.WeaponsCarried & (1 << (WEP_ENERGYSHLD-1))) != 0)
+            p_person->Flag |= TngF_Unkn00200000;
+        return;
+    }
+    if ((p_person->Flag & TngF_PlayerAgent) == 0)
+    {
+        if (p_person->SubType != SubTT_PERS_MECH_SPIDER)
+            person_go_sleep(p_person);
+        return;
+    }
+    p_person->Health -= 200;
+    if (p_person->Health > 0)
+        return;
+    if ((p_person->State == PerSt_DIEING) || (p_person->State == PerSt_DEAD))
+        return;
+
+    agents_lost = 0;
+    if (!in_network_game)
+        agents_lost = mission_status[open_brief].AgentsLost;
+    set_person_dead(p_person, 10);
+
+    if (in_network_game)
+    {
+        passngr = p_vehicle->U.UVehicle.PassengerHead;
+        if (passngr == 0)
+            return;
+        p_passngr = &things[(ushort)passngr];
+        if ((p_passngr->Flag & TngF_PlayerAgent) == 0)
+            return;
+        if ((p_person->Flag & TngF_PlayerAgent) == 0)
+            return;
+        // TODO no range checks on the player indexes, same as the original
+        p_mistat = &mission_status[(ushort)p_passngr->U.UPerson.ComCur >> 2];
+        p_mistat->MP.AgentsKilled[(ushort)p_person->U.UPerson.ComCur >> 2]++;
+        return;
+    }
+
+    passngr = p_vehicle->U.UVehicle.PassengerHead;
+    if (passngr == 0)
+        return;
+    p_passngr = &things[(ushort)passngr];
+    if (p_passngr->U.UPerson.EffectiveGroup != ingame.MyGroup)
+        return;
+
+    p_mistat = &mission_status[open_brief];
+    switch (p_person->SubType)
+    {
+    case SubTT_PERS_AGENT:
+    case SubTT_PERS_ZEALOT:
+    case SubTT_PERS_PUNK_F:
+    case SubTT_PERS_PUNK_M:
+    case SubTT_PERS_HIGH_PRIEST:
+        if (p_mistat->AgentsLost == agents_lost)
+            p_mistat->SP.EnemiesKilled++;
+        break;
+    case SubTT_PERS_BRIEFCASE_M:
+    case SubTT_PERS_WHITE_BRUN_F:
+    case SubTT_PERS_SCIENTIST:
+    case SubTT_PERS_SHADY_M:
+    case SubTT_PERS_WHIT_BLOND_F:
+    case SubTT_PERS_LETH_JACKT_M:
+        p_mistat->SP.CivsKilled++;
+        break;
+    case SubTT_PERS_MERCENARY:
+    case SubTT_PERS_MECH_SPIDER:
+    case SubTT_PERS_POLICE:
+        p_mistat->SP.SecurityKilled++;
+        break;
+    default:
+        break;
+    }
 }
 
 /** Checks if the vehicle collides with another object, provided as separate params.
