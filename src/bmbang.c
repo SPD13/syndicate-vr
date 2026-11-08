@@ -18,6 +18,9 @@
 /******************************************************************************/
 #include "bmbang.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "enginshrapn.h"
 
 #include "bfmath.h"
@@ -27,12 +30,14 @@
 #include "cybmod.h"
 #include "difftest.h"
 #include "febrief.h"
+#include "frame_sprani.h"
 #include "game.h"
 #include "game_options.h"
 #include "misstat.h"
 #include "people.h"
 #include "sound.h"
 #include "thing.h"
+#include "tngcolisn.h"
 #include "swlog.h"
 /******************************************************************************/
 
@@ -402,7 +407,8 @@ int del_thing_vectors_from_mapwho(int a1, int a2, int a3, int a4)
 }
 
 
-void do_shockwave(int x, int y, int z, int radius, int intensity, struct Thing *p_owner)
+static DIFFTEST_REF_FUNC void do_shockwave_asm(int x, int y, int z,
+  int radius, int intensity, struct Thing *p_owner)
 {
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
@@ -417,6 +423,192 @@ void do_shockwave(int x, int y, int z, int radius, int intensity, struct Thing *
       "call ASM_do_shockwave\n"
         : : "a" (x), "d" (y), "b" (z), "c" (radius), "S" (stkargs)
         : "cc", "memory");
+}
+
+/** Approximate distance from deltas: the larger one plus half the smaller.
+ */
+static int shockwave_dist(int dx, int dz)
+{
+    int adx, adz;
+
+    adx = abs(dx);
+    adz = abs(dz);
+    if (adx > adz)
+        adz >>= 1;
+    else
+        adx >>= 1;
+    return adx + adz;
+}
+
+void do_shockwave(int x, int y, int z, int radius, int intensity, struct Thing *p_owner)
+{
+    char locstr[100];
+    ubyte negative;
+    int range, tile_cx, tile_cz;
+    int tile_x, tile_z;
+
+    DIFFTEST_SHADOW(do_shockwave,
+      do_shockwave_asm(x, y, z, radius, intensity, p_owner));
+
+    negative = 0;
+    if (radius < 0)
+    {
+        negative = 1;
+        radius = -radius;
+    }
+    range = radius >> 8;
+    if (range < 1)
+        range = 1;
+    tile_cz = z >> 8;
+    tile_cx = x >> 8;
+
+    for (tile_x = tile_cx - range; tile_x <= tile_cx + range; tile_x++)
+    {
+        for (tile_z = tile_cz - range; tile_z <= tile_cz + range; tile_z++)
+        {
+            struct MyMapElement *p_mapel;
+            short thing;
+
+            if ((tile_x <= 0) || (tile_x >= 128))
+                continue;
+            if ((tile_z <= 0) || (tile_z >= 128))
+                continue;
+
+            p_mapel = &game_my_big_map[(tile_z << 7) + tile_x];
+
+            if (!negative)
+            {
+                int obj;
+
+                obj = game_col_vects_list[p_mapel->ColHead].Object;
+                if (obj > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[obj];
+                    if (p_thing->Type == TT_BUILDING)
+                    {
+                        do_shockwave_building(0x200, intensity, p_thing, p_owner);
+                    }
+                    else if (obj < 1000)
+                    {
+                        del_thing_vectors_from_mapwho((int)(intptr_t)p_mapel,
+                          (short)obj, 0, 0);
+                    }
+                    else
+                    {
+                        sprintf(locstr, "Strange thing owns col-vect type %d state %d subtype %d",
+                          p_thing->Type, p_thing->State, p_thing->SubType);
+                    }
+                }
+            }
+
+            thing = p_mapel->Child;
+            while (thing != 0)
+            {
+                int dx, dy, dz, dist;
+
+                if (thing > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[thing];
+                    if (!negative)
+                    {
+                        if ((p_thing->Type == TT_PERSON) &&
+                          (p_thing->State != PerSt_PERSON_BURNING) &&
+                          ((p_thing->Flag & TngF_Destroyed) == 0))
+                        {
+                            dy = (p_thing->Y >> 8) - y;
+                            if ((dy < 0x55) && (dy > -0x55))
+                            {
+                                dx = (p_thing->X >> 8) - x;
+                                dz = (p_thing->Z >> 8) - z;
+                                dist = shockwave_dist(dx, dz);
+                                if (dist < (ushort)p_thing->Radius + radius)
+                                    do_shockwave_person(dx, dz, dist, intensity,
+                                      p_thing, p_owner);
+                            }
+                        }
+                        if (((p_thing->Type == TT_VEHICLE) ||
+                          ((p_thing->Type == TT_BUILDING) && (p_thing->SubType == SubTT_BLD_MGUN))) &&
+                          (p_thing->State != PerSt_DEAD))
+                        {
+                            dy = (p_thing->Y >> 8) - y;
+                            if ((dy < 0xB9) && (dy > -0xB9))
+                            {
+                                dx = (p_thing->X >> 8) - x;
+                                dz = (p_thing->Z >> 8) - z;
+                                dist = shockwave_dist(dx, dz);
+                                if (dist < (ushort)p_thing->Radius + radius)
+                                    do_shockwave_vehicle(dx, dz, dist, intensity,
+                                      p_thing, p_owner);
+                            }
+                        }
+                        if ((p_thing->Type == TT_MINE) && (p_thing->SubType == 0x30) &&
+                          ((p_thing->Flag & TngF_Destroyed) == 0) &&
+                          (p_thing->State != PerSt_DEAD))
+                        {
+                            dx = (p_thing->X >> 8) - x;
+                            dz = (p_thing->Z >> 8) - z;
+                            dist = shockwave_dist(dx, dz);
+                            if ((radius - dist) * intensity / radius > 0)
+                            {
+                                p_thing->Health -= (short)intensity;
+                                if (p_thing->Health <= 0)
+                                {
+                                    play_dist_sample(p_thing, 0x25, 0x7F, 0x40, 100, 0, 3);
+                                    bang_new4(p_thing->X, p_thing->Y, p_thing->Z, 20);
+                                    p_thing->State = PerSt_DEAD;
+                                    p_thing->Flag |= TngF_Destroyed;
+                                    p_thing->StartFrame = 1069;
+                                    p_thing->Frame = nstart_ani[1069];
+                                }
+                            }
+                        }
+                    }
+                    thing = p_thing->Next;
+                }
+                else
+                {
+                    struct SimpleThing *p_sthing;
+
+                    p_sthing = &sthings[thing];
+                    if ((p_sthing->Type == SmTT_SCALE_EFFECT) && !negative)
+                    {
+                        dy = (p_sthing->Y >> 8) - y;
+                        if ((dy < 0xB9) && (dy > -0xB9))
+                        {
+                            dx = (p_sthing->X >> 8) - x;
+                            dz = (p_sthing->Z >> 8) - z;
+                            dist = shockwave_dist(dx, dz);
+                            if (dist < (ushort)p_sthing->Radius + radius)
+                                do_shockwave_scale_effect(dx, dz, dist, intensity,
+                                  p_sthing, NULL);
+                        }
+                    }
+                    if (((p_sthing->Type == SmTT_DROPPED_ITEM) && (p_sthing->SubType == 0xD))
+                      || (p_sthing->SubType == 0xC))
+                    {
+                        dy = (p_sthing->Y >> 8) - y;
+                        if ((dy < 0xB9) && (dy > -0xB9))
+                        {
+                            dx = (p_sthing->X >> 8) - x;
+                            dz = (p_sthing->Z >> 8) - z;
+                            dist = shockwave_dist(dx, dz);
+                            if (dist < (ushort)p_sthing->Radius + radius)
+                            {
+                                p_sthing->Flag |= TngF_Unkn00040000;
+                                if (p_sthing->Timer1 == 999)
+                                    p_sthing->Timer1 = 140;
+                            }
+                        }
+                    }
+                    thing = sthings[thing].Next;
+                }
+            }
+        }
+    }
 }
 
 

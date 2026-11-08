@@ -28,6 +28,7 @@ extern "C" {
 #pragma pack(1)
 
 struct Thing;
+struct SimpleThing;
 
 struct CircleDetail {
     s32 dangle;
@@ -59,6 +60,14 @@ void unused_func_025(short a1, short a2, short a3);
 ubyte unused_func_026(ubyte a1);
 
 void do_shockwave(int x, int y, int z, int radius, int intensity, struct Thing *p_owner);
+void do_shockwave_building(int dist, int intensity, struct Thing *p_thing,
+  struct Thing *p_owner);
+void do_shockwave_vehicle(int dx, int dz, int dist, int intensity,
+  struct Thing *p_vevicle, struct Thing *p_owner);
+void do_shockwave_person(int dx, int dz, int dist, int intensity,
+  struct Thing *p_person, struct Thing *p_owner);
+void do_shockwave_scale_effect(int dx, int dz, int dist, int intensity,
+  struct SimpleThing *p_sthing, struct Thing *p_owner);
 
 /******************************************************************************/
 #ifdef __cplusplus
