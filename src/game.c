@@ -165,6 +165,7 @@
 #include "tngcolisn.h"
 #include "tngobjdrw.h"
 #include "vehicle.h"
+#include "vehtraffic.h"
 #include "wadfile.h"
 #include "weapon.h"
 #include "wrcities.h"
@@ -849,10 +850,122 @@ void load_level_wrap(short level, short missi, ubyte reload)
         unkn_f_pressed_func();
 }
 
-void update_map_thing_and_traffic_refs(void)
+static DIFFTEST_REF_FUNC void update_map_thing_and_traffic_refs_asm(void)
 {
     asm volatile ("call ASM_update_map_thing_and_traffic_refs\n"
         :  :  : "eax" );
+}
+
+void update_map_thing_and_traffic_refs(void)
+{
+    ThingIdx thing;
+    ushort tnode;
+    ushort face;
+    ushort i;
+
+    DIFFTEST_SHADOW(update_map_thing_and_traffic_refs,
+      update_map_thing_and_traffic_refs_asm());
+
+    // Convert building link indexes into thing indexes
+    for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
+    {
+        struct Thing *p_thing;
+
+        p_thing = &things[thing];
+        if (p_thing->Type != TT_BUILDING)
+            continue;
+        if (p_thing->SubType == SubTT_BLD_BEZIER_ROAD)
+        {
+            if (p_thing->U.UObject.PrevThing > 0)
+                p_thing->U.UObject.PrevThing = search_things_for_index(p_thing->U.UObject.PrevThing);
+            if (p_thing->U.UObject.NextThing > 0)
+                p_thing->U.UObject.NextThing = search_things_for_index(p_thing->U.UObject.NextThing);
+        }
+        else
+        {
+            if (p_thing->U.UObject.PrevThing != 0)
+                p_thing->U.UObject.PrevThing = search_things_for_index(p_thing->U.UObject.PrevThing);
+            if (p_thing->U.UObject.NextThing != 0)
+                p_thing->U.UObject.NextThing = search_things_for_index(p_thing->U.UObject.NextThing);
+        }
+    }
+
+    // Convert traffic link indexes in simple things
+    for (thing = sthings_used_head; thing < 0; thing = sthings[thing].LinkChild)
+    {
+        struct SimpleThing *p_sthing;
+
+        p_sthing = &sthings[thing];
+        if (p_sthing->Type != SmTT_TRAFFIC)
+            continue;
+        for (i = 0; i < 4; i++)
+        {
+            if (p_sthing->U.UTraffic.Link[i] != 0)
+                p_sthing->U.UTraffic.Link[i] = search_things_for_index(p_sthing->U.UTraffic.Link[i]);
+        }
+    }
+
+    // Convert link indexes in traffic nodes
+    for (tnode = 1; tnode < next_traffic_node; tnode++)
+    {
+        for (i = 0; i < 4; i++)
+        {
+            short link;
+
+            link = game_traffic_nodes[tnode].UTraffic.Link[i];
+            if (link > 0)
+                game_traffic_nodes[tnode].UTraffic.Link[i] = search_things_for_index(link);
+        }
+        if (game_traffic_nodes[tnode].GateLink != 0)
+        {
+            short link;
+
+            link = game_traffic_nodes[tnode].GateLink;
+            game_traffic_nodes[tnode].GateLink = search_things_for_index(link);
+        }
+    }
+
+    // Store own index in ThingOffset
+    for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
+    {
+        struct Thing *p_thing;
+
+        p_thing = &things[thing];
+        if (p_thing->Type == TT_BUILDING)
+            p_thing->ThingOffset = thing;
+    }
+
+    for (thing = sthings_used_head; thing < 0; thing = sthings[thing].LinkChild)
+    {
+        struct SimpleThing *p_sthing;
+
+        p_sthing = &sthings[thing];
+        if (p_sthing->Type == SmTT_TRAFFIC)
+            p_sthing->ThingOffset = thing;
+    }
+
+    // Update token of the first building with the flag set
+    for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
+    {
+        struct Thing *p_thing;
+
+        p_thing = &things[thing];
+        if ((p_thing->Type == TT_BUILDING) && ((p_thing->Flag & TngF_InVehicle) != 0))
+        {
+            p_thing->U.UObject.Token = 3;
+            p_thing->U.UObject.TokenDir = 1;
+            break;
+        }
+    }
+
+    for (face = 1; face < next_object_face4; face++)
+    {
+        struct SingleObjectFace4 *p_face4;
+
+        p_face4 = &game_object_faces4[face];
+        if ((p_face4->GFlags & FGFlg_Unkn10) != 0)
+            p_face4->WalkHeader = 0;
+    }
 }
 
 void unkn_lights_processing(void)
