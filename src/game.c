@@ -1686,10 +1686,53 @@ int train_related_func_01(int a1, int a2, int a3, int a4)
 }
 
 
-void func_74934(void)
+static DIFFTEST_REF_FUNC void func_74934_asm(void)
 {
     asm volatile ("call ASM_func_74934\n"
         :  :  : "eax" );
+}
+
+void func_74934(void)
+{
+    short tile_x, tile_z;
+
+    DIFFTEST_SHADOW(func_74934, func_74934_asm());
+    for (tile_x = 0; tile_x < 128; tile_x++)
+    {
+        for (tile_z = 0; tile_z < 128; tile_z++)
+        {
+            ThingIdx thing;
+
+            thing = game_my_big_map[(tile_z << 7) + tile_x].Child;
+            while (thing != 0)
+            {
+                if (thing <= 0)
+                {
+                    thing = sthings[thing].Next;
+                    continue;
+                }
+                {
+                    struct Thing *p_thing = &things[thing];
+
+                    if ((p_thing->Type == TT_BUILDING)
+                      && (p_thing->SubType == SubTT_BLD_TRAINTRK)
+                      && ((p_thing->Flag & TngF_Unkn08000000) == 0)
+                      && ((p_thing->U.UObject.NextThing == 0)
+                       || (p_thing->U.UObject.PrevThing == 0)))
+                    {
+                        int ret;
+
+                        p_thing->U.UObject.ComHead = 0;
+                        p_thing->U.UObject.ComCur = 0;
+                        ret = train_related_func_01((int)p_thing, thing, 0, tile_z);
+                        if ((ushort)ret != 0)
+                            ingame.TrainMode |= 0x02;
+                    }
+                }
+                thing = things[thing].Next;
+            }
+        }
+    }
 }
 
 void init_crater_textures(void)
