@@ -44,6 +44,7 @@
 #include "trstate.h"
 #include "trfringe.h"
 #include "delaunay.h"
+#include "difftest.h"
 #include "swlog.h"
 /******************************************************************************/
 s32 Ex[100];
@@ -138,12 +139,41 @@ static sbyte path_compare_multiplications(long mul1a, long mul1b, long mul2a, lo
     return 0;
 }
 
-TbBool triangle_contains8(int tri, int x, int y)
+static DIFFTEST_REF_FUNC TbBool triangle_contains8_asm(int tri, int x, int y)
 {
     TbBool ret;
     asm volatile ("call ASM_triangle_contains8\n"
-        : "=r" (ret) : "a" (tri), "d" (x), "b" (y));
+        : "=a" (ret) : "a" (tri), "d" (x), "b" (y));
     return ret;
+}
+
+TbBool triangle_contains8(int tri, int x, int y)
+{
+    struct TrTriangle *p_tri;
+    struct TrPoint *p_pt;
+    TrFineCoord pt0_x, pt0_y;
+    TrFineCoord pt1_x, pt1_y;
+    TrFineCoord pt2_x, pt2_y;
+
+    DIFFTEST_SHADOW_RET(triangle_contains8, TbBool, triangle_contains8_asm(tri, x, y));
+    p_tri = &triangulation[0].Triangles[tri];
+    p_pt = &triangulation[0].Points[(ushort)p_tri->point[0]];
+    pt0_x = p_pt->x << 8;
+    pt0_y = p_pt->y << 8;
+    p_pt = &triangulation[0].Points[(ushort)p_tri->point[1]];
+    pt1_x = p_pt->x << 8;
+    pt1_y = p_pt->y << 8;
+    p_pt = &triangulation[0].Points[(ushort)p_tri->point[2]];
+    pt2_x = p_pt->x << 8;
+    pt2_y = p_pt->y << 8;
+
+    if (path_compare_multiplications(pt1_x - pt0_x, y - pt1_y, x - pt1_x, pt1_y - pt0_y) > 0)
+        DIFFTEST_RETURN((TbBool)false);
+    if (path_compare_multiplications(pt2_x - pt1_x, y - pt2_y, x - pt2_x, pt2_y - pt1_y) > 0)
+        DIFFTEST_RETURN((TbBool)false);
+    if (path_compare_multiplications(pt0_x - pt2_x, y - pt0_y, x - pt0_x, pt0_y - pt2_y) > 0)
+        DIFFTEST_RETURN((TbBool)false);
+    DIFFTEST_RETURN((TbBool)true);
 }
 
 int pointed_at8(TrFineCoord pt_x, TrFineCoord pt_y, int *r_tri, int *r_cor)
