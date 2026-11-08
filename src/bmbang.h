@@ -29,8 +29,26 @@ extern "C" {
 
 struct Thing;
 
+struct CircleDetail {
+    s32 dangle;
+    s32 babynumber;
+};
+
+struct SphereDetail {
+    s32 dangley;
+    s32 babyshift;
+    s32 babynumber;
+};
+
+struct BangDetail {
+    struct CircleDetail circle[4];
+    struct SphereDetail sphere[4];
+    u32 mask;
+};
+
 #pragma pack()
 /******************************************************************************/
+extern struct BangDetail bangdetail;
 
 void bang_init(void);
 void new_bang(int x, int y, int z, int type, int owner, int c);

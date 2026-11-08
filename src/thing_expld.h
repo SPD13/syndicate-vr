@@ -36,6 +36,9 @@ extern "C" {
 extern u32 dont_bother_with_explode_faces;
 extern s32 expl_unkn_cor_x;
 extern s32 expl_unkn_cor_z;
+extern s32 minimum_explode_size;
+extern u32 minimum_explode_and;
+extern s32 minimum_explode_depth;
 
 void init_object_explode_faces(void);
 void process_explode(void);

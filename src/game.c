@@ -472,10 +472,71 @@ void load_prim_quad(void)
         test_open(100);
 }
 
-void bang_set_detail(int a1)
+static DIFFTEST_REF_FUNC void bang_set_detail_asm(int a1)
 {
     asm volatile ("call ASM_bang_set_detail\n"
         : : "a" (a1));
+}
+
+/** Set explosion detail parameters; a1=0 high detail, a1=1 low detail.
+ */
+void bang_set_detail(int a1)
+{
+    DIFFTEST_SHADOW(bang_set_detail, bang_set_detail_asm(a1));
+    if (a1 == 0)
+    {
+        bangdetail.circle[0].dangle = 0x200;
+        bangdetail.circle[0].babynumber = 4;
+        bangdetail.circle[1].dangle = 0xe3;
+        bangdetail.circle[1].babynumber = 9;
+        bangdetail.circle[2].dangle = 0x78;
+        bangdetail.circle[2].babynumber = 0x11;
+        bangdetail.circle[3].dangle = 0x46;
+        bangdetail.circle[3].babynumber = 0x1d;
+        bangdetail.sphere[0].babynumber = 3;
+        bangdetail.sphere[0].babyshift = 2;
+        bangdetail.sphere[0].dangley = 0x100;
+        bangdetail.sphere[1].babynumber = 5;
+        bangdetail.sphere[1].babyshift = 4;
+        bangdetail.sphere[1].dangley = 0x80;
+        bangdetail.sphere[2].babyshift = 4;
+        bangdetail.sphere[2].dangley = 0x80;
+        bangdetail.sphere[3].babyshift = 5;
+        bangdetail.sphere[2].babynumber = 8;
+        bangdetail.sphere[3].babynumber = 0xd;
+        bangdetail.sphere[3].dangley = 0x66;
+        bangdetail.mask = 1;
+        minimum_explode_and = 0x1f;
+        minimum_explode_depth = 1;
+        minimum_explode_size = 0x1bc;
+    }
+    else if (a1 == 1)
+    {
+        bangdetail.circle[0].dangle = 0x2aa;
+        bangdetail.circle[0].babynumber = 3;
+        bangdetail.circle[1].dangle = 0x199;
+        bangdetail.circle[1].babynumber = 5;
+        bangdetail.circle[2].dangle = 0xba;
+        bangdetail.circle[2].babynumber = 0xb;
+        bangdetail.circle[3].dangle = 0x78;
+        bangdetail.sphere[0].babynumber = 3;
+        bangdetail.sphere[1].babynumber = 3;
+        bangdetail.circle[3].babynumber = 0x11;
+        bangdetail.sphere[0].babyshift = 2;
+        bangdetail.sphere[0].dangley = 0x100;
+        bangdetail.sphere[1].babyshift = 2;
+        bangdetail.sphere[1].dangley = 0x100;
+        bangdetail.sphere[2].babyshift = 4;
+        bangdetail.sphere[3].babyshift = 4;
+        bangdetail.mask = 3;
+        bangdetail.sphere[2].babynumber = 5;
+        bangdetail.sphere[2].dangley = 0x80;
+        bangdetail.sphere[3].babynumber = 8;
+        bangdetail.sphere[3].dangley = 0x80;
+        minimum_explode_and = 0xf;
+        minimum_explode_size = 0x457;
+        minimum_explode_depth = 2;
+    }
 }
 
 /** Remains of some Bf debug stuff.

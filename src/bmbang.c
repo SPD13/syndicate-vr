@@ -29,27 +29,6 @@
 #include "swlog.h"
 /******************************************************************************/
 
-#pragma pack(1)
-
-struct CircleDetail {
-    s32 dangle;
-    s32 babynumber;
-};
-
-struct SphereDetail {
-    s32 dangley;
-    s32 babyshift;
-    s32 babynumber;
-};
-
-struct BangDetail {
-    struct CircleDetail circle[4];
-    struct SphereDetail sphere[4];
-    u32 mask;
-};
-
-#pragma pack()
-
 void bang_init(void)
 {
 #if 0
