@@ -505,12 +505,76 @@ void quick_light_unkn_func_09(int a1, int a2, int a3, int a4)
 
 
 
-void quick_light_unkn_func_04(short a1, int a2, short a3, short a4)
+static DIFFTEST_REF_FUNC void quick_light_unkn_func_04_asm(short a1, int a2, short a3, short a4)
 {
     asm volatile (
       "call ASM_quick_light_unkn_func_04\n"
         : : "a" (a1), "d" (a2), "b" (a3), "c" (a4));
     return;
+}
+
+/** Removes given light from map elements and building objects within
+ * 7 tiles of given position, and decrements full lights count.
+ */
+void quick_light_unkn_func_04(short a1, int a2, short a3, short a4)
+{
+    ushort light = (ushort)a4;
+    short tile_x, tile_z;
+    short dx, dz;
+
+    DIFFTEST_SHADOW(quick_light_unkn_func_04, quick_light_unkn_func_04_asm(a1, a2, a3, a4));
+
+    // Parameter a2 is not used by the asm
+    tile_x = a1 >> 8;
+    tile_z = a3 >> 8;
+    for (dx = -7; dx < 7; dx++)
+    {
+        for (dz = -7; dz < 7; dz++)
+        {
+            struct MyMapElement *p_mapel;
+            s32 mx, mz;
+            ThingIdx thing;
+
+            mx = tile_x + dx;
+            if (mx <= 0 || mx >= 128)
+                continue;
+            mz = tile_z + dz;
+            if (mz <= 0 || mz >= 128)
+                continue;
+            p_mapel = &game_my_big_map[(mz << 7) + mx];
+            if (p_mapel->Shade != 0)
+                quick_light_unkn_func_09((int)p_mapel, light, 0, 0);
+
+            thing = p_mapel->Child;
+            while (thing != 0)
+            {
+                if (thing > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[thing];
+                    if ((p_thing->Type == TT_BUILDING || p_thing->Type == TT_UNKN55)
+                      && p_thing->SubType != SubTT_BLD_MGUN)
+                    {
+                        short i;
+
+                        for (i = 0; i < p_thing->U.UObject.NumbObjects; i++)
+                        {
+                            quick_light_unkn_func_07(
+                              (ushort)(p_thing->U.UObject.Object + i),
+                              light, thing, i);
+                        }
+                    }
+                    thing = things[thing].Next;
+                }
+                else
+                {
+                    thing = sthings[thing].Next;
+                }
+            }
+        }
+    }
+    next_full_light--;
 }
 
 void unkn_full_update_lights(void)
