@@ -25,6 +25,7 @@
 #include "bfini.h"
 #include "bfutility.h"
 #include "ssampply.h"
+#include "triangls.h"
 #include <assert.h>
 #include <stdlib.h>
 
@@ -3004,11 +3005,28 @@ void set_xz_for_tri(struct SingleObjectFace3 *p_face, int *x, int *z)
     *x = p_obj->MapX + (p_pt1->X + p_pt0->X + p_pt2->X) / 3;
     *z = p_obj->MapZ + (p_pt1->Z + p_pt0->Z + p_pt2->Z) / 3;
 }
+extern s32 tree_Ax8;
+extern s32 tree_Ay8;
+extern s32 tree_Bx8;
+extern s32 tree_By8;
+extern s32 tree_altA;
+extern s32 tree_altB;
+extern s32 tree_triA;
+extern s32 tree_triB;
+extern s32 tree_routelen;
+extern s32 tree_routecost;
+extern s32 tree_route[3000];
+
+int triangle_findSE8(int x, int y);
+s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
+  s32 treert_len, struct Path *p_path, int *p_len2);
+int ma_triangle_route_3(int a1, int a2, int a3, int a4);
+
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int path_init8_thing(int a1, int a2, int a3, int a4, int a5, int a6)
+static DIFFTEST_REF_FUNC int path_init8_thing_asm(int a1, int a2, int a3, int a4, int a5, int a6)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[2];
@@ -3018,6 +3036,59 @@ int path_init8_thing(int a1, int a2, int a3, int a4, int a5, int a6)
     asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_path_init8_thing\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
     return ra;
+}
+
+/** Initializes a path from (ax8,ay8) to (bx8,by8), finding the route
+ * through triangulation. Returns the number of way points, or -1.
+ * Arguments: a1 = struct Path *, a2..a5 = ax8, ay8, bx8, by8; a6 unused.
+ */
+int path_init8_thing(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    struct Path *p_path = (struct Path *)a1;
+    int ax8 = a2, ay8 = a3, bx8 = a4, by8 = a5;
+    struct TrTriangle *p_tri;
+    int len2;
+    s32 ret;
+
+    DIFFTEST_SHADOW_RET(path_init8_thing, int, path_init8_thing_asm(a1, a2, a3, a4, a5, a6));
+    navi_onscreen_debug(0);
+
+    tree_Ax8 = ax8;
+    p_path->PathLength = 0;
+    tree_Ay8 = ay8;
+    p_path->ax8 = ax8;
+    tree_Bx8 = bx8;
+    p_path->ay8 = ay8;
+    tree_By8 = by8;
+    p_path->by8 = by8;
+    tree_routelen = -1;
+    p_path->bx8 = bx8;
+
+    tree_triA = triangle_findSE8(ax8, ay8);
+    ret = triangle_findSE8(bx8, by8);
+    if (tree_triA < 0)
+        DIFFTEST_RETURN((int)-1);
+
+    p_tri = &triangulation[0].Triangles[tree_triA];
+    tree_altA = (sbyte)p_tri->solid;
+    // TODO the asm reads Triangles[-1] when triB is -1; kept as is
+    p_tri = &triangulation[0].Triangles[ret];
+    tree_triB = ret;
+    tree_altB = (sbyte)p_tri->solid;
+    if (tree_triA == -1)
+        DIFFTEST_RETURN((int)ret);
+    if (ret == -1)
+        DIFFTEST_RETURN((int)ret);
+
+    ret = ma_triangle_route_3(tree_triA, ret, (int)(intptr_t)tree_route,
+      (int)(intptr_t)&tree_routecost);
+    tree_routelen = ret;
+    if (ret == -1)
+        DIFFTEST_RETURN((int)ret);
+
+    ret = route_to_path(ax8, ay8, bx8, by8, tree_route, ret, p_path, &len2);
+    p_path->PathLength = ret;
+    DIFFTEST_RETURN((int)ret);
 }
 
 
