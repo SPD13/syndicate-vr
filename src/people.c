@@ -7579,10 +7579,52 @@ int search_floor_for_item(int a1, int a2, int a3, int a4)
 }
 
 
-void person_get_item(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_get_item_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_get_item\n"
         : : "a" (p_person));
+}
+
+void person_get_item(struct Thing *p_person)
+{
+    struct SimpleThing *p_sthing;
+    s32 adx, adz, dist;
+
+    DIFFTEST_SHADOW(person_get_item, person_get_item_asm(p_person));
+    if (sthings[p_person->GotoThingIndex].Type != SmTT_DROPPED_ITEM)
+    {
+        p_person->State = 0;
+        p_person->Flag2 &= ~TgF2_Unkn08000000;
+        return;
+    }
+    person_goto_point(p_person);
+    if ((p_person->Flag & TngF_Unkn08000000) != 0)
+    {
+        if (p_person->U.UPerson.StandOnThing != p_person->GotoThingIndex)
+        {
+            if ((short)search_floor_for_item((int)p_person,
+              p_person->GotoThingIndex, (int)p_person, 0) != 1)
+                return;
+        }
+    }
+    else
+    {
+        if ((p_person->Flag & TngF_Persuaded) != 0)
+            return;
+        if ((ushort)p_person->State != 0)
+            return;
+        p_sthing = &sthings[p_person->GotoThingIndex];
+        adx = abs(p_person->X - p_sthing->X);
+        adz = abs(p_person->Z - p_sthing->Z);
+        // Approximate distance
+        if (adx < adz)
+            dist = adz - (adz >> 5) - (adz >> 7) + (adx >> 2) + (adx >> 3) + (adx >> 6) + (adx >> 7);
+        else
+            dist = adx - (adx >> 5) - (adx >> 7) + (adz >> 2) + (adz >> 3) + (adz >> 6) + (adz >> 7);
+        if (dist >= 0x10000)
+            return;
+    }
+    person_init_pickup(p_person, p_person->GotoThingIndex);
 }
 
 static DIFFTEST_REF_FUNC void person_run_away_asm(struct Thing *p_person)
