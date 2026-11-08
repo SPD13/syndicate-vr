@@ -5311,6 +5311,17 @@ int person_drops_weapons(int a1, int a2, int a3, int a4)
     }
     return 0;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void scare_civs(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_scare_civs\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 
 void set_person_dead(struct Thing *p_person, ushort anim_mode)

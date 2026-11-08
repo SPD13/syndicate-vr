@@ -13137,7 +13137,7 @@ GLOBAL_FUNC(ASM_person_drops_weapons)	/* 0x0479C0 */
 
 
 /*----------------------------------------------------------------*/
-scare_civs:	/* 0x047BD4 */
+GLOBAL_FUNC(ASM_scare_civs)	/* 0x047BD4 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -13167,7 +13167,7 @@ scare_civs:	/* 0x047BD4 */
 		mov    (%esp),%edx
 		sar    $0x10,%eax
 		cmp    %edx,%eax
-		jge    jump_47b71
+		jge    jump_47b71_sc
 		mov    0xc(%esp),%eax
 		mov    %ax,0x4(%esp)
 		jmp    jump_47cd2
@@ -13262,6 +13262,15 @@ scare_civs:	/* 0x047BD4 */
 		xor    %ah,%ah
 		mov    0x81(%esi),%al
 		jmp    jump_47c31
+	jump_47b71_sc:	/* copy of the tail shared with the previous function */
+		add    $0x10,%esp
+		pop    %ebp
+		pop    %edi
+		pop    %esi
+		pop    %edx
+		pop    %ecx
+		pop    %ebx
+		ret
 
 
 /*----------------------------------------------------------------*/
@@ -13722,7 +13731,7 @@ GLOBAL_FUNC(ASM_set_person_dead)	/* 0x0480DC */
 		call   ac_player_change_person
 	jump_48217:
 		mov    %esi,%eax
-		call   scare_civs
+		call   ac_scare_civs
 		testb  $0x2,0x45(%esi)
 		jne    jump_482f1
 		testb  $0x20,0xd(%esi)
