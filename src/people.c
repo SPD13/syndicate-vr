@@ -4813,15 +4813,55 @@ void person_go_sleep(struct Thing *p_person)
     }
 }
 
-ubyte vector_in_way(struct Thing *p_thing, int dx, int dz)
+static DIFFTEST_REF_FUNC ubyte vector_in_way_asm(struct Thing *p_thing, int dx, int dz)
 {
-#if 1
     ubyte ret;
     asm volatile (
       "call ASM_vector_in_way\n"
-        : "=r" (ret) : "a" (p_thing), "d" (dx), "b" (dz));
+        : "=a" (ret) : "a" (p_thing), "d" (dx), "b" (dz));
     return ret;
-#endif
+}
+
+short do_move_colide(struct Thing *p_person, int dx, int dz, struct MyMapElement *p_mapel);
+
+ubyte vector_in_way(struct Thing *p_thing, int dx, int dz)
+{
+    s32 cor_x, cor_z;
+    s32 tgt_x, tgt_z;
+    s32 adx, adz;
+    s32 dist, steps;
+    s32 step_x, step_z;
+    s32 i;
+
+    DIFFTEST_SHADOW_RET(vector_in_way, ubyte, vector_in_way_asm(p_thing, dx, dz));
+    cor_x = p_thing->X >> 8;
+    cor_z = p_thing->Z >> 8;
+    tgt_x = dx + cor_x;
+    tgt_z = cor_z + dz;
+    adz = abs(tgt_z - cor_z);
+    adx = abs(tgt_x - cor_x);
+    // Approximate distance
+    if (adx < adz)
+        dist = adz - (adz >> 5) - (adz >> 7) + (adx >> 2) + (adx >> 3) + (adx >> 6) + (adx >> 7);
+    else
+        dist = adx - (adx >> 5) - (adx >> 7) + (adz >> 2) + (adz >> 3) + (adz >> 6) + (adz >> 7);
+    steps = (dist >> 6) + 1;
+    step_x = (tgt_x - cor_x) / steps;
+    step_z = (tgt_z - cor_z) / steps;
+
+    if (steps < 0)
+        DIFFTEST_RETURN((ubyte)1);
+    for (i = 0; i <= steps; i++)
+    {
+        struct MyMapElement *p_mapel;
+
+        p_mapel = &game_my_big_map[MAP_TILE_WIDTH * (cor_z >> 8) + (cor_x >> 8)];
+        if (do_move_colide(p_thing, dx << 8, dz << 8, p_mapel) != 0)
+            DIFFTEST_RETURN((ubyte)0);
+        cor_x += step_x;
+        cor_z += step_z;
+    }
+    DIFFTEST_RETURN((ubyte)1);
 }
 
 ushort check_col_collision(int x, int y, int z)
