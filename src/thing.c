@@ -678,7 +678,7 @@ void unkn_full_update_lights(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void quick_light_unkn_func_06(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+static DIFFTEST_REF_FUNC void quick_light_unkn_func_06_asm(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[3];
@@ -688,6 +688,156 @@ void quick_light_unkn_func_06(int a1, int a2, int a3, int a4, int a5, int a6, in
     stkargs[2] = a7;
     asm volatile ("push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_quick_light_unkn_func_06\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+extern ushort obj_face3_create_normal(short face);
+extern ushort obj_face4_create_normal(short face);
+
+/** Adds a quick light to the chain of given face point, if the light
+ * is bright enough at that point. Helper for quick_light_unkn_func_06().
+ */
+static void quick_light_unkn_func_06_point(ushort *p_qlgt, ushort *p_chain,
+  ushort point, s32 ratio, s32 obj_x, s32 obj_y, s32 obj_z, s32 x, s32 y, s32 z,
+  ushort light)
+{
+    struct SinglePoint *p_pt;
+    struct QuickLight *p_qlight;
+    s32 px, py, pz, dist, lratio, intens;
+
+    p_pt = &game_object_points[point];
+    px = p_pt->X + obj_x - x;
+    py = p_pt->Y + obj_y - y;
+    pz = p_pt->Z + obj_z - z;
+    dist = (px * px + py * py + pz * pz) >> 8;
+    if (dist == 0)
+        dist = 1;
+    lratio = (ratio << 8) / dist;
+    intens = (game_full_lights[light].Intensity * lratio) >> 8;
+    if (intens <= 3)
+        return;
+    p_qlight = &game_quick_lights[*p_qlgt];
+    p_qlight->NextQuick = *p_chain;
+    *p_chain = *p_qlgt;
+    p_qlight->Light = light;
+    p_qlight->Ratio = lratio;
+    (*p_qlgt)++;
+}
+
+void quick_light_unkn_func_06(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+{
+    struct SingleObject *p_sobj;
+    struct SingleObjectFace3 *p_face3;
+    struct SingleObjectFace4 *p_face4;
+    struct Normal *p_nrml;
+    ushort start_face, numb_faces, start_face4, numb_faces4;
+    ushort qlgt, light, i;
+    s32 x, y, z;
+    s32 obj_x, obj_y, obj_z;
+    s32 dx, dy, dz, dist;
+    s32 vx, vy, vz, ratio;
+
+    DIFFTEST_SHADOW(quick_light_unkn_func_06,
+      quick_light_unkn_func_06_asm(a1, a2, a3, a4, a5, a6, a7));
+    // a5 and a6 are not used by the asm; a7 is the full light index
+    x = a2;
+    y = a3;
+    z = a4;
+    light = (ushort)a7;
+    p_sobj = &game_objects[(ushort)a1];
+    start_face4 = p_sobj->StartFace4;
+    numb_faces4 = p_sobj->NumbFaces4;
+    start_face = p_sobj->StartFace;
+    numb_faces = p_sobj->NumbFaces;
+    obj_x = p_sobj->MapX;
+    obj_y = p_sobj->OffsetY;
+    obj_z = p_sobj->MapZ;
+
+    dx = x - obj_x;
+    dy = y - obj_y;
+    dz = z - obj_z;
+    dist = LbSqrL(dy * dy + dx * dx + dz * dz);
+    if (dist == 0)
+        dist = 1;
+    vx = (-dx << 8) / dist;
+    vy = (-dy << 8) / dist;
+    vz = (-dz << 8) / dist;
+
+    qlgt = next_quick_light;
+    for (i = 0; i < numb_faces; i++)
+    {
+        ushort nrml;
+
+        p_face3 = &game_object_faces3[start_face + i];
+        nrml = p_face3->FaceNormal;
+        next_quick_light = qlgt;
+        if (nrml < 1 || nrml >= 10000)
+            p_face3->FaceNormal = obj_face3_create_normal((ushort)(start_face + i));
+        qlgt = next_quick_light;
+        game_normals[p_face3->FaceNormal].LightRatio = -1;
+    }
+
+    for (i = 0; i < numb_faces4; i++)
+    {
+        ushort nrml;
+
+        p_face4 = &game_object_faces4[start_face4 + i];
+        nrml = p_face4->FaceNormal;
+        next_quick_light = qlgt;
+        if (nrml < 1 || nrml >= 10000)
+            p_face4->FaceNormal = obj_face4_create_normal((ushort)(start_face4 + i));
+        qlgt = next_quick_light;
+        game_normals[p_face4->FaceNormal].LightRatio = -1;
+    }
+
+    for (i = 0; i < numb_faces; i++)
+    {
+        if (qlgt >= 64000)
+        {
+            next_quick_light = qlgt;
+            return;
+        }
+        p_face3 = &game_object_faces3[start_face + i];
+        p_nrml = &game_normals[p_face3->FaceNormal];
+        ratio = p_nrml->LightRatio;
+        if (ratio == -1)
+        {
+            ratio = (p_nrml->NX * vx + p_nrml->NY * vy + p_nrml->NZ * vz) >> 8;
+            if (ratio < 0)
+                continue;
+            p_nrml->LightRatio = ratio;
+        }
+        quick_light_unkn_func_06_point(&qlgt, &p_face3->Light0,
+          (ushort)p_face3->PointNo[0], ratio, obj_x, obj_y, obj_z, x, y, z, light);
+        quick_light_unkn_func_06_point(&qlgt, &p_face3->Light1,
+          (ushort)p_face3->PointNo[1], ratio, obj_x, obj_y, obj_z, x, y, z, light);
+        quick_light_unkn_func_06_point(&qlgt, &p_face3->Light2,
+          (ushort)p_face3->PointNo[2], ratio, obj_x, obj_y, obj_z, x, y, z, light);
+    }
+
+    for (i = 0; i < numb_faces4; i++)
+    {
+        if (qlgt >= 64000)
+            break;
+        p_face4 = &game_object_faces4[start_face4 + i];
+        p_nrml = &game_normals[p_face4->FaceNormal];
+        ratio = p_nrml->LightRatio;
+        if (ratio == -1)
+        {
+            ratio = (p_nrml->NX * vx + p_nrml->NY * vy + p_nrml->NZ * vz) >> 8;
+            if (ratio < 0)
+                continue;
+            p_nrml->LightRatio = ratio;
+        }
+        quick_light_unkn_func_06_point(&qlgt, (ushort *)&p_face4->Light0,
+          (ushort)p_face4->PointNo[0], ratio, obj_x, obj_y, obj_z, x, y, z, light);
+        quick_light_unkn_func_06_point(&qlgt, (ushort *)&p_face4->Light1,
+          (ushort)p_face4->PointNo[1], ratio, obj_x, obj_y, obj_z, x, y, z, light);
+        quick_light_unkn_func_06_point(&qlgt, (ushort *)&p_face4->Light2,
+          (ushort)p_face4->PointNo[2], ratio, obj_x, obj_y, obj_z, x, y, z, light);
+        quick_light_unkn_func_06_point(&qlgt, (ushort *)&p_face4->Light3,
+          (ushort)p_face4->PointNo[3], ratio, obj_x, obj_y, obj_z, x, y, z, light);
+    }
+    next_quick_light = qlgt;
 }
 
 /** Routed asm (internal label). Arguments and return value are the
