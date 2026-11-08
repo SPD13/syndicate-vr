@@ -1598,12 +1598,27 @@ void process_soul(struct SimpleThing *p_sthing)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int get_some_phwoar(int a1, int a2, int a3)
+static DIFFTEST_REF_FUNC int get_some_phwoar_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
     asm volatile ("call ASM_get_some_phwoar\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
     return ra;
+}
+
+int get_some_phwoar(int a1, int a2, int a3)
+{
+    ushort ph_idx;
+
+    DIFFTEST_SHADOW_RET(get_some_phwoar, int, get_some_phwoar_asm(a1, a2, a3));
+    ph_idx = phwoar_free;
+    if (ph_idx == 0)
+        DIFFTEST_RETURN((int)0);
+    phwoar_free = phwoar[ph_idx].child;
+    phwoar_num_used++;
+    phwoar_num_free--;
+    // The asm only sets the low word of edx; upper half of eax comes from a2
+    DIFFTEST_RETURN((int)(((u32)a2 & 0xFFFF0000) | ph_idx));
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
