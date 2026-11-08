@@ -4153,11 +4153,81 @@ void process_random_speech(struct Thing *p_person, ubyte a2)
     }
 }
 
-void set_interrupt_target(struct Thing *p_person, struct Thing *p_target)
+static DIFFTEST_REF_FUNC void set_interrupt_target_asm(struct Thing *p_person, struct Thing *p_target)
 {
     asm volatile ("call ASM_set_interrupt_target\n"
         : : "a" (p_person), "d" (p_target));
-    return;
+}
+
+void set_interrupt_target(struct Thing *p_person, struct Thing *p_target)
+{
+    ubyte range;
+
+    DIFFTEST_SHADOW(set_interrupt_target, set_interrupt_target_asm(p_person, p_target));
+    // Pointer range check is inclusive of things[THINGS_LIMIT], as in the asm
+    if ((p_target < &things[0]) || (p_target > &things[THINGS_LIMIT]))
+        return;
+
+    if ((p_person->Flag & TngF_SelectedAgent) != 0)
+    {
+        if ((p_person->Flag2 & TgF2_Unkn0008) == 0)
+            return;
+    }
+    if ((p_person->Flag & TngF_PlayerAgent) != 0)
+    {
+        if ((p_person->U.UPerson.Mood >= -10) && (p_person->U.UPerson.Mood <= 20)
+          && ((ushort)p_person->State == PerSt_PROTECT_PERSON))
+        {
+            if ((things[(ushort)p_person->Owner].Flag & TngF_SelectedAgent) != 0)
+                return;
+        }
+    }
+    if ((p_person->Flag2 & TgF2_IgnoreEnemies) != 0)
+        return;
+    if ((p_person->U.UPerson.WeaponsCarried & 0x283ceff) == 0)
+        return;
+    if ((ushort)p_person->State == PerSt_PROTECT_PERSON)
+    {
+        if (p_person->U.UPerson.WeaponTurn != 0)
+            return;
+    }
+
+    if ((p_person->U.UPerson.Target2 == 0) || (p_person->PTarget == NULL))
+    {
+        if (((p_person->Flag & (TngF_InVehicle | TngF_PlayerAgent)) == 0)
+          && ((p_person->Flag2 & TgF2_Unkn0008) == 0))
+        {
+            p_person->VY = (p_person->X << 8) & 0xFFFF0000;
+            p_person->VY |= (p_person->Z >> 8) & 0xFFFF;
+            p_person->Flag |= TngF_PersKeepPost;
+        }
+    }
+
+    if ((s32)p_person->U.UPerson.Target2 == (s32)(ushort)p_target->ThingOffset)
+        return;
+
+    check_weapon(p_person, 0x500);
+    if (p_person->U.UPerson.Target2 == 0)
+    {
+        if (p_person->PTarget != NULL)
+            p_person->OldTarget = p_person->PTarget->ThingOffset;
+        else
+            p_person->OldTarget = 0;
+    }
+    p_person->PTarget = p_target;
+    p_person->U.UPerson.Target2 = p_target->ThingOffset;
+    if (((p_person->Flag & TngF_PlayerAgent) == 0)
+      && (p_person->U.UPerson.PathIndex != 0))
+        remove_path(p_person);
+
+    p_person->U.UPerson.ComTimer = -1;
+    if ((p_person->Flag & TngF_PlayerAgent) != 0)
+        return;
+
+    range = (get_weapon_range(p_person) >> 6) - 1;
+    p_person->U.UPerson.ComRange = range;
+    if (p_person->U.UPerson.ComRange > 100)
+        p_person->U.UPerson.ComRange = 2;
 }
 
 void set_person_dead(struct Thing *p_person, ushort anim_mode)
