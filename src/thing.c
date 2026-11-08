@@ -705,11 +705,96 @@ void init_electricity_bomb(int a1, int a2, int a3, int a4)
 }
 
 
-void process_mine(struct SimpleThing *p_mine)
+struct SimpleThing *init_nuclear_bomb(MapCoord x, MapCoord y, MapCoord z);
+
+static DIFFTEST_REF_FUNC void process_mine_asm(struct SimpleThing *p_mine)
 {
     asm volatile (
       "call ASM_process_mine\n"
         : : "a" (p_mine));
+}
+
+void process_mine(struct SimpleThing *p_mine)
+{
+    DIFFTEST_SHADOW(process_mine, process_mine_asm(p_mine));
+
+    if (p_mine->SubType == 13)
+    {
+        struct SimpleThing *p_bomb;
+
+        if (p_mine->U.UWeapon.Ammo != 0)
+            p_mine->U.UWeapon.Ammo--;
+        if (p_mine->Timer1 == 999)
+            return;
+        if (p_mine->Timer1 == 60)
+            play_dist_ssample(p_mine, 0x26, 0x7F, 0x40, 100, -1, 1);
+        if ((p_mine->Flag & TngF_Unkn00040000) && (p_mine->Timer1 > 7)
+          && (p_mine->U.UWeapon.Ammo == 0))
+            p_mine->Timer1 = 7;
+        p_mine->Timer1--;
+        if (p_mine->Timer1 > 0)
+            return;
+        stop_sample_using_heap(p_mine->ThingOffset, 0x26);
+        p_bomb = init_nuclear_bomb(PRCCOORD_TO_MAPCOORD(p_mine->X),
+          PRCCOORD_TO_MAPCOORD(p_mine->Y), PRCCOORD_TO_MAPCOORD(p_mine->Z));
+        if (p_bomb != NULL)
+        {
+            play_dist_ssample(p_bomb, 1, 0x7F, 0x40, 100, 0, 3);
+            p_bomb->Timer1 = 20;
+            p_bomb->Owner2 = p_mine->Owner2;
+            p_bomb->Radius = 0;
+            p_bomb->Flag &= ~(TngF_InVehicle|TngF_Persuaded);
+        }
+        remove_sthing(p_mine->ThingOffset);
+        ingame.fld_unkCB7--;
+        delete_snode(p_mine);
+        return;
+    }
+    else if (p_mine->SubType == 48)
+    {
+        process_c_iff((struct Thing *)p_mine);
+        return;
+    }
+    else if (p_mine->SubType == 12)
+    {
+        if (p_mine->U.UWeapon.Ammo != 0)
+            p_mine->U.UWeapon.Ammo--;
+        if (p_mine->Timer1 == 999)
+            return;
+        if (p_mine->Timer1 > 0)
+        {
+            struct Thing *p_owner;
+
+            p_owner = &things[(ushort)p_mine->Owner2];
+            if (check_for_radius_hit_person(p_mine->X, p_mine->Y, p_mine->Z,
+              0x200, p_owner, 1, 0) != NULL)
+                p_mine->Timer1 = 0;
+        }
+        if (p_mine->Timer1 == 60)
+            play_dist_ssample(p_mine, 0x26, 0x7F, 0x40, 100, -1, 1);
+        if ((p_mine->Flag & TngF_Unkn00040000) && (p_mine->Timer1 > 7)
+          && (p_mine->U.UWeapon.Ammo == 0))
+            p_mine->Timer1 = 7;
+        if (p_mine->Timer1 > 0)
+            return;
+        p_mine->Timer1--;
+        stop_sample_using_heap(p_mine->ThingOffset, 0x26);
+        if ((p_mine->Timer1 == 0) || (p_mine->Timer1 == -6) || (p_mine->Timer1 == -11))
+        {
+            init_electricity_bomb(PRCCOORD_TO_MAPCOORD(p_mine->X),
+              PRCCOORD_TO_MAPCOORD(p_mine->Y), PRCCOORD_TO_MAPCOORD(p_mine->Z),
+              (ushort)p_mine->Owner2);
+        }
+        if (p_mine->Timer1 != -15)
+            return;
+        remove_sthing(p_mine->ThingOffset);
+        ingame.fld_unkCB7--;
+        delete_snode(p_mine);
+        return;
+    }
+
+    if (in_network_game)
+        p_mine->U.UWeapon.Ammo++;
 }
 
 struct SimpleThing *init_nuclear_bomb(MapCoord x, MapCoord y, MapCoord z)
