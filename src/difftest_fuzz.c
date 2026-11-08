@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include "command.h"
+#include "game.h"
 #include "matrix.h"
 /******************************************************************************/
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
@@ -56,6 +57,24 @@ static void fuzz_vec_cross_prod(ulong *p_seed)
         vec_cross_prod(&vecr, &vec1, &vec2);
         break;
     }
+}
+
+static void fuzz_arctan(ulong *p_seed)
+{
+    int dx, dz;
+
+    // Magnitudes below 2^31; INT_MIN would make the asm divide by zero
+    dx = fuzz_int(p_seed) & 0x7FFFFFFF;
+    dz = fuzz_int(p_seed) & 0x7FFFFFFF;
+    if (difftest_fuzz_rand(p_seed) & 1)
+        dx = -dx;
+    if (difftest_fuzz_rand(p_seed) & 1)
+        dz = -dz;
+    if ((difftest_fuzz_rand(p_seed) % 16) == 0)
+        dx = 0;
+    if ((difftest_fuzz_rand(p_seed) % 16) == 0)
+        dz = 0;
+    arctan(dx, dz);
 }
 
 static void fuzz_object_vec_normalisation(ulong *p_seed)
@@ -128,6 +147,7 @@ static void fuzz_check_big_point_triangle(ulong *p_seed)
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"vec_cross_prod", fuzz_vec_cross_prod},
+    {"arctan", fuzz_arctan},
     {"object_vec_normalisation", fuzz_object_vec_normalisation},
     {"check_person_within", fuzz_check_person_within},
     {"check_big_point_triangle", fuzz_check_big_point_triangle},

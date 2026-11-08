@@ -66,6 +66,7 @@
 #include "bat.h"
 #include "bmbang.h"
 #include "devcreds.h"
+#include "difftest.h"
 #include "svesa.h"
 #include "swlog.h"
 #include "bflib_vidraw.h"
@@ -361,12 +362,63 @@ struct TbLoadFiles missionspr_load_files[] =
 
 ubyte reload_menu_flags = 0;
 
+/** Arc tangent factors table from bflibrary; identical to the asm table. */
+extern unsigned short const lbArcTanFactors[];
+
+static DIFFTEST_REF_FUNC short arctan_asm(int dx, int dz)
+{
+    short ret;
+    asm volatile ("call ASM_arctan\n"
+        : "=a" (ret) : "a" (dx), "d" (dz));
+    return ret;
+}
+
 short arctan(int dx, int dz)
 {
-    ushort ret;
-    asm volatile ("call ASM_arctan\n"
-        : "=r" (ret) : "a" (dx), "d" (dz));
-    return ret;
+    s32 a, b;
+
+    DIFFTEST_SHADOW_RET(arctan, short, arctan_asm(dx, dz));
+    a = dx;
+    b = dz;
+    if ((a == 0) && (b == 0))
+        DIFFTEST_RETURN((short)0);
+    if (a >= 0)
+    {
+        if (b >= 0)
+        {
+            if (a >= b)
+                DIFFTEST_RETURN((short)(0x200 + lbArcTanFactors[((u32)b << 8) / (u32)a]));
+            else
+                DIFFTEST_RETURN((short)(0x400 - lbArcTanFactors[((u32)a << 8) / (u32)b]));
+        }
+        else
+        {
+            b = (s32)(-(u32)b);
+            if (a >= b)
+                DIFFTEST_RETURN((short)(0x200 - lbArcTanFactors[((u32)b << 8) / (u32)a]));
+            else
+                DIFFTEST_RETURN((short)lbArcTanFactors[((u32)a << 8) / (u32)b]);
+        }
+    }
+    else
+    {
+        a = (s32)(-(u32)a);
+        if (b >= 0)
+        {
+            if (a >= b)
+                DIFFTEST_RETURN((short)(0x600 - lbArcTanFactors[((u32)b << 8) / (u32)a]));
+            else
+                DIFFTEST_RETURN((short)(0x400 + lbArcTanFactors[((u32)a << 8) / (u32)b]));
+        }
+        else
+        {
+            b = (s32)(-(u32)b);
+            if (a >= b)
+                DIFFTEST_RETURN((short)(0x600 + lbArcTanFactors[((u32)b << 8) / (u32)a]));
+            else
+                DIFFTEST_RETURN((short)(0x800 - lbArcTanFactors[((u32)a << 8) / (u32)b]));
+        }
+    }
 }
 
 void debug_trace_place(int place)
