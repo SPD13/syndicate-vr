@@ -1271,10 +1271,63 @@ void swoosh_veh(int a1, int a2, int a3, int a4)
 }
 
 
-void move_flying_vehicle(struct Thing *p_vehicle)
+int rotate_obj(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC void move_flying_vehicle_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_move_flying_vehicle\n"
         : : "a" (p_vehicle));
+}
+
+void move_flying_vehicle(struct Thing *p_vehicle)
+{
+    struct M33 *p_mat;
+    short angle, dt_angle;
+    s32 wobble_p, wobble_v;
+    int new_x, new_y, new_z;
+
+    DIFFTEST_SHADOW(move_flying_vehicle, move_flying_vehicle_asm(p_vehicle));
+    if (((gameturn + (ushort)p_vehicle->ThingOffset) & 3) == 0)
+        swoosh_veh((int)p_vehicle, gameturn, 0, 0);
+
+    angle = p_vehicle->U.UVehicle.AngleY + (p_vehicle->U.UVehicle.AngleDY >> 3);
+    p_vehicle->U.UVehicle.AngleY = angle;
+    p_vehicle->U.UVehicle.AngleY = (angle + 0x800) & 0x7FF;
+
+    if (p_vehicle->State != 0x45)
+    {
+        dt_angle = p_vehicle->U.UVehicle.AngleZ - p_vehicle->U.UVehicle.AngleDY;
+        if (dt_angle < -100)
+            p_vehicle->U.UVehicle.AngleZ += 100;
+        else if (dt_angle > 100)
+            p_vehicle->U.UVehicle.AngleZ -= 100;
+        else if (abs(dt_angle) > 50)
+            p_vehicle->U.UVehicle.AngleZ = p_vehicle->U.UVehicle.AngleDY;
+    }
+
+    if ((p_vehicle->U.UVehicle.WobbleZP != 0) || (p_vehicle->U.UVehicle.WobbleZV != 0))
+    {
+        p_vehicle->U.UVehicle.AngleZ = p_vehicle->U.UVehicle.AngleZ +
+          (p_vehicle->U.UVehicle.WobbleZP >> 16);
+        wobble_p = p_vehicle->U.UVehicle.WobbleZP + p_vehicle->U.UVehicle.WobbleZV;
+        wobble_v = p_vehicle->U.UVehicle.WobbleZV - (wobble_p >> 4);
+        p_vehicle->U.UVehicle.WobbleZP = wobble_p;
+        p_vehicle->U.UVehicle.WobbleZV = wobble_v;
+        p_vehicle->U.UVehicle.WobbleZV = wobble_v - (wobble_v >> 6);
+    }
+
+    p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY),
+      (short)(-(p_vehicle->U.UVehicle.AngleZ >> 1)), (int)p_mat);
+    if (p_vehicle->U.UVehicle.AngleX != 0)
+        rotate_object_axis(p_mat, 0, p_vehicle->U.UVehicle.AngleX, 0);
+
+    p_vehicle->VX = (p_vehicle->Speed * (-p_mat->R[0][2])) >> 10;
+    p_vehicle->VZ = (p_vehicle->Speed * (-p_mat->R[2][2])) >> 10;
+    new_x = p_vehicle->X + p_vehicle->VX;
+    new_y = p_vehicle->Y + p_vehicle->VY;
+    new_z = p_vehicle->Z + p_vehicle->VZ;
+    move_mapwho(p_vehicle, new_x, new_y, new_z);
 }
 
 void process_tank_turret(struct Thing *p_tank)
