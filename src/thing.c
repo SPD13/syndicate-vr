@@ -2442,14 +2442,59 @@ struct SimpleThing *create_item(int x, int y, int z, ushort frame, ubyte subtype
     return ret;
 }
 
-struct SimpleThing *create_scale_effect(int x, int y, int z, ushort frame, short timer)
+static DIFFTEST_REF_FUNC struct SimpleThing *create_scale_effect_asm(int x,
+  int y, int z, ushort frame, short timer)
 {
     struct SimpleThing *ret;
+    // Pushed through a register holding it: a "g" operand may be placed
+    // relative to the stack pointer, which each push moves.
+    int stkargs[1];
+    int edx = y, ebx = z, ecx = frame;
+
+    stkargs[0] = (s32)timer;
+
     asm volatile (
-      "push %5\n"
+      "push 0(%4)\n"
       "call ASM_create_scale_effect\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z), "c" (frame), "g" ((s32)timer));
+        : "=a" (ret), "+d" (edx), "+b" (ebx), "+c" (ecx)
+        : "S" (stkargs), "0" (x)
+        : "cc", "memory");
     return ret;
+}
+
+struct SimpleThing *create_scale_effect(int x, int y, int z, ushort frame, short timer)
+{
+    struct SimpleThing *p_sthing;
+    short sthing;
+
+    DIFFTEST_SHADOW_RET(create_scale_effect, struct SimpleThing *,
+      create_scale_effect_asm(x, y, z, frame, timer));
+    if (x < 0 || x >= 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if (z < 0 || z >= 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if ((s32)sthings_used > 1495)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    sthing = get_new_sthing();
+    if (sthing == 0)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if (sthing > -1 || sthing < -1500)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    p_sthing = &sthings[sthing];
+    p_sthing->Z = z << 8;
+    p_sthing->X = x << 8;
+    p_sthing->Y = y << 8;
+    p_sthing->Frame = nstart_ani[frame];
+    p_sthing->StartFrame = frame - 1;
+    add_node_sthing(sthing);
+    p_sthing->Type = SmTT_SCALE_EFFECT;
+    p_sthing->SubType = 0;
+    p_sthing->Radius = 64;
+    p_sthing->Flag = 0x04;
+    p_sthing->Timer1 = timer;
+    DIFFTEST_RETURN(p_sthing);
 }
 
 static DIFFTEST_REF_FUNC struct SimpleThing *create_sound_effect_asm(int x,
