@@ -694,7 +694,7 @@ void quick_light_unkn_func_06(int a1, int a2, int a3, int a4, int a5, int a6, in
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
+static DIFFTEST_REF_FUNC void quick_light_unkn_func_08_asm(int a1, int a2, int a3, int a4, int a5, int a6)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[2];
@@ -703,6 +703,60 @@ void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
     stkargs[1] = a6;
     asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_quick_light_unkn_func_08\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+extern s32 dword_176D6C;
+
+void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    struct MyMapElement *p_mapel;
+    struct QuickLight *p_qlight;
+    ushort tile_x, tile_z, lgt;
+    s32 dx, dy, dz, dist_sq, dist, ratio, div;
+    s32 intens;
+
+    DIFFTEST_SHADOW(quick_light_unkn_func_08,
+      quick_light_unkn_func_08_asm(a1, a2, a3, a4, a5, a6));
+    tile_x = (ushort)a1;
+    tile_z = (ushort)a2;
+    p_mapel = &game_my_big_map[(u32)tile_z * 128 + tile_x];
+
+    dx = (s32)((u32)a3 - ((u32)tile_x << 8));
+    dy = (s32)(((u32)a4 - ((u32)(s32)p_mapel->Alt << 3)) << 4);
+    dz = (s32)((u32)a5 - ((u32)tile_z << 8));
+    dist_sq = (s32)((u32)dy * (u32)dy + (u32)dx * (u32)dx + (u32)dz * (u32)dz);
+    if (dist_sq > 0x4640000)
+    {
+        dword_176D6C++;
+        return;
+    }
+    dist = LbSqrL(dist_sq);
+    if (dist == 0)
+        dist = 1;
+    ratio = (s32)((u32)dy << 8) / dist;
+
+    if (next_quick_light >= 0xfa00)
+        return;
+
+    div = (s32)((u32)dx * (u32)dx + (u32)dz * (u32)dz + (u32)(dy >> 3) * (u32)(dy >> 3));
+    div >>= 8;
+    if (div == 0)
+        div = 1;
+    ratio = (s32)((u32)ratio << 8) / div;
+    if (ratio > 0x100)
+        ratio = 0x100;
+
+    lgt = (ushort)a6;
+    intens = (s32)((u32)(s32)game_full_lights[lgt].Intensity * (u32)ratio) >> 8;
+    if (intens <= 3)
+        return;
+
+    p_qlight = &game_quick_lights[next_quick_light];
+    p_qlight->NextQuick = p_mapel->Shade;
+    p_mapel->Shade = next_quick_light;
+    p_qlight->Light = (ushort)a6;
+    next_quick_light++;
+    p_qlight->Ratio = (ushort)ratio;
 }
 
 /** Routed asm (internal label). Arguments and return value are the
