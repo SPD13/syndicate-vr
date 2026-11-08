@@ -1725,6 +1725,16 @@ void find_the_tall_buildings(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
+void nullsub_7(void)
+{
+    asm volatile ("call ASM_nullsub_7\n"
+        :  : : "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
 void create_unkn_building_subtp27(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;

@@ -21421,7 +21421,7 @@ GLOBAL_FUNC(ASM_person_unkn_start_get_item)	/* 0x04F048 */
 
 
 /*----------------------------------------------------------------*/
-set_get_item:	/* 0x04F208 */
+GLOBAL_FUNC(ASM_set_get_item)	/* 0x04F208 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -22382,7 +22382,7 @@ GLOBAL_FUNC(ASM_send_another_player_peep)	/* 0x04F9F4 */
 		sar    $0x10,%edx
 		call   ac_set_person_animmode_run
 		mov    %ebx,%eax
-		call   set_get_item
+		call   ac_set_get_item
 		orb    $0x10,0x47(%ebx)
 		mov    $0x1,%eax
 		add    $0x18,%esp
@@ -22504,7 +22504,7 @@ func_4fc9e:
 		cmp    $0x19,%eax
 		jne    jump_4fcd8
 		mov    %esi,%eax
-		call   set_get_item
+		call   ac_set_get_item
 		testb  $0x40,0x44(%esi)
 		jne    jump_4fcd8
 		mov    %esi,%eax
@@ -22761,7 +22761,7 @@ func_4ff34:
 		cmp    $0x19,%eax
 		jne    jump_4ff63
 		mov    %ecx,%eax
-		call   set_get_item
+		call   ac_set_get_item
 	jump_4ff63:
 		pop    %ebp
 		pop    %edi
@@ -28030,7 +28030,7 @@ GLOBAL_FUNC(ASM_process_support_person)	/* 0x054824 */
 
 
 /*----------------------------------------------------------------*/
-copy_owner_with_weapon:	/* 0x0548AC */
+GLOBAL_FUNC(ASM_copy_owner_with_weapon)	/* 0x0548AC */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -29094,7 +29094,7 @@ GLOBAL_FUNC(ASM_process_persuaded)	/* 0x0554B8 */
 	jump_555bc:
 		mov    %ebx,%edx
 		mov    %esi,%eax
-		call   copy_owner_with_weapon
+		call   ac_copy_owner_with_weapon
 		mov    0x40(%esi),%edx
 		test   %edx,%edx
 		je     jump_555db
@@ -40796,7 +40796,7 @@ GLOBAL_FUNC(ASM_func_5fcf4)
 
 
 /*----------------------------------------------------------------*/
-func_5fe50:
+GLOBAL_FUNC(ASM_func_5fe50)
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -41102,7 +41102,7 @@ GLOBAL_FUNC(ASM_create_unkn_building_subtp27)	/* 0x0601FC */
 		jge    jump_6029d
 	jump_60293:
 		mov    $0xa,%eax
-		call   nullsub_7
+		call   ac_nullsub_7
 	jump_6029d:
 		add    $0x8,%esp
 		pop    %ebp
@@ -44524,7 +44524,7 @@ GLOBAL_FUNC(ASM_explode_thing_object)	/* 0x063484 */
 
 
 /*----------------------------------------------------------------*/
-sit_on_my_face:	/* 0x063DC0 */
+GLOBAL_FUNC(ASM_sit_on_my_face)	/* 0x063DC0 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -44626,7 +44626,7 @@ GLOBAL_FUNC(ASM_do_people_on_exploding_building)	/* 0x063E40 */
 		mov    0x6c(%ebx),%eax
 		sar    $0x10,%eax
 		add    %edi,%edx
-		call   sit_on_my_face
+		call   ac_sit_on_my_face
 		test   %eax,%eax
 		je     jump_63f22
 		mov    0x20(%ebx),%eax
@@ -51455,7 +51455,7 @@ GLOBAL_FUNC(ASM_current_hand_weapon_range)	/* 0x06BB9C */
 
 
 /*----------------------------------------------------------------*/
-get_target_priority:	/* 0x06BBC0 */
+GLOBAL_FUNC(ASM_get_target_priority)	/* 0x06BBC0 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -51615,7 +51615,7 @@ GLOBAL_FUNC(ASM_find_a_target)	/* 0x06BCF0 */
 		jne    jump_6bdc2
 		mov    %edi,%edx
 		mov    %esi,%eax
-		call   get_target_priority
+		call   ac_get_target_priority
 		test   %ax,%ax
 		je     jump_6bdc2
 		mov    0x8(%esp),%ebx
@@ -51666,7 +51666,7 @@ GLOBAL_FUNC(ASM_find_a_target)	/* 0x06BCF0 */
 		jne    jump_6be58
 		mov    %edi,%edx
 		mov    %esi,%eax
-		call   get_target_priority
+		call   ac_get_target_priority
 		test   %ax,%ax
 		je     jump_6be58
 		mov    0x4(%esp),%ebx
@@ -51716,7 +51716,7 @@ GLOBAL_FUNC(ASM_find_a_target)	/* 0x06BCF0 */
 		jne    jump_6beef
 		mov    %edi,%edx
 		mov    %esi,%eax
-		call   get_target_priority
+		call   ac_get_target_priority
 		test   %ax,%ax
 		je     jump_6beef
 		mov    0xc(%esp),%ebx
@@ -51763,7 +51763,7 @@ GLOBAL_FUNC(ASM_find_a_target)	/* 0x06BCF0 */
 
 
 /*----------------------------------------------------------------*/
-available_for_guard_duty:	/* 0x06BF10 */
+GLOBAL_FUNC(ASM_available_for_guard_duty)	/* 0x06BF10 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %edx
@@ -51869,7 +51869,7 @@ GLOBAL_FUNC(ASM_find_best_guardian)	/* 0x06BFC0 */
 		cmp    %eax,%esi
 		je     jump_6c071
 		mov    %ebx,%eax
-		call   available_for_guard_duty
+		call   ac_available_for_guard_duty
 		test   %al,%al
 		je     jump_6c071
 		mov    0x18(%ebx),%eax
@@ -52336,7 +52336,7 @@ GLOBAL_FUNC(ASM_kill_flags)	/* 0x06CC40 */
 
 
 /*----------------------------------------------------------------*/
-find_target_from_players:	/* 0x06CCB0 */
+GLOBAL_FUNC(ASM_find_target_from_players)	/* 0x06CCB0 */
 /*----------------------------------------------------------------*/
 		push   %ecx
 		push   %esi
@@ -52477,7 +52477,7 @@ find_target_from_players:	/* 0x06CCB0 */
 
 
 /*----------------------------------------------------------------*/
-find_target_from_persuaded_peeps:	/* 0x06CE04 */
+GLOBAL_FUNC(ASM_find_target_from_persuaded_peeps)	/* 0x06CE04 */
 /*----------------------------------------------------------------*/
 		push   %ecx
 		push   %esi
@@ -52725,7 +52725,7 @@ GLOBAL_FUNC(ASM_find_target_from_group)	/* 0x06CF40 */
 		mov    0x10(%esp),%cl
 		mov    %edi,%eax
 		mov    %ecx,%ebx
-		call   find_target_from_players
+		call   ac_find_target_from_players
 		test   %al,%al
 		je     jump_6d101
 		mov    $0x1,%al
@@ -52734,7 +52734,7 @@ GLOBAL_FUNC(ASM_find_target_from_group)	/* 0x06CF40 */
 		mov    %ecx,%ebx
 		mov    %ebp,%edx
 		mov    %edi,%eax
-		call   find_target_from_persuaded_peeps
+		call   ac_find_target_from_persuaded_peeps
 		test   %al,%al
 		je     jump_6d117
 		mov    $0x1,%al
@@ -53532,7 +53532,7 @@ GLOBAL_FUNC (ASM_merged_noop_unkn1)	/* 0x6F828 */
 
 
 /*----------------------------------------------------------------*/
-nullsub_7:	/* 0x06FAA8 */
+GLOBAL_FUNC(ASM_nullsub_7)	/* 0x06FAA8 */
 /*----------------------------------------------------------------*/
 		ret
 
@@ -55396,7 +55396,7 @@ GLOBAL_FUNC(ASM_can_the_tank_run_over)	/* 0x0764D4 */
 
 
 /*----------------------------------------------------------------*/
-flatten_vehicle:	/* 0x07658C */
+GLOBAL_FUNC(ASM_flatten_vehicle)	/* 0x07658C */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -55635,7 +55635,7 @@ GLOBAL_FUNC(ASM_check_tank_collision)	/* 0x076638 */
 	jump_7680a:
 		mov    %ecx,%edx
 		mov    %ebx,%eax
-		call   flatten_vehicle
+		call   ac_flatten_vehicle
 		jmp    jump_768d8
 	jump_76818:
 		imul   $0x3c,%esi,%ebx
@@ -86598,7 +86598,7 @@ VNAV_find_start_dropoff_point:	/* 0x0A9F0C */
 
 
 /*----------------------------------------------------------------*/
-VNAV_do:	/* 0x0AA04C */
+GLOBAL_FUNC(ASM_VNAV_do)	/* 0x0AA04C */
 /*----------------------------------------------------------------*/
 		push   %ecx
 		push   %esi
@@ -87009,7 +87009,7 @@ GLOBAL_FUNC(ASM_VNAV_can_i_get_there)	/* 0x0AA4D8 */
 		neg    %edx
 		mov    $VNAV_route,%ebx
 		movswl %dx,%edx
-		call   VNAV_do
+		call   ac_VNAV_do
 		mov    VNAV_route__route,%eax
 		sar    $0x10,%eax
 		cmp    $0x2a,%eax
@@ -87277,7 +87277,7 @@ GLOBAL_FUNC(ASM_VNAV_goto)	/* 0x0AA554 */
 		neg    %edx
 		mov    $VNAV_route,%ebx
 		movswl %dx,%edx
-		call   VNAV_do
+		call   ac_VNAV_do
 		mov    VNAV_route__route,%eax
 		sar    $0x10,%eax
 		cmp    $0x2a,%eax
@@ -87405,7 +87405,7 @@ GLOBAL_FUNC(ASM_VNAV_renavigate)	/* 0x0AA978 */
 		mov    0x5e(%edi),%eax
 		mov    $VNAV_route,%ebx
 		sar    $0x10,%eax
-		call   VNAV_do
+		call   ac_VNAV_do
 		mov    VNAV_route__route,%eax
 		sar    $0x10,%eax
 		cmp    $0x2a,%eax
@@ -94389,7 +94389,7 @@ GLOBAL_FUNC(ASM_mech_unkn_func_08)	/* 0x0BCAA0 */
 	jump_bcba9:
 		mov    0x4(%esp),%eax
 		mov    %ebx,EXPORT_SYMBOL(unkn_mech_arr1)
-		call   mech_unkn_func_19
+		call   ac_mech_unkn_func_19
 		mov    0x8(%esp),%eax
 		mov    EXPORT_SYMBOL(unkn_mech_arr1),%ebx
 		add    $0x14,%esp
@@ -96530,7 +96530,7 @@ GLOBAL_FUNC(ASM_load_mech_dat)	/* 0x0BE76C */
 
 
 /*----------------------------------------------------------------*/
-mech_unkn_func_19:	/* 0x0BE884 */
+GLOBAL_FUNC(ASM_mech_unkn_func_19)	/* 0x0BE884 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -99258,7 +99258,7 @@ GLOBAL_FUNC(ASM_ariadne_initialise_route)
 		mov    0x18(%esi),%eax
 		sar    $0x8,%edx
 		sar    $0x8,%eax
-		call   func_5fe50
+		call   ac_func_5fe50
 		mov    %ebp,%ebx
 		mov    %edi,%edx
 		shl    $0x8,%ebx
