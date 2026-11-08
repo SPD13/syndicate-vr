@@ -4248,12 +4248,78 @@ uint find_and_alert_guardian(struct Thing *p_person, struct Thing *p_attacker)
     return ret;
 }
 
+static DIFFTEST_REF_FUNC void init_recoil_asm(struct Thing *p_person,
+  short vx, short vy, short vz, ushort type)
+{
+    // Pushed through a register holding them: a "g" operand may be placed
+    // relative to the stack pointer, which each push moves.
+    int stkargs[1];
+
+    stkargs[0] = (int)(u32)type;
+
+    asm volatile (
+      "push 0(%4)\n"
+      "call ASM_init_recoil\n"
+        : : "a" (p_person), "d" (vx), "b" (vy), "c" (vz), "S" (stkargs)
+        : "cc", "memory");
+}
+
 void init_recoil(struct Thing *p_person, short vx, short vy, short vz, ushort type)
 {
-    asm volatile (
-      "push %4\n"
-      "call ASM_init_recoil\n"
-        :  : "a" (p_person), "d" (vx), "b" (vy), "c" (vz), "g" ((u32)type));
+    ushort angle;
+    ushort frm;
+
+    DIFFTEST_SHADOW(init_recoil, init_recoil_asm(p_person, vx, vy, vz, type));
+    if ((ushort)p_person->State == PerSt_PERSON_BURNING)
+        return;
+    if (p_person->SubType == SubTT_PERS_MECH_SPIDER)
+        return;
+    if (p_person->U.UPerson.RecoilTimer != 0)
+        return;
+
+    if ((p_person->Flag & TngF_Unkn0001) != 0)
+    {
+        p_person->Flag &= ~TngF_Unkn0001;
+        p_person->U.UPerson.AnimMode = p_person->U.UPerson.OldAnimMode;
+        p_person->State = 0;
+        frm = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+        p_person->Frame = nstart_ani[frm + p_person->U.UPerson.Angle];
+        p_person->StartFrame =
+          people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+    }
+
+    angle = (ushort)arctan(vx, -vz);
+
+    if (((p_person->U.UPerson.WeaponsCarried & (1 << (WEP_ENERGYSHLD-1))) != 0)
+      && (p_person->U.UPerson.ShieldEnergy > 0))
+    {
+        p_person->Flag |= TngF_Unkn00200000;
+        play_dist_sample(p_person, 0x1e, 0x7f, 0x40, 100, 0, 3);
+        return;
+    }
+
+    if ((p_person->Flag & TngF_WepRecoil) != 0)
+        return;
+
+    p_person->U.UPerson.RecoilDir = angle >> 3;
+    if (type == 1)
+        p_person->U.UPerson.RecoilTimer = 3;
+    else if (type == 7)
+        p_person->U.UPerson.RecoilTimer = 4;
+    else if (type == 8)
+        p_person->U.UPerson.RecoilTimer = 7;
+    else
+        p_person->U.UPerson.RecoilTimer = 5;
+
+    p_person->U.UPerson.Angle = ((angle + 0x400) & 0x7FF) >> 8;
+    if (p_person->U.UPerson.AnimMode != 16)
+        p_person->U.UPerson.OldAnimMode = p_person->U.UPerson.AnimMode;
+    p_person->U.UPerson.AnimMode = 16;
+    p_person->Flag |= TngF_WepRecoil;
+    frm = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+    p_person->Frame = nstart_ani[frm + p_person->U.UPerson.Angle];
+    p_person->StartFrame =
+      people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
 }
 
 void person_update_kill_stats(struct Thing *p_attacker, struct Thing *p_victim)
