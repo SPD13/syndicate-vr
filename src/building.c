@@ -19,6 +19,7 @@
 #include "building.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include "bfmath.h"
 #include "bfmemory.h"
 #include "bfutility.h"
@@ -745,13 +746,77 @@ int kill_flags(int a1, int a2, int a3, int a4)
 }
 
 
-ThingIdx aquire_target(struct Thing *p_gun)
+static DIFFTEST_REF_FUNC ThingIdx aquire_target_asm(struct Thing *p_gun)
 {
     ThingIdx ret;
     asm volatile (
       "call ASM_aquire_target\n"
-        : "=r" (ret) : "a" (p_gun));
+        : "=a" (ret) : "a" (p_gun));
     return ret;
+}
+
+ThingIdx aquire_target(struct Thing *p_gun)
+{
+    s32 best_dist;
+    ThingIdx best_thing;
+    short tile_x, tile_z;
+    short dx, dz;
+
+    DIFFTEST_SHADOW_RET(aquire_target, ThingIdx, aquire_target_asm(p_gun));
+    best_dist = 0x7FFFFFFF;
+    best_thing = 0;
+    tile_x = (short)(p_gun->X >> 16);
+    tile_z = (short)(p_gun->Z >> 16);
+
+    for (dz = -8; dz < 8; dz++)
+    {
+        for (dx = -8; dx < 8; dx++)
+        {
+            s32 tx, tz;
+            ThingIdx thing;
+
+            tx = tile_x + dx;
+            if (tx <= 0 || tx >= MAP_TILE_WIDTH)
+                continue;
+            tz = tile_z + dz;
+            if (tz <= 0 || tz >= MAP_TILE_HEIGHT)
+                continue;
+
+            thing = game_my_big_map[tz * MAP_TILE_WIDTH + tx].Child;
+            while (thing != 0)
+            {
+                struct Thing *p_thing;
+                s32 dist_x, dist_z, dist;
+
+                if (thing <= 0)
+                {
+                    thing = sthings[thing].Next;
+                    continue;
+                }
+                p_thing = &things[thing];
+                if ((short)kill_flags((int)p_gun, (int)p_thing, (int)p_thing, (int)p_gun) != 0
+                  && p_thing->Type == TT_PERSON
+                  && (p_thing->Flag & TngF_Destroyed) == 0)
+                {
+                    dist_x = abs((p_gun->X - p_thing->X) >> 8);
+                    dist_z = abs((p_gun->Z - p_thing->Z) >> 8);
+                    if (dist_x <= dist_z)
+                        dist = dist_z + (dist_x >> 1);
+                    else
+                        dist = dist_x + (dist_z >> 1);
+                    if (dist < best_dist)
+                    {
+                        best_dist = dist;
+                        best_thing = thing;
+                    }
+                }
+                thing = p_thing->Next;
+            }
+        }
+    }
+
+    p_gun->PTarget = &things[best_thing];
+    DIFFTEST_RETURN(best_thing);
 }
 
 ubyte track_target(struct Thing *p_mgun)
