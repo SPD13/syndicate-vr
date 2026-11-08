@@ -46,7 +46,7 @@ SUBREG['esp'] = ('esp', True)
 SUBREG['sp'] = ('esp', False)
 
 LABEL_RE = re.compile(r'^\s*GLOBAL_FUNC\s*\(\s*(\w+)\s*\)|^(\w+):')
-LOCAL_RE = re.compile(r'^\s+(jump_\w+|data_\w+|loc_\w+):')
+LOCAL_RE = re.compile(r'^\s*(jump_\w+|data_\w+|loc_\w+):')
 REG_RE = re.compile(r'%(\w+)')
 JCC = re.compile(r'^j(?!mp)\w+$')
 
