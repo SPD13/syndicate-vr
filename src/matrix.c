@@ -103,10 +103,65 @@ void matrix_rotate_roll_copy(const struct M33 *p_src, struct M33 *p_dst,
     }
 }
 
-void rotate_object_axis(struct M33 *p_base, short xangle, short yangle, short zangle)
+static DIFFTEST_REF_FUNC void rotate_object_axis_asm(struct M33 *p_base,
+  short xangle, short yangle, short zangle)
 {
     asm volatile ("call ASM_rotate_object_axis\n"
         : : "a" (p_base), "d" (xangle), "b" (yangle), "c" (zangle));
+}
+
+void rotate_object_axis(struct M33 *p_base, short xangle, short yangle, short zangle)
+{
+    struct M31 vec1, vec2, vecr;
+    int row;
+
+    DIFFTEST_SHADOW(rotate_object_axis,
+      rotate_object_axis_asm(p_base, xangle, yangle, zangle));
+    if (xangle == 0 && yangle == 0 && zangle == 0)
+        return;
+
+    if (xangle != 0)
+    {
+        for (row = 0; row < 3; row++)
+            p_base->R[row][2] += (p_base->R[row][0] - p_base->R[row][2])
+              * (s32)xangle / 512;
+    }
+    if (yangle != 0)
+    {
+        for (row = 0; row < 3; row++)
+            p_base->R[row][2] += (p_base->R[row][1] - p_base->R[row][2])
+              * (s32)yangle / 512;
+    }
+    if (zangle != 0)
+    {
+        for (row = 0; row < 3; row++)
+            p_base->R[row][0] += (p_base->R[row][1] - p_base->R[row][0])
+              * (s32)zangle / 512;
+    }
+
+    object_vec_normalisation(p_base, 2);
+
+    for (row = 0; row < 3; row++)
+    {
+        vec1.R[row] = p_base->R[row][2];
+        vec2.R[row] = p_base->R[row][0];
+    }
+    vec_cross_prod(&vecr, &vec1, &vec2);
+    for (row = 0; row < 3; row++)
+        p_base->R[row][1] = vecr.R[row] >> 14;
+
+    object_vec_normalisation(p_base, 1);
+
+    for (row = 0; row < 3; row++)
+    {
+        vec1.R[row] = p_base->R[row][2];
+        vec2.R[row] = p_base->R[row][1];
+    }
+    vec_cross_prod(&vecr, &vec2, &vec1);
+    for (row = 0; row < 3; row++)
+        p_base->R[row][0] = vecr.R[row] >> 14;
+
+    object_vec_normalisation(p_base, 0);
 }
 
 static DIFFTEST_REF_FUNC void vec_cross_prod_asm(struct M31 *vecr,

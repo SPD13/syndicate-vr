@@ -88,6 +88,37 @@ static void fuzz_object_vec_normalisation(ulong *p_seed)
     object_vec_normalisation(&mat, difftest_fuzz_rand(p_seed) % 3);
 }
 
+static void fuzz_rotate_object_axis(ulong *p_seed)
+{
+    struct M33 mat;
+    short angle[3];
+    int row, col;
+
+    // Mostly matrix-like values, sometimes full range
+    for (row = 0; row < 3; row++)
+        for (col = 0; col < 3; col++) {
+            if (difftest_fuzz_rand(p_seed) % 4 != 0)
+                mat.R[row][col] = (s32)(difftest_fuzz_rand(p_seed) % 0x8001) - 0x4000;
+            else
+                mat.R[row][col] = fuzz_int(p_seed);
+        }
+    for (row = 0; row < 3; row++) {
+        switch (difftest_fuzz_rand(p_seed) % 3)
+        {
+        case 0:
+            angle[row] = 0;
+            break;
+        case 1:
+            angle[row] = (short)(difftest_fuzz_rand(p_seed) % 129) - 64;
+            break;
+        default:
+            angle[row] = (short)difftest_fuzz_rand(p_seed);
+            break;
+        }
+    }
+    rotate_object_axis(&mat, angle[0], angle[1], angle[2]);
+}
+
 ubyte check_person_within(struct Command *p_cmd, int x, int z);
 
 static void fuzz_check_person_within(ulong *p_seed)
@@ -149,6 +180,7 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"vec_cross_prod", fuzz_vec_cross_prod},
     {"arctan", fuzz_arctan},
     {"object_vec_normalisation", fuzz_object_vec_normalisation},
+    {"rotate_object_axis", fuzz_rotate_object_axis},
     {"check_person_within", fuzz_check_person_within},
     {"check_big_point_triangle", fuzz_check_big_point_triangle},
     {NULL, NULL},
