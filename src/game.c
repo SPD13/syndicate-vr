@@ -1125,6 +1125,14 @@ void check_mouse_overvehicle(struct Thing *p_thing, ubyte target_assign)
     }
 }
 
+/** Advances one crater from the map craters buffer.
+ */
+void process_map_crater(int crater)
+{
+    asm volatile ("call ASM_process_map_crater\n"
+        : : "a" (crater) : "cc", "memory");
+}
+
 void process_map_craters(void)
 {
     asm volatile ("call ASM_process_map_craters\n"

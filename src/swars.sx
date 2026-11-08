@@ -27399,7 +27399,7 @@ GLOBAL_FUNC(ASM_person_run_away)	/* 0x053F54 */
 	jump_5401f:
 		mov    %esi,%eax
 		movw   $0x0,0x72(%esi)
-		call   search_for_danger
+		call   ac_search_for_danger
 		mov    %esi,%eax
 		call   ac_remove_path
 		movw   $0xffff,0x66(%esi)
@@ -27517,7 +27517,7 @@ GLOBAL_FUNC(ASM_process_danger)	/* 0x054130 */
 		and    $0xffff,%edx
 		cmp    $0x3,%edx
 		jge    jump_54186
-		call   search_for_danger
+		call   ac_search_for_danger
 	jump_54186:
 		pop    %edx
 		pop    %ebx
@@ -38315,7 +38315,7 @@ GLOBAL_FUNC(ASM_search_object_for_qface)	/* 0x05DB4C */
 
 /*----------------------------------------------------------------*/
 /* TODO when rewriting, use mul_shift16_sign_pad_lo() */
-set_thing_height_on_face_tri64:	/* 0x05E20C */
+GLOBAL_FUNC(ASM_set_thing_height_on_face_tri64)	/* 0x05E20C */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -38617,14 +38617,14 @@ GLOBAL_FUNC(ASM_set_thing_height_on_face_tri)	/* 0x05E4FC */
 		shl    $0x5,%eax
 		add    %edx,%eax
 		mov    %esi,%edx
-		call   inside_the_triangle
+		call   ac_inside_the_triangle
 		mov    %eax,(%esp)
 		test   %eax,%eax
 		je     jump_5e539
 		mov    %edi,%ebx
 		mov    %esi,%edx
 		mov    %ebp,%eax
-		call   set_thing_height_on_face_tri64
+		call   ac_set_thing_height_on_face_tri64
 		mov    (%esp),%eax
 		jmp    jump_5e53b
 	jump_5e539:
@@ -38639,7 +38639,7 @@ GLOBAL_FUNC(ASM_set_thing_height_on_face_tri)	/* 0x05E4FC */
 
 /*----------------------------------------------------------------*/
 /* TODO when rewriting, use mul_shift16_sign_pad_lo() */
-set_thing_height_on_face_quad64:	/* 0x05E544 */
+GLOBAL_FUNC(ASM_set_thing_height_on_face_quad64)	/* 0x05E544 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -38903,14 +38903,14 @@ GLOBAL_FUNC(ASM_set_thing_height_on_face_quad)	/* 0x05E7F0 */
 		shl    $0x3,%edx
 		add    %edx,%eax
 		mov    %edi,%edx
-		call   inside_the_quad
+		call   ac_inside_the_quad
 		mov    %eax,(%esp)
 		test   %eax,%eax
 		je     jump_5e834
 		mov    %esi,%ebx
 		mov    %edi,%edx
 		mov    %ebp,%eax
-		call   set_thing_height_on_face_quad64
+		call   ac_set_thing_height_on_face_quad64
 		mov    (%esp),%eax
 		jmp    jump_5e836
 	jump_5e834:
@@ -38924,7 +38924,7 @@ GLOBAL_FUNC(ASM_set_thing_height_on_face_quad)	/* 0x05E7F0 */
 
 
 /*----------------------------------------------------------------*/
-inside_the_quad:	/* 0x05E840 */
+GLOBAL_FUNC(ASM_inside_the_quad)	/* 0x05E840 */
 /*----------------------------------------------------------------*/
 		push   %ecx
 		push   %esi
@@ -39184,7 +39184,7 @@ inside_the_quad:	/* 0x05E840 */
 
 
 /*----------------------------------------------------------------*/
-inside_the_triangle:	/* 0x05EAE0 */
+GLOBAL_FUNC(ASM_inside_the_triangle)	/* 0x05EAE0 */
 /*----------------------------------------------------------------*/
 		push   %ecx
 		push   %esi
@@ -39385,7 +39385,7 @@ GLOBAL_FUNC(ASM_find_and_set_connected_face)	/* 0x05EC6C */
 		je     jump_5ecf3
 		mov    %edi,%ebx
 		mov    %esi,%edx
-		call   inside_the_triangle
+		call   ac_inside_the_triangle
 		test   %ax,%ax
 		jne    jump_5ed5a
 	jump_5ecf3:
@@ -39416,7 +39416,7 @@ GLOBAL_FUNC(ASM_find_and_set_connected_face)	/* 0x05EC6C */
 		je     jump_5ecf3
 		mov    %edi,%ebx
 		mov    %esi,%edx
-		call   inside_the_quad
+		call   ac_inside_the_quad
 		test   %ax,%ax
 		je     jump_5ecf3
 		cwtl
@@ -39443,13 +39443,13 @@ GLOBAL_FUNC(ASM_find_and_set_connected_face)	/* 0x05EC6C */
 		mov    %edi,%ebx
 		add    %edx,%eax
 		mov    %esi,%edx
-		call   inside_the_triangle
+		call   ac_inside_the_triangle
 		test   %eax,%eax
 		je     jump_5eda4
 		mov    %edi,%ebx
 		mov    %esi,%edx
 		mov    %ebp,%eax
-		call   set_thing_height_on_face_tri64
+		call   ac_set_thing_height_on_face_tri64
 	jump_5eda4:
 		mov    0x4(%esp),%eax
 		sub    0x1c(%ebp),%eax
@@ -39522,13 +39522,13 @@ GLOBAL_FUNC(ASM_find_and_set_connected_face)	/* 0x05EC6C */
 		mov    %edi,%ebx
 		add    %edx,%eax
 		mov    %esi,%edx
-		call   inside_the_quad
+		call   ac_inside_the_quad
 		test   %eax,%eax
 		je     jump_5ee98
 		mov    %edi,%ebx
 		mov    %esi,%edx
 		mov    %ebp,%eax
-		call   set_thing_height_on_face_quad64
+		call   ac_set_thing_height_on_face_quad64
 	jump_5ee98:
 		mov    0x4(%esp),%eax
 		sub    0x1c(%ebp),%eax
@@ -51296,7 +51296,7 @@ GLOBAL_FUNC(ASM_make_peep_flee)	/* 0x06B98C */
 
 
 /*----------------------------------------------------------------*/
-search_for_danger:	/* 0x06B9E8 */
+GLOBAL_FUNC(ASM_search_for_danger)	/* 0x06B9E8 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -54065,7 +54065,7 @@ GLOBAL_FUNC(ASM_create_building_thing)	/* 0x7554C */
 		jl     jump_7557e
 		xor    %eax,%eax
 		mov    %cx,%ax
-		call   func_75ef8
+		call   ac_get_new_thing_with_index
 		test   %ax,%ax
 		jne    jump_75585
 	jump_7557e:
@@ -54807,7 +54807,7 @@ GLOBAL_FUNC (ASM_get_new_thing)	/* 0x075E30 */
 
 
 /*----------------------------------------------------------------*/
-func_75ef8:
+GLOBAL_FUNC(ASM_get_new_thing_with_index)	/* 0x075EF8 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -79482,7 +79482,7 @@ is_that_a_fluid_texture:	/* was 0x088FF0 */
 
 
 /*----------------------------------------------------------------*/
-process_map_crater:	/* 0x08907C */
+GLOBAL_FUNC(ASM_process_map_crater)	/* 0x08907C */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -80907,7 +80907,7 @@ GLOBAL_FUNC(ASM_process_map_craters)	/* 0x08A1EC */
 		xor    %eax,%eax
 		mov    %dl,%al
 		inc    %dl
-		call   process_map_crater
+		call   ac_process_map_crater
 		movsbl %dl,%eax
 		test   %eax,%eax
 		jge    jump_8a214

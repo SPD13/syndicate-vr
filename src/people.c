@@ -6807,6 +6807,14 @@ void process_persuaded(struct Thing *p_person)
         : : "a" (p_person));
 }
 
+/** Looks around the person for threats to react to.
+ */
+void search_for_danger(struct Thing *p_person)
+{
+    asm volatile ("call ASM_search_for_danger\n"
+        : : "a" (p_person) : "cc", "memory");
+}
+
 void process_danger(struct Thing *p_person)
 {
     asm volatile ("call ASM_process_danger\n"

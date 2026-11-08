@@ -95,12 +95,56 @@ ubyte check_big_point_triangle(int x, int y, int ux, int uy, int vx, int vy, int
     DIFFTEST_RETURN((ubyte)1);
 }
 
+/** Checks whether the point is inside the triangle face (precise coords).
+ * The asm does not preserve ebx and edx.
+ */
+int inside_the_triangle(struct SingleObjectFace3 *p_face, int x, int z)
+{
+    int ret;
+    asm volatile ("call ASM_inside_the_triangle\n"
+        : "=a" (ret), "+d" (x), "+b" (z) : "a" (p_face) : "cc", "memory");
+    return ret;
+}
+
+/** Sets the thing height from the triangle face plane at the point.
+ * The asm does not preserve ebx, ecx and edx.
+ */
+int set_thing_height_on_face_tri64(struct Thing *p_thing, int x, int z, int face)
+{
+    int ret;
+    asm volatile ("call ASM_set_thing_height_on_face_tri64\n"
+        : "=a" (ret), "+d" (x), "+b" (z), "+c" (face) : "a" (p_thing) : "cc", "memory");
+    return ret;
+}
+
 ushort set_thing_height_on_face_tri(struct Thing *p_thing, int x, int z, short face)
 {
     ushort ret;
     asm volatile (
       "call ASM_set_thing_height_on_face_tri\n"
         : "=r" (ret) : "a" (p_thing), "d" (x), "b" (z), "c" (face));
+    return ret;
+}
+
+/** Checks whether the point is inside the quad face (precise coords).
+ * The asm does not preserve ebx and edx.
+ */
+int inside_the_quad(struct SingleObjectFace4 *p_face, int x, int z)
+{
+    int ret;
+    asm volatile ("call ASM_inside_the_quad\n"
+        : "=a" (ret), "+d" (x), "+b" (z) : "a" (p_face) : "cc", "memory");
+    return ret;
+}
+
+/** Sets the thing height from the quad face plane at the point.
+ * The asm does not preserve ebx, ecx and edx.
+ */
+int set_thing_height_on_face_quad64(struct Thing *p_thing, int x, int z, int face)
+{
+    int ret;
+    asm volatile ("call ASM_set_thing_height_on_face_quad64\n"
+        : "=a" (ret), "+d" (x), "+b" (z), "+c" (face) : "a" (p_thing) : "cc", "memory");
     return ret;
 }
 

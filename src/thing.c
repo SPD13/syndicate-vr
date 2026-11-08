@@ -1747,6 +1747,17 @@ static DIFFTEST_REF_FUNC short get_new_thing_asm(void)
     return ret;
 }
 
+/** Takes the given thing index off the free list, if it is free.
+ * Returns non-zero when the index was claimed; only the low 16 bits matter.
+ */
+int get_new_thing_with_index(ThingIdx thing)
+{
+    int ret;
+    asm volatile ("call ASM_get_new_thing_with_index\n"
+        : "=a" (ret) : "a" (thing) : "cc", "memory");
+    return ret;
+}
+
 short get_new_thing(void)
 {
     ThingIdx new_thing, used_head, next_empty;
