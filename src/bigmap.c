@@ -24,6 +24,7 @@
 #include "bfmath.h"
 #include "bfmemut.h"
 
+#include "difftest.h"
 #include "enginprops.h"
 #include "enginsngtxtr.h"
 
@@ -256,53 +257,52 @@ ushort floor_texture_at_point(MapCoord cor_x, MapCoord cor_z)
     return floor_texture_at_tile(tile_x, tile_z);
 }
 
+static DIFFTEST_REF_FUNC int alt_at_point_asm(short x, short z)
+{
+    int ret;
+    int dummy_d;
+    asm volatile ("call ASM_alt_at_point\n"
+        : "=a" (ret), "=d" (dummy_d) : "a" (x), "d" (z));
+    return ret;
+}
+
 int alt_at_point(short x, short z)
 {
-#if 1
-    int ret;
-    asm volatile ("call ASM_alt_at_point\n"
-        : "=r" (ret) : "a" (x), "d" (z));
-    return ret;
-#else
     struct MyMapElement *p_mapel;
     short tile_x, tile_z;
     int alt0, alt1, alt2, alt3;
 
+    DIFFTEST_SHADOW_RET(alt_at_point, int, alt_at_point_asm(x, z));
+    // Short coords cannot exceed the map, so only negatives are rejected
+    if ((x < 0) || (z < 0))
+        DIFFTEST_RETURN((int)0);
+
     tile_x = MAPCOORD_TO_TILE(x);
     tile_z = MAPCOORD_TO_TILE(z);
-
-    if ((tile_x < 0) || (tile_x >= MAP_TILE_WIDTH))
-        return 0;
-    if ((tile_z < 0) || (tile_z >= MAP_TILE_HEIGHT))
-        return 0;
 
     p_mapel = &game_my_big_map[MAP_TILE_WIDTH * (tile_z) + (tile_x)];
     alt0 = p_mapel->Alt;
 
     if (tile_x == MAP_TILE_WIDTH - 1) {
-        p_mapel = &game_my_big_map[MAP_TILE_WIDTH * (tile_z) + (tile_x)];
+        alt1 = alt0;
     } else {
         p_mapel = &game_my_big_map[MAP_TILE_WIDTH * (tile_z) + (tile_x+1)];
+        alt1 = p_mapel->Alt;
     }
-    alt1 = p_mapel->Alt;
 
     if (tile_z == MAP_TILE_HEIGHT - 1) {
-        p_mapel = &game_my_big_map[MAP_TILE_WIDTH * (tile_z) + (tile_x)];
-    } else {
-        p_mapel = &game_my_big_map[MAP_TILE_WIDTH * (tile_z+1) + (tile_x)];
-    }
-    alt2 = p_mapel->Alt;
-
-    if (tile_z == MAP_TILE_HEIGHT - 1) {
+        alt2 = alt0;
         alt3 = alt1;
     } else {
+        p_mapel = &game_my_big_map[MAP_TILE_WIDTH * (tile_z+1) + (tile_x)];
+        alt2 = p_mapel->Alt;
         p_mapel = &game_my_big_map[MAP_TILE_WIDTH * (tile_z+1) + (tile_x+1)];
         alt3 = p_mapel->Alt;
     }
 
     if (alt1 != alt0 || alt0 != alt2 || alt2 != alt3)
     {
-        short sub_x, sub_z;
+        int sub_x, sub_z;
 
         sub_x = x & 0xff;
         sub_z = z & 0xff;
@@ -312,8 +312,7 @@ int alt_at_point(short x, short z)
             alt0 = alt0 + ((alt1 - alt0) * sub_x >> 8) + ((alt2 - alt0) * sub_z >> 8);
         }
     }
-    return alt0 << 8;
-#endif
+    DIFFTEST_RETURN(alt0 << 8);
 }
 
 int alt_at_point_under_height(int cor_x, int cor_z, int h)
