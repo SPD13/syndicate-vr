@@ -1609,11 +1609,25 @@ int get_some_phwoar(int a1, int a2, int a3)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void give_some_phwoar(int a1, int a2, int a3)
+static DIFFTEST_REF_FUNC void give_some_phwoar_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
     asm volatile ("call ASM_give_some_phwoar\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
+}
+
+void give_some_phwoar(int a1, int a2, int a3)
+{
+    ushort ph_idx;
+    ushort old_free;
+
+    DIFFTEST_SHADOW(give_some_phwoar, give_some_phwoar_asm(a1, a2, a3));
+    ph_idx = (ushort)a1;
+    old_free = phwoar_free;
+    phwoar_free = ph_idx;
+    phwoar[ph_idx].child = old_free;
+    phwoar_num_used--;
+    phwoar_num_free++;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
