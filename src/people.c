@@ -6829,10 +6829,48 @@ void person_drop_item(struct Thing *p_person)
         : : "a" (p_person));
 }
 
-void person_dieing(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_dieing_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_dieing\n"
         : : "a" (p_person));
+}
+
+void person_dieing(struct Thing *p_person)
+{
+    ushort nxframe;
+
+    DIFFTEST_SHADOW(person_dieing, person_dieing_asm(p_person));
+    p_person->Radius = 40;
+    p_person->Timer1 -= fifties_per_gameturn;
+    if (p_person->Timer1 >= 0)
+        return;
+
+    p_person->Timer1 = p_person->StartTimer1;
+    nxframe = frame[(ushort)p_person->Frame].Next;
+    if ((frame[nxframe].Flags & 0x01) == 0)
+    {
+        p_person->Frame = nxframe;
+        return;
+    }
+
+    p_person->State = PerSt_DEAD;
+    group_actions[p_person->U.UPerson.Group].Alive--;
+    group_actions[p_person->U.UPerson.Group].Dead++;
+    if ((p_person->Flag & TngF_Persuaded) != 0)
+        stop_being_persuaded(p_person);
+    p_person->U.UPerson.Timer2 = 50;
+    p_person->Flag &= ~TngF_Persuaded;
+    if (p_person->U.UPerson.AnimMode == ANIM_PERS_Unkn12)
+        p_person->Flag |= TngF_Unkn02000000;
+    if (p_person->U.UPerson.AnimMode == ANIM_PERS_LAY_DOWN)
+    {
+        p_person->U.UPerson.AnimMode = ANIM_PERS_DEAD_BODY;
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+        p_person->U.UPerson.FrameId.Version[3] = 1;
+        p_person->U.UPerson.FrameId.Version[4] = 0;
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+    }
 }
 
 static DIFFTEST_REF_FUNC void person_dead_asm(struct Thing *p_person)
