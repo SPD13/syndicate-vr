@@ -64,7 +64,11 @@ def git(*args, cwd=REPO, check=True):
 
 
 def script(cwd, name, *args, timeout=1800):
-    return run([BASH, 'tools/decomp-agent/' + name] + list(args), cwd=cwd, timeout=timeout)
+    try:
+        return run([BASH, 'tools/decomp-agent/' + name] + list(args), cwd=cwd, timeout=timeout)
+    except subprocess.TimeoutExpired as e:
+        out = e.stdout.decode(errors='replace') if isinstance(e.stdout, bytes) else (e.stdout or '')
+        return subprocess.CompletedProcess(e.cmd, 124, out + ' TIMEOUT after %ds' % timeout, '')
 
 
 def ledger_add(entry):
@@ -143,6 +147,9 @@ def attempt(t, args):
     log('%s: worktree ready, pre-building' % fn)
     t0 = time.time()
     p = script(wt, 'build.sh', '--difftest')
+    if p.returncode != 0:  # once more: a sleeping PC or a stray lock can break the first try
+        log('%s: base build failed (%d), retrying' % (fn, p.returncode))
+        p = script(wt, 'build.sh', '--difftest')
     if p.returncode != 0:
         log('%s: base build failed!\n%s' % (fn, p.stdout[-2000:]))
         ledger_add({'fn': fn, 'status': 'base-build-failed'})
@@ -268,7 +275,12 @@ def main():
         t = targets[0]
         tried.add(t['fn'])
         log('=== target %s (%d insns, %s)' % (t['fn'], t['insns'], t['cfile']))
-        attempt(t, args)
+        try:
+            attempt(t, args)
+        except Exception as e:  # keep the loop going; record and clean up
+            log('%s: FAILED (exception %r)' % (t['fn'], e))
+            ledger_add({'fn': t['fn'], 'status': 'exception', 'notes': repr(e)[:1000]})
+            cleanup_worktree(os.path.join(WORKTREES, t['fn']), 'decomp/try/' + t['fn'])
         done += 1
         if args.once or args.fn or done >= args.max_targets:
             break
