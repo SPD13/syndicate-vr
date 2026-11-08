@@ -1,0 +1,41 @@
+#!/bin/bash
+# Whole-game state trace of the 6 mission scenarios, for comparing builds.
+# Usage: tools/decomp-agent/statetrace.sh <outdir> [scenario ...]
+# Runs build/difftest of this worktree with no function shadowed and writes
+# <outdir>/<scenario>.trace: one line per turn with a hash of the things
+# memory and the random seed. Two builds behave the same on these scenarios
+# when `diff -r` of their outdirs is empty. Used to check routing changes,
+# which the per-function difftest cannot see (both sides use the same
+# wrapper). Game data from $SWARS_GAMEDATA as in difftest_run.sh.
+if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
+    exec "$(dirname "$0")/msys.sh" "$(printf "%q " "$0" "$@")"
+fi
+set -u
+OUTDIR="$(mkdir -p "$1" && cd "$1" && pwd)"; shift
+SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1}"
+TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
+
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+COMMON="$(git -C "$REPO" rev-parse --path-format=absolute --git-common-dir)"
+GAMEDATA="${SWARS_GAMEDATA:-$(dirname "$(dirname "$COMMON")")/gamedata}"
+EXE="$REPO/build/difftest/src/syndwarsfx.exe"
+[ -f "$EXE" ] || EXE="$REPO/build/difftest/src/syndwarsfx"
+if [ ! -f "$EXE" ]; then echo "ERROR: no difftest build at $EXE"; exit 1; fi
+for d in "$GAMEDATA"/*.dll; do
+    [ -f "$d" ] && [ ! -f "$(dirname "$EXE")/$(basename "$d")" ] && cp "$d" "$(dirname "$EXE")/"
+done
+
+cd "$GAMEDATA"
+RCALL=0
+for SC in $SCENARIOS; do
+    T="$OUTDIR/${SC/,/_}.trace"
+    # A function name that matches nothing enables the turn limit only
+    SWARS_DIFFTEST_FN=statetrace_none SWARS_DIFFTEST_TURNS="$TURNS" \
+    SWARS_DIFFTEST_FAST=1 SWARS_DIFFTEST_LOG="$OUTDIR/${SC/,/_}.log" \
+    SWARS_STATETRACE="$T" SWARS_SEED="${SWARS_SEED:-12345}" timeout 600 "$EXE" -q -W -m "$SC" > /dev/null 2>&1
+    RC=$?
+    echo "  scenario $SC: rc=$RC turns=$(wc -l < "$T" 2>/dev/null || echo 0)"
+    # 4: no calls of the (absent) function, the normal end
+    [ $RC -eq 0 ] || [ $RC -eq 4 ] || RCALL=1
+done
+exit $RCALL

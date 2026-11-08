@@ -2369,6 +2369,11 @@ void init_random_seed(void)
     else
     {
         lbSeed = time(0);
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+        // fixed seed, for comparing whole runs of two builds
+        if (getenv("SWARS_SEED") != NULL)
+            lbSeed = strtoul(getenv("SWARS_SEED"), NULL, 0);
+#endif
     }
     srand(lbSeed);
 }
@@ -6694,6 +6699,74 @@ void game_process_orbital_station_explode(void)
     }
 }
 
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+/** Writes a hash of the things memory and the random seed each turn to the
+ * file named by $SWARS_STATETRACE, so that two builds can be compared turn
+ * by turn (e.g. after routing asm through C wrappers). PTarget, the only
+ * pointer in a thing, is hashed as a thing index, since runs place the
+ * things memory apart.
+ */
+static void statetrace_turn(void)
+{
+    static FILE *fp = NULL;
+    static TbBool tried = false;
+    const u32 *p, *beg, *end;
+    ThingIdx thing;
+    u32 h;
+
+    if (!tried) {
+        const char *fname = getenv("SWARS_STATETRACE");
+        tried = true;
+        if (fname != NULL)
+            fp = fopen(fname, "w");
+    }
+    if (fp == NULL)
+        return;
+    beg = (const u32 *)((ubyte *)sthings - STHINGS_LIMIT * sizeof(struct SimpleThing));
+    end = (const u32 *)((ubyte *)things + THINGS_LIMIT * sizeof(struct Thing));
+    h = 2166136261u;
+    for (p = beg; p < end; p++)
+    {
+        u32 w = *p;
+        if (p >= (const u32 *)things)
+        {
+            ulong off = (ubyte *)p - (ubyte *)things;
+            if (off % sizeof(struct Thing) == offsetof(struct Thing, PTarget)) {
+                struct Thing *p_target = (struct Thing *)w;
+                thing = things[off / sizeof(struct Thing)].PTarget - things;
+                w = (p_target == NULL) ? 0xFFFFFFFFu : (u32)thing;
+            }
+            // Frame and its Timer1 advance when the thing is drawn, and
+            // drawing depends on timing; keep StartFrame and StartTimer1
+            if ((off % sizeof(struct Thing) == offsetof(struct Thing, Frame)) ||
+              (off % sizeof(struct Thing) == offsetof(struct Thing, Timer1)))
+                w &= 0xFFFF0000u;
+        }
+        h = (h ^ w) * 16777619u;
+    }
+    fprintf(fp, "%lu %08x %08lx\n", (ulong)gameturn, (uint)h, (ulong)lbSeed);
+    fflush(fp);
+    if ((getenv("SWARS_STATETRACE_DUMP") != NULL) &&
+      (strtoul(getenv("SWARS_STATETRACE_DUMP"), NULL, 0) == gameturn))
+    {
+        char fname[256];
+        FILE *dfp;
+        snprintf(fname, sizeof(fname), "%s.dump", getenv("SWARS_STATETRACE"));
+        dfp = fopen(fname, "wb");
+        if (dfp != NULL) {
+            ulong lo = (ulong)beg;
+            fwrite(&lo, sizeof(lo), 1, dfp);
+            fwrite(beg, 1, (ubyte *)end - (ubyte *)beg, dfp);
+            fclose(dfp);
+        }
+    }
+}
+#else
+static void statetrace_turn(void)
+{
+}
+#endif
+
 void game_process(void)
 {
     debug_multicolor_sprite(193);
@@ -6754,6 +6827,7 @@ void game_process(void)
         game_process_orbital_station_explode();
         gameturn++;
         difftest_game_turn();
+        statetrace_turn();
         scene_post_effect_prepare();
     }
     PacketRecord_Close();
