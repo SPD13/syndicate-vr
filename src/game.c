@@ -1777,11 +1777,43 @@ int calc_object_height(int a1, int a2, int a3, int a4)
 }
 
 
-void find_the_tall_buildings(void)
+static DIFFTEST_REF_FUNC void find_the_tall_buildings_asm(void)
 {
     asm volatile ("call ASM_find_the_tall_buildings\n"
         :  :  : "eax" );
     return;
+}
+
+void find_the_tall_buildings(void)
+{
+    short tile_x, tile_z;
+    ThingIdx thing;
+
+    DIFFTEST_SHADOW(find_the_tall_buildings, find_the_tall_buildings_asm());
+    for (tile_x = 0; tile_x < 128; tile_x++)
+    {
+        for (tile_z = 0; tile_z < 128; tile_z++)
+        {
+            thing = game_my_big_map[tile_z * 128 + tile_x].Child;
+            while (thing != 0)
+            {
+                if (thing > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[thing];
+                    if (p_thing->Type == TT_BUILDING)
+                        p_thing->U.UObject.BHeight = calc_object_height(
+                          (ushort)p_thing->U.UObject.Object, 0, 0, 0);
+                    thing = things[thing].Next;
+                }
+                else
+                {
+                    thing = sthings[thing].Next;
+                }
+            }
+        }
+    }
 }
 
 //TODO change ret type to ThingIdx, when no longer used in ASM
