@@ -1125,6 +1125,18 @@ void check_mouse_overvehicle(struct Thing *p_thing, ubyte target_assign)
     }
 }
 
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int can_the_tank_run_over(int a1, int a2)
+{
+    int ra = a1, rd = a2;
+    asm volatile ("call ASM_can_the_tank_run_over\n"
+        : "+a" (ra), "+d" (rd) : : "ebx", "ecx", "esi", "edi", "cc", "memory");
+    return ra;
+}
+
 /** Advances one crater from the map craters buffer.
  */
 void process_map_crater(int crater)
@@ -1611,6 +1623,18 @@ void map_lights_update(void)
     asm volatile ("call ASM_map_lights_update\n"
         :  :  : "eax" );
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int train_related_func_01(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_train_related_func_01\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void func_74934(void)
 {
@@ -1624,6 +1648,18 @@ void init_crater_textures(void)
         :  :  : "eax" );
     return;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int calc_object_height(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_calc_object_height\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
+    return ra;
+}
+
 
 void find_the_tall_buildings(void)
 {
@@ -1633,6 +1669,29 @@ void find_the_tall_buildings(void)
 }
 
 //TODO change ret type to ThingIdx, when no longer used in ASM
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void create_unkn_building_subtp27(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_create_unkn_building_subtp27\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int func_4225c(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_func_4225c\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+
 int create_train_carriage(short cor_dx, short cor_dy, short cor_dz, short otype)
 {
     int ret;

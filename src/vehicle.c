@@ -582,6 +582,17 @@ ushort veh_passenger_count(struct Thing *p_veh)
     }
     return c;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void VNAV_find_nearnodes(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_VNAV_find_nearnodes\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void VNAV_unkn_func_207(struct Thing *p_thing)
 {
@@ -597,6 +608,18 @@ int check_for_a_vehicle_here(int x, int z, struct Thing *p_vehicle)
         : "=r" (ret) : "a" (x), "d" (z), "b" (p_vehicle));
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int person_poke(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_person_poke\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void person_hit_by_car(struct Thing *p_person, struct Thing *p_vehicle)
 {
@@ -1048,18 +1071,53 @@ void start_landing(struct Thing *p_vehicle)
         p_vehicle->U.UVehicle.TNode = 0;
     }
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int exit_pod(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_exit_pod\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
+    return ra;
+}
+
 
 void process_shuttle_pod(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_shuttle_pod\n"
         : : "a" (p_vehicle));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void explode_thing_object(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_explode_thing_object\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void init_vehicle_explode(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_init_vehicle_explode\n"
         : : "a" (p_vehicle));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int check_tank_collision(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_check_tank_collision\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void process_tank_stationary(struct Thing *p_vehicle)
 {
@@ -1108,6 +1166,17 @@ void set_passengers_location(struct Thing *p_vehicle)
     // TODO the original then walks the passenger list again, up to 100
     // entries, without any side effect (likely stripped debug code)
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void swoosh_veh(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_swoosh_veh\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
+}
+
 
 void move_flying_vehicle(struct Thing *p_vehicle)
 {
@@ -1195,6 +1264,18 @@ void process_tank_turret(struct Thing *p_tank)
     p_tank->OldTarget = abs(angle);
     p_turret->U.UMGun.AngleY = (p_turret->U.UMGun.AngleY + 2*LbFPMath_PI) & LbFPMath_AngleMask;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int find_next_ship_tnode(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_find_next_ship_tnode\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void process_ship(struct Thing *p_vehicle)
 {
@@ -1213,6 +1294,29 @@ void process_mech(struct Thing *p_vehicle)
     asm volatile ("call ASM_process_mech\n"
         : : "a" (p_vehicle));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void matrix_transpose_cp(int a1, int a2, int a3)
+{
+    int ra = a1, rd = a2, rb = a3;
+    asm volatile ("call ASM_matrix_transpose_cp\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "esi", "edi", "cc", "memory");
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int mech_unkn_func_08(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_mech_unkn_func_08\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+
 
 void process_mech_unknown1(struct Thing *p_vehicle)
 {
@@ -1320,6 +1424,17 @@ int process_my_crashing_vehicle(struct Thing *p_vehicle)
     p_vehicle->Y <<= 3;
     DIFFTEST_RETURN((int)0);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void set_xz_for_unkn3(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_set_xz_for_unkn3\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 int train_unkn_st21_exit_func_1(struct Thing *p_vehicle)
 {
@@ -1328,6 +1443,17 @@ int train_unkn_st21_exit_func_1(struct Thing *p_vehicle)
         : "=r" (ret) : "a" (p_vehicle));
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void thing_unkn_change_speed(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_thing_unkn_change_speed\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void train_unkn_st18_func_1(struct Thing *p_vehicle)
 {
@@ -1346,12 +1472,58 @@ void move_vehicle(struct Thing *p_vehicle)
     asm volatile ("call ASM_move_vehicle\n"
         : : "a" (p_vehicle));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void person_clear_route_and_teleport_to_vehicle(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_person_clear_route_and_teleport_to_vehicle\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int train_unkn_func_02(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_train_unkn_func_02\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+
 
 void train_unkn_st20_func_1(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_train_unkn_st20_func_1\n"
         : : "a" (p_vehicle));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void continue_flying_wander(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_continue_flying_wander\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int do_next_navigate_index(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_do_next_navigate_index\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+
 
 void process_my_flying_vehicle(struct Thing *p_vehicle)
 {
@@ -1370,6 +1542,18 @@ void process_stop_as_soon_as_you_can(struct Thing *p_vehicle)
     asm volatile ("call ASM_process_stop_as_soon_as_you_can\n"
         : : "a" (p_vehicle));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int flying_alt(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_flying_alt\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void process_hovering_vehicle(struct Thing *p_vehicle)
 {
@@ -1446,6 +1630,18 @@ void set_vehicle_alt(struct Thing *p_vehicle)
     p_vehicle->Y += dt_alt;
     p_vehicle->U.UVehicle.AngleX = (-dt_alt) >> 3;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int check_for_a_moving_vehicle_here(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_check_for_a_moving_vehicle_here\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void process_unstopping(struct Thing *p_vehicle)
 {
@@ -1464,6 +1660,17 @@ void process_vehicle_goto_point_land(struct Thing *p_vehicle)
     asm volatile ("call ASM_process_vehicle_goto_point_land\n"
         : : "a" (p_vehicle));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void scan_max_height_ahead(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_scan_max_height_ahead\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void process_vehicle_goto_point_fly(struct Thing *p_vehicle)
 {

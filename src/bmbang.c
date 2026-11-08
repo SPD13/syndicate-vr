@@ -362,6 +362,17 @@ void bang_new4(int x, int y, int z, int type)
 {
     new_bang(x, y, z, type, 0, 0);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void unused_func_192(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_unused_func_192\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
+}
+
 
 ubyte unused_func_026(ubyte a1)
 {
@@ -378,6 +389,18 @@ void unused_func_025(short a1, short a2, short a3)
       "call ASM_unused_func_025\n"
         : : "a" (a1), "d" (a2), "b" (a3));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int del_thing_vectors_from_mapwho(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_del_thing_vectors_from_mapwho\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void do_shockwave(int x, int y, int z, int radius, int intensity, struct Thing *p_owner)
 {

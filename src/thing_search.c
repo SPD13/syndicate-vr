@@ -827,6 +827,17 @@ ThingIdx find_person_which_can_be_persuaded_now(short X, short Z, ushort R,
 
     return thing;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void find_nearest_player(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_find_nearest_player\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 short find_nearest_from_group(struct Thing *p_person, ushort group, ubyte no_persuaded)
 {

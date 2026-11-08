@@ -137,6 +137,17 @@ void thing_goto_point_fast(struct Thing *p_thing, short x, short y, short z, int
       "call ASM_thing_goto_point_fast\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z), "g" (plyr));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void clear_player_protectors_paths(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_clear_player_protectors_paths\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void thing_goto_point(struct Thing *p_thing, short x, short y, short z)
 {
@@ -152,6 +163,17 @@ void thing_goto_point_on_face_fast(struct Thing *p_thing, short x, short z, shor
       "call ASM_thing_goto_point_on_face_fast\n"
         : : "a" (p_thing), "d" (x), "b" (z), "c" (face), "g" (plyr));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void find_bezier_nav_point(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_find_bezier_nav_point\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void thing_goto_point_on_face(struct Thing *p_thing, short x, short z, short face)
 {

@@ -258,6 +258,17 @@ void process_dome1(struct Thing *p_building)
         break;
     }
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void do_people_on_exploding_building(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_do_people_on_exploding_building\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 ushort explode_thing_building(short thing, short x, short y, short z)
 {
@@ -613,6 +624,18 @@ void bul_hit_vector(int x, int y, int z, short col, int hp, int type)
         : : "a" (x), "d" (y), "b" (z), "c" (col), "S" (stkargs)
         : "cc", "memory");
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int rotate_obj(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_rotate_obj\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void rotate_object(struct Thing *p_object)
 {
@@ -639,6 +662,18 @@ int mounted_los(int x1, int y1, int z1, int x2, int y2, int z2)
         : "cc", "memory");
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int kill_flags(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_kill_flags\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
+    return ra;
+}
+
 
 ThingIdx aquire_target(struct Thing *p_gun)
 {

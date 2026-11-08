@@ -67,6 +67,18 @@ void tnode_all_unlink_thing(ThingIdx thing)
         tnode_unlink_thing(tnode, thing);
     }
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int good_node(int a1, int a2, int a3)
+{
+    int ra = a1, rd = a2, rb = a3;
+    asm volatile ("call ASM_good_node\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "cc", "memory");
+    return ra;
+}
+
 
 short get_next_tnode(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
 {
@@ -76,6 +88,42 @@ short get_next_tnode(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
         : "=r" (ret) : "a" (p_vehicle), "d" (p_tnode));
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int VNAV_renavigate(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_VNAV_renavigate\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int VNAV_there(int a1)
+{
+    int ra = a1;
+    asm volatile ("call ASM_VNAV_there\n"
+        : "+a" (ra) : : "edx", "ebx", "ecx", "esi", "edi", "cc", "memory");
+    return ra;
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int VNAV_turn(int a1, int a2, int a3)
+{
+    int ra = a1, rd = a2, rb = a3;
+    asm volatile ("call ASM_VNAV_turn\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "esi", "edi", "cc", "memory");
+    return ra;
+}
+
+
+
 
 void process_next_vnav_turn(struct Thing *p_vehicle)
 {

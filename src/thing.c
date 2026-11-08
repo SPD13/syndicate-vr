@@ -398,6 +398,28 @@ void init_things(void)
     init_just_things();
     init_commands();
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void quick_light_unkn_func_07(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_quick_light_unkn_func_07\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void quick_light_unkn_func_09(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_quick_light_unkn_func_09\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+
 
 void quick_light_unkn_func_04(short a1, int a2, short a3, short a4)
 {
@@ -419,6 +441,17 @@ void unkn_full_update_lights(void)
     }
     next_unkn_full_light = 1;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void quick_light_unkn_func_05(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_quick_light_unkn_func_05\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void apply_full_light(short lx, short lz, ushort b, ushort intens, ushort lid)
 {
@@ -512,6 +545,17 @@ void process_c_iff(struct Thing *p_mine)
       "call ASM_process_c_iff\n"
         : : "a" (p_mine));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void init_electricity_bomb(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_init_electricity_bomb\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void process_mine(struct SimpleThing *p_mine)
 {
@@ -958,6 +1002,17 @@ void process_spark(struct SimpleThing *p_sthing)
       "call ASM_process_spark\n"
         : : "a" (p_sthing));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void apply_texture_to_face(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_apply_texture_to_face\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
+}
+
 
 void process_intelligent_door(struct SimpleThing *p_sthing)
 {
@@ -988,6 +1043,17 @@ ubyte napalm_person(struct Thing *p_person, ushort multi)
         : "=r" (ret) : "a" (p_person), "d" (multi));
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void person_go_insane(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_person_go_insane\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
+}
+
 
 void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
@@ -1082,6 +1148,17 @@ void test_stuff(int x, int y, int z, ushort owner)
       "call ASM_test_stuff\n"
         : : "a" (x), "d" (y), "b" (z), "c" ((int)owner));
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void do_explode(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_do_explode\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void process_nuclear_bomb(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {

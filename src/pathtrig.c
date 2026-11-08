@@ -396,6 +396,17 @@ int triangle_findSE8(int x, int y)
     }
     DIFFTEST_RETURN(tri);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void fill_concave(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_fill_concave\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void make_edge(int x1, int y1, int x2, int y2)
 {
@@ -605,6 +616,18 @@ void thin_wall(int x1, int y1, int x2, int y2, ubyte en1, ubyte en2)
     }
 #endif
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int triangle_route_do_unkn7(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_triangle_route_do_unkn7\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 s32 ma_triangle_route_4(int triA, int triB, s32 *p_treert)
 {
@@ -613,6 +636,18 @@ s32 ma_triangle_route_4(int triA, int triB, s32 *p_treert)
         : "=r" (ret) : "a" (triA), "d" (triB), "b" (p_treert));
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int fov_region(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_fov_region\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
   s32 treert_len, struct Path *p_path, int *p_len2)
@@ -712,6 +747,18 @@ int unused_func_115(int X1, int Z1, int X2, int Z2)
         : "=r" (ret) : "a" (X1), "d" (Z1), "b" (X2), "c" (Z2));
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int func_5cff0(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_func_5cff0\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 short collide_coords(short *p_X, short *p_Y, short *p_Z)
 {
@@ -2336,6 +2383,18 @@ void generate_thin_paths(void)
     LbMemoryFree(faces3_added);
     LbMemoryFree(faces4_added);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int func_5fcf4(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_func_5fcf4\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void triangulation_unkn_func_002(int x1, int z1, int x2, int z2)
 {
