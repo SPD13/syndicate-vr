@@ -2592,12 +2592,112 @@ void compound_mission_immediate_start_next(void)
     restart_back_into_mission(missi);
 }
 
-short test_single_mission(short missi)
+static DIFFTEST_REF_FUNC short test_single_mission_asm(short missi)
 {
     short ret;
     asm volatile ("call ASM_test_single_mission\n"
-        : "=r" (ret) : "a" (missi));
+        : "=a" (ret) : "a" (missi));
     return ret;
+}
+
+short test_single_mission(short missi)
+{
+    struct Objective *p_objectv;
+    ushort objectv;
+    ushort level;
+    ushort n_total, n_done;
+    ushort bank_total, bank_done;
+    ushort n_failed;
+    ushort n_pri3_done, n_pri3_undone;
+    ushort count;
+    short ret;
+
+    DIFFTEST_SHADOW_RET(test_single_mission, short, test_single_mission_asm(missi));
+
+    level = (((s32)(ushort)current_level - 1) % 15) + 1;
+    n_total = 0;
+    n_done = 0;
+    bank_total = 0;
+    bank_done = 0;
+    n_failed = 0;
+    n_pri3_done = 0;
+    n_pri3_undone = 0;
+
+    count = 0;
+    objectv = mission_list[missi].SuccessHead;
+    while (objectv != 0)
+    {
+        if (count++ >= 100)
+            break;
+        p_objectv = &game_used_objectives[objectv];
+        if ((p_objectv->Level == level) && (p_objectv->Map == current_map))
+        {
+            if (p_objectv->Pri == mission_list[missi].BankTest)
+            {
+                bank_total++;
+                ret = test_objective(objectv, 1);
+                n_total++;
+                if (ret < 0) {
+                    n_failed++;
+                } else if (ret > 0) {
+                    bank_done++;
+                    n_done++;
+                }
+            }
+            else
+            {
+                if (p_objectv->Pri < mission_list[missi].BankTest)
+                    n_done++;
+                n_total++;
+            }
+        }
+        objectv = game_used_objectives[objectv].Next;
+    }
+
+    if ((bank_total == bank_done) && (bank_total > 0))
+        mission_list[missi].BankTest++;
+
+    if ((n_done == n_total) && (n_total > 0))
+        DIFFTEST_RETURN((short)1);
+
+    count = 0;
+    objectv = mission_list[missi].FailHead;
+    while (objectv != 0)
+    {
+        if (count++ >= 90)
+            break;
+        p_objectv = &game_used_objectives[objectv];
+        if ((p_objectv->Level == level) && (p_objectv->Map == current_map))
+        {
+            if ((byte_1C844F != 0) && ((lbShift & 0x01) != 0))
+                ret = test_objective(objectv, 1);
+            else
+                ret = test_objective(objectv, 0);
+            p_objectv = &game_used_objectives[objectv];
+            p_objectv->Status = 0;
+            if (p_objectv->Pri == 3)
+            {
+                if (ret > 0)
+                    n_pri3_done++;
+                else
+                    n_pri3_undone++;
+            }
+            else if (ret > 0)
+            {
+                if (p_objectv->ObjText != 0)
+                    ingame.fld_unkCB5 = p_objectv->ObjText;
+                n_failed++;
+                break;
+            }
+        }
+        objectv = game_used_objectives[objectv].Next;
+    }
+
+    if ((n_pri3_done != 0) && (n_pri3_undone == 0))
+        DIFFTEST_RETURN((short)-1);
+    if (n_failed != 0)
+        DIFFTEST_RETURN((short)-1);
+    DIFFTEST_RETURN((short)0);
 }
 
 static DIFFTEST_REF_FUNC void post_process_blips_asm(void)
