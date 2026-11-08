@@ -40,6 +40,7 @@
 #include "bmcrater.h"
 #include "building.h"
 #include "campaign.h"
+#include "difftest.h"
 #include "game.h"
 #include "packet.h"
 #include "game_data.h"
@@ -4186,12 +4187,47 @@ int gun_out_anim(struct Thing *p_person, ubyte shoot_flag)
     }
 }
 
-ushort player_weapon_time(struct Thing *p_person)
+static DIFFTEST_REF_FUNC ushort player_weapon_time_asm(struct Thing *p_person)
 {
     ushort ret;
     asm volatile ("call ASM_player_weapon_time\n"
-        : "=r" (ret) : "a" (p_person));
+        : "=a" (ret) : "a" (p_person));
     return ret;
+}
+
+ushort player_weapon_time(struct Thing *p_person)
+{
+    PlayerInfo *p_player;
+    ushort plyr, plagent;
+    ushort wi;
+
+    DIFFTEST_SHADOW_RET(player_weapon_time, ushort, player_weapon_time_asm(p_person));
+    if ((p_person->Flag2 & TgF2_Unkn0800) != 0)
+        DIFFTEST_RETURN((ushort)0);
+
+    plyr = p_person->U.UPerson.ComCur >> 2;
+    plagent = p_person->U.UPerson.ComCur & 3;
+    p_player = &players[plyr];
+    for (wi = 0; wi < 31; wi++)
+    {
+        if (p_player->WepDelays[plagent][wi] != 0)
+            p_player->WepDelays[plagent][wi]--;
+    }
+
+    if ((p_person->Flag & TngF_InVehicle) != 0)
+    {
+        struct Thing *p_vehicle;
+
+        p_vehicle = &things[p_person->U.UPerson.Vehicle];
+        if ((p_vehicle->SubType == SubTT_VEH_TANK) || (p_vehicle->SubType == SubTT_VEH_MECH))
+        {
+            if (p_person->U.UPerson.WeaponTurn > 0)
+                DIFFTEST_RETURN((ushort)(p_person->U.UPerson.WeaponTurn - 1));
+            DIFFTEST_RETURN((ushort)0);
+        }
+    }
+
+    DIFFTEST_RETURN((ushort)p_player->WepDelays[plagent][p_person->U.UPerson.CurrentWeapon]);
 }
 
 ThingIdx person_is_non_selected_agent(struct Thing *p_person)
