@@ -4930,15 +4930,72 @@ ubyte vector_in_way(struct Thing *p_thing, int dx, int dz)
     DIFFTEST_RETURN((ubyte)1);
 }
 
-ushort check_col_collision(int x, int y, int z)
+static DIFFTEST_REF_FUNC ushort check_col_collision_asm(int x, int y, int z)
 {
-#if 1
     ushort ret;
     asm volatile (
       "call ASM_check_col_collision\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z));
+        : "=a" (ret) : "a" (x), "d" (y), "b" (z));
     return ret;
-#endif
+}
+
+ushort check_col_collision(int x, int y, int z)
+{
+    struct MyMapElement *p_mapel;
+    s32 tile_x, tile_z;
+    s32 alt0, alt1, alt2, alt3, alt;
+    s32 fr_x, fr_z;
+    s32 quad;
+    short colmn, hlevel;
+
+    DIFFTEST_SHADOW_RET(check_col_collision, ushort, check_col_collision_asm(x, y, z));
+    tile_x = x >> 8;
+    tile_z = z >> 8;
+    if ((tile_x < 0) || (tile_x >= MAP_TILE_WIDTH) || (tile_z < 0) || (tile_z >= MAP_TILE_WIDTH))
+        DIFFTEST_RETURN((ushort)0);
+
+    p_mapel = &game_my_big_map[MAP_TILE_WIDTH * tile_z + tile_x];
+    // Altitudes at the 4 corners of the tile
+    alt0 = p_mapel[0].Alt;
+    alt1 = p_mapel[1].Alt;
+    alt2 = p_mapel[MAP_TILE_WIDTH].Alt;
+    alt3 = p_mapel[MAP_TILE_WIDTH + 1].Alt;
+    if ((alt0 == alt1) && (alt2 == alt0) && (alt3 == alt2))
+    {
+        alt = alt1;
+    }
+    else
+    {
+        fr_x = x & 0xFF;
+        fr_z = z & 0xFF;
+        if (fr_x + fr_z < 256)
+        {
+            alt = alt0 + (((alt1 - alt0) * fr_x) >> 8);
+            alt += ((alt2 - alt0) * fr_z) >> 8;
+        }
+        else
+        {
+            alt = alt3 + (((alt2 - alt3) * (256 - fr_x)) >> 8);
+            alt += ((alt1 - alt3) * (256 - fr_z)) >> 8;
+        }
+    }
+    if (alt > y)
+        DIFFTEST_RETURN((ushort)0xFFFF);
+
+    colmn = p_mapel->ColumnHead & 0x0FFF;
+    if (colmn == 0)
+        DIFFTEST_RETURN((ushort)0);
+
+    if ((x & 0xFF) > 127)
+        quad = ((z & 0xFF) > 127) ? 2 : 1;
+    else
+        quad = ((z & 0xFF) > 127) ? 3 : 0;
+
+    hlevel = (short)((s32)(((u32)y << 3) - ((u32)p_mapel->Alt << 3)) >> 7);
+    if (hlevel > 31)
+        DIFFTEST_RETURN((ushort)0);
+
+    DIFFTEST_RETURN((ushort)(game_col_columns[colmn].QBits[quad] & (3u << (hlevel & 0x1F))));
 }
 
 ThingIdx thing_collide_with_thing_when_moved_by(struct Thing *p_person, short sh_x, short sh_z)
