@@ -2629,13 +2629,127 @@ void send_ship_to(int a1, int a2, int a3, int a4)
 
 
 
-int start_goto_vehicle(struct Thing *p_vehicle, int x, int z)
+static DIFFTEST_REF_FUNC int start_goto_vehicle_asm(struct Thing *p_vehicle, int x, int z)
 {
     int ret;
     asm volatile (
       "call ASM_start_goto_vehicle\n"
-        : "=r" (ret) : "a" (p_vehicle), "d" (x), "b" (z));
+        : "=a" (ret) : "a" (p_vehicle), "d" (x), "b" (z));
     return ret;
+}
+
+int start_goto_vehicle(struct Thing *p_vehicle, int x, int z)
+{
+    struct MyPath *p_path;
+    short goto_x, goto_z;
+    int ret;
+
+    DIFFTEST_SHADOW_RET(start_goto_vehicle, int,
+      start_goto_vehicle_asm(p_vehicle, x, z));
+
+    if ((ushort)p_vehicle->State == 0x45)
+        DIFFTEST_RETURN(0);
+
+    if (x < 0)
+        x = 0x80;
+    else if (x >= 0x8000)
+        x = 0x7f80;
+    if (z < 0)
+        z = 0x80;
+    else if (z >= 0x8000)
+        z = 0x7f80;
+
+    switch (p_vehicle->SubType)
+    {
+    case 0x28:
+        if (x < 0x200)
+            x = 0x200;
+        if (z < 0x200)
+            z = 0x200;
+        if (x > 0x7e00)
+            x = 0x7e00;
+        if (z > 0x7e00)
+            z = 0x7e00;
+        if (p_vehicle->U.UVehicle.TNode >= 0)
+            DIFFTEST_RETURN(0);
+
+        if ((ushort)p_vehicle->State == 0x36)
+        {
+            if (!VNAV_can_i_get_there((int)p_vehicle, (short)x, (short)z, (int)p_vehicle))
+                DIFFTEST_RETURN(0);
+            VNAV_goto_and_unstop((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+            p_vehicle->Flag &= ~0x04;
+            DIFFTEST_RETURN(0);
+        }
+        if ((ushort)p_vehicle->State == 0x3d)
+        {
+            if (!VNAV_can_i_get_there((int)p_vehicle, (short)x, (short)z, (int)p_vehicle))
+                DIFFTEST_RETURN(0);
+            VNAV_goto_and_unplace((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+            p_vehicle->Flag &= ~0x04;
+            DIFFTEST_RETURN(0);
+        }
+        if ((ushort)p_vehicle->State == 0x21)
+        {
+            if (!VNAV_can_i_get_there((int)p_vehicle, (short)x, (short)z, (int)p_vehicle))
+                DIFFTEST_RETURN(0);
+            VNAV_goto_and_unpark((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+            p_vehicle->Flag &= ~0x04;
+            DIFFTEST_RETURN(0);
+        }
+        ret = VNAV_goto((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+        if (ret == 1)
+        {
+            p_vehicle->State = 0x32;
+            p_vehicle->U.UVehicle.GotoY = 0;
+            p_vehicle->U.UVehicle.GotoX = x;
+            p_vehicle->U.UVehicle.GotoZ = z;
+            p_vehicle->Flag &= ~0x04;
+            DIFFTEST_RETURN(1);
+        }
+        if (ret == 2)
+            DIFFTEST_RETURN(1);
+        if ((ushort)p_vehicle->State == 0x36)
+            DIFFTEST_RETURN(0);
+        p_vehicle->State = 0x3c;
+        DIFFTEST_RETURN(0);
+
+    case 0x32:
+        remove_path(p_vehicle);
+        if (ariadne_initialise_route((int)p_vehicle, x, z, (int)p_vehicle) <= 0)
+            DIFFTEST_RETURN(0);
+        unkn_path_func_001(p_vehicle, 1);
+        p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+        goto_x = p_path->X[p_vehicle->PathOffset & 3];
+        p_vehicle->U.UVehicle.GotoX = goto_x;
+        p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+        goto_z = p_path->Z[p_vehicle->PathOffset & 3];
+        p_vehicle->State = 0x39;
+        p_vehicle->U.UVehicle.TNode = 0;
+        p_vehicle->U.UVehicle.GotoZ = goto_z;
+        DIFFTEST_RETURN(1);
+
+    case 0x33:
+    case 0x3b:
+        remove_path(p_vehicle);
+        if (build_tank_path(p_vehicle, x, z) == 0)
+            DIFFTEST_RETURN(0);
+        p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+        goto_x = p_path->X[p_vehicle->PathOffset & 3];
+        p_vehicle->U.UVehicle.GotoX = goto_x;
+        p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+        goto_z = p_path->Z[p_vehicle->PathOffset & 3];
+        p_vehicle->State = 0x32;
+        p_vehicle->U.UVehicle.GotoZ = goto_z;
+        DIFFTEST_RETURN(1);
+
+    case 0x36:
+        send_ship_to((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+        DIFFTEST_RETURN(0);
+
+    default:
+        DIFFTEST_RETURN(0);
+    }
 }
 
 short find_peep_in_area(struct Thing *p_me, struct Command *p_cmd)
