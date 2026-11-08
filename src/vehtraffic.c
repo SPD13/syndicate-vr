@@ -71,12 +71,50 @@ void tnode_all_unlink_thing(ThingIdx thing)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int good_node(int a1, int a2, int a3)
+static DIFFTEST_REF_FUNC int good_node_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
     asm volatile ("call ASM_good_node\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "cc", "memory");
     return ra;
+}
+
+int good_node(int a1, int a2, int a3)
+{
+    struct TrafficNode *p_tnode;
+    s32 i, last;
+    s32 tnode;
+
+    DIFFTEST_SHADOW_RET(good_node, int, good_node_asm(a1, a2, a3));
+    if (a1 > 0)
+        DIFFTEST_RETURN((int)1);
+
+    p_tnode = &game_traffic_nodes[-a1];
+    last = 0xfffff;
+    for (i = 0; i < 4; i++)
+    {
+        if (p_tnode->UTraffic.Link[i] != 0)
+        {
+            if ((p_tnode->UTraffic.Flags[i] & 0x80) == 0)
+                DIFFTEST_RETURN((int)1);
+            last = i;
+        }
+    }
+    if (last == 0xfffff)
+        DIFFTEST_RETURN((int)0);
+
+    tnode = p_tnode->UTraffic.Link[last];
+    if (tnode > 0)
+        DIFFTEST_RETURN((int)1);
+
+    p_tnode = &game_traffic_nodes[-tnode];
+    for (i = 0; i < 4; i++)
+    {
+        if (p_tnode->UTraffic.Link[i] != 0 &&
+          (p_tnode->UTraffic.Flags[i] & 0x80) == 0)
+            DIFFTEST_RETURN((int)1);
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 
