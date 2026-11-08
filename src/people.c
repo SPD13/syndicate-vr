@@ -2718,6 +2718,30 @@ int func_5fe50(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
+int triangle_route_do_bak(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_triangle_route_do_bak\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int triangle_route_do_given(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_triangle_route_do_given\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
 int ma_triangle_route(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
@@ -2944,6 +2968,22 @@ void set_xz_for_tri(struct SingleObjectFace3 *p_face, int *x, int *z)
     *x = p_obj->MapX + (p_pt1->X + p_pt0->X + p_pt2->X) / 3;
     *z = p_obj->MapZ + (p_pt1->Z + p_pt0->Z + p_pt2->Z) / 3;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int path_init8_thing(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[2];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_path_init8_thing\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+    return ra;
+}
+
 
 ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face)
 {
@@ -3410,6 +3450,30 @@ void use_nav_data(int a1, int a2, int a3, int a4)
     p_thing->PathOffset = 0;
     head_my_path = next_path;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int triangle_route_do_unkn5(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_triangle_route_do_unkn5\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int triangle_route_do_unkn6(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_triangle_route_do_unkn6\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.

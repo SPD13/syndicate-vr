@@ -72540,7 +72540,7 @@ GLOBAL_FUNC(ASM_edge_points8)	/* 0x8297C */
 /*----------------------------------------------------------------*/
 /* long triangle_route_do_given(long, long, long *, long *)
  */
-triangle_route_do_given:	/* 0x082B5C */
+GLOBAL_FUNC(ASM_triangle_route_do_given)	/* 0x082B5C */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -72965,7 +72965,7 @@ triangle_route_do_given:	/* 0x082B5C */
 
 
 /*----------------------------------------------------------------*/
-triangle_route_do_bak:
+GLOBAL_FUNC(ASM_triangle_route_do_bak)
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -73398,7 +73398,7 @@ GLOBAL_FUNC(ASM_ma_triangle_route)
 		mov    %edx,0x8(%esp)
 		mov    %ebx,%edi
 		mov    %ecx,%ebp
-		call   triangle_route_do_given
+		call   ac_triangle_route_do_given
 		mov    %eax,0xc(%esp)
 		cmp    $0xffffffff,%eax
 		je     jump_8382a
@@ -73427,7 +73427,7 @@ GLOBAL_FUNC(ASM_ma_triangle_route)
 		mov    %ebx,EXPORT_SYMBOL(tree_By8)
 		mov    $EXPORT_SYMBOL(route_bak),%ebx
 		mov    0x8(%esp),%eax
-		call   triangle_route_do_bak
+		call   ac_triangle_route_do_bak
 		mov    %eax,%esi
 		mov    %eax,%ebp
 		cmp    $0xffffffff,%eax
@@ -74626,7 +74626,7 @@ ma_triangle_route_5:	/* 0x0846FC */
 
 
 /*----------------------------------------------------------------*/
-triangle_route_do_unkn5:	/* 0x084924 */
+GLOBAL_FUNC(ASM_triangle_route_do_unkn5)	/* 0x084924 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -75140,7 +75140,7 @@ triangle_route_do_unkn5:	/* 0x084924 */
 
 
 /*----------------------------------------------------------------*/
-triangle_route_do_unkn6:	/* 0x085068 */
+GLOBAL_FUNC(ASM_triangle_route_do_unkn6)	/* 0x085068 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -76194,7 +76194,7 @@ GLOBAL_FUNC(ASM_ma_triangle_route_3)	/* 0x085F18 */
 		mov    %eax,EXPORT_SYMBOL(tree_By8)
 		mov    0x8(%esp),%edx
 		mov    %ebp,%eax
-		call   triangle_route_do_unkn6
+		call   ac_triangle_route_do_unkn6
 		mov    %eax,0xc(%esp)
 		cmp    $0xffffffff,%eax
 		jne    jump_85f7c
@@ -76225,7 +76225,7 @@ GLOBAL_FUNC(ASM_ma_triangle_route_3)	/* 0x085F18 */
 		mov    %edx,EXPORT_SYMBOL(tree_By8)
 		mov    0x8(%esp),%eax
 		mov    %ebp,%edx
-		call   triangle_route_do_unkn5
+		call   ac_triangle_route_do_unkn5
 		mov    %eax,%edi
 		cmp    $0xffffffff,%eax
 		jne    jump_85ffc
@@ -77278,7 +77278,7 @@ GLOBAL_FUNC(ASM_route_to_path)	/* 0x086AB0 */
 
 
 /*----------------------------------------------------------------*/
-path_init8_thing:	/* 0x086E0C */
+GLOBAL_FUNC(ASM_path_init8_thing)	/* 0x086E0C */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -99116,7 +99116,7 @@ GLOBAL_FUNC(ASM_build_navigate_path)	/* 0x0C06D0 */
 		push   %ebp
 		mov    0x18(%esi),%edx
 		mov    %edi,%ecx
-		call   path_init8_thing
+		call   ac_path_init8_thing
 		mov    EXPORT_SYMBOL(g_nav_data)+0x10,%ax
 		xor    %edx,%edx
 		mov    %ax,%dx
