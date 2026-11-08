@@ -734,10 +734,9 @@ int edge_points8(int a1, int a2, int a3, int a4, int a5, int a6)
 
 
 
-s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
-  s32 treert_len, struct Path *p_path, int *p_len2)
+static DIFFTEST_REF_FUNC s32 route_to_path_asm(int ax8, int ay8, int bx8, int by8,
+  s32 *p_treert, s32 treert_len, struct Path *p_path, int *p_len2)
 {
-#if 1
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
     int stkargs[4];
@@ -754,11 +753,133 @@ s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_route_to_path\n"
-        : "=r" (ret) : "a" (ax8), "d" (ay8), "b" (bx8), "c" (by8), "S" (stkargs)
+        : "=a" (ret) : "a" (ax8), "d" (ay8), "b" (bx8), "c" (by8), "S" (stkargs)
         : "cc", "memory");
 
     return ret;
-#endif
+}
+
+/** Converts a route through triangles into a list of way points, by
+ * funnelling the view from the current point through the edges shared
+ * by consecutive triangles of the route. Fills p_path and adds the
+ * path length to *p_len2. Returns the number of way points, or -1.
+ */
+s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
+  s32 treert_len, struct Path *p_path, int *p_len2)
+{
+    // Current point, left and right edge points; layout used by fov_region()
+    s32 fov[6];
+    s32 ex1, ey1, ex2, ey2;
+    s32 lt_idx, rt_idx;
+    s32 i, n;
+    int reg1, reg2;
+
+    DIFFTEST_SHADOW_RET(route_to_path, s32, route_to_path_asm(ax8, ay8,
+      bx8, by8, p_treert, treert_len, p_path, p_len2));
+
+    p_path->ax8 = ax8;
+    p_path->ay8 = ay8;
+    p_path->bx8 = bx8;
+    p_path->by8 = by8;
+    n = 0;
+    *p_len2 = 0;
+    fov[0] = ax8;
+    fov[1] = ay8;
+
+    if (treert_len == 0)
+    {
+        *p_len2 += LbSqrL((by8 - ay8) * (by8 - ay8) + (bx8 - ax8) * (bx8 - ax8));
+        p_path->PathLength = 1;
+        p_path->WayPoints[0].x8 = bx8;
+        p_path->WayPoints[0].y8 = by8;
+        DIFFTEST_RETURN((s32)1);
+    }
+
+    rt_idx = 0;
+    lt_idx = 0;
+    if (edge_points8(p_treert[0], p_treert[1], (int)(intptr_t)&fov[2],
+      (int)(intptr_t)&fov[3], (int)(intptr_t)&fov[4], (int)(intptr_t)&fov[5]) == -42)
+        DIFFTEST_RETURN((s32)-1);
+
+    for (i = 1; ; i++)
+    {
+        if (i < treert_len)
+        {
+            if (edge_points8(p_treert[i], p_treert[i + 1], (int)(intptr_t)&ex1,
+              (int)(intptr_t)&ey1, (int)(intptr_t)&ex2, (int)(intptr_t)&ey2) == -42)
+                DIFFTEST_RETURN((s32)-1);
+            reg1 = fov_region(ex1, ey1, (int)(intptr_t)fov, 0);
+            reg2 = fov_region(ex2, ey2, (int)(intptr_t)fov, reg1);
+        }
+        else
+        {
+            reg1 = fov_region(bx8, by8, (int)(intptr_t)fov, 0);
+            reg2 = reg1;
+            if (reg1 == 0)
+            {
+                // Destination is visible: final way point
+                if (n == 256)
+                    DIFFTEST_RETURN((s32)-1);
+                *p_len2 += LbSqrL((by8 - fov[1]) * (by8 - fov[1])
+                  + (bx8 - fov[0]) * (bx8 - fov[0]));
+                p_path->WayPoints[n].x8 = bx8;
+                p_path->WayPoints[n].y8 = by8;
+                n++;
+                p_path->PathLength = n;
+                DIFFTEST_RETURN(n);
+            }
+            // Oscillating between two points
+            if ((n >= 3) && (p_path->WayPoints[n - 1].x8 == p_path->WayPoints[n - 3].x8)
+              && (p_path->WayPoints[n - 1].y8 == p_path->WayPoints[n - 3].y8))
+                DIFFTEST_RETURN((s32)-1);
+        }
+
+        if (reg1 == 0)
+        {
+            fov[2] = ex1;
+            fov[3] = ey1;
+            lt_idx = i;
+        }
+        if (reg2 == 0)
+        {
+            fov[4] = ex2;
+            fov[5] = ey2;
+            rt_idx = i;
+        }
+
+        if (reg2 == -1)
+        {
+            if (n == 256)
+                DIFFTEST_RETURN((s32)-1);
+            *p_len2 += LbSqrL((fov[3] - fov[1]) * (fov[3] - fov[1])
+              + (fov[2] - fov[0]) * (fov[2] - fov[0]));
+            p_path->WayPoints[n].x8 = fov[2];
+            p_path->WayPoints[n].y8 = fov[3];
+            fov[0] = fov[2];
+            fov[1] = fov[3];
+            i = lt_idx;
+            n++;
+            if (edge_points8(p_treert[i], p_treert[i + 1], (int)(intptr_t)&fov[2],
+              (int)(intptr_t)&fov[3], (int)(intptr_t)&fov[4], (int)(intptr_t)&fov[5]) == -42)
+                DIFFTEST_RETURN((s32)-1);
+        }
+        else if (reg1 == 1)
+        {
+            if (n == 256)
+                DIFFTEST_RETURN((s32)-1);
+            *p_len2 += LbSqrL((fov[5] - fov[1]) * (fov[5] - fov[1])
+              + (fov[4] - fov[0]) * (fov[4] - fov[0]));
+            p_path->WayPoints[n].x8 = fov[4];
+            p_path->WayPoints[n].y8 = fov[5];
+            fov[0] = fov[4];
+            fov[1] = fov[5];
+            i = rt_idx;
+            n++;
+            if (edge_points8(p_treert[i], p_treert[i + 1], (int)(intptr_t)&fov[2],
+              (int)(intptr_t)&fov[3], (int)(intptr_t)&fov[4], (int)(intptr_t)&fov[5]) == -42)
+                DIFFTEST_RETURN((s32)-1);
+        }
+    }
 }
 
 void path_init8_unkn3(struct Path *p_path, int ax8, int ay8, int bx8, int by8, int a6)
