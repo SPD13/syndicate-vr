@@ -1786,10 +1786,102 @@ int do_next_navigate_index(int a1, int a2, int a3, int a4)
 
 
 
-void process_my_flying_vehicle(struct Thing *p_vehicle)
+int flying_alt(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC void process_my_flying_vehicle_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_my_flying_vehicle\n"
         : : "a" (p_vehicle));
+}
+
+void process_my_flying_vehicle(struct Thing *p_vehicle)
+{
+    s32 alt, y;
+    s32 dx, dz;
+    s32 angle, dangle;
+    s32 x, z, rx, rz;
+    s32 min_x, min_z, min_d;
+
+    DIFFTEST_SHADOW(process_my_flying_vehicle,
+      process_my_flying_vehicle_asm(p_vehicle));
+    unkn_path_func_001(p_vehicle, 1);
+    alt = flying_alt((int)p_vehicle, 0, 0, 0);
+    y = p_vehicle->Y;
+    if (alt > y)
+        p_vehicle->Y = y + ((alt - y) >> 2);
+    else
+        p_vehicle->Y = y + ((alt - y) >> 4);
+
+    dx = p_vehicle->U.UVehicle.GotoX - (p_vehicle->X >> 8);
+    dz = p_vehicle->U.UVehicle.GotoZ - (p_vehicle->Z >> 8);
+    angle = (ushort)arctan(dx, dz);
+    dangle = angle - p_vehicle->U.UVehicle.AngleY;
+    if (dangle > 0x400)
+        dangle -= 0x7ff;
+    if (dangle < -0x400)
+        dangle += 0x7ff;
+    if (abs(dangle) < 15)
+    {
+        p_vehicle->U.UVehicle.AngleDY = 0;
+        p_vehicle->U.UVehicle.AngleY = angle;
+    }
+    else
+    {
+        p_vehicle->U.UVehicle.AngleDY = dangle;
+        if (dangle > 0)
+            p_vehicle->U.UVehicle.AngleDY = dangle + 10;
+        if (dangle < 0)
+            p_vehicle->U.UVehicle.AngleDY -= 10;
+    }
+
+    if (dx * dx + dz * dz < 0x40000)
+    {
+        if ((ushort)p_vehicle->State == 0x43)
+        {
+            continue_flying_wander((int)p_vehicle, 0, 0, 0);
+        }
+        else if ((ubyte)do_next_navigate_index((int)p_vehicle, 0, 0, 0) != 0)
+        {
+            if ((ushort)p_vehicle->State == 0x42)
+            {
+                // Head for the nearest map edge
+                x = p_vehicle->X;
+                z = p_vehicle->Z;
+                rx = 0x800000 - x;
+                rz = 0x800000 - z;
+                min_x = (x < rx) ? x : rx;
+                min_z = (z < rz) ? z : rz;
+                min_d = (min_x < min_z) ? min_x : min_z;
+                if (min_d == x)
+                    p_vehicle->U.UVehicle.GotoX = 1;
+                else if (min_d == rx)
+                    p_vehicle->U.UVehicle.GotoX = 0x7e00;
+                else if (min_d == z)
+                    p_vehicle->U.UVehicle.GotoZ = 1;
+                else
+                    p_vehicle->U.UVehicle.GotoZ = 0x7e00;
+                p_vehicle->State = 0x43;
+            }
+            else
+            {
+                p_vehicle->U.UVehicle.PathIndex = 0;
+                p_vehicle->State = 0x41;
+                p_vehicle->U.UVehicle.TNode = 0;
+                p_vehicle->U.UVehicle.ReqdSpeed = 0;
+                p_vehicle->U.UVehicle.AngleDY = 0;
+                p_vehicle->U.UVehicle.MaxSpeed = 0;
+            }
+        }
+        else
+        {
+            struct MyPath *p_path;
+
+            p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+            p_vehicle->U.UVehicle.GotoX = p_path->X[p_vehicle->PathOffset & 0x3];
+            p_vehicle->U.UVehicle.GotoZ = p_path->Z[p_vehicle->PathOffset & 0x3];
+        }
+    }
+    p_vehicle->U.UVehicle.ReqdSpeed = 2000 - abs(p_vehicle->U.UVehicle.AngleDY << 2);
 }
 
 void process_unplacing(struct Thing *p_vehicle)
