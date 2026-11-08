@@ -397,13 +397,68 @@ int alt_change_at_tile(short tile_x, short tile_z, int *change_xz)
     return abs(alt_max - alt_min);
 }
 
-int is_this_a_nice_place_for_a_picnic(s32 prc_x, s32 prc_z)
+static DIFFTEST_REF_FUNC int is_this_a_nice_place_for_a_picnic_asm(s32 prc_x, s32 prc_z)
 {
     int ret;
     asm volatile (
       "call ASM_is_this_a_nice_place_for_a_picnic\n"
-        : "=r" (ret) : "a" (prc_x), "d" (prc_z));
+        : "=a" (ret) : "a" (prc_x), "d" (prc_z));
     return ret;
+}
+
+int is_this_a_nice_place_for_a_picnic(s32 prc_x, s32 prc_z)
+{
+    struct MyMapElement *p_mapel;
+    s32 tile_x, tile_z;
+    s32 tx0, tx1, tz0, tz1;
+    s32 alt00, alt10, alt01, alt11;
+    s32 alt_max, alt_min, alt_dt;
+    ubyte tbits;
+
+    DIFFTEST_SHADOW_RET(is_this_a_nice_place_for_a_picnic, int,
+      is_this_a_nice_place_for_a_picnic_asm(prc_x, prc_z));
+    if ((prc_x < 0) || (prc_z < 0) || (prc_x > 0x800000) || (prc_z > 0x800000))
+        DIFFTEST_RETURN((int)0);
+
+    tile_x = prc_x >> 16;
+    tile_z = prc_z >> 16;
+
+    // TODO the original does not mask this index, tile 128 reads past the row
+    p_mapel = &game_my_big_map[tile_z * MAP_TILE_WIDTH + tile_x];
+    if ((p_mapel->ColumnHead & 0x0FFF) != 0)
+        DIFFTEST_RETURN((int)0);
+
+    tx0 = tile_x & 0x7F;
+    tx1 = (tile_x + 1) & 0x7F;
+    tz0 = (tile_z & 0x7F) << 7;
+    tz1 = ((tile_z + 1) & 0x7F) << 7;
+    alt00 = game_my_big_map[tz0 + tx0].Alt;
+    alt10 = game_my_big_map[tz0 + tx1].Alt;
+    alt01 = game_my_big_map[tz1 + tx0].Alt;
+    alt11 = game_my_big_map[tz1 + tx1].Alt;
+
+    alt_max = (alt00 > alt10) ? alt00 : alt10;
+    if (alt_max <= alt01)
+        alt_max = alt01;
+    if (alt_max <= alt11)
+        alt_max = alt11;
+
+    alt_min = (alt00 < alt10) ? alt00 : alt10;
+    if (alt_min >= alt01)
+        alt_min = alt01;
+    if (alt_min >= alt11)
+        alt_min = alt11;
+
+    alt_dt = abs(alt_max - alt_min);
+
+    p_mapel = &game_my_big_map[tile_z * MAP_TILE_WIDTH + tile_x];
+    tbits = get_my_texture_bits((short)(p_mapel->Texture & 0x3FFF));
+    if (alt_dt > 12)
+        tbits |= 0x02;
+    if ((tbits & 0x02) != 0)
+        DIFFTEST_RETURN((int)0);
+
+    DIFFTEST_RETURN((int)1);
 }
 
 ubyte map_coord_to_collision_qbit_index(short x, short z)
