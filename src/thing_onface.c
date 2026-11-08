@@ -161,15 +161,58 @@ ushort set_thing_height_on_face_tri(struct Thing *p_thing, int x, int z, short f
     return ret;
 }
 
-/** Checks whether the point is inside the quad face (precise coords).
- * The asm does not preserve ebx and edx.
+/** The asm does not preserve ebx and edx.
  */
-int inside_the_quad(struct SingleObjectFace4 *p_face, int x, int z)
+static DIFFTEST_REF_FUNC int inside_the_quad_asm(struct SingleObjectFace4 *p_face,
+  int x, int z)
 {
     int ret;
     asm volatile ("call ASM_inside_the_quad\n"
         : "=a" (ret), "+d" (x), "+b" (z) : "a" (p_face) : "cc", "memory");
     return ret;
+}
+
+/** Checks whether the point is inside the quad face (precise coords).
+ * Returns 1 if within triangle of points 0,1,2, 2 if within triangle
+ * of points 1,2,3, 0 if outside.
+ */
+int inside_the_quad(struct SingleObjectFace4 *p_face, int x, int z)
+{
+    struct SingleObject *p_sobj;
+    struct SinglePoint *p_pt;
+    s32 px, pz;
+    s32 x0, z0, x1, z1, x2, z2, x3, z3;
+
+    DIFFTEST_SHADOW_RET(inside_the_quad, int,
+      inside_the_quad_asm(p_face, x, z));
+    px = x >> 8;
+    pz = z >> 8;
+    p_sobj = &game_objects[p_face->Object];
+    p_pt = &game_object_points[(ushort)p_face->PointNo[0]];
+    x0 = (short)p_sobj->MapX + p_pt->X;
+    z0 = (short)p_sobj->MapZ + p_pt->Z;
+    p_pt = &game_object_points[(ushort)p_face->PointNo[1]];
+    x1 = (short)p_sobj->MapX + p_pt->X;
+    z1 = (short)p_sobj->MapZ + p_pt->Z;
+    p_pt = &game_object_points[(ushort)p_face->PointNo[2]];
+    x2 = (short)p_sobj->MapX + p_pt->X;
+    z2 = (short)p_sobj->MapZ + p_pt->Z;
+    p_pt = &game_object_points[(ushort)p_face->PointNo[3]];
+    x3 = (short)p_sobj->MapX + p_pt->X;
+    z3 = (short)p_sobj->MapZ + p_pt->Z;
+
+    // Signed 64-bit products compared, like the imul/sbb pairs in asm
+    if ((s64)(x1 - x0) * (pz - z1) >= (s64)(z1 - z0) * (px - x1) &&
+      (s64)(x2 - x1) * (pz - z2) >= (s64)(z2 - z1) * (px - x2) &&
+      (s64)(x0 - x2) * (pz - z0) >= (s64)(z0 - z2) * (px - x0))
+        DIFFTEST_RETURN((int)1);
+    if ((s64)(x2 - x3) * (pz - z2) < (s64)(z2 - z3) * (px - x2))
+        DIFFTEST_RETURN((int)0);
+    if ((s64)(x1 - x2) * (pz - z1) < (s64)(z1 - z2) * (px - x1))
+        DIFFTEST_RETURN((int)0);
+    if ((s64)(x3 - x1) * (pz - z3) < (s64)(z3 - z1) * (px - x3))
+        DIFFTEST_RETURN((int)0);
+    DIFFTEST_RETURN((int)2);
 }
 
 /** The asm does not preserve ebx, ecx and edx.
