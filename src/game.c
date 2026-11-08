@@ -3994,11 +3994,46 @@ void init_screen_boxes(void)
     init_equip_screen_shapes();
 }
 
-void move_camera(int x, int y, int z)
+static DIFFTEST_REF_FUNC void move_camera_asm(int x, int y, int z)
 {
     asm volatile (
       "call ASM_move_camera\n"
         : : "a" (x), "d" (y), "b" (z));
+}
+
+void move_camera(int x, int y, int z)
+{
+    s32 dt_x, dt_y, dt_z;
+    s32 dist, step;
+
+    DIFFTEST_SHADOW(move_camera, move_camera_asm(x, y, z));
+    if (ingame.TrackThing != 0)
+    {
+        struct Thing *p_thing;
+
+        p_thing = &things[(ushort)ingame.TrackThing];
+        x = p_thing->X >> 8;
+        y = p_thing->Y >> 8;
+        z = p_thing->Z >> 8;
+    }
+    dt_x = x - engn_xc;
+    dt_y = y - engn_yc;
+    dt_z = z - engn_zc;
+    dist = LbSqrL(dt_x * dt_x + dt_z * dt_z + dt_y * dt_y);
+    step = dist / 8;
+    if (step > 0x200)
+        step = 0x200;
+    else if (step < 5)
+        step = 5;
+    if (dist > 16)
+    {
+        dt_x = dt_x * step / dist;
+        dt_y = dt_y * step / dist;
+        dt_z = dt_z * step / dist;
+        engn_yc += dt_y;
+        engn_zc += dt_z;
+        engn_xc += dt_x;
+    }
 }
 
 void track_player(int thing)
