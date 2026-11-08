@@ -24,7 +24,14 @@
 #include "bfutility.h"
 #include "bigmap.h"
 #include "building.h"
+#include "cybmod.h"
 #include "difftest.h"
+#include "febrief.h"
+#include "game.h"
+#include "game_options.h"
+#include "misstat.h"
+#include "people.h"
+#include "sound.h"
 #include "thing.h"
 #include "swlog.h"
 /******************************************************************************/
@@ -432,8 +439,8 @@ void do_shockwave_vehicle(int dx, int dz, int dist, int intensity,
         : "cc", "memory");
 }
 
-void do_shockwave_person(int dx, int dz, int dist, int intensity,
-  struct Thing *p_person, struct Thing *p_owner)
+static DIFFTEST_REF_FUNC void do_shockwave_person_asm(int dx, int dz,
+  int dist, int intensity, struct Thing *p_person, struct Thing *p_owner)
 {
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
@@ -448,6 +455,129 @@ void do_shockwave_person(int dx, int dz, int dist, int intensity,
       "call ASM_do_shockwave_person\n"
         : : "a" (dx), "d" (dz), "b" (dist), "c" (intensity), "S" (stkargs)
         : "cc", "memory");
+}
+
+/** Count a person killed by a shockwave in the mission statistics.
+ */
+static void shockwave_person_killed_add_to_stats(struct Thing *p_person,
+  struct Thing *p_owner)
+{
+    struct MissionStatus *p_mistat;
+
+    if (!in_network_game)
+    {
+        if (p_owner->U.UPerson.EffectiveGroup != ingame.MyGroup)
+            return;
+        p_mistat = &mission_status[open_brief];
+        switch ((ubyte)(p_person->SubType - 1))
+        {
+        case SubTT_PERS_AGENT - 1:
+        case SubTT_PERS_ZEALOT - 1:
+        case SubTT_PERS_PUNK_F - 1:
+        case SubTT_PERS_PUNK_M - 1:
+        case SubTT_PERS_HIGH_PRIEST - 1:
+            p_mistat->SP.EnemiesKilled++;
+            break;
+        case SubTT_PERS_BRIEFCASE_M - 1:
+        case SubTT_PERS_WHITE_BRUN_F - 1:
+        case SubTT_PERS_SCIENTIST - 1:
+        case SubTT_PERS_SHADY_M - 1:
+        case SubTT_PERS_WHIT_BLOND_F - 1:
+        case SubTT_PERS_LETH_JACKT_M - 1:
+            p_mistat->SP.CivsKilled++;
+            break;
+        case SubTT_PERS_MERCENARY - 1:
+        case SubTT_PERS_MECH_SPIDER - 1:
+        case SubTT_PERS_POLICE - 1:
+            p_mistat->SP.SecurityKilled++;
+            break;
+        default:
+            break;
+        }
+    }
+    else
+    {
+        struct Thing *p_killer;
+
+        if ((p_person->Flag & TngF_PlayerAgent) == 0)
+            return;
+        p_killer = NULL;
+        if ((p_owner->Flag & TngF_PlayerAgent) != 0)
+        {
+            p_killer = p_owner;
+        }
+        else if ((p_owner->Flag & TngF_Persuaded) != 0)
+        {
+            struct Thing *p_ownown;
+
+            p_ownown = &things[(ushort)p_owner->Owner];
+            if ((p_ownown->Flag & TngF_PlayerAgent) != 0)
+                p_killer = p_ownown;
+        }
+        if (p_killer == NULL)
+            return;
+        if ((p_killer->Flag & TngF_PlayerAgent) == 0)
+            return;
+        // TODO no range checks on the player indexes, same as the original
+        p_mistat = &mission_status[p_killer->U.UPerson.ComCur >> 2];
+        p_mistat->MP.AgentsKilled[p_person->U.UPerson.ComCur >> 2]++;
+    }
+}
+
+void do_shockwave_person(int dx, int dz, int dist, int intensity,
+  struct Thing *p_person, struct Thing *p_owner)
+{
+    int dist_sq, damage;
+    int recoil_x, recoil_z;
+    short health;
+
+    DIFFTEST_SHADOW(do_shockwave_person,
+      do_shockwave_person_asm(dx, dz, dist, intensity, p_person, p_owner));
+
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+
+    dist_sq = (dist >> 7) * (dist >> 7);
+    damage = intensity;
+    if (dist_sq > 0)
+        damage = intensity / dist_sq;
+
+    if (cybmod_chest_level(&p_person->U.UPerson.UMod) < 4)
+        p_person->Health -= (short)damage;
+
+    if ((p_person->Type == TT_MINE) && (p_person->Health <= 0))
+    {
+        play_dist_ssample((struct SimpleThing *)p_person, 0x25, 0x7F, 0x40,
+          100, 0, 3);
+        // TODO only Y is converted from fine coords, same as the original
+        bang_new4(p_person->X, p_person->Y >> 8, p_person->Z, 20);
+        remove_thing(p_person->ThingOffset);
+        delete_node(p_person);
+        return;
+    }
+
+    health = p_person->Health;
+    p_person->U.UPerson.ShieldEnergy = 0;
+    if (health < 0)
+    {
+        if (p_owner != NULL)
+            shockwave_person_killed_add_to_stats(p_person, p_owner);
+        set_person_dead(p_person, 11);
+        return;
+    }
+
+    if ((p_person->Flag2 & TgF2_KnockedOut) != 0)
+        return;
+
+    recoil_x = dx;
+    recoil_z = dz;
+    if ((recoil_x == 0) && (recoil_z == 0))
+    {
+        recoil_x = (LbRandomAnyShort() & 0x1FF) - 0x100;
+        recoil_z = (LbRandomAnyShort() & 0x1FF) - 0x100;
+    }
+    init_recoil(p_person, (short)recoil_x, 0, (short)recoil_z, 0);
+    p_person->U.UPerson.RecoilTimer = 10;
 }
 
 static DIFFTEST_REF_FUNC void do_shockwave_scale_effect_asm(int dx, int dz,
