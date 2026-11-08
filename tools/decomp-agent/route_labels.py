@@ -176,6 +176,49 @@ def use_def(mn, ops):
     return use, dfn
 
 
+NO_WRITE = ('cmp', 'cmpl', 'cmpw', 'cmpb', 'test', 'testl', 'testw', 'testb',
+            'push', 'pushl', 'bt', 'btl', 'jmp', 'ret')
+
+
+def written_regs(body):
+    """Registers an instruction list may change, fully or partly
+    (conservative: calls to anything but a C wrapper change all)."""
+    w = set()
+    for _, mn, ops in body:
+        base = mn.split()[-1]
+        if base.startswith('call'):
+            t = ops[0] if ops else ''
+            if t.startswith('ac_'):
+                w.add('eax')  # C via a wrapper keeps the rest
+            else:
+                w |= set(ALLREGS)
+            continue
+        if mn.startswith('rep') or base.startswith(('movs', 'stos', 'lods', 'scas', 'cmps')) \
+                and not base.startswith(('movsb', 'movsw', 'movsl', 'movsx')) or base in ('movsb', 'movsw', 'movsl'):
+            w |= {'ecx', 'esi', 'edi', 'eax'}
+            continue
+        if base in ('cltd', 'cdq', 'cwtd', 'cwd'):
+            w.add('edx')
+            continue
+        if base in ('cwtl', 'cwde'):
+            w.add('eax')
+            continue
+        if base.startswith(('div', 'idiv', 'mul')) or (base.startswith('imul') and len(ops) == 1):
+            w |= {'eax', 'edx'}
+            continue
+        if base in ('xchg', 'xchgl', 'xchgw', 'xchgb'):
+            for op in ops:
+                if op.startswith('%') and reg_of(op[1:]):
+                    w.add(reg_of(op[1:])[0])
+            continue
+        if base in NO_WRITE or JCC.match(base) or not ops:
+            continue
+        dst = ops[-1]
+        if dst.startswith('%') and reg_of(dst[1:]):
+            w.add(reg_of(dst[1:])[0])
+    return w
+
+
 def parse_asm():
     lines = open(SX, encoding='utf-8', newline='').read().split('\n')
     funcs = {}
@@ -272,7 +315,8 @@ def analyse(f, funcs, callers):
     for k2, r in enumerate(ARGREGS):
         if r in entry:
             nargs = k2 + 1
-    clobbered = [r for r in ALLREGS if r not in saved]
+    written = written_regs(body)
+    clobbered = [r for r in ALLREGS if r in written and r not in saved]
     # callers: outputs other than eax, flags, return use
     ret_used = False
     for (cname, cbody) in callers:
@@ -382,9 +426,11 @@ def main():
     if args.names:
         want = {k: v for k, v in want.items() if k in args.names}
     csrc = ''
-    for fn in os.listdir(os.path.join(REPO, 'src')):
-        if fn.endswith(('.c', '.h')):
-            csrc += open(os.path.join(REPO, 'src', fn), encoding='utf-8', errors='replace').read()
+    for top, dirs, files in os.walk(REPO):
+        dirs[:] = [d for d in dirs if d not in ('build', 'worktrees', '.git', 'tools')]
+        for fn in files:
+            if fn.endswith(('.c', '.h')):
+                csrc += open(os.path.join(top, fn), encoding='utf-8', errors='replace').read()
     plan = {}
     for name in sorted(want):
         if re.search(r'\b%s\s*\(' % re.escape(name), csrc):
