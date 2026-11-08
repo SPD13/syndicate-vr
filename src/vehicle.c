@@ -39,6 +39,7 @@
 #include "pathtrig.h"
 #include "sound.h"
 #include "thing.h"
+#include "thing_fire.h"
 #include "swlog.h"
 #include "weapon.h"
 /******************************************************************************/
@@ -1219,12 +1220,105 @@ void process_mech_unknown1(struct Thing *p_vehicle)
         : : "a" (p_vehicle));
 }
 
-int process_my_crashing_vehicle(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC int process_my_crashing_vehicle_asm(struct Thing *p_vehicle)
 {
     int ret;
     asm volatile ("call ASM_process_my_crashing_vehicle\n"
-        : "=r" (ret) : "a" (p_vehicle));
+        : "=a" (ret) : "a" (p_vehicle));
     return ret;
+}
+
+int process_my_crashing_vehicle(struct Thing *p_vehicle)
+{
+    struct MyMapElement *p_mapel;
+    int alt;
+    TbBool hit_ground;
+
+    DIFFTEST_SHADOW_RET(process_my_crashing_vehicle, int, process_my_crashing_vehicle_asm(p_vehicle));
+    if ((LbRandomAnyShort() & 0xF) == 0)
+    {
+        ushort rnd_z, rnd_x;
+
+        p_vehicle->U.UVehicle.AngleX -= (LbRandomAnyShort() & 0x7F);
+        p_vehicle->U.UVehicle.AngleX += 0x3F;
+        if (p_vehicle->SubType != SubTT_VEH_GROUND)
+        {
+            p_vehicle->VY += 0x400;
+            p_vehicle->Y += 0x2000;
+            p_vehicle->U.UVehicle.AngleY -= (LbRandomAnyShort() & 0x7F);
+            p_vehicle->U.UVehicle.AngleZ -= (LbRandomAnyShort() & 0x7F);
+            p_vehicle->U.UVehicle.AngleY += 0x3F;
+            p_vehicle->U.UVehicle.AngleZ += 0x3F;
+        }
+        else
+        {
+            p_vehicle->U.UVehicle.AngleY -= (LbRandomAnyShort() & 0x3F);
+            p_vehicle->U.UVehicle.AngleZ -= (LbRandomAnyShort() & 0x3F);
+            p_vehicle->U.UVehicle.AngleY += 0x1F;
+            p_vehicle->U.UVehicle.AngleZ += 0x1F;
+        }
+        rnd_z = LbRandomAnyShort();
+        rnd_x = LbRandomAnyShort();
+        bang_new4(p_vehicle->X + rnd_x, p_vehicle->Y >> 3,
+          p_vehicle->Z + rnd_z, 100);
+    }
+    if ((gameturn & 1) != 0)
+        bang_new4(p_vehicle->X, p_vehicle->Y >> 3, p_vehicle->Z, 0x35);
+
+    p_vehicle->U.UVehicle.AngleX += 5;
+    if (p_vehicle->SubType != SubTT_VEH_GROUND)
+    {
+        p_vehicle->VY -= 0x110;
+        p_vehicle->U.UVehicle.AngleZ -= (p_vehicle->VY >> 7);
+    }
+    else
+    {
+        p_vehicle->VY -= 0x80;
+        p_vehicle->U.UVehicle.AngleZ -= (p_vehicle->VY >> 8);
+    }
+    if (p_vehicle->U.UVehicle.AngleX < 0)
+        p_vehicle->U.UVehicle.AngleX = 0;
+    if (p_vehicle->U.UVehicle.AngleY < 0)
+        p_vehicle->U.UVehicle.AngleY = 0;
+    if (p_vehicle->U.UVehicle.AngleZ < 0)
+        p_vehicle->U.UVehicle.AngleZ = 0;
+    p_vehicle->U.UVehicle.AngleX &= 0x7FF;
+    p_vehicle->U.UVehicle.AngleZ &= 0x7FF;
+
+    p_mapel = &game_my_big_map[((p_vehicle->Z >> 16) << 7) + (p_vehicle->X >> 16)];
+
+    if ((p_vehicle->SubType == SubTT_VEH_GROUND) && ((gameturn & 1) != 0))
+    {
+        alt = alt_at_point((short)(p_vehicle->X >> 8), (short)(p_vehicle->Z >> 8));
+        FIRE_new(p_vehicle->X, alt >> 5, p_vehicle->Z, 5);
+    }
+
+    if (p_vehicle->SubType == SubTT_VEH_FLYING)
+    {
+        int radius_alt;
+
+        radius_alt = (2 * 193 * (int)(ushort)p_vehicle->Radius) >> 5;
+        alt = alt_at_point((short)(p_vehicle->X >> 8), (short)(p_vehicle->Z >> 8));
+        hit_ground = (((alt + radius_alt) << 3) > p_vehicle->Y);
+    }
+    else
+    {
+        alt = alt_at_point((short)(p_vehicle->X >> 8), (short)(p_vehicle->Z >> 8));
+        hit_ground = ((alt << 3) + 0x320 > p_vehicle->Y);
+    }
+    if (!hit_ground && (p_vehicle->X >= 0x10000) && (p_vehicle->Z >= 0x10000)
+      && (p_vehicle->X <= 0x7E0000) && (p_vehicle->Z <= 0x7E0000)
+      && ((p_mapel[-1].ColumnHead & 0xFFF) == 0)
+      && ((p_mapel[1].ColumnHead & 0xFFF) == 0)
+      && ((p_mapel[-MAP_TILE_WIDTH].ColumnHead & 0xFFF) == 0)
+      && ((p_mapel[MAP_TILE_WIDTH].ColumnHead & 0xFFF) == 0))
+    {
+        DIFFTEST_RETURN((int)0x2A);
+    }
+    p_vehicle->Y >>= 3;
+    init_vehicle_explode(p_vehicle);
+    p_vehicle->Y <<= 3;
+    DIFFTEST_RETURN((int)0);
 }
 
 int train_unkn_st21_exit_func_1(struct Thing *p_vehicle)
