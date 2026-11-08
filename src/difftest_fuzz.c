@@ -213,6 +213,48 @@ static void fuzz_two4_line_intersection(ulong *p_seed)
     two4_line_intersection(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
 }
 
+static void fuzz_fov_region(ulong *p_seed)
+{
+    s32 p[6];
+    int x, y;
+    int i;
+
+    // Map-like coordinates, sometimes full-range values
+    for (i = 0; i < 6; i++)
+    {
+        if (difftest_fuzz_rand(p_seed) % 4 == 0)
+            p[i] = fuzz_int(p_seed);
+        else
+            p[i] = (short)difftest_fuzz_rand(p_seed) % 2048;
+    }
+    if (difftest_fuzz_rand(p_seed) % 4 == 0) {
+        x = fuzz_int(p_seed);
+        y = fuzz_int(p_seed);
+    } else {
+        x = (short)difftest_fuzz_rand(p_seed) % 2048;
+        y = (short)difftest_fuzz_rand(p_seed) % 2048;
+    }
+    // Sometimes the point on the apex or a ray end, or degenerate rays
+    switch (difftest_fuzz_rand(p_seed) % 8)
+    {
+    case 0:
+        x = p[2];
+        y = p[3];
+        break;
+    case 1:
+        x = p[0];
+        y = p[1];
+        break;
+    case 2:
+        p[4] = p[2];
+        p[5] = p[3];
+        break;
+    default:
+        break;
+    }
+    fov_region(x, y, (int)p, 0);
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
@@ -223,6 +265,7 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"check_person_within", fuzz_check_person_within},
     {"check_big_point_triangle", fuzz_check_big_point_triangle},
     {"two4_line_intersection", fuzz_two4_line_intersection},
+    {"fov_region", fuzz_fov_region},
     {NULL, NULL},
 };
 

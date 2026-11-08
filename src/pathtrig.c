@@ -636,16 +636,51 @@ s32 ma_triangle_route_4(int triA, int triB, s32 *p_treert)
         : "=r" (ret) : "a" (triA), "d" (triB), "b" (p_treert));
     return ret;
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int fov_region(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int fov_region_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_fov_region\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Sign of (m1 * m2 - m3 * m4), with full 64-bit products.
+ */
+static int fov_cross_sign(s32 m1, s32 m2, s32 m3, s32 m4)
+{
+    s64 prod1, prod2;
+
+    prod1 = (s64)m1 * (s64)m2;
+    prod2 = (s64)m3 * (s64)m4;
+    if (prod1 > prod2)
+        return 1;
+    if (prod1 < prod2)
+        return -1;
+    return 0;
+}
+
+/** Routed asm (internal label). Takes the point (a1,a2) and a pointer
+ * a3 to 6 coordinates: apex (p[0],p[1]) and two ray end points
+ * (p[2],p[3]), (p[4],p[5]). Returns -1, 0 or 1 depending on which side
+ * of the rays the point lies. Register a4 is not used.
+ */
+int fov_region(int a1, int a2, int a3, int a4)
+{
+    s32 x = a1, y = a2;
+    s32 *p = (s32 *)a3;
+    int sgn;
+
+    DIFFTEST_SHADOW_RET(fov_region, int, fov_region_asm(a1, a2, a3, a4));
+    // Differences wrap at 32 bits, products are full 64-bit
+    sgn = fov_cross_sign((s32)((u32)p[2] - (u32)p[0]), (s32)((u32)y - (u32)p[3]),
+      (s32)((u32)p[3] - (u32)p[1]), (s32)((u32)x - (u32)p[2]));
+    if (sgn < 0)
+        DIFFTEST_RETURN((int)-1);
+    sgn = fov_cross_sign((s32)((u32)p[4] - (u32)p[0]), (s32)((u32)y - (u32)p[5]),
+      (s32)((u32)p[5] - (u32)p[1]), (s32)((u32)x - (u32)p[4]));
+    if (sgn > 0)
+        DIFFTEST_RETURN((int)1);
+    DIFFTEST_RETURN((int)0);
 }
 
 
