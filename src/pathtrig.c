@@ -716,11 +716,7 @@ int fov_region(int a1, int a2, int a3, int a4)
         DIFFTEST_RETURN((int)1);
     DIFFTEST_RETURN((int)0);
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int edge_points8(int a1, int a2, int a3, int a4, int a5, int a6)
+static DIFFTEST_REF_FUNC int edge_points8_asm(int a1, int a2, int a3, int a4, int a5, int a6)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[2];
@@ -730,6 +726,51 @@ int edge_points8(int a1, int a2, int a3, int a4, int a5, int a6)
     asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_edge_points8\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
     return ra;
+}
+
+/** Routed asm (internal label). Finds the edge of triangle a1 shared with
+ * sibling triangle a2 (directly, or through the jump link if enabled in
+ * enter flags), and stores the coordinates of its two end points, scaled
+ * by 256, at pointers a3,a4 (first point x,y) and a5,a6 (second point x,y).
+ * Returns 0, or -42 if the triangles are not connected.
+ */
+int edge_points8(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    struct TrTriangle *p_tri;
+    struct TrPoint *p_points;
+    s32 *p_x1 = (s32 *)a3;
+    s32 *p_y1 = (s32 *)a4;
+    s32 *p_x2 = (s32 *)a5;
+    s32 *p_y2 = (s32 *)a6;
+    int cor1, cor2;
+
+    DIFFTEST_SHADOW_RET(edge_points8, int, edge_points8_asm(a1, a2, a3, a4, a5, a6));
+    p_tri = &triangulation[0].Triangles[a1];
+    if (p_tri->tri[0] == a2 || (p_tri->jump == a2 && (p_tri->enter & 0x10) != 0))
+    {
+        cor1 = 1;
+        cor2 = 0;
+    }
+    else if (p_tri->tri[1] == a2 || (p_tri->jump == a2 && (p_tri->enter & 0x20) != 0))
+    {
+        cor1 = 2;
+        cor2 = 1;
+    }
+    else if (p_tri->tri[2] == a2 || (p_tri->jump == a2 && (p_tri->enter & 0x40) != 0))
+    {
+        cor1 = 0;
+        cor2 = 2;
+    }
+    else
+    {
+        DIFFTEST_RETURN((int)-42);
+    }
+    p_points = triangulation[0].Points;
+    *p_x1 = (s32)((u32)p_points[(ushort)p_tri->point[cor1]].x << 8);
+    *p_y1 = (s32)((u32)p_points[(ushort)p_tri->point[cor1]].y << 8);
+    *p_x2 = (s32)((u32)p_points[(ushort)p_tri->point[cor2]].x << 8);
+    *p_y2 = (s32)((u32)p_points[(ushort)p_tri->point[cor2]].y << 8);
+    DIFFTEST_RETURN((int)0);
 }
 
 
