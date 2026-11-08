@@ -9390,10 +9390,106 @@ void person_dead(struct Thing *p_person)
     }
 }
 
-void person_kill_person(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_kill_person_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_kill_person\n"
         : : "a" (p_person));
+}
+
+void person_kill_person(struct Thing *p_person)
+{
+    struct Thing *p_target;
+    u32 turn;
+
+    DIFFTEST_SHADOW(person_kill_person, person_kill_person_asm(p_person));
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+    if ((ushort)p_person->State == PerSt_DEAD)
+        return;
+    if ((ushort)p_person->State == PerSt_DIEING)
+        return;
+
+    turn = (ushort)p_person->ThingOffset + gameturn;
+    if ((turn & 0x0F) == 0)
+    {
+        struct Command *p_cmd;
+
+        p_cmd = &game_commands[(ushort)p_person->U.UPerson.ComCur];
+        p_target = p_person->PTarget;
+        if ((p_cmd->Type == PCmd_KILL_ALL_GROUP) && (p_target != NULL))
+        {
+            if ((p_target->U.UPerson.EffectiveGroup != p_cmd->OtherThing)
+              || ((turn & 0x7F) == 0))
+            {
+                p_person->State = 0;
+                p_person->U.UPerson.Target2 = 0;
+                return;
+            }
+        }
+    }
+
+    p_target = p_person->PTarget;
+    if (p_target == NULL)
+    {
+        p_person->State = 0;
+        return;
+    }
+    if ((p_target->Flag & TngF_Destroyed) != 0)
+    {
+        p_person->State = 0;
+        return;
+    }
+
+    p_person->U.UPerson.Target2 = p_target->ThingOffset;
+    person_kill_target2(p_person);
+
+    if (((p_person->Flag2 & TgF2_Unkn0040) != 0) &&
+      ((p_person->Flag & TngF_Unkn00800000) != 0))
+    {
+        things[(ushort)p_person->Owner].Flag &= ~TngF_Unkn00400000;
+        p_person->State = 0;
+        p_person->Flag &= ~(TngF_Unkn00800000|TngF_Unkn0040);
+        p_person->U.UPerson.Target2 = 0;
+        p_person->Flag |= TngF_Unkn0040;
+        return;
+    }
+
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+
+    if (p_person->U.UPerson.Target2 == 0)
+    {
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+        {
+            p_person->State = 0;
+            p_person->Flag &= ~TngF_TriggerUse;
+        }
+        else if ((p_person->Flag & TngF_Unkn00800000) != 0)
+        {
+            things[(ushort)p_person->Owner].Flag &= ~TngF_Unkn00400000;
+            p_person->Flag &= ~(TngF_Unkn00800000|TngF_Unkn0040);
+            p_person->State = 0;
+            p_person->Flag |= TngF_Unkn0040;
+        }
+    }
+
+    p_target = p_person->PTarget;
+    if ((p_target == NULL) || ((p_target->Flag & TngF_Destroyed) != 0))
+    {
+        p_person->U.UPerson.Target2 = 0;
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+        {
+            p_person->State = 0;
+        }
+        else if ((p_person->Flag & TngF_Unkn00800000) != 0)
+        {
+            things[(ushort)p_person->Owner].Flag &= ~TngF_Unkn00400000;
+            p_person->Flag &= ~(TngF_Unkn00800000|TngF_Unkn0040);
+            p_person->State = 0;
+            p_person->Flag |= TngF_Unkn0040;
+        }
+    }
+    p_person->U.UPerson.Target2 = 0;
 }
 
 void person_save_victim(struct Thing *p_person)
