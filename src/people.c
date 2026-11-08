@@ -6013,13 +6013,157 @@ void do_person_gotothingindex(int a1, int a2, int a3, int a4)
 }
 
 
-int person_goto_person_nav(struct Thing *p_person)
+static DIFFTEST_REF_FUNC int person_goto_person_nav_asm(struct Thing *p_person)
 {
     int ret;
     asm volatile (
       "call ASM_person_goto_person_nav\n"
-        : "=r" (ret) : "a" (p_person));
+        : "=a" (ret) : "a" (p_person));
     return ret;
+}
+
+int person_goto_person_nav(struct Thing *p_person)
+{
+    struct Thing *p_target;
+    struct Thing *p_vehicle;
+    s32 dist_sq, range_sq;
+    s32 dx, dz;
+    int anim;
+    ushort rnd;
+    short old_state;
+    short timer;
+
+    DIFFTEST_SHADOW_RET(person_goto_person_nav, int,
+      person_goto_person_nav_asm(p_person));
+
+    p_target = &things[p_person->GotoThingIndex];
+    if ((p_target->Flag & TngF_Unkn4000) != 0)
+    {
+        p_person->Flag |= TngF_Unkn0004;
+        dist_sq = 0x800000;
+    }
+    else
+    {
+        dx = (p_person->X - p_target->X) >> 8;
+        dz = (p_person->Z - p_target->Z) >> 8;
+        dist_sq = dx * dx + dz * dz;
+    }
+
+    if ((p_person->Flag & TngF_Persuaded) != 0)
+    {
+        if ((p_person->U.UPerson.OnFace != 0) && (p_target->U.UPerson.OnFace == 0))
+            dist_sq = 0x800000;
+        if ((p_person->U.UPerson.OnFace == 0) && (p_target->U.UPerson.OnFace != 0))
+            dist_sq = 0x800000;
+    }
+
+    if ((p_person->Flag2 & TgF2_Unkn00020000) != 0)
+        DIFFTEST_RETURN(dist_sq);
+
+    range_sq = (p_person->U.UPerson.ComRange * p_person->U.UPerson.ComRange) << 12;
+
+    if (((p_target->Flag & TngF_Destroyed) != 0) && (dist_sq < 0x400000))
+    {
+        p_person->State = 0;
+        remove_path(p_person);
+        DIFFTEST_RETURN(1);
+    }
+
+    if (dist_sq < range_sq)
+    {
+        if ((p_person->Flag2 & TgF2_Unkn0100) == 0)
+        {
+            p_person->U.UPerson.GotoX = p_target->X >> 8;
+            p_person->U.UPerson.GotoZ = p_target->Z >> 8;
+            remove_path(p_person);
+            p_person->U.UPerson.ComTimer = -1;
+        }
+        if ((p_person->U.UPerson.AnimMode == 14) || (p_person->U.UPerson.AnimMode == 15))
+            DIFFTEST_RETURN(dist_sq);
+        anim = gun_out_anim(p_person, 1);
+        if ((ushort)anim == p_person->U.UPerson.AnimMode)
+            DIFFTEST_RETURN(dist_sq);
+        p_person->U.UPerson.AnimMode = (ubyte)anim;
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][(ubyte)anim]
+          + p_person->U.UPerson.Angle];
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+        DIFFTEST_RETURN(dist_sq);
+    }
+
+    if ((p_person->U.UPerson.AnimMode == 14) || (p_person->U.UPerson.AnimMode == 15))
+    {
+        p_person->U.UPerson.AnimMode = gun_out_anim(p_person, 0);
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+    }
+    p_person->Speed = calc_person_speed(p_person);
+
+    if ((p_person->Flag & TngF_InVehicle) != 0)
+    {
+        p_vehicle = &things[p_person->U.UPerson.Vehicle];
+        if ((p_vehicle->SubType == 0x32) &&
+          (p_vehicle->U.UVehicle.ZebraOldHealth != p_vehicle->Health))
+            p_person->U.UPerson.ComTimer -= 25;
+        p_vehicle->U.UVehicle.ZebraOldHealth = p_vehicle->Health;
+        timer = p_person->U.UPerson.ComTimer;
+        p_person->U.UPerson.ComTimer = timer - 1;
+        if (timer >= 0)
+            DIFFTEST_RETURN(dist_sq);
+
+        rnd = LbRandomAnyShort() & 0x7ff;
+        if (things[p_person->U.UPerson.Vehicle].SubType != 0x3b)
+            p_person->U.UPerson.ComTimer = 20;
+        else
+            p_person->U.UPerson.ComTimer = (LbRandomAnyShort() & 0x3f) + 0x5a;
+        dz = (p_target->Z >> 8) + (lbSinTable[rnd] >> 6);
+        dx = (p_target->X >> 8) + (lbSinTable[rnd + 512] >> 6);
+        start_goto_vehicle(&things[p_person->U.UPerson.Vehicle], dx, dz);
+        DIFFTEST_RETURN(dist_sq);
+    }
+
+    if (p_person->SubState == 0)
+    {
+        p_person->SubState = 1;
+        p_person->U.UPerson.GotoX = p_target->X >> 8;
+        p_person->U.UPerson.GotoZ = p_target->Z >> 8;
+    }
+    old_state = p_person->State;
+    do_person_gotothingindex((int)p_person, old_state, 0, 0);
+
+    if ((ushort)p_person->State == 0)
+    {
+        dx = (p_person->X - p_target->X) >> 8;
+        dz = (p_person->Z - p_target->Z) >> 8;
+        dist_sq = dx * dx + dz * dz;
+        range_sq = (p_person->U.UPerson.ComRange * p_person->U.UPerson.ComRange) << 12;
+        if (dist_sq >= range_sq)
+        {
+            p_person->SubState = 0;
+            p_person->State = old_state;
+            DIFFTEST_RETURN(0);
+        }
+        if ((p_person->Flag & TngF_PlayerAgent) == 0)
+            DIFFTEST_RETURN(dist_sq);
+        p_person->SubState = 0;
+        p_person->State = old_state;
+        DIFFTEST_RETURN(dist_sq);
+    }
+
+    if (p_person->U.UPerson.ComTimer == 1)
+    {
+        dx = p_target->X >> 8;
+        dz = p_target->Z >> 8;
+        if ((p_person->U.UPerson.GotoX - dx) * (p_person->U.UPerson.GotoX - dx)
+          + (p_person->U.UPerson.GotoZ - dz) * (p_person->U.UPerson.GotoZ - dz) > 0x40000)
+        {
+            p_person->U.UPerson.GotoX = dx;
+            p_person->U.UPerson.GotoZ = p_target->Z >> 8;
+            remove_path(p_person);
+            p_person->U.UPerson.ComTimer = -1;
+        }
+    }
+    DIFFTEST_RETURN(dist_sq);
 }
 
 static DIFFTEST_REF_FUNC void person_goto_point_asm(struct Thing *p_person)
