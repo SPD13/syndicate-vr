@@ -8843,10 +8843,32 @@ void search_for_danger(struct Thing *p_person)
         make_peep_flee(flee_x, flee_z, p_person);
 }
 
-void process_danger(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void process_danger_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_process_danger\n"
         : : "a" (p_person));
+}
+
+void process_danger(struct Thing *p_person)
+{
+    ubyte anmode;
+
+    DIFFTEST_SHADOW(process_danger, process_danger_asm(p_person));
+    if ((p_person->Flag & (TngF_Unkn40000000 | TngF_WepRecoil |
+      TngF_SelectedAgent | TngF_Destroyed | TngF_Unkn0001)) != 0)
+        return;
+    if ((p_person->Flag2 & TgF2_Unkn00080000) != 0)
+        return;
+    anmode = p_person->U.UPerson.AnimMode;
+    if ((anmode == 14) || (anmode == 15))
+        return;
+    if ((p_person->Flag2 & (TgF2_AlteredSubType | TgF2_ExistsOffMap)) != 0)
+        return;
+    if ((((ushort)p_person->ThingOffset + gameturn) & 3) != 0)
+        return;
+    if (cybmod_brain_level(&p_person->U.UPerson.UMod) >= 3)
+        return;
+    search_for_danger(p_person);
 }
 
 void peep_return_to_point(struct Thing *p_person)
