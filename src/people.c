@@ -1366,12 +1366,60 @@ void set_person_animmode_walk(struct Thing *p_person)
     p_person->Speed = calc_person_speed(p_person);
 }
 
-int check_col_collision_floor(int cor_x, int cor_y, int cor_z)
+static DIFFTEST_REF_FUNC int check_col_collision_floor_asm(int cor_x, int cor_y, int cor_z)
 {
     int ret;
     asm volatile ("call ASM_check_col_collision_floor\n"
-        : "=r" (ret) : "a" (cor_x), "d" (cor_y), "b" (cor_z));
+        : "=a" (ret) : "a" (cor_x), "d" (cor_y), "b" (cor_z));
     return ret;
+}
+
+int check_col_collision_floor(int cor_x, int cor_y, int cor_z)
+{
+    struct MyMapElement *p_mel;
+    s32 tile_x, tile_z;
+    s32 alt00, alt10, alt01, alt11;
+    s32 frac_x, frac_z;
+    s32 alt;
+
+    DIFFTEST_SHADOW_RET(check_col_collision_floor, int,
+      check_col_collision_floor_asm(cor_x, cor_y, cor_z));
+    tile_x = cor_x >> 8;
+    if (tile_x < 0 || tile_x >= 128)
+        DIFFTEST_RETURN(0);
+    tile_z = cor_z >> 8;
+    if (tile_z < 0 || tile_z >= 128)
+        DIFFTEST_RETURN(0);
+
+    p_mel = &game_my_big_map[tile_z * 128 + tile_x];
+    alt00 = p_mel[0].Alt;
+    alt10 = p_mel[1].Alt;
+    alt01 = p_mel[128].Alt;
+    alt11 = p_mel[129].Alt;
+
+    if (alt10 == alt00 && alt00 == alt01 && alt01 == alt11)
+    {
+        alt = alt00;
+    }
+    else
+    {
+        frac_x = (short)(cor_x & 0xFF);
+        frac_z = (short)(cor_z & 0xFF);
+        if (frac_x + frac_z < 256)
+        {
+            alt = (((alt01 - alt00) * frac_z) >> 8) +
+              ((((alt10 - alt00) * frac_x) >> 8) + alt00);
+        }
+        else
+        {
+            alt = ((((alt01 - alt11) * (256 - frac_x)) >> 8) + alt11) +
+              (((alt10 - alt11) * (256 - frac_z)) >> 8);
+        }
+    }
+
+    if (alt > cor_y)
+        DIFFTEST_RETURN(-1);
+    DIFFTEST_RETURN(0);
 }
 
 short do_vect_colide(struct MyMapElement *p_me, int x1, int y1, int z1, int x2, int y2, int z2)
