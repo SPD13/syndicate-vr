@@ -46,6 +46,7 @@ struct Path { // sizeof=0x814
 
 #pragma pack()
 /******************************************************************************/
+extern struct Path g_fat_data;
 
 void triangulation_clear(void);
 void triangulation_allocate(int tgnNo, int maxTrigs);

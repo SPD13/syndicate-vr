@@ -2753,15 +2753,67 @@ void set_xz_for_quad_unkn03(int a1, int a2, int a3, int a4)
     asm volatile ("call ASM_set_xz_for_quad_unkn03\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void use_nav_data(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void use_nav_data_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_use_nav_data\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Copy the way points of g_fat_data into a chain of my_paths entries,
+ * and attach that chain to the thing.
+ * Routed asm (internal label); only a1 (the thing) is used.
+ */
+void use_nav_data(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing = (struct Thing *)a1;
+    struct MyPath *p_mypath;
+    ushort path, next_path;
+    ushort i;
+
+    DIFFTEST_SHADOW(use_nav_data, use_nav_data_asm(a1, a2, a3, a4));
+
+    next_path = head_my_path;
+    if (p_thing->U.UPerson.PathIndex != 0)
+        unkn_path_func_001(p_thing, 0);
+
+    if ((g_fat_data.PathLength >> 2) + (s32)path_count > 1596)
+    {
+        char locstr[60];
+        // The message is formatted but never shown
+        sprintf(locstr, "Pathlength == %d, path_count = %d",
+          g_fat_data.PathLength, (s32)path_count);
+        p_thing->U.UPerson.PathIndex = 0;
+        head_my_path = next_path;
+        return;
+    }
+
+    path = head_my_path;
+    p_thing->U.UPerson.PathIndex = path;
+    p_mypath = &my_paths[path];
+    p_mypath->Flag = (ubyte)g_fat_data.PathLength;
+    next_path = p_mypath->Next;
+    p_mypath->Next = 0;
+    path_count++;
+
+    for (i = 0; (s32)i < g_fat_data.PathLength; i++)
+    {
+        if (((i & 3) == 0) && (i > 3))
+        {
+            my_paths[path].Next = next_path;
+            path = next_path;
+            p_mypath = &my_paths[path];
+            next_path = p_mypath->Next;
+            p_mypath->Next = 0;
+            path_count++;
+            p_mypath->Flag = (ubyte)g_fat_data.PathLength;
+        }
+        p_mypath = &my_paths[path];
+        p_mypath->Z[i & 3] = g_fat_data.WayPoints[i].y8 >> 8;
+        p_mypath->X[i & 3] = g_fat_data.WayPoints[i].x8 >> 8;
+    }
+    p_thing->PathOffset = 0;
+    head_my_path = next_path;
 }
 
 
