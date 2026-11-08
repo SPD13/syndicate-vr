@@ -22,6 +22,8 @@
 
 #include "bigmap.h"
 #include "building.h"
+#include "difftest.h"
+#include "enginsngobjs.h"
 #include "people.h"
 #include "pepgroup.h"
 #include "swlog.h"
@@ -917,12 +919,73 @@ ThingIdx search_things_for_uniqueid(short uniqid, ubyte flag)
     return ret;
 }
 
-ThingIdx find_nearest_object2(short mx, short mz, ushort sub_type)
+static DIFFTEST_REF_FUNC ThingIdx find_nearest_object2_asm(short mx, short mz, ushort sub_type)
 {
     ThingIdx ret;
     asm volatile ("call ASM_find_nearest_object2\n"
-        : "=r" (ret) : "a" (mx), "d" (mz), "b" (sub_type));
+        : "=a" (ret) : "a" (mx), "d" (mz), "b" (sub_type));
     return ret;
+}
+
+ThingIdx find_nearest_object2(short mx, short mz, ushort sub_type)
+{
+    s32 tile_x, tile_z;
+    s32 x_beg, x_end, z_beg, z_end;
+    u32 best_dist;
+    ThingIdx best_thing;
+
+    DIFFTEST_SHADOW_RET(find_nearest_object2, ThingIdx,
+      find_nearest_object2_asm(mx, mz, sub_type));
+
+    tile_x = mx >> 8;
+    tile_z = mz >> 8;
+    x_beg = tile_x - 20;
+    x_end = tile_x + 20;
+    z_beg = tile_z - 20;
+    z_end = tile_z + 20;
+    best_dist = 0x7fffffff;
+    best_thing = 0;
+
+    for (tile_x = x_beg; tile_x < x_end; tile_x++)
+    {
+        for (tile_z = z_beg; tile_z < z_end; tile_z++)
+        {
+            ThingIdx thing;
+
+            if (tile_x >= 128 || tile_z >= 128 || tile_x <= 0 || tile_z <= 0)
+                continue;
+
+            thing = game_my_big_map[tile_z * 128 + tile_x].Child;
+            while (thing != 0)
+            {
+                struct Thing *p_thing;
+
+                if (thing <= 0) {
+                    thing = sthings[thing].Next;
+                    continue;
+                }
+                p_thing = &things[thing];
+                if (p_thing->Type == TT_BUILDING &&
+                  (sub_type == 0 || p_thing->SubType == sub_type))
+                {
+                    struct SingleObject *p_sobj;
+                    s32 dx, dz;
+                    u32 dist;
+
+                    p_sobj = &game_objects[p_thing->U.UObject.Object];
+                    dx = p_sobj->MapX - mx;
+                    dz = p_sobj->MapZ - mz;
+                    dist = (u32)(dz * dz + dx * dx);
+                    if (dist < best_dist) {
+                        best_dist = dist;
+                        best_thing = thing;
+                    }
+                }
+                thing = p_thing->Next;
+            }
+        }
+    }
+    DIFFTEST_RETURN(best_thing);
 }
 
 short search_object_for_qface(ushort object, ubyte gflag, ubyte flag, ushort after)
