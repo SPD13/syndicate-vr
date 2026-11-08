@@ -1735,12 +1735,37 @@ void create_unkn_building_subtp27(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int func_4225c(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int func_4225c_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_func_4225c\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int func_4225c(int a1, int a2, int a3, int a4)
+{
+    struct SingleObject *p_sobj;
+    struct SinglePoint *p_spt;
+    ushort pt, pt_end;
+    s32 dist, v;
+
+    DIFFTEST_SHADOW_RET(func_4225c, int,
+      func_4225c_asm(a1, a2, a3, a4));
+    p_sobj = &game_objects[(ushort)a1];
+    dist = 0;
+    pt_end = p_sobj->EndPoint;
+    for (pt = p_sobj->StartPoint; pt <= pt_end; pt++)
+    {
+        p_spt = &game_object_points[pt];
+        v = abs(p_spt->Z);
+        if (v > dist)
+            dist = v;
+        v = abs(p_spt->X);
+        if (v > dist)
+            dist = v;
+    }
+    DIFFTEST_RETURN((dist * 170) >> 8);
 }
 
 
