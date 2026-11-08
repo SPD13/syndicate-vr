@@ -1090,11 +1090,55 @@ void process_nuclear_bomb(struct SimpleThing *p_sthing, ThingIdx thing_item)
         : : "a" (p_sthing), "d" (thing_item));
 }
 
-void process_smoke_generator(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_smoke_generator_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_smoke_generator\n"
         : : "a" (p_sthing));
+}
+
+void process_smoke_generator(struct SimpleThing *p_sthing)
+{
+    struct SimpleThing *p_smoke;
+    s32 x, y, z;
+    s32 tm_range;
+    short timer;
+    short scale;
+    u32 angle;
+
+    DIFFTEST_SHADOW(process_smoke_generator, process_smoke_generator_asm(p_sthing));
+    x = p_sthing->X >> 8;
+    y = p_sthing->Y >> 8;
+    z = p_sthing->Z >> 8;
+    timer = p_sthing->Timer1;
+    p_sthing->Timer1 = timer - 1;
+    if (timer >= 0)
+        return;
+
+    tm_range = p_sthing->U.UEffect.OZ;
+    p_sthing->Timer1 = (s32)LbRandomAnyShort() % tm_range + tm_range;
+    scale = (LbRandomAnyShort() & 0xF) + 0x50;
+    p_smoke = create_scale_effect(x, y, z, 0x38b, scale);
+    if (p_smoke == NULL)
+        return;
+
+    p_smoke->SubType = 44;
+    p_smoke->Object = 0x80;
+    p_smoke->StartFrame = 2;
+    p_smoke->U.UEffect.VX = p_sthing->U.UEffect.VX;
+    p_smoke->U.UEffect.VY = p_sthing->U.UEffect.VY;
+    p_smoke->U.UEffect.VZ = p_sthing->U.UEffect.VZ;
+    angle = (gameturn << 7) & 0x7FF;
+    p_smoke->U.UEffect.VX = p_smoke->U.UEffect.VX
+      + ((lbSinTable[angle + LbFPMath_PI/2] >> 10) - 32);
+    p_smoke->U.UEffect.VY = p_smoke->U.UEffect.VY
+      + ((lbSinTable[angle] >> 10) - 32);
+    p_smoke->U.UEffect.OX = p_sthing->U.UEffect.OX;
+    p_smoke->U.UEffect.OY = p_sthing->U.UEffect.OY;
+    p_smoke->U.UEffect.OZ = p_sthing->U.UEffect.OZ;
+    p_smoke->StartTimer1 = p_sthing->StartTimer1;
+    p_smoke->State = 0;
+    p_smoke->Owner2 = p_sthing->Owner2;
 }
 
 void process_thing_checksum(struct Thing *p_thing, ThingIdx thing)
