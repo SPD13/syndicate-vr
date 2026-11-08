@@ -1325,12 +1325,157 @@ void flatten_vehicle(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int check_tank_collision(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int check_tank_collision_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_check_tank_collision\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int can_the_tank_run_over(int a1, int a2);
+
+int check_tank_collision(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_tank = (struct Thing *)a1;
+    struct M33 *p_mat;
+    s32 dt_x, dt_z;
+    s32 front_x, front_z, back_x, back_z;
+    s32 tile_x, tile_z;
+    s32 tl_x, tl_z, tl_x_end, tl_z_end;
+
+    DIFFTEST_SHADOW_RET(check_tank_collision, int,
+      check_tank_collision_asm(a1, a2, a3, a4));
+
+    p_mat = &local_mats[p_tank->U.UVehicle.MatrixIndex];
+    dt_x = (-p_mat->R[0][2]) << 2;
+    dt_z = (-p_mat->R[2][2]) << 2;
+    front_x = p_tank->X + dt_x;
+    front_z = p_tank->Z + dt_z;
+    back_x = p_tank->X - dt_x;
+    back_z = p_tank->Z - dt_z;
+    dt_x >>= 4;
+    front_x += dt_x;
+    back_x += dt_x;
+    dt_z >>= 4;
+    front_z += dt_z;
+    back_z += dt_z;
+
+    tile_x = p_tank->X >> 16;
+    tile_z = p_tank->Z >> 16;
+    tl_x_end = tile_x + 4;
+    for (tl_x = tile_x - 3; tl_x != tl_x_end; tl_x++)
+    {
+        if (tl_x < 0 || tl_x > 127)
+            continue;
+        tl_z_end = tile_z + 4;
+        for (tl_z = tile_z - 3; tl_z != tl_z_end; tl_z++)
+        {
+            ThingIdx thing;
+
+            if (tl_z < 0 || tl_z > 127)
+                continue;
+            thing = game_my_big_map[(tl_z << 7) + tl_x].Child;
+            while (thing != 0)
+            {
+                s32 dx, dz, dist1, dist2, radius;
+
+                if (thing > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[thing];
+                    thing = p_thing->Next;
+                    if (p_thing->Type != TT_VEHICLE)
+                        continue;
+                    if (p_thing == p_tank)
+                        continue;
+                    if (abs(p_tank->Y - p_thing->Y) >= 0x1000)
+                        continue;
+                    dx = abs(p_thing->X - front_x);
+                    dz = abs(p_thing->Z - front_z);
+                    if (dx > dz)
+                        dist1 = dx + (dz >> 1);
+                    else
+                        dist1 = dz + (dx >> 1);
+                    dx = abs(p_thing->X - back_x);
+                    dz = abs(p_thing->Z - back_z);
+                    if (dx > dz)
+                        dist2 = dx + (dz >> 1);
+                    else
+                        dist2 = dz + (dx >> 1);
+                    radius = ((s32)(ushort)p_thing->Radius << 8) + 0x13800;
+                    if (dist1 >= radius && dist2 >= radius)
+                        continue;
+
+                    if (p_thing->SubType == SubTT_VEH_TANK)
+                    {
+                        struct Thing *p_passngr;
+
+                        p_passngr = &things[(ushort)p_tank->U.UVehicle.PassengerHead];
+                        if ((p_passngr->Flag & TngF_PlayerAgent) != 0)
+                            p_tank->U.UVehicle.ReqdSpeed = 0;
+                        else if (p_tank < p_thing)
+                            p_tank->U.UVehicle.ReqdSpeed = 0;
+                    }
+                    else
+                    {
+                        short health;
+
+                        health = p_thing->Health;
+                        health = health - (health >> 2);
+                        p_thing->Health = health;
+                        p_thing->Health = health - 16;
+                        p_thing->U.UVehicle.RecoilTimer = 5;
+                        if (p_thing->Health <= 0)
+                        {
+                            init_vehicle_explode(p_thing);
+                            p_thing->Flag |= TngF_Destroyed;
+                        }
+                        p_tank->Health--;
+                        p_tank->U.UVehicle.RecoilTimer = 5;
+                        if (p_tank->Health <= 0)
+                        {
+                            start_crashing(p_tank);
+                            p_tank->Flag |= TngF_Destroyed;
+                        }
+                        flatten_vehicle((int)p_thing, (int)p_tank, (int)p_thing, (int)p_tank);
+                    }
+                }
+                else
+                {
+                    struct SimpleThing *p_sthing;
+
+                    p_sthing = &sthings[thing];
+                    thing = p_sthing->Next;
+                    if ((p_sthing->Flag & TngF_Destroyed) != 0)
+                        continue;
+                    dx = abs(p_sthing->X - front_x);
+                    dz = abs(p_sthing->Z - front_z);
+                    if (dx > dz)
+                        dist1 = dx + (dz >> 1);
+                    else
+                        dist1 = dz + (dx >> 1);
+                    dx = abs(p_sthing->X - back_x);
+                    dz = abs(p_sthing->Z - back_z);
+                    if (dx > dz)
+                        dist2 = dx + (dz >> 1);
+                    else
+                        dist2 = dz + (dx >> 1);
+                    radius = ((s32)(ushort)p_sthing->Radius << 8) + 0x13800;
+                    if (dist1 >= radius && dist2 >= radius)
+                        continue;
+                    // TODO the asm compares distances to the rear point with 2, probably meant something else
+                    if (dx == 2 || dz == 2)
+                        continue;
+                    // The asm passes edx = sign of the last abs value, which is always 0
+                    if (can_the_tank_run_over((int)p_sthing, 0))
+                        set_static_on_fire(p_sthing);
+                }
+            }
+        }
+    }
+    DIFFTEST_RETURN(tl_x_end);
 }
 
 
