@@ -26,8 +26,11 @@
 #include "bfutility.h"
 #include "ssampply.h"
 #include "triangls.h"
+#include "trpoints.h"
+#include "trstate.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "engincam.h"
 #include "engincolour.h"
@@ -2719,12 +2722,227 @@ int func_5fe50(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int triangle_route_do_bak(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int triangle_route_do_bak_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_triangle_route_do_bak\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+extern ubyte tag_current;
+extern s32 tree_Ax8;
+extern s32 tree_Ay8;
+extern ubyte routeTags[];
+extern s32 tree_val[];
+extern s32 tree_dad[];
+/** Binary heap of triangles, ordered by tree_val[]; index 0 unused,
+ * heap[1] (data_1c30c0 in asm) is the top. */
+extern s32 heap[];
+extern s32 heap_end;
+
+/** Adds a triangle to the route heap and sifts it up.
+ */
+static void triangle_route_bak_heap_add(s32 tri)
+{
+    s32 i, par, sib, chosen, tmp, val;
+
+    if (heap_end < 0x100)
+        heap_end++;
+    i = heap_end;
+    heap[i] = tri;
+    if (i == 1)
+        return;
+    if ((i & 1) == 0)
+    {
+        par = i >> 1;
+        if (tree_val[heap[i]] > tree_val[heap[par]])
+            return;
+        tmp = heap[par];
+        heap[par] = heap[i];
+        heap[i] = tmp;
+        i = par;
+    }
+    while (i != 1)
+    {
+        par = i >> 1;
+        sib = i ^ 1;
+        val = tree_val[heap[i]];
+        if (val < tree_val[heap[sib]])
+        {
+            if (val < tree_val[heap[par]])
+                chosen = i;
+            else
+                chosen = par;
+        }
+        else
+        {
+            if (tree_val[heap[sib]] < tree_val[heap[par]])
+                chosen = sib;
+            else
+                chosen = par;
+        }
+        if (chosen == par)
+            break;
+        tmp = heap[par];
+        heap[par] = heap[chosen];
+        heap[chosen] = tmp;
+        i = par;
+    }
+}
+
+/** Removes the top triangle from the route heap and sifts down.
+ */
+static void triangle_route_bak_heap_pop(void)
+{
+    s32 i, n, lt, rt, chosen, tmp, val;
+
+    n = heap_end;
+    heap[1] = heap[n];
+    heap_end = n - 1;
+    heap[n] = -1;
+    if (n - 1 == 0)
+        return;
+    i = 1;
+    while (1)
+    {
+        lt = 2 * i;
+        rt = lt ^ 1;
+        if (rt > heap_end)
+        {
+            n = heap_end;
+            if (i == n)
+                return;
+            if (tree_val[heap[i]] < tree_val[heap[n]])
+                return;
+            tmp = heap[i];
+            heap[i] = heap[n];
+            heap[n] = tmp;
+            return;
+        }
+        val = tree_val[heap[i]];
+        if (val < tree_val[heap[lt]])
+        {
+            if (val >= tree_val[heap[rt]])
+                chosen = rt;
+            else
+                chosen = i;
+        }
+        else
+        {
+            if (tree_val[heap[lt]] >= tree_val[heap[rt]])
+                chosen = rt;
+            else
+                chosen = lt;
+        }
+        if (chosen == i)
+            return;
+        tmp = heap[i];
+        heap[i] = heap[chosen];
+        heap[chosen] = tmp;
+        i = chosen;
+    }
+}
+
+/** Distance estimate from (ax, ay) to given triangulation point.
+ */
+static s32 triangle_route_bak_pt_dist(s32 ax, s32 ay, ushort pt)
+{
+    struct TrPoint *p_point;
+    s32 dx, dy;
+
+    p_point = &triangulation[0].Points[pt];
+    dx = abs(ax - p_point->x);
+    dy = abs(ay - p_point->y);
+    if (dx > dy)
+        return dx + (dy >> 1);
+    else
+        return (dx >> 1) + dy;
+}
+
+/** Best-first search over triangulation from triangle a2 towards a1,
+ * using distance to (tree_Ax8, tree_Ay8) as heap key.
+ * Arguments: a1 = destination tri, a2 = start tri, a3 = s32 *route output
+ * (from a1 back to a2), a4 unused.
+ * Returns number of route steps, or -1 if not found.
+ */
+int triangle_route_do_bak(int a1, int a2, int a3, int a4)
+{
+    s32 *p_route = (s32 *)a3;
+    struct TrTriangle *p_tri;
+    s32 tri_dst, tri_beg, tri_cur, tri_nxt;
+    s32 ax, ay, dist, d;
+    int k, n;
+
+    DIFFTEST_SHADOW_RET(triangle_route_do_bak, int,
+      triangle_route_do_bak_asm(a1, a2, a3, a4));
+
+    tri_dst = a1;
+    tri_beg = a2;
+
+    tag_current++;
+    heap[1] = -1;
+    heap_end = 0;
+    if (tag_current == 0)
+    {
+        memset(routeTags, 0, 8000);
+        tag_current = 1;
+    }
+
+    tree_val[tri_beg] = 1;
+    tree_dad[tri_beg] = tri_beg;
+    routeTags[tri_beg] = tag_current;
+    triangle_route_bak_heap_add(tri_beg);
+
+    while (1)
+    {
+        tri_cur = heap[1];
+        if (tri_cur == tri_dst || tri_cur == -1)
+            break;
+        triangle_route_bak_heap_pop();
+
+        for (k = 0; k < 3; k++)
+        {
+            tri_nxt = triangulation[0].Triangles[tri_cur].tri[k];
+            if (tri_nxt == -1)
+                continue;
+            if (routeTags[tri_nxt] == tag_current)
+                continue;
+            p_tri = &triangulation[0].Triangles[tri_nxt];
+            if ((p_tri->solid & 0x08) != 0)
+                continue;
+            ax = tree_Ax8 >> 8;
+            ay = tree_Ay8 >> 8;
+            dist = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[0]);
+            d = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[1]);
+            if (d < dist)
+                dist = d;
+            d = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[2]);
+            if (d < dist)
+                dist = d;
+
+            routeTags[tri_nxt] = tag_current;
+            tree_val[tri_nxt] = dist;
+            tree_dad[tri_nxt] = tri_cur;
+            triangle_route_bak_heap_add(tri_nxt);
+        }
+    }
+
+    if (heap[1] == -1)
+        DIFFTEST_RETURN((int)-1);
+
+    tri_cur = tri_dst;
+    n = 0;
+    while (1)
+    {
+        *p_route = tri_cur;
+        if (tri_cur == tri_beg)
+            break;
+        p_route++;
+        n++;
+        tri_cur = tree_dad[tri_cur];
+    }
+    DIFFTEST_RETURN((int)n);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
