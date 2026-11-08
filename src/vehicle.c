@@ -614,12 +614,71 @@ int check_for_a_vehicle_here(int x, int z, struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int person_poke(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int person_poke_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_person_poke\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+short person_move(struct Thing *p_person);
+
+int person_poke(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_other = (struct Thing *)a4;
+    s32 dt_x, dt_z;
+    s32 orig_dt_x, orig_dt_z;
+    s32 dist_x, dist_z;
+    s32 dist1, dist2;
+    s32 old_vx, old_vz;
+    short old_speed;
+    int ret;
+
+    DIFFTEST_SHADOW_RET(person_poke, int, person_poke_asm(a1, a2, a3, a4));
+    orig_dt_z = a2;
+    orig_dt_x = a3;
+    dt_z = a2;
+    dt_x = a3;
+
+    dist_x = abs((p_person->X >> 8) - dt_x - (p_other->X >> 8));
+    dist_z = abs((p_person->Z >> 8) + dt_z - (p_other->Z >> 8));
+    if (dist_x > dist_z)
+        dist1 = dist_x + (dist_z >> 1);
+    else
+        dist1 = dist_z + (dist_x >> 1);
+
+    dist_x = abs((p_other->X >> 8) - (p_person->X >> 8)) + dt_x;
+    dist_z = abs((p_other->Z >> 8) - (p_person->Z >> 8)) - dt_z;
+    if (dist_x > dist_z)
+        dist2 = dist_x + (dist_z >> 1);
+    else
+        dist2 = dist_z + (dist_x >> 1);
+
+    if (dist2 > dist1)
+    {
+        dt_z = -dt_z;
+        dt_x = -dt_x;
+    }
+
+    // TODO the asm mixes original and possibly negated deltas here
+    old_vx = p_person->VX;
+    p_person->VX = orig_dt_z - dt_x;
+    old_vz = p_person->VZ;
+    old_speed = p_person->Speed;
+    p_person->VZ = orig_dt_x + dt_z;
+    p_person->Speed = 16;
+    ret = (ushort)person_move(p_person);
+    // Return value is the raw eax: low byte from person_move(), second byte from flags
+    ret = (ret & ~0xFF00) | ((p_person->Flag & 0xFF) << 8);
+    if ((p_person->Flag & TngF_Destroyed) == 0)
+    {
+        p_person->VX = old_vx;
+        p_person->VZ = old_vz;
+        p_person->Speed = old_speed;
+    }
+    DIFFTEST_RETURN(ret);
 }
 
 
