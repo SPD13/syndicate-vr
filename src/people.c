@@ -4664,7 +4664,7 @@ ubyte is_command_completed(struct Thing *p_person)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int do_fvect_colide(int a1, int a2, int a3, int a4, int a5)
+static DIFFTEST_REF_FUNC int do_fvect_colide_asm(int a1, int a2, int a3, int a4, int a5)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[1];
@@ -4673,6 +4673,64 @@ int do_fvect_colide(int a1, int a2, int a3, int a4, int a5)
     asm volatile ("push 0(%4)\n""call ASM_do_fvect_colide\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
     return ra;
+}
+
+int do_fvect_colide(int a1, int a2, int a3, int a4, int a5)
+{
+    struct MyMapElement *p_me = (struct MyMapElement *)a5;
+    struct ColVectList *p_cvlist;
+    struct ColVect *p_colvect;
+    ushort cvlist;
+    short face;
+    int ret;
+    int pass;
+
+    DIFFTEST_SHADOW_RET(do_fvect_colide, int,
+      do_fvect_colide_asm(a1, a2, a3, a4, a5));
+    ret = 0;
+    cvlist = p_me->ColHead;
+    while (cvlist != 0)
+    {
+        if (ret != 0)
+            break;
+        p_cvlist = &game_col_vects_list[cvlist];
+        if (((p_cvlist->NextColList & 0x8000) == 0) && (p_cvlist->Object >= 0))
+        {
+            p_colvect = &game_col_vects[p_cvlist->Vect];
+            face = p_colvect->Face;
+            if (face < 0)
+            {
+                struct SingleObjectFace4 *p_face;
+
+                p_face = &game_object_faces4[-face];
+                pass = p_face->GFlags & FGFlg_Unkn04;
+                if (((p_face->GFlags & FGFlg_Unkn10) != 0) && (p_face->WalkHeader != 0))
+                {
+                    if ((sthings[(short)p_face->WalkHeader].Flag & 0x0002) != 0)
+                        pass = 1;
+                    else
+                        pass = 0;
+                }
+            }
+            else
+            {
+                // TODO the original has a dead branch here which would check
+                // game_object_faces3[face].GFlags & FGFlg_Unkn04 for face > 0;
+                // its jump condition is always true, so it is never reached
+                pass = 0;
+            }
+            if (two4_line_intersection(p_colvect->X1, p_colvect->Z1,
+              p_colvect->X2, p_colvect->Z2, a1, a2, a3, a4))
+            {
+                if (pass == 0)
+                    ret = cvlist;
+                else
+                    ret = -(int)cvlist;
+            }
+        }
+        cvlist = game_col_vects_list[cvlist].NextColList & 0x7FFF;
+    }
+    DIFFTEST_RETURN(ret);
 }
 
 
