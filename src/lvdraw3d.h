@@ -30,6 +30,7 @@ extern "C" {
 
 #pragma pack()
 /******************************************************************************/
+extern TbBool nuclear_overexposure;
 extern ubyte byte_1C8444;
 
 void clear_super_quick_lights(void);

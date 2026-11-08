@@ -30,6 +30,7 @@
 #include "bigmap.h"
 #include "building.h"
 #include "bmbang.h"
+#include "bmcrater.h"
 #include "command.h"
 #include "difftest.h"
 #include "display.h"
@@ -42,6 +43,7 @@
 #include "game_data.h"
 #include "game_options.h"
 #include "game_speed.h"
+#include "lvdraw3d.h"
 #include "matrix.h"
 #include "packet.h"
 #include "pepgroup.h"
@@ -1488,11 +1490,105 @@ void do_explode(int a1, int a2, int a3, int a4)
 }
 
 
-void process_nuclear_bomb(struct SimpleThing *p_sthing, ThingIdx thing_item)
+static DIFFTEST_REF_FUNC void process_nuclear_bomb_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
     asm volatile (
       "call ASM_process_nuclear_bomb\n"
         : : "a" (p_sthing), "d" (thing_item));
+}
+
+void process_nuclear_bomb(struct SimpleThing *p_sthing, ThingIdx thing_item)
+{
+    s32 x, y, z;
+    s32 timer;
+    s32 turn;
+    short timer1;
+
+    DIFFTEST_SHADOW(process_nuclear_bomb, process_nuclear_bomb_asm(p_sthing, thing_item));
+
+    turn = gameturn;
+    x = p_sthing->X >> 8;
+    y = p_sthing->Y >> 8;
+    z = p_sthing->Z >> 8;
+    timer = p_sthing->Timer1;
+    set_nuclear_shade_timer(timer);
+
+    if (timer < 12)
+    {
+        s32 radius = (ushort)p_sthing->Radius;
+        p_sthing->Radius = radius + ((radius >> 3) + 4);
+    }
+    else if (timer < 25)
+    {
+        s32 radius = (ushort)p_sthing->Radius;
+        p_sthing->Radius = radius - ((radius >> 2) + 4);
+    }
+    else
+    {
+        p_sthing->Radius = 0;
+    }
+
+    timer = p_sthing->Timer1;
+    if (timer == 20)
+    {
+        struct Thing *p_owner;
+        ushort angle;
+        int intensity;
+
+        do_explode((short)x, (short)y, (short)z, 0);
+        quick_crater(x >> 8, z >> 8, 2);
+        p_owner = &things[(ushort)p_sthing->Owner2];
+        if ((p_sthing->Flag & TngF_Persuaded) != 0)
+            intensity = 10000;
+        else
+            intensity = 5000;
+        do_shockwave(x, y, z, 0x400, intensity, p_owner);
+        stop_sample_using_heap(p_sthing->ThingOffset, 1);
+        play_dist_sample(&things[(ushort)p_sthing->Owner2], 0x16, 0x7F, 0x40, 100, 0, 3);
+        bang_new4(x << 8, y << 8, z << 8, 45);
+
+        for (angle = 0; angle < 0x800; angle += 20, turn++)
+        {
+            struct SimpleThing *p_effect;
+            s32 cx, cz;
+            s32 m;
+
+            cx = lbSinTable[angle + 512] >> 8;
+            cz = lbSinTable[angle] >> 8;
+            cx += (LbRandomAnyShort() & 0x1F) - 15;
+            cz += (LbRandomAnyShort() & 0x1F) - 15;
+            p_effect = create_scale_effect(x + cx, y, z + cz, 900, 20);
+            if (p_effect == NULL)
+                continue;
+            m = turn & 1;
+            p_effect->SubType = 45;
+            p_effect->Object = 0x100;
+            p_effect->StartFrame = 0;
+            p_effect->U.UEffect.VY = 0;
+            p_effect->U.UEffect.OY = 0;
+            p_effect->U.UEffect.VX = (cx << 4) - m * cx;
+            p_effect->U.UEffect.VZ = (cz << 4) - m * cz;
+            p_effect->U.UEffect.OZ = (-cz) >> 4;
+            p_effect->U.UEffect.OX = (-cx) >> 4;
+            p_effect->Owner2 = p_sthing->Owner2;
+        }
+    }
+    else if (timer > 20)
+    {
+        if ((p_sthing->Flag & TngF_Persuaded) != 0)
+            test_stuff(x, y, z, 0);
+    }
+
+    timer1 = p_sthing->Timer1;
+    p_sthing->Timer1 = timer1 + 1;
+    if (timer1 > 28)
+    {
+        remove_sthing(thing_item);
+        delete_snode(p_sthing);
+        // TODO the asm stores a 32-bit zero over a 1-byte TbBool, clobbering
+        // the bytes which follow it; kept to match the original
+        *(u32 *)&nuclear_overexposure = 0;
+    }
 }
 
 static DIFFTEST_REF_FUNC void process_smoke_generator_asm(struct SimpleThing *p_sthing)
