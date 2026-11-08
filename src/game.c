@@ -1145,10 +1145,31 @@ void process_map_crater(int crater)
         : : "a" (crater) : "cc", "memory");
 }
 
-void process_map_craters(void)
+extern ubyte map_crater_first;
+extern ubyte map_crater_next;
+
+static DIFFTEST_REF_FUNC void process_map_craters_asm(void)
 {
     asm volatile ("call ASM_process_map_craters\n"
         :  :  : "eax" );
+}
+
+void process_map_craters(void)
+{
+    ubyte cratr;
+
+    DIFFTEST_SHADOW(process_map_craters, process_map_craters_asm());
+    if (map_crater_first == map_crater_next)
+        return;
+    cratr = map_crater_first;
+    do
+    {
+        process_map_crater(cratr);
+        cratr++;
+        if ((sbyte)cratr < 0)
+            cratr = 0;
+    }
+    while (map_crater_next != cratr);
 }
 
 ubyte get_engine_inputs(void)
