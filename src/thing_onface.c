@@ -31,6 +31,7 @@
 #include "bigmap.h"
 #include "difftest.h"
 #include "game.h"
+#include "lvwalk.h"
 #include "packet.h"
 #include "player.h"
 #include "swlog.h"
@@ -167,13 +168,113 @@ ushort set_thing_height_on_face(struct Thing *p_thing, int x, int z, short face)
     return 0;
 }
 
-short find_and_set_connected_face(struct Thing *p_thing, int x, int z, short face)
+static DIFFTEST_REF_FUNC short find_and_set_connected_face_asm(struct Thing *p_thing,
+  int x, int z, short face)
 {
     short ret;
+    int iface = face;
     asm volatile (
       "call ASM_find_and_set_connected_face\n"
-        : "=r" (ret) : "a" (p_thing), "d" (x), "b" (z), "c" (face));
+        : "=a" (ret), "+d" (x), "+b" (z), "+c" (iface) : "a" (p_thing)
+        : "cc", "memory");
     return ret;
+}
+
+/** Finds a face connected to the thing's current face which contains
+ * the given point, and moves the thing onto it.
+ * The face parameter is ignored; the current face is read from the thing.
+ */
+short find_and_set_connected_face(struct Thing *p_thing, int x, int z, short face)
+{
+    struct WalkHeader *p_walk_head;
+    struct SingleObjectFace3 *p_face3;
+    struct SingleObjectFace4 *p_face4;
+    struct SingleObject *p_sobj;
+    short cur_face, item;
+    ushort wi;
+    s32 old_y, dt;
+    short inside;
+
+    DIFFTEST_SHADOW_RET(find_and_set_connected_face, short,
+      find_and_set_connected_face_asm(p_thing, x, z, face));
+
+    cur_face = p_thing->U.UPerson.OnFace;
+    if (cur_face > 0)
+        p_walk_head = &game_walk_headers[(short)game_object_faces3[cur_face].WalkHeader];
+    else
+        p_walk_head = &game_walk_headers[(short)game_object_faces4[-cur_face].WalkHeader];
+
+    for (wi = p_walk_head->StartItem; ; wi++)
+    {
+        if ((s32)wi >= (s32)p_walk_head->Count + (s32)p_walk_head->StartItem)
+            DIFFTEST_RETURN((short)0);
+        item = game_walk_items[wi];
+        if (item >= 0)
+        {
+            p_face3 = &game_object_faces3[item];
+            if ((p_face3->GFlags & FGFlg_Unkn04) == 0)
+                continue;
+            if ((short)inside_the_triangle(p_face3, x, z) != 0)
+                break;
+        }
+        else
+        {
+            p_face4 = &game_object_faces4[(ushort)(-item)];
+            if ((p_face4->GFlags & FGFlg_Unkn04) == 0)
+                continue;
+            inside = inside_the_quad(p_face4, x, z);
+            if (inside == 0)
+                continue;
+            if (inside == 2)
+                p_thing->Flag |= TngF_Unkn0020;
+            else
+                p_thing->Flag &= ~TngF_Unkn0020;
+            break;
+        }
+    }
+
+    old_y = p_thing->Y;
+    item = game_walk_items[wi];
+    if (item > 0)
+    {
+        p_face3 = &game_object_faces3[(ushort)item];
+        if (inside_the_triangle(p_face3, x, z) != 0)
+            set_thing_height_on_face_tri64(p_thing, x, z, (ushort)item);
+    }
+    else if (item < 0)
+    {
+        s32 n;
+
+        n = -item;
+        p_face4 = &game_object_faces4[n];
+        p_sobj = &game_objects[p_face4->Object];
+        n -= p_sobj->StartFace4;
+        if (n == 0x3e || n == 9 || n == 0x3f)
+        {
+            if (p_sobj->NumbFaces == 0x15 && p_sobj->NumbFaces4 == 0x40 &&
+              (s32)p_sobj->EndPoint - (s32)p_sobj->StartPoint == 0x53)
+                p_thing->Flag2 &= ~TgF2_InsideBuilding;
+        }
+        p_face4 = &game_object_faces4[(ushort)(-game_walk_items[wi])];
+        if (inside_the_quad(p_face4, x, z) != 0)
+            set_thing_height_on_face_quad64(p_thing, x, z,
+              (ushort)(-game_walk_items[wi]));
+    }
+    else
+    {
+        DIFFTEST_RETURN(game_walk_items[wi]);
+    }
+
+    dt = old_y - p_thing->Y;
+    if (dt < 0)
+        dt = -dt;
+    if (dt > 4000)
+    {
+        p_thing->Y = old_y;
+        DIFFTEST_RETURN((short)0);
+    }
+    p_thing->U.UPerson.OnFace = game_walk_items[wi];
+    DIFFTEST_RETURN(game_walk_items[wi]);
 }
 
 void check_mouse_over_face(struct PolyPoint *p_pt0, struct PolyPoint *p_pt1,
