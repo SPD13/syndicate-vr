@@ -2432,14 +2432,92 @@ void refresh_old_thing_format(struct Thing *p_thing, struct ThingOldV9 *p_oldthi
     }
 }
 
-struct SimpleThing *create_item(int x, int y, int z, ushort frame, ubyte subtype)
+static DIFFTEST_REF_FUNC struct SimpleThing *create_item_asm(int x, int y,
+  int z, ushort frame, ubyte subtype)
 {
     struct SimpleThing *ret;
+    // Pushed through a register holding it: a "g" operand may be placed
+    // relative to the stack pointer, which each push moves.
+    int stkargs[1];
+    int edx = y, ebx = z, ecx = frame;
+
+    stkargs[0] = (u32)subtype;
+
     asm volatile (
-      "push %5\n"
+      "push 0(%4)\n"
       "call ASM_create_item\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z), "c" (frame), "g" ((u32)subtype));
+        : "=a" (ret), "+d" (edx), "+b" (ebx), "+c" (ecx)
+        : "S" (stkargs), "0" (x)
+        : "cc", "memory");
     return ret;
+}
+
+struct SimpleThing *create_item(int x, int y, int z, ushort frame, ubyte subtype)
+{
+    struct SimpleThing *p_sthing;
+    short sthing;
+
+    DIFFTEST_SHADOW_RET(create_item, struct SimpleThing *,
+      create_item_asm(x, y, z, frame, subtype));
+    if ((u32)x >= 0x8000 || (u32)z >= 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    sthing = get_new_sthing();
+    if (sthing > -1 || sthing < -1500)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    p_sthing = &sthings[sthing];
+    p_sthing->StartTimer1 = 5;
+    p_sthing->Timer1 = 5;
+    p_sthing->X = x << 8;
+    p_sthing->Z = z << 8;
+    p_sthing->Y = y << 8;
+    p_sthing->Type = SmTT_DROPPED_ITEM;
+    p_sthing->U.UWeapon.OnFace = 0;
+    p_sthing->U.UWeapon.Ammo = 0;
+    p_sthing->Radius = 30;
+    p_sthing->Frame = nstart_ani[frame];
+    p_sthing->StartFrame = frame - 1;
+    p_sthing->U.UWeapon.WeaponType = subtype;
+
+    switch (subtype)
+    {
+    case 0:
+        p_sthing->StartFrame = 1058;
+        p_sthing->Frame = nstart_ani[1059];
+        break;
+    case 2:
+    case 3:
+    case 4:
+    case 8:
+    case 15:
+    case 17:
+    case 20:
+        p_sthing->StartFrame = 1055;
+        p_sthing->Frame = nstart_ani[1056];
+        break;
+    case 6:
+    case 11:
+    case 13:
+        p_sthing->StartFrame = 1087;
+        p_sthing->Frame = nstart_ani[1088];
+        break;
+    case 10:
+    case 12:
+        p_sthing->StartFrame = 1088;
+        p_sthing->Frame = nstart_ani[1089];
+        break;
+    default:
+        p_sthing->StartFrame = 1003;
+        p_sthing->Frame = nstart_ani[1004];
+        break;
+    }
+
+    ingame.fld_unkCB7++;
+    add_node_sthing(sthing);
+    p_sthing->Flag = 0x04;
+    p_sthing->SubType = subtype;
+    DIFFTEST_RETURN(p_sthing);
 }
 
 static DIFFTEST_REF_FUNC struct SimpleThing *create_scale_effect_asm(int x,
