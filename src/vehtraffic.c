@@ -616,10 +616,131 @@ void VNAV_preprocess_bezier_turns(ulong nturns)
     }
 }
 
-void VNAV_init_new_traffic_system(void)
+static DIFFTEST_REF_FUNC void VNAV_init_new_traffic_system_asm(void)
 {
     asm volatile ("call ASM_VNAV_init_new_traffic_system\n"
         :  :  : "eax" );
+}
+
+/** Returns whether any traffic node has a link to the given node.
+ */
+static TbBool tnode_is_linked_to(struct TrafficNode *p_nodes, int tnode)
+{
+    int j, k;
+
+    for (j = 1; j < next_traffic_node; j++)
+    {
+        for (k = 0; k < 4; k++)
+        {
+            if (p_nodes[j].UTraffic.Link[k] == -tnode)
+                return true;
+        }
+    }
+    return false;
+}
+
+void VNAV_init_new_traffic_system(void)
+{
+    struct TrafficNode *p_nodes;
+    struct TrafficNode *p_tnode;
+    s32 *p_list2_count;
+    s32 count;
+    int i, k;
+
+    DIFFTEST_SHADOW(VNAV_init_new_traffic_system, VNAV_init_new_traffic_system_asm());
+    // The second node list (data_1c84f4 count followed by data_1c84f8[16])
+    // is not exported from the asm; it directly follows dword_1C8474[32].
+    // Entries are stored at p_list2_count[1..16].
+    p_list2_count = (s32 *)dword_1C8474 + 32;
+
+    p_nodes = game_traffic_nodes;
+    dword_1C8470 = 0;
+    *p_list2_count = 0;
+
+    for (i = 1; i < next_traffic_node; i++)
+    {
+        p_tnode = &p_nodes[i];
+        if (p_tnode->Flags == 0xff)
+            continue;
+        p_tnode->Flags &= ~(TNdF_Unkn0040 | TNdF_Unkn0080 | TNdF_Unkn0100);
+    }
+
+    for (i = 1; i < next_traffic_node; i++)
+    {
+        p_tnode = &p_nodes[i];
+        if (p_tnode->Flags == 0xff)
+            continue;
+        for (k = 0; k < 4; k++)
+        {
+            if (p_tnode->UTraffic.Link[k] != 0)
+                break;
+        }
+        if (k >= 4)
+            p_tnode->Flags |= TNdF_Unkn0080;
+    }
+
+    for (i = 1; i < next_traffic_node; i++)
+    {
+        p_tnode = &p_nodes[i];
+        if (p_tnode->Flags == 0xff)
+            continue;
+        if ((p_tnode->Flags & (TNdF_Unkn0200 | TNdF_Unkn0400)) != 0)
+            continue;
+        if (tnode_is_linked_to(p_nodes, i))
+            continue;
+        p_tnode->Flags |= TNdF_Unkn0100;
+        if (dword_1C8470 != 32)
+        {
+            dword_1C8474[dword_1C8470] = i;
+            dword_1C8470++;
+        }
+    }
+
+    for (i = 1; i < next_traffic_node; i++)
+    {
+        p_tnode = &p_nodes[i];
+        if (p_tnode->Flags == 0xff)
+            continue;
+        if ((p_tnode->Flags & TNdF_Unkn0080) == 0)
+            continue;
+        if ((p_tnode->Flags & TNdF_Unkn0100) == 0)
+            continue;
+        p_tnode->Flags = 0xff;
+    }
+
+    for (i = 1; i < next_traffic_node; i++)
+    {
+        p_tnode = &p_nodes[i];
+        if (p_tnode->Flags == 0xff)
+            continue;
+        if ((p_tnode->Flags & TNdF_Unkn0200) == 0)
+            continue;
+        if ((p_tnode->Flags & TNdF_Unkn0400) != 0)
+            continue;
+        if (tnode_is_linked_to(p_nodes, i))
+            continue;
+        p_tnode->Flags |= TNdF_Unkn0100;
+        count = *p_list2_count;
+        if (count < 16)
+        {
+            count++;
+            p_list2_count[count] = i;
+            *p_list2_count = count;
+        }
+    }
+
+    for (i = 1; i < next_traffic_node; i++)
+    {
+        p_tnode = &p_nodes[i];
+        if (p_tnode->Flags == 0xff)
+            continue;
+        if ((p_tnode->Flags & TNdF_Unkn8000) == 0)
+            continue;
+        for (k = 0; k < 4; k++)
+            p_tnode->UTraffic.Flags[k] |= 0x40;
+    }
+
+    game_traffic_nodes = p_nodes;
 }
 
 void traffic_unkn_func_01(void)
