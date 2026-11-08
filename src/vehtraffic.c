@@ -118,13 +118,142 @@ int good_node(int a1, int a2, int a3)
 }
 
 
-short get_next_tnode(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
+static DIFFTEST_REF_FUNC short get_next_tnode_asm(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
 {
     short ret;
     asm volatile (
       "call ASM_get_next_tnode\n"
-        : "=r" (ret) : "a" (p_vehicle), "d" (p_tnode));
+        : "=a" (ret) : "a" (p_vehicle), "d" (p_tnode));
     return ret;
+}
+
+short get_next_tnode(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
+{
+    struct TrafficNode *p_lntnode;
+    s32 i, k, n, last;
+    s32 lnk, lp;
+    TbBool ok;
+
+    DIFFTEST_SHADOW_RET(get_next_tnode, short, get_next_tnode_asm(p_vehicle, p_tnode));
+    n = 0;
+    last = 0;
+    for (i = 0; i < 4; i++)
+    {
+        if (p_tnode->UTraffic.Link[i] != 0) {
+            last = i;
+            n++;
+        }
+    }
+    if (n == 0)
+        DIFFTEST_RETURN((short)0);
+
+    if (n == 1)
+    {
+        p_vehicle->U.UVehicle.WorkPlace |= 0x04;
+        p_vehicle->U.UVehicle.LeisurePlace =
+          (short)p_vehicle->U.UVehicle.LeisurePlace >> 1;
+        if ((p_tnode->UTraffic.Flags[last] & 0x80) != 0)
+            p_vehicle->U.UVehicle.LeisurePlace |= 0x02;
+        DIFFTEST_RETURN((short)last);
+    }
+
+    // Try random links first
+    for (i = 0; i < 8; i++)
+    {
+        k = LbRandomAnyShort() & 0x3;
+        if (p_tnode->UTraffic.Link[k] == 0)
+            continue;
+        lnk = p_tnode->UTraffic.Link[k];
+        if (lnk <= 0) {
+            if ((game_traffic_nodes[-lnk].Flags & 0x1800) != 0)
+                continue;
+        }
+        if ((p_tnode->UTraffic.Flags[k] & 0x80) == 0)
+        {
+            p_vehicle->U.UVehicle.LeisurePlace =
+              (short)p_vehicle->U.UVehicle.LeisurePlace >> 1;
+            DIFFTEST_RETURN((short)k);
+        }
+        // TODO the asm indexes the node array with -lnk even if lnk is a positive (station) link
+        p_lntnode = &game_traffic_nodes[-lnk];
+        if ((p_lntnode->Flags & 0x40) != 0)
+            continue;
+        lp = (short)p_vehicle->U.UVehicle.LeisurePlace;
+        if (lp == 2)
+        {
+            if (lnk > 0) {
+                ok = true;
+            } else {
+                s32 j;
+                ok = false;
+                for (j = 0; j < 4; j++)
+                {
+                    if (p_lntnode->UTraffic.Link[j] != 0 &&
+                      (p_lntnode->UTraffic.Flags[j] & 0x80) == 0) {
+                        ok = true;
+                        break;
+                    }
+                }
+            }
+            if (!ok)
+                continue;
+        }
+        else
+        {
+            if (lp == 3)
+                continue;
+            if (!good_node(lnk, (int)p_lntnode, lp))
+                continue;
+        }
+        p_vehicle->U.UVehicle.LeisurePlace =
+          ((short)p_vehicle->U.UVehicle.LeisurePlace >> 1) | 0x02;
+        DIFFTEST_RETURN((short)k);
+    }
+
+    // Any link without 0x80 flag, to a node which is not blocked
+    for (i = 0; i < 4; i++)
+    {
+        if (p_tnode->UTraffic.Link[i] == 0)
+            continue;
+        if ((p_tnode->UTraffic.Flags[i] & 0x80) != 0)
+            continue;
+        lnk = p_tnode->UTraffic.Link[i];
+        if (lnk < 0) {
+            if ((game_traffic_nodes[-lnk].Flags & 0x1800) != 0)
+                continue;
+        }
+        p_vehicle->U.UVehicle.LeisurePlace =
+          (short)p_vehicle->U.UVehicle.LeisurePlace >> 1;
+        DIFFTEST_RETURN((short)i);
+    }
+
+    // Any link to a node which is not blocked
+    for (i = 0; i < 4; i++)
+    {
+        if (p_tnode->UTraffic.Link[i] == 0)
+            continue;
+        lnk = p_tnode->UTraffic.Link[i];
+        if (lnk < 0) {
+            if ((game_traffic_nodes[-lnk].Flags & 0x1800) != 0)
+                continue;
+        }
+        p_vehicle->U.UVehicle.LeisurePlace =
+          ((short)p_vehicle->U.UVehicle.LeisurePlace >> 1) | 0x02;
+        DIFFTEST_RETURN((short)i);
+    }
+
+    // Any link at all
+    for (i = 0; i < 4; i++)
+    {
+        if (p_tnode->UTraffic.Link[i] == 0)
+            continue;
+        p_vehicle->U.UVehicle.LeisurePlace =
+          (short)p_vehicle->U.UVehicle.LeisurePlace >> 1;
+        if ((p_tnode->UTraffic.Flags[i] & 0x80) != 0)
+            p_vehicle->U.UVehicle.LeisurePlace |= 0x02;
+        DIFFTEST_RETURN((short)i);
+    }
+    DIFFTEST_RETURN((short)0);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
