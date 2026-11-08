@@ -255,6 +255,44 @@ static void fuzz_fov_region(ulong *p_seed)
     fov_region(x, y, (int)p, 0);
 }
 
+void VNAV_qwertyuiop(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+
+static void fuzz_VNAV_qwertyuiop(ulong *p_seed)
+{
+    s32 dist, frac;
+    int v[6];
+    int i, dx, dy;
+
+    // Map-like coordinates; full range would overflow into a division trap
+    for (i = 0; i < 6; i++)
+        v[i] = (short)difftest_fuzz_rand(p_seed) % 2048;
+    // Sometimes the point on an endpoint, or a degenerate segment
+    switch (difftest_fuzz_rand(p_seed) % 8)
+    {
+    case 0:
+        v[4] = v[0];
+        v[5] = v[1];
+        break;
+    case 1:
+        v[4] = v[2];
+        v[5] = v[3];
+        break;
+    case 2:
+        v[2] = v[0];
+        v[3] = v[1];
+        break;
+    default:
+        break;
+    }
+    // The asm divides by (len^2 >> 8); avoid short non-zero segments
+    dx = v[2] - v[0];
+    dy = v[3] - v[1];
+    if ((dx != 0 || dy != 0) && ((dx * dx + dy * dy) >> 8) == 0)
+        v[2] = v[0] + 16;
+    dist = frac = 0x5a5a5a5a;
+    VNAV_qwertyuiop((int)&dist, (int)&frac, v[0], v[1], v[2], v[3], v[4], v[5]);
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
@@ -266,6 +304,7 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"check_big_point_triangle", fuzz_check_big_point_triangle},
     {"two4_line_intersection", fuzz_two4_line_intersection},
     {"fov_region", fuzz_fov_region},
+    {"VNAV_qwertyuiop", fuzz_VNAV_qwertyuiop},
     {NULL, NULL},
 };
 

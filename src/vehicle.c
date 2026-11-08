@@ -619,7 +619,7 @@ void VNAV_find_nearnodes(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void VNAV_qwertyuiop(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+static DIFFTEST_REF_FUNC void VNAV_qwertyuiop_asm(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[4];
@@ -630,6 +630,71 @@ void VNAV_qwertyuiop(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int
     stkargs[3] = a8;
     asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_VNAV_qwertyuiop\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+/** Distance of point (a7,a8) from segment (a3,a4)-(a5,a6).
+ * Stores approximate distance in *a1, and in *a2 the position along
+ * the segment (0 before start, 0xff past end, else 256*fraction).
+ */
+void VNAV_qwertyuiop(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+{
+    s32 *p_dist = (s32 *)a1;
+    s32 *p_frac = (s32 *)a2;
+    s32 dx1, dy1, dx2, dy2;
+    s32 ex, ey, fx, fy;
+    s32 dot1, dot2, cross;
+    s32 adx, ady;
+    s32 m, n;
+
+    DIFFTEST_SHADOW(VNAV_qwertyuiop, VNAV_qwertyuiop_asm(a1, a2, a3, a4, a5, a6, a7, a8));
+    dx1 = a5 - a3;
+    dy1 = a6 - a4;
+    dx2 = a7 - a3;
+    dy2 = a8 - a4;
+    dot1 = (s32)((u32)dx2 * (u32)dx1 + (u32)dy2 * (u32)dy1);
+    if (dot1 <= 0)
+    {
+        *p_frac = 0;
+        m = abs(dx2);
+        n = abs(dy2);
+        if (m > n)
+            n >>= 1;
+        else
+            m >>= 1;
+        *p_dist = n + m;
+        return;
+    }
+    ex = a3 - a5;
+    ey = a4 - a6;
+    fx = a7 - a5;
+    fy = a8 - a6;
+    dot2 = (s32)((u32)fx * (u32)ex + (u32)ey * (u32)fy);
+    if (dot2 <= 0)
+    {
+        *p_frac = 0xff;
+        m = abs(fx);
+        n = abs(fy);
+        if (m > n)
+            n >>= 1;
+        else
+            m >>= 1;
+        *p_dist = n + m;
+        return;
+    }
+    cross = (s32)((u32)dx2 * (u32)dy1 - (u32)dy2 * (u32)dx1);
+    adx = abs(dx1);
+    ady = abs(dy1);
+    cross = abs(cross);
+    dot1 = abs(dot1);
+    m = adx;
+    n = ady;
+    if (m > n)
+        n >>= 1;
+    else
+        m >>= 1;
+    *p_dist = cross / (m + n);
+    m = (s32)((u32)adx * (u32)adx + (u32)ady * (u32)ady);
+    *p_frac = dot1 / (m >> 8);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
