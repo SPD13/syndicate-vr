@@ -7358,10 +7358,78 @@ void person_get_item(struct Thing *p_person)
         : : "a" (p_person));
 }
 
-void person_run_away(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_run_away_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_run_away\n"
         : : "a" (p_person));
+}
+
+void person_run_away(struct Thing *p_person)
+{
+    s32 vel_x, vel_z;
+    ubyte angle;
+
+    DIFFTEST_SHADOW(person_run_away, person_run_away_asm(p_person));
+
+    vel_x = p_person->VX;
+    vel_z = p_person->VZ;
+    p_person->VX = lbSinTable[8 * p_person->U.UPerson.RecoilDir] >> 8;
+    p_person->VZ = lbSinTable[8 * p_person->U.UPerson.RecoilDir + LbFPMath_PI/2] >> 8;
+
+    if (person_move(p_person) != 0)
+    {
+        angle = p_person->U.UPerson.Angle + 1;
+        p_person->U.UPerson.Angle = angle;
+        p_person->U.UPerson.Angle = angle & 7;
+        p_person->U.UPerson.RecoilDir += 0x20;
+        p_person->Frame = nstart_ani[p_person->StartFrame + 1 + p_person->U.UPerson.Angle];
+    }
+
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+
+    p_person->VX = vel_x;
+    p_person->VZ = vel_z;
+
+    if (((p_person->U.UPerson.RecoilTimer & 0x20) == 0) && ((gameturn & 0x7F) == 0))
+    {
+        ushort rndval;
+
+        rndval = LbRandomAnyShort();
+        if (p_person->SubType == SubTT_PERS_SCIENTIST)
+        {
+            play_dist_speech(p_person, 62 + (rndval % 2), FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3);
+        }
+        else if (((1 << p_person->SubType) & female_peep) != 0)
+        {
+            play_dist_speech(p_person, 41 + (((gameturn >> 7) + p_person->ThingOffset) & 1),
+              FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 2);
+        }
+        else
+        {
+            play_dist_speech(p_person, 40 + (((gameturn >> 7) + p_person->ThingOffset) & 1),
+              FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 2);
+        }
+    }
+
+    p_person->U.UPerson.RecoilTimer--;
+    if (p_person->U.UPerson.RecoilTimer == 0)
+    {
+        p_person->Flag &= ~TngF_Unkn00040000;
+        if ((p_person->Flag2 & TgF2_Unkn00080000) != 0)
+            set_person_animmode_walk(p_person);
+        p_person->U.UPerson.Mood = 0;
+        search_for_danger(p_person);
+        remove_path(p_person);
+        p_person->U.UPerson.ComTimer = -1;
+    }
+
+    p_person->Timer1 -= fifties_per_gameturn;
+    if (p_person->Timer1 < 0)
+    {
+        p_person->Timer1 = p_person->StartTimer1;
+        p_person->Frame = frame[p_person->Frame].Next;
+    }
 }
 
 void person_becomes_persuaded(struct Thing *p_person, ushort energy)
