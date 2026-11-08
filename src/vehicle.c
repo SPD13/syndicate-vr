@@ -1688,12 +1688,64 @@ void process_stop_as_soon_as_you_can(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int flying_alt(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int flying_alt_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_flying_alt\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int flying_alt(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    struct MyMapElement *p_mapel;
+    s32 tile_x, tile_z;
+    s32 tx, tz;
+    s32 alt;
+    short thing;
+
+    DIFFTEST_SHADOW_RET(flying_alt, int, flying_alt_asm(a1, a2, a3, a4));
+    tile_x = p_vehicle->X >> 16;
+    tile_z = p_vehicle->Z >> 16;
+    alt = 0x32000;
+    if (tile_x < 0 || tile_x >= MAP_TILE_WIDTH ||
+      tile_z < 0 || tile_z >= MAP_TILE_WIDTH)
+        DIFFTEST_RETURN((int)alt);
+
+    p_mapel = &game_my_big_map[tile_z * MAP_TILE_WIDTH + tile_x];
+    if ((p_mapel->ColumnHead & 0xFFF) == 0 && (p_mapel->Flags2 & 0x08) == 0)
+        alt += ((s32)p_mapel->Alt) << 11;
+
+    for (tx = tile_x - 2; tx != tile_x + 3; tx++)
+    {
+        for (tz = tile_z - 2; tz != tile_z + 3; tz++)
+        {
+            // Note: tiles at index 0 are skipped, as in the asm
+            if (tx <= 0 || tx >= MAP_TILE_WIDTH)
+                continue;
+            if (tz <= 0 || tz >= MAP_TILE_WIDTH)
+                continue;
+            thing = game_my_big_map[tz * MAP_TILE_WIDTH + tx].Child;
+            while (thing != 0)
+            {
+                if (thing > 0)
+                {
+                    struct Thing *p_thing = &things[thing];
+                    if (p_thing->Type == TT_VEHICLE &&
+                      p_thing->SubType == SubTT_VEH_FLYING &&
+                      p_thing < p_vehicle)
+                        alt += 0x1a000;
+                    thing = p_thing->Next;
+                }
+                else
+                {
+                    thing = sthings[thing].Next;
+                }
+            }
+        }
+    }
+    DIFFTEST_RETURN((int)alt);
 }
 
 
