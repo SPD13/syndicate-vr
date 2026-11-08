@@ -2443,10 +2443,48 @@ int flying_alt(int a1, int a2, int a3, int a4)
 }
 
 
-void process_hovering_vehicle(struct Thing *p_vehicle)
+/** Hover oscillation offsets for parked flyers; 99 marks the loop end.
+ * Copy of the read-only `quiver` table from the asm data.
+ */
+static const sbyte quiver[] = {
+       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+      -1,   0,   1,   0,  -1,  -3,  -1,   0,
+       1,   3,   4,   3,   1,   0,  -2,  -5,
+      -7,  -8,  -7,  -5,  -2,   0,   2,   5,
+       8,  10,  12,  13,  13,  13,  12,  10,
+       8,   5,   2,  -2,  -5,  -8, -10, -12,
+     -13, -13, -13, -12, -10,  -8,  -5,  -2,
+      99,
+};
+
+static DIFFTEST_REF_FUNC void process_hovering_vehicle_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_hovering_vehicle\n"
         : : "a" (p_vehicle));
+}
+
+void process_hovering_vehicle(struct Thing *p_vehicle)
+{
+    s32 alt;
+    ushort qv;
+
+    DIFFTEST_SHADOW(process_hovering_vehicle, process_hovering_vehicle_asm(p_vehicle));
+    p_vehicle->U.UVehicle.ReqdSpeed = 0;
+    p_vehicle->U.UVehicle.AngleDY = 0;
+    alt = flying_alt((int)p_vehicle, 0, 0, 0);
+    if (abs(p_vehicle->Y - alt) < 0x6000)
+    {
+        // MaxSpeed is reused as the index into the quiver table
+        qv = p_vehicle->U.UVehicle.MaxSpeed;
+        p_vehicle->U.UVehicle.MaxSpeed = qv + 1;
+        p_vehicle->Y += quiver[qv] << 7;
+    }
+    else
+    {
+        p_vehicle->Y += (alt - p_vehicle->Y) >> 3;
+    }
+    if (quiver[p_vehicle->U.UVehicle.MaxSpeed] == 99)
+        p_vehicle->U.UVehicle.MaxSpeed -= 26;
 }
 
 static DIFFTEST_REF_FUNC void process_my_takeoff_asm(struct Thing *p_vehicle)
@@ -2626,20 +2664,6 @@ void process_vehicle_goto_point_fly(struct Thing *p_vehicle)
     asm volatile ("call ASM_process_vehicle_goto_point_fly\n"
         : : "a" (p_vehicle));
 }
-
-/** Hover oscillation offsets for parked flyers; 99 marks the loop end.
- * Copy of the read-only `quiver` table from the asm data.
- */
-static const sbyte quiver[] = {
-       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-      -1,   0,   1,   0,  -1,  -3,  -1,   0,
-       1,   3,   4,   3,   1,   0,  -2,  -5,
-      -7,  -8,  -7,  -5,  -2,   0,   2,   5,
-       8,  10,  12,  13,  13,  13,  12,  10,
-       8,   5,   2,  -2,  -5,  -8, -10, -12,
-     -13, -13, -13, -12, -10,  -8,  -5,  -2,
-      99,
-};
 
 static DIFFTEST_REF_FUNC void process_parked_flyer_asm(struct Thing *p_vehicle)
 {
