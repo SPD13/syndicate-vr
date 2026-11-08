@@ -1755,10 +1755,71 @@ void process_hovering_vehicle(struct Thing *p_vehicle)
         : : "a" (p_vehicle));
 }
 
-void process_my_takeoff(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_my_takeoff_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_my_takeoff\n"
         : : "a" (p_vehicle));
+}
+
+void process_my_takeoff(struct Thing *p_vehicle)
+{
+    s32 alt, dt_y, new_y, dt_alt;
+    s32 angl_diff;
+    ushort angl;
+
+    DIFFTEST_SHADOW(process_my_takeoff, process_my_takeoff_asm(p_vehicle));
+    alt = flying_alt((int)p_vehicle, 0, 0, 0);
+    if ((alt >> 1) < p_vehicle->Y)
+    {
+        angl = (ushort)arctan(p_vehicle->U.UVehicle.GotoX - (p_vehicle->X >> 8),
+          p_vehicle->U.UVehicle.GotoZ - (p_vehicle->Z >> 8));
+        angl_diff = (s32)angl - p_vehicle->U.UVehicle.AngleY;
+        if (angl_diff > 0x400)
+            angl_diff -= 0x7ff;
+        if (angl_diff < -0x400)
+            angl_diff += 0x7ff;
+        if (abs(angl_diff) < 15)
+        {
+            p_vehicle->U.UVehicle.AngleDY = 0;
+            p_vehicle->U.UVehicle.AngleY = angl;
+        }
+        else
+        {
+            p_vehicle->U.UVehicle.AngleDY = angl_diff;
+            if (angl_diff > 0)
+                p_vehicle->U.UVehicle.AngleDY = angl_diff + 10;
+            if (angl_diff < 0)
+                p_vehicle->U.UVehicle.AngleDY -= 10;
+        }
+    }
+    dt_y = (alt - p_vehicle->Y) >> 3;
+    if (dt_y < 1000)
+        dt_y = 1000;
+    if (dt_y > 10000)
+        dt_y = 10000;
+    // TNode is used here as vertical velocity
+    if (p_vehicle->U.UVehicle.TNode < dt_y)
+        p_vehicle->U.UVehicle.TNode += 1000;
+    if (p_vehicle->U.UVehicle.TNode > dt_y)
+        p_vehicle->U.UVehicle.TNode -= 1000;
+    new_y = p_vehicle->Y + p_vehicle->U.UVehicle.TNode;
+    dt_alt = alt - new_y;
+    p_vehicle->Y = new_y;
+    if (dt_alt < 4000)
+    {
+        if ((ushort)p_vehicle->State == VehSt_UNKN_44)
+            p_vehicle->State = VehSt_UNKN_42;
+        else
+            p_vehicle->State = VehSt_UNKN_3A;
+        p_vehicle->U.UVehicle.AngleDY = 0;
+        return;
+    }
+    if (alt - (alt >> 4) < new_y && p_vehicle->U.UVehicle.AngleDY < 15)
+    {
+        p_vehicle->U.UVehicle.ReqdSpeed = 1000;
+        return;
+    }
+    p_vehicle->U.UVehicle.ReqdSpeed = 0;
 }
 
 static DIFFTEST_REF_FUNC void process_my_land_vehicle_asm(struct Thing *p_vehicle)
