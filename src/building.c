@@ -629,12 +629,55 @@ void bul_hit_vector(int x, int y, int z, short col, int hp, int type)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int rotate_obj(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int rotate_obj_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_rotate_obj\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int rotate_obj(int a1, int a2, int a3, int a4)
+{
+    s32 *p_mat = (s32 *)a4;
+    ushort ang_x, ang_y, ang_z;
+    s32 sin_x, cos_x, sin_y, cos_y, sin_z, cos_z;
+    s32 cxcy, czcy, czcx, cxsz, sxsz, sxcy;
+    s32 v;
+
+    DIFFTEST_SHADOW_RET(rotate_obj, int, rotate_obj_asm(a1, a2, a3, a4));
+    ang_x = a1 & 0x7FF;
+    ang_y = a2 & 0x7FF;
+    ang_z = a3 & 0x7FF;
+
+    sin_x = lbSinTable[ang_x] >> 1;
+    cos_x = lbSinTable[ang_x + LbFPMath_PI/2] >> 1;
+    sin_y = lbSinTable[ang_y] >> 1;
+    cos_y = lbSinTable[ang_y + LbFPMath_PI/2] >> 1;
+    sin_z = lbSinTable[ang_z] >> 1;
+    cos_z = lbSinTable[ang_z + LbFPMath_PI/2] >> 1;
+
+    cxcy = cos_x * cos_y;
+    czcy = cos_z * cos_y;
+    czcx = cos_z * cos_x;
+    cxsz = cos_x * sin_z;
+    sxsz = sin_x * sin_z;
+    sxcy = sin_x * cos_y;
+
+    p_mat[0] = czcy >> 16;
+    p_mat[1] = (-(cos_y * sin_z)) >> 16;
+    p_mat[2] = sin_y >> 1;
+    v = (s32)((u32)cxsz + (u32)(((cos_z * sin_x) >> 15) * sin_y));
+    p_mat[3] = v >> 16;
+    v = (s32)((u32)czcx - (u32)((sxsz >> 15) * sin_y));
+    p_mat[4] = v >> 16;
+    p_mat[5] = (-sxcy) >> 16;
+    v = (s32)((u32)sxsz - (u32)((czcx >> 15) * sin_y));
+    p_mat[6] = v >> 16;
+    v = (s32)((u32)(cos_z * sin_x) + (u32)(((cos_x * sin_y) >> 15) * sin_z));
+    p_mat[7] = v >> 16;
+    p_mat[8] = cxcy >> 16;
+    DIFFTEST_RETURN((int)(cxcy >> 16));
 }
 
 
