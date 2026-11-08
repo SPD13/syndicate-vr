@@ -34,6 +34,7 @@
 #include "difftest.h"
 #include "display.h"
 #include "engindrwlstx.h"
+#include "enginlights.h"
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
 #include "frame_sprani.h"
@@ -456,11 +457,50 @@ void quick_light_unkn_func_07(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void quick_light_unkn_func_09(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void quick_light_unkn_func_09_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_quick_light_unkn_func_09\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Unlinks from the map element's QuickLight chain all entries
+ * referencing given light.
+ */
+void quick_light_unkn_func_09(int a1, int a2, int a3, int a4)
+{
+    struct MyMapElement *p_mapel = (struct MyMapElement *)a1;
+    ushort light = (ushort)a2;
+    struct QuickLight *p_qlights;
+    ushort qlight, prev_qlight;
+
+    DIFFTEST_SHADOW(quick_light_unkn_func_09, quick_light_unkn_func_09_asm(a1, a2, a3, a4));
+
+    p_qlights = game_quick_lights;
+    prev_qlight = 0;
+    qlight = p_mapel->Shade;
+    while (qlight != 0)
+    {
+        struct QuickLight *p_qlight;
+
+        p_qlight = &p_qlights[qlight];
+        if (p_qlight->Light == light)
+        {
+            next_quick_light--;
+            if (prev_qlight == 0)
+                p_mapel->Shade = p_qlight->NextQuick;
+            else
+                p_qlights[prev_qlight].NextQuick = p_qlight->NextQuick;
+            p_qlight->Light = 0;
+        }
+        else
+        {
+            prev_qlight = qlight;
+        }
+        qlight = p_qlights[qlight].NextQuick;
+    }
+    // The asm stores the pointer back unchanged
+    game_quick_lights = p_qlights;
 }
 
 
