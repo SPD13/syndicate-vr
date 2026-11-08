@@ -1941,12 +1941,58 @@ static DIFFTEST_REF_FUNC short get_new_thing_asm(void)
 /** Takes the given thing index off the free list, if it is free.
  * Returns non-zero when the index was claimed; only the low 16 bits matter.
  */
-int get_new_thing_with_index(ThingIdx thing)
+static DIFFTEST_REF_FUNC int get_new_thing_with_index_asm(ThingIdx thing)
 {
     int ret;
     asm volatile ("call ASM_get_new_thing_with_index\n"
         : "=a" (ret) : "a" (thing) : "cc", "memory");
     return ret;
+}
+
+int get_new_thing_with_index(ThingIdx thing)
+{
+    struct Thing *p_thing;
+    ThingIdx used_head, thing_cur;
+
+    DIFFTEST_SHADOW_RET(get_new_thing_with_index, int,
+      get_new_thing_with_index_asm(thing));
+    if ((ushort)thing > 1000)
+        DIFFTEST_RETURN((int)0);
+
+    p_thing = &things[(ushort)thing];
+    used_head = things_used_head;
+    // Already in use - fail. The asm returns a value with only the low
+    // 16 bits being zero; callers check only ax.
+    for (thing_cur = used_head; thing_cur != 0;
+      thing_cur = things[(ushort)thing_cur].LinkChild)
+    {
+        if (thing_cur == thing)
+            DIFFTEST_RETURN((int)0);
+    }
+
+    // Unlink from the empty list; the asm assumes it is there
+    if (things_empty_head == thing)
+    {
+        things_empty_head = p_thing->LinkChild;
+        things[p_thing->LinkChild].LinkParent = 0;
+    }
+    else
+    {
+        if (p_thing->LinkParent != 0)
+            things[p_thing->LinkParent].LinkChild = p_thing->LinkChild;
+        if (p_thing->LinkChild != 0)
+            things[p_thing->LinkChild].LinkParent = p_thing->LinkParent;
+    }
+
+    // Put at head of the used list
+    things[(ushort)used_head].LinkParent = thing;
+    p_thing->LinkParent = 0;
+    p_thing->LinkChild = used_head;
+    p_thing->Flag = 0;
+    p_thing->Flag2 = 0;
+    things_used++;
+    things_used_head = thing;
+    DIFFTEST_RETURN((int)1);
 }
 
 short get_new_thing(void)
