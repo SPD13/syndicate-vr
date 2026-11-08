@@ -2828,15 +2828,147 @@ void build_navigate_path_to_face(struct Thing *p_thing, short face)
     asm volatile ("call ASM_build_navigate_path_to_face\n"
         : : "a" (p_thing), "d" (face));
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void fatter_than_nothing(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void fatter_than_nothing_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_fatter_than_nothing\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Normalize a vector to length 256, with length approximated as
+ * max + min/2; a zero length leaves the vector unchanged.
+ */
+static void fatter_normalize(s32 *p_x, s32 *p_y)
+{
+    s32 len;
+
+    if (abs(*p_x) > abs(*p_y))
+        len = (abs(*p_y) >> 1) + abs(*p_x);
+    else
+        len = (abs(*p_x) >> 1) + abs(*p_y);
+    if (len != 0)
+    {
+        *p_x = (*p_x << 8) / len;
+        *p_y = (*p_y << 8) / len;
+    }
+}
+
+/** Routed asm (internal label). Copies the path in eax (struct Path) to
+ * the path in edx, moving each inner way point outwards by the width in
+ * ebx; sharp turns get an additional way point. The ecx register is unused.
+ */
+void fatter_than_nothing(int a1, int a2, int a3, int a4)
+{
+    struct Path *p_src = (struct Path *)a1;
+    struct Path *p_dst = (struct Path *)a2;
+    s32 width = a3;
+    struct WayPoint *p_wp;
+    struct MyMapElement *p_mapel;
+    s32 prev_x, prev_y;
+    s32 dx1, dy1, dx2, dy2;
+    s32 len, dot, cross;
+    s32 ox, oy, nx, ny;
+    s32 i, out;
+
+    DIFFTEST_SHADOW(fatter_than_nothing, fatter_than_nothing_asm(a1, a2, a3, a4));
+
+    p_dst->ax8 = p_src->ax8;
+    p_dst->ay8 = p_src->ay8;
+    p_dst->bx8 = p_src->bx8;
+    p_dst->by8 = p_src->by8;
+    p_dst->PathLength = p_src->PathLength;
+
+    prev_x = p_src->ax8;
+    prev_y = p_src->ay8;
+    out = 0;
+    for (i = 0; i < p_src->PathLength - 1; i++, out++)
+    {
+        p_wp = &p_src->WayPoints[i];
+        dx1 = p_wp[0].x8 - prev_x;
+        dy1 = p_wp[0].y8 - prev_y;
+        dx2 = p_wp[1].x8 - p_wp[0].x8;
+        dy2 = p_wp[1].y8 - p_wp[0].y8;
+
+        if (abs(dy1) >= abs(dx1))
+            len = (abs(dx1) >> 1) + abs(dy1);
+        else
+            len = (abs(dy1) >> 1) + abs(dx1);
+        if (len == 0)
+            len = 1;
+        dx1 = (dx1 << 8) / len;
+        dy1 = (dy1 << 8) / len;
+
+        if (abs(dy2) >= abs(dx2))
+            len = (abs(dx2) >> 1) + abs(dy2);
+        else
+            len = (abs(dy2) >> 1) + abs(dx2);
+        if (len == 0)
+            len = 1;
+        dx2 = (dx2 << 8) / len;
+        dy2 = (dy2 << 8) / len;
+
+        dot = dx1 * dx2 + dy1 * dy2;
+        cross = dx1 * dy2 - dy1 * dx2;
+
+        if (dot < -20000)
+        {
+            // Sharp turn - add two way points around the corner
+            if (cross > 0) {
+                ox = -dy2 - dx2;
+                oy = dx2 - dy2;
+            } else {
+                ox = -dy1 + dx1;
+                oy = dx1 + dy1;
+            }
+            fatter_normalize(&ox, &oy);
+            ox *= width;
+            oy *= width;
+            p_dst->WayPoints[out].x8 = p_wp->x8 + ox;
+            p_dst->WayPoints[out].y8 = p_wp->y8 + oy;
+            out++;
+            p_dst->PathLength++;
+
+            if (cross < 0) {
+                ox = -dy2 - dx2;
+                oy = dx2 - dy2;
+            } else {
+                ox = dx1 - dy1;
+                oy = dy1 + dx1;
+            }
+            fatter_normalize(&ox, &oy);
+            ox *= width;
+            oy *= width;
+            p_dst->WayPoints[out].x8 = p_wp->x8 + ox;
+            p_dst->WayPoints[out].y8 = p_wp->y8 + oy;
+        }
+        else
+        {
+            ox = dx1 - dx2;
+            oy = dy1 - dy2;
+            fatter_normalize(&ox, &oy);
+            ox *= width;
+            oy *= width;
+            ny = p_wp->y8 + oy;
+            nx = p_wp->x8 + ox;
+            p_mapel = &game_my_big_map[((ny >> 16) << 7) + (nx >> 16)];
+            if ((p_mapel->Flags2 & MEF2_Unkn04) != 0)
+            {
+                ox >>= 1;
+                p_dst->WayPoints[out].x8 = p_wp->x8 + ox;
+                // TODO the original adds the X offset to Y as well; looks like a bug
+                p_dst->WayPoints[out].y8 = p_wp->y8 + ox;
+            }
+            else
+            {
+                p_dst->WayPoints[out].x8 = nx;
+                p_dst->WayPoints[out].y8 = ny;
+            }
+        }
+        prev_x = p_wp->x8;
+        prev_y = p_wp->y8;
+    }
+    p_dst->WayPoints[out].x8 = p_src->WayPoints[i].x8;
+    p_dst->WayPoints[out].y8 = p_src->WayPoints[i].y8;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
