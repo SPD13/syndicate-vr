@@ -36,6 +36,7 @@
 #include "display.h"
 #include "engindrwlstx.h"
 #include "enginlights.h"
+#include "enginshrapn.h"
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
 #include "frame_sprani.h"
@@ -1566,11 +1567,364 @@ void give_some_shrapnel(int a1, int a2, int a3)
 
 
 
-void process_bang(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_bang_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_bang\n"
         : : "a" (p_sthing));
+}
+
+/** Takes a free phwoar and links it at the head of given list.
+ */
+static struct Phwoar *bang_phwoar_child_new(ushort *p_head)
+{
+    struct Phwoar *p_child;
+    ushort child;
+
+    child = (ushort)get_some_phwoar(0, 0, 0);
+    if (child == 0)
+        return NULL;
+    p_child = &phwoar[child];
+    p_child->child = *p_head;
+    *p_head = child;
+    return p_child;
+}
+
+/** Fills type, position and velocity modifiers of a phwoar spawned by parent.
+ */
+static void bang_phwoar_child_inherit(struct Phwoar *p_child,
+  struct Phwoar *p_parent, struct SimpleThing *p_sthing)
+{
+    int shift;
+
+    p_child->type = p_parent->type - 1;
+    fillin_phwoar_type_info(p_child);
+    if ((p_parent->rabbit & 0x80) != 0)
+    {
+        p_child->x = p_parent->x;
+        p_child->y = p_parent->y;
+        p_child->z = p_parent->z;
+    }
+    else
+    {
+        p_child->x = p_sthing->X;
+        p_child->y = p_sthing->Y;
+        p_child->z = p_sthing->Z;
+    }
+    shift = (p_parent->rabbit & 0x0C) >> 2;
+    p_child->vx = p_child->vx >> shift;
+    shift = (p_parent->rabbit & 0x0C) >> 2;
+    p_child->vy = p_child->vy >> shift;
+    shift = (p_parent->rabbit & 0x0C) >> 2;
+    p_child->vz = p_child->vz >> shift;
+    if ((p_parent->rabbit & 0x40) != 0)
+    {
+        p_child->vx += p_parent->vx;
+        p_child->vy += p_parent->vy;
+        p_child->vz += p_parent->vz;
+    }
+}
+
+void process_bang(struct SimpleThing *p_sthing)
+{
+    ushort *p_head;
+    ushort phw;
+    ushort *p_shead;
+    ushort shr;
+    ushort state;
+
+    DIFFTEST_SHADOW(process_bang, process_bang_asm(p_sthing));
+
+    state = p_sthing->State;
+    if (state >= 100)
+    {
+        state++;
+        p_sthing->State = state;
+        if (state >= 105)
+            p_sthing->State = 0;
+    }
+    else if (state != 0)
+    {
+        p_sthing->State = state - 1;
+    }
+
+    p_head = (ushort *)&p_sthing->U.UBang.phwoar;
+    phw = *p_head;
+    while (phw != 0)
+    {
+        struct Phwoar *p_phwoar;
+        struct Phwoar *p_child;
+        ushort child;
+        s32 i, n, rings, base, dangley, dang, angle, angle_y;
+        int ay;
+
+        p_phwoar = &phwoar[phw];
+        if ((p_phwoar->gestation & 0x3F) == 0)
+        {
+            switch ((p_phwoar->rabbit & 0x30) >> 4)
+            {
+            case 0:
+                n = p_phwoar->rabbit & 0x03;
+                dang = bangdetail.circle[n].dangle;
+                n = bangdetail.circle[n].babynumber;
+                angle = 0;
+                for (i = 0; i < n; i++)
+                {
+                    int a;
+
+                    p_child = bang_phwoar_child_new(p_head);
+                    if (p_child == NULL)
+                        continue;
+                    a = angle & 0x7FF;
+                    p_child->vx = lbSinTable[a] >> 10;
+                    p_child->vy = 0;
+                    p_child->vz = lbSinTable[a + 512] >> 10;
+                    p_child->vx += (LbRandomAnyShort() & 7) - 3;
+                    p_child->vz += (LbRandomAnyShort() & 7) - 3;
+                    angle += dang;
+                    bang_phwoar_child_inherit(p_child, p_phwoar, p_sthing);
+                }
+                break;
+            case 1:
+                n = p_phwoar->rabbit & 0x03;
+                base = bangdetail.sphere[n].babynumber;
+                rings = bangdetail.sphere[n].babyshift;
+                dangley = bangdetail.sphere[n].dangley;
+                for (angle_y = 0; rings != 0; rings--, angle_y += dangley)
+                {
+                    ay = angle_y & 0x7FF;
+                    n = ((base * lbSinTable[ay + 512]) >> 16) + 1;
+                    dang = 0x800 / n;
+                    angle = 0;
+                    for (i = 0; i < n; i++, angle += dang)
+                    {
+                        int a;
+
+                        p_child = bang_phwoar_child_new(p_head);
+                        if (p_child != NULL)
+                        {
+                            a = angle & 0x7FF;
+                            p_child->vx = ((lbSinTable[a] >> 10) * lbSinTable[ay + 512]) >> 16;
+                            p_child->vz = ((lbSinTable[a + 512] >> 10) * lbSinTable[ay + 512]) >> 16;
+                            p_child->vy = lbSinTable[ay] >> 10;
+                            p_child->vx += (LbRandomAnyShort() & 0xF) - 7;
+                            p_child->vz += (LbRandomAnyShort() & 0xF) - 7;
+                            bang_phwoar_child_inherit(p_child, p_phwoar, p_sthing);
+                        }
+                        if (angle_y == 0)
+                            continue;
+                        p_child = bang_phwoar_child_new(p_head);
+                        if (p_child == NULL)
+                            continue;
+                        a = angle & 0x7FF;
+                        p_child->vx = ((lbSinTable[a] >> 10) * lbSinTable[ay + 512]) >> 16;
+                        p_child->vz = ((lbSinTable[a + 512] >> 10) * lbSinTable[ay + 512]) >> 16;
+                        p_child->vy = (-lbSinTable[ay]) >> 10;
+                        p_child->vx += (LbRandomAnyShort() & 0xF) - 7;
+                        p_child->vz += (LbRandomAnyShort() & 0xF) - 7;
+                        bang_phwoar_child_inherit(p_child, p_phwoar, p_sthing);
+                    }
+                }
+                break;
+            case 2:
+                n = p_phwoar->rabbit & 0x03;
+                base = bangdetail.sphere[n].babynumber;
+                rings = bangdetail.sphere[n].babyshift;
+                dangley = bangdetail.sphere[n].dangley;
+                for (angle_y = 0; rings != 0; rings--, angle_y += dangley)
+                {
+                    ay = angle_y & 0x7FF;
+                    n = ((base * lbSinTable[ay + 512]) >> 16) + 1;
+                    dang = 0x800 / n;
+                    angle = 0;
+                    for (i = 0; i < n; i++)
+                    {
+                        int a;
+
+                        p_child = bang_phwoar_child_new(p_head);
+                        if (p_child == NULL)
+                            continue;
+                        a = angle & 0x7FF;
+                        p_child->vx = ((lbSinTable[a] >> 10) * lbSinTable[ay + 512]) >> 16;
+                        p_child->vz = ((lbSinTable[a + 512] >> 10) * lbSinTable[ay + 512]) >> 16;
+                        p_child->vy = lbSinTable[ay] >> 10;
+                        p_child->vx += (LbRandomAnyShort() & 0xF) - 7;
+                        p_child->vz += (LbRandomAnyShort() & 0xF) - 7;
+                        angle += dang;
+                        bang_phwoar_child_inherit(p_child, p_phwoar, p_sthing);
+                    }
+                }
+                break;
+            case 3:
+                n = (p_phwoar->rabbit & 0x03) * 2 + 1;
+                for (i = 0; i < n; i++)
+                {
+                    int a;
+
+                    p_child = bang_phwoar_child_new(p_head);
+                    if (p_child == NULL)
+                        continue;
+                    a = LbRandomAnyShort() & 0x7FF;
+                    ay = LbRandomAnyShort() & 0x3F;
+                    p_child->vx = ((lbSinTable[a] >> 10) * lbSinTable[ay + 512]) >> 16;
+                    p_child->vz = ((lbSinTable[a + 512] >> 10) * lbSinTable[ay + 512]) >> 16;
+                    p_child->vy = lbSinTable[ay] >> 10;
+                    bang_phwoar_child_inherit(p_child, p_phwoar, p_sthing);
+                }
+                break;
+            }
+            p_phwoar->gestation = 0xFF;
+        }
+
+        child = p_phwoar->child;
+        if (p_phwoar->die <= 0)
+        {
+            *p_head = child;
+            give_some_phwoar(phw, 0, 0);
+            phw = child;
+            continue;
+        }
+        p_phwoar->gestation--;
+        p_phwoar->fc += p_phwoar->vf & 0x0F;
+        while (p_phwoar->fc >= 8)
+        {
+            p_phwoar->die--;
+            p_phwoar->fc -= 8;
+            if (p_phwoar->die > 0)
+                p_phwoar->f = frame[p_phwoar->f].Next;
+        }
+        p_phwoar->x += p_phwoar->vx * 1024;
+        p_phwoar->y += p_phwoar->vy * 128;
+        p_phwoar->z += p_phwoar->vz * 1024;
+        if ((p_phwoar->vf & 0x80) != 0)
+            p_phwoar->vy -= 3;
+        if ((p_phwoar->vf & 0x40) != 0)
+        {
+            p_phwoar->vx = p_phwoar->vx - (p_phwoar->vx >> 1);
+            p_phwoar->vy = p_phwoar->vy - (p_phwoar->vy >> 1);
+            p_phwoar->vz = p_phwoar->vz - (p_phwoar->vz >> 1);
+        }
+        if ((p_phwoar->vf & 0x20) != 0)
+        {
+            p_phwoar->vx = p_phwoar->vx - (p_phwoar->vx >> 2);
+            p_phwoar->vy = p_phwoar->vy - (p_phwoar->vy >> 2);
+            p_phwoar->vz = p_phwoar->vz - (p_phwoar->vz >> 2);
+        }
+        if ((p_phwoar->vf & 0x10) != 0)
+        {
+            p_phwoar->vx = p_phwoar->vx - (p_phwoar->vx >> 3);
+            p_phwoar->vy = p_phwoar->vy - (p_phwoar->vy >> 3);
+            p_phwoar->vz = p_phwoar->vz - (p_phwoar->vz >> 3);
+        }
+        phw = child;
+        p_head = &p_phwoar->child;
+    }
+
+    p_shead = (ushort *)&p_sthing->U.UBang.shrapnel;
+    shr = *p_shead;
+    while ((shr != 0) && (shr < SHRAPNEL_COUNT))
+    {
+        struct Shrapnel *p_shrapnel;
+        ushort next;
+        int alt, tile_x, tile_z;
+        ushort sample;
+
+        p_shrapnel = &shrapnel[shr];
+        next = p_shrapnel->child;
+        p_shrapnel->x += p_shrapnel->vx * 256;
+        p_shrapnel->y += p_shrapnel->vy * 32;
+        p_shrapnel->vy -= 3;
+        p_shrapnel->z += p_shrapnel->vz * 256;
+        p_shrapnel->yaw += p_shrapnel->vyaw;
+        p_shrapnel->pitch += p_shrapnel->vpitch;
+
+        if (p_shrapnel->type == 2)
+        {
+            if ((gameturn & bangdetail.mask) == 0)
+                bang_new4(p_shrapnel->x, p_shrapnel->y, p_shrapnel->z, 40);
+        }
+        else if (p_shrapnel->type == 4)
+        {
+            bang_new4(p_shrapnel->x, p_shrapnel->y, p_shrapnel->z, 40);
+            p_shrapnel->y += p_shrapnel->vy * 32;
+            p_shrapnel->vy = p_shrapnel->vy - (p_shrapnel->vy >> 2);
+        }
+        else if (p_shrapnel->type == 3)
+        {
+            if ((gameturn & bangdetail.mask) == 0)
+                bang_new4(p_shrapnel->x, p_shrapnel->y, p_shrapnel->z, 30);
+        }
+
+        alt = alt_at_point(p_shrapnel->x >> 8, p_shrapnel->z >> 8);
+        tile_x = p_shrapnel->x >> 16;
+        tile_z = p_shrapnel->z >> 16;
+        if ((tile_x < 0) || (tile_x >= 128) || (tile_z < 0) || (tile_z >= 128))
+        {
+            *p_shead = p_shrapnel->child;
+            give_some_shrapnel(shr, 0, 0);
+            shr = next;
+            continue;
+        }
+
+        if ((alt > p_shrapnel->y) || ((p_shrapnel->type != 4) &&
+          (check_col_collision(p_shrapnel->x >> 8, p_shrapnel->y >> 8,
+            p_shrapnel->z >> 8) != 0)))
+        {
+            if ((alt > p_shrapnel->y) &&
+              sea_texture((short)(game_my_big_map[(tile_z << 7) + tile_x].Texture & 0x3FFF)))
+            {
+                struct SimpleThing *p_effect;
+
+                sample = 3;
+                p_effect = create_scale_effect(p_shrapnel->x >> 8, alt >> 8,
+                  p_shrapnel->z >> 8, 0x43F, 8);
+                if (p_effect != NULL)
+                {
+                    ushort rnd;
+
+                    rnd = LbRandomAnyShort();
+                    p_effect->SubType = 60;
+                    p_effect->Object = (rnd & 0x7F) + 62;
+                }
+            }
+            else
+            {
+                bang_new4(p_shrapnel->x, p_shrapnel->y, p_shrapnel->z, 35);
+                if (p_shrapnel->type == 2)
+                    do_shockwave(p_shrapnel->x >> 8, 0, p_shrapnel->z >> 8,
+                      512, 800, NULL);
+                switch (gameturn % 3)
+                {
+                case 0:
+                    sample = 60;
+                    break;
+                case 1:
+                    sample = 62;
+                    break;
+                default:
+                    sample = 63;
+                    break;
+                }
+            }
+            create_sound_effect(p_shrapnel->x >> 8, 0, p_shrapnel->z >> 8,
+              sample, 0, 0);
+            *p_shead = p_shrapnel->child;
+            give_some_shrapnel(shr, 0, 0);
+            shr = next;
+            continue;
+        }
+
+        if ((p_shrapnel->type == 4) && (p_shrapnel->vy <= 20))
+        {
+            *p_shead = p_shrapnel->child;
+            give_some_shrapnel(shr, 0, 0);
+            bang_new4(p_shrapnel->x, p_shrapnel->y, p_shrapnel->z, 20);
+            shr = next;
+            continue;
+        }
+        shr = next;
+        p_shead = &p_shrapnel->child;
+    }
 }
 
 void finish_bang(struct SimpleThing *p_sthing, ThingIdx thing)
