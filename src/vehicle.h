@@ -237,6 +237,9 @@ extern s32 mech_rocket2_launch_cor_z;
 
 extern struct unkn_mech_struc3 *unkn_mech_arr3;
 
+extern GameTurn last_swoosh_turn;
+extern short last_swoosh_thing;
+
 /******************************************************************************/
 
 void init_mech(void);

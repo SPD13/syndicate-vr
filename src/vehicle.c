@@ -29,11 +29,13 @@
 #include "bigmap.h"
 #include "bmbang.h"
 #include "difftest.h"
+#include "engincam.h"
 #include "enginpriobjs.h"
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
 #include "engintrns.h"
 #include "game.h"
+#include "game_options.h"
 #include "game_speed.h"
 #include "matrix.h"
 #include "pathtrig.h"
@@ -1170,11 +1172,43 @@ void set_passengers_location(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void swoosh_veh(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void swoosh_veh_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_swoosh_veh\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
+}
+
+void swoosh_veh(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    s32 dist_x, dist_z, dist;
+
+    DIFFTEST_SHADOW(swoosh_veh, swoosh_veh_asm(a1, a2, a3, a4));
+    if ((last_swoosh_thing == p_vehicle->ThingOffset) &&
+      ((ulong)(gameturn - last_swoosh_turn) < 150))
+        return;
+    if (ingame.TrackThing == p_vehicle->ThingOffset)
+        return;
+    if ((p_vehicle->SubType != SubTT_VEH_GROUND) &&
+      (p_vehicle->SubType != SubTT_VEH_UNKN43) &&
+      (p_vehicle->SubType != SubTT_VEH_FLYING))
+        return;
+
+    dist_x = abs((p_vehicle->X >> 8) - engn_xc);
+    dist_z = abs((p_vehicle->Z >> 8) - engn_zc);
+    if (dist_x > dist_z)
+        dist = dist_x + (dist_z >> 1);
+    else
+        dist = (dist_x >> 1) + dist_z;
+    if (dist >= 1024)
+        return;
+
+    if (IsSamplePlaying((ushort)p_vehicle->ThingOffset, 17, 0))
+        return;
+    last_swoosh_thing = p_vehicle->ThingOffset;
+    last_swoosh_turn = gameturn;
+    play_dist_sample(p_vehicle, 17, 127, 64, 100, 0, 1);
 }
 
 
