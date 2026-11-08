@@ -4443,12 +4443,100 @@ void set_interrupt_target(struct Thing *p_person, struct Thing *p_target)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int person_drops_weapons(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int person_drops_weapons_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_person_drops_weapons\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+void plant_mine(struct Thing *p_person);
+ubyte vector_in_way(struct Thing *p_thing, int dx, int dz);
+
+int person_drops_weapons(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    s32 cor_y;
+    u32 weapons;
+    int i;
+
+    // The asm leaves an unspecified value in eax; the only caller ignores it
+    DIFFTEST_SHADOW(person_drops_weapons, person_drops_weapons_asm(a1, a2, a3, a4));
+    cor_y = p_person->Y >> 8;
+    weapons = p_person->U.UPerson.WeaponsCarried & ~(1u << (WEP_ENERGYSHLD - 1));
+    if ((p_person->SubType == SubTT_PERS_ZEALOT) ||
+      (p_person->SubType == SubTT_PERS_HIGH_PRIEST))
+        weapons &= ~(1u << (WEP_UZI - 1));
+
+    for (i = 0; i < 32; i++)
+    {
+        s32 wtype;
+        short tries;
+
+        if ((weapons & (1u << i)) == 0)
+            continue;
+
+        wtype = i + 1;
+        if ((wtype == WEP_EXPLMINE) || (wtype == WEP_ELEMINE))
+        {
+            p_person->U.UPerson.TempWeapon = wtype;
+            plant_mine(p_person);
+            continue;
+        }
+        if ((wtype == WEP_UZI) && ((p_person->Flag & TngF_PlayerAgent) == 0)
+          && in_network_game)
+            continue;
+
+        if (in_network_game && (net_game_play_flags & NGPF_Unkn08)
+          && ((p_person->Flag & TngF_PlayerAgent) != 0))
+        {
+            ushort plyr, plagent;
+
+            plyr = p_person->U.UPerson.ComCur >> 2;
+            plagent = p_person->U.UPerson.ComCur & 3;
+            if ((players[plyr].Weapons[plagent] & (weapons & (1u << i))) != 0)
+                continue;
+        }
+
+        tries = 0;
+        while (1)
+        {
+            struct MyMapElement *p_mapel;
+            struct SimpleThing *p_item;
+            s32 dx, dz, cor_x, cor_z;
+            short prev_tries;
+
+            prev_tries = tries;
+            tries++;
+            // TODO: running out of tries ends the function, so the remaining
+            // weapons are not dropped; maybe an original bug
+            if (prev_tries > 30)
+                return 0;
+
+            dx = (LbRandomAnyShort() & 0xFF) - 127;
+            dz = (LbRandomAnyShort() & 0xFF) - 127;
+            cor_x = (p_person->X >> 8) + dx;
+            cor_z = (p_person->Z >> 8) + dz;
+            if ((cor_x < 0) || (cor_x >= 0x8000))
+                continue;
+            if ((cor_z < 0) || (cor_z >= 0x8000))
+                continue;
+
+            p_mapel = &game_my_big_map[(cor_z >> 8) * 128 + (cor_x >> 8)];
+            if ((p_mapel->Flags2 & MEF2_Unkn01) != 0)
+                continue;
+
+            if (!vector_in_way(p_person, dx, dz))
+                continue;
+
+            p_item = create_item(cor_x, cor_y, cor_z, 1004, (ubyte)wtype);
+            if (p_item != NULL)
+                p_item->U.UWeapon.OnFace = p_person->U.UPerson.OnFace;
+            break;
+        }
+    }
+    return 0;
 }
 
 
