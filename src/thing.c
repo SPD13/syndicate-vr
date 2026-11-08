@@ -449,11 +449,94 @@ void init_things(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void quick_light_unkn_func_07(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void quick_light_unkn_func_07_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_quick_light_unkn_func_07\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Unlinks from a face point QuickLight chain all entries referencing
+ * given light; visits at most 201 entries of the chain.
+ */
+static void quick_light_unlink_from_chain(struct QuickLight *p_qlights,
+  ushort *p_head, ushort light, ushort *p_count)
+{
+    ushort qlight, prev_qlight;
+    ushort n;
+
+    prev_qlight = 0;
+    n = 0;
+    qlight = *p_head;
+    while (qlight != 0)
+    {
+        struct QuickLight *p_qlight;
+
+        if (n++ >= 201)
+            break;
+        p_qlight = &p_qlights[qlight];
+        if (p_qlight->Light == light)
+        {
+            (*p_count)--;
+            if (prev_qlight == 0)
+                *p_head = p_qlight->NextQuick;
+            else
+                p_qlights[prev_qlight].NextQuick = p_qlight->NextQuick;
+            p_qlight->Light = 0;
+        }
+        else
+        {
+            prev_qlight = qlight;
+        }
+        qlight = p_qlights[qlight].NextQuick;
+    }
+}
+
+/** Unlinks from the QuickLight chains of all face points of given object
+ * all entries referencing given light.
+ */
+void quick_light_unkn_func_07(int a1, int a2, int a3, int a4)
+{
+    struct SingleObject *p_sobj;
+    struct QuickLight *p_qlights;
+    ushort light = (ushort)a2;
+    ushort count;
+    ushort start_face, numb_faces, i;
+
+    DIFFTEST_SHADOW(quick_light_unkn_func_07, quick_light_unkn_func_07_asm(a1, a2, a3, a4));
+
+    p_qlights = game_quick_lights;
+    count = next_quick_light;
+    p_sobj = &game_objects[(ushort)a1];
+
+    start_face = p_sobj->StartFace;
+    numb_faces = p_sobj->NumbFaces;
+    for (i = 0; i < numb_faces; i++)
+    {
+        struct SingleObjectFace3 *p_face;
+
+        p_face = &game_object_faces3[(s32)start_face + i];
+        quick_light_unlink_from_chain(p_qlights, &p_face->Light0, light, &count);
+        quick_light_unlink_from_chain(p_qlights, &p_face->Light1, light, &count);
+        quick_light_unlink_from_chain(p_qlights, &p_face->Light2, light, &count);
+    }
+
+    start_face = p_sobj->StartFace4;
+    numb_faces = p_sobj->NumbFaces4;
+    for (i = 0; i < numb_faces; i++)
+    {
+        struct SingleObjectFace4 *p_face;
+
+        p_face = &game_object_faces4[(s32)start_face + i];
+        quick_light_unlink_from_chain(p_qlights, (ushort *)&p_face->Light0, light, &count);
+        quick_light_unlink_from_chain(p_qlights, (ushort *)&p_face->Light1, light, &count);
+        quick_light_unlink_from_chain(p_qlights, (ushort *)&p_face->Light2, light, &count);
+        quick_light_unlink_from_chain(p_qlights, (ushort *)&p_face->Light3, light, &count);
+    }
+
+    next_quick_light = count;
+    // The asm stores the pointer back unchanged
+    game_quick_lights = p_qlights;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
