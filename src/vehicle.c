@@ -1515,12 +1515,61 @@ void continue_flying_wander(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int do_next_navigate_index(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int do_next_navigate_index_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_do_next_navigate_index\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int do_next_navigate_index(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing = (struct Thing *)a1;
+    struct MyPath *p_path;
+    ushort head;
+    ushort path;
+    ushort next;
+    ushort count;
+
+    DIFFTEST_SHADOW_RET(do_next_navigate_index, int,
+      do_next_navigate_index_asm(a1, a2, a3, a4));
+    // The asm only sets %al; upper bits of %eax keep the Thing pointer.
+    // Callers test %al only, the upper bits are kept for an exact match.
+    head = head_my_path;
+    if (p_thing->U.UVehicle.PathIndex == 0)
+    {
+        head_my_path = head;
+        DIFFTEST_RETURN((int)((a1 & ~0xFF) | 1));
+    }
+
+    p_path = &my_paths[p_thing->U.UVehicle.PathIndex];
+    p_thing->PathOffset++;
+    count = path_count - 1;
+    if (p_thing->PathOffset >= p_path->Flag)
+    {
+        path = p_thing->U.UVehicle.PathIndex;
+        p_path = &my_paths[path];
+        p_path->Next = head;
+        path_count = count;
+        p_path->Flag = 0;
+        p_thing->U.UVehicle.PathIndex = 0;
+        head_my_path = path;
+        DIFFTEST_RETURN((int)((a1 & ~0xFF) | 1));
+    }
+    if ((p_thing->PathOffset & 0x3) == 0)
+    {
+        path = p_thing->U.UVehicle.PathIndex;
+        p_path = &my_paths[path];
+        p_path->Flag = 0;
+        path_count = count;
+        next = p_path->Next;
+        p_path->Next = head;
+        head = path;
+        p_thing->U.UVehicle.PathIndex = next;
+    }
+    head_my_path = head;
+    DIFFTEST_RETURN((int)(a1 & ~0xFF));
 }
 
 
