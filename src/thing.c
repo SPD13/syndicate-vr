@@ -1192,11 +1192,76 @@ void apply_texture_to_face(int a1, int a2, int a3, int a4)
 }
 
 
-void process_intelligent_door(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_intelligent_door_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_intelligent_door\n"
         : : "a" (p_sthing));
+}
+
+void process_intelligent_door(struct SimpleThing *p_sthing)
+{
+    ushort frame;
+    ushort anim;
+
+    DIFFTEST_SHADOW(process_intelligent_door, process_intelligent_door_asm(p_sthing));
+    if ((p_sthing->Flag & 0x01) != 0)
+    {
+        if (p_sthing->State != 1 && p_sthing->State != 3)
+        {
+            p_sthing->State = 1;
+            p_sthing->Flag &= ~0x01;
+        }
+    }
+
+    switch ((ushort)p_sthing->State)
+    {
+    case 1:
+        p_sthing->Flag &= ~0x01;
+        anim = p_sthing->StartFrame;
+        frame = p_sthing->Frame + 1;
+        p_sthing->Frame = frame;
+        if ((s32)frame < (s32)door_anim_page[anim].No)
+        {
+            apply_texture_to_face(frame, anim, (ushort)p_sthing->Parent, frame);
+        }
+        else
+        {
+            p_sthing->State = 3;
+            p_sthing->Timer1 = 7;
+            p_sthing->Frame = frame - 1;
+            p_sthing->Flag |= 0x02;
+        }
+        break;
+    case 2:
+        anim = p_sthing->StartFrame;
+        frame = p_sthing->Frame - 1;
+        p_sthing->Frame = frame;
+        if ((s32)frame <= (s32)door_anim_page[anim].No)
+        {
+            apply_texture_to_face(frame, anim, (ushort)p_sthing->Parent, 0);
+        }
+        else
+        {
+            game_object_faces4[(short)p_sthing->Parent].WalkHeader = 0;
+            remove_sthing(p_sthing->ThingOffset);
+        }
+        break;
+    case 3:
+        p_sthing->Flag &= ~0x01;
+        if ((short)p_sthing->Timer1 != 0)
+        {
+            p_sthing->Timer1--;
+        }
+        else if (check_for_people(p_sthing->X, p_sthing->Y, p_sthing->Z, 100) == NULL)
+        {
+            p_sthing->State = 2;
+            play_dist_ssample(p_sthing, 0x35, 0x7F, 0x40, 100, 0, 1);
+        }
+        break;
+    default:
+        break;
+    }
 }
 
 void process_unkn58(struct SimpleThing *p_sthing)
