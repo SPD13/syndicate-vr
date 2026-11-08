@@ -1900,11 +1900,26 @@ void create_train_for_each_track(void)
     }
 }
 
-void init_my_paths(void)
+static DIFFTEST_REF_FUNC void init_my_paths_asm(void)
 {
     asm volatile ("call ASM_init_my_paths\n"
         :  :  : "eax" );
-    return;
+}
+
+void init_my_paths(void)
+{
+    ushort i;
+
+    DIFFTEST_SHADOW(init_my_paths, init_my_paths_asm());
+    for (i = 0; i < 1599; i++)
+    {
+        my_paths[i].Next = i + 1;
+        my_paths[i].Flag = 0;
+    }
+    my_paths[1599].Flag = 0;
+    my_paths[1599].Next = 0;
+    head_my_path = 1;
+    path_count = 1;
 }
 
 void init_level_unknsub01_person(struct Thing *p_person)
