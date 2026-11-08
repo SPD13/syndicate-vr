@@ -31,6 +31,7 @@
 
 #include "bigmap.h"
 #include "campaign.h"
+#include "difftest.h"
 #include "drawtext.h"
 #include "hud_draw.h"
 #include "keyboard.h"
@@ -848,8 +849,8 @@ ubyte all_group_arrived_square(ushort group, short x, short z, short x2, int z2)
     return ret;
 }
 
-ubyte mem_group_arrived_square2(struct Thing *p_person, ushort group, short x, short z,
-  int x2, int z2, int count)
+static DIFFTEST_REF_FUNC ubyte mem_group_arrived_square2_asm(struct Thing *p_person,
+  ushort group, short x, short z, int x2, int z2, int count)
 {
     ubyte ret;
     // Pushed through a register holding them: a "g" operand may be placed
@@ -865,10 +866,71 @@ ubyte mem_group_arrived_square2(struct Thing *p_person, ushort group, short x, s
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_mem_group_arrived_square2\n"
-        : "=r" (ret)
+        : "=a" (ret)
         : "a" (p_person), "d" (group), "b" (x), "c" (z), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+/** Check whether at least `count` non-destroyed members of a group are
+ * strictly inside the rectangle (x,z)-(x2,z2), in map coordinates.
+ * In network games with group 0, all groups of active players are checked.
+ */
+ubyte mem_group_arrived_square2(struct Thing *p_person, ushort group, short x, short z,
+  int x2, int z2, int count)
+{
+    struct Thing *p_thing;
+    ThingIdx thing;
+    PlayerIdx plyr;
+    ushort m;
+    s32 cor_x, cor_z;
+
+    DIFFTEST_SHADOW_RET(mem_group_arrived_square2, ubyte,
+      mem_group_arrived_square2_asm(p_person, group, x, z, x2, z2, count));
+    m = 0;
+    if (!in_network_game || (group != 0))
+    {
+        for (thing = same_type_head[256 + group]; thing > 0; thing = p_thing->LinkSameGroup)
+        {
+            p_thing = &things[thing];
+            cor_x = (short)(p_thing->X >> 8);
+            cor_z = (short)(p_thing->Z >> 8);
+            if ((p_thing->Flag & TngF_Destroyed) == 0)
+            {
+                if ((cor_x > (ushort)x) && (cor_x < (ushort)x2) &&
+                  (cor_z > (ushort)z) && (cor_z < (ushort)z2))
+                    m++;
+            }
+            if (m >= (ushort)count)
+                DIFFTEST_RETURN((ubyte)1);
+        }
+        DIFFTEST_RETURN((ubyte)0);
+    }
+
+    for (plyr = 0; plyr < 8; plyr++)
+    {
+        ushort grp;
+
+        if (((1 << plyr) & ingame.InNetGame_UNSURE) == 0)
+            continue;
+        grp = level_def.PlayableGroups[plyr];
+
+        for (thing = same_type_head[256 + grp]; thing > 0; thing = p_thing->LinkSameGroup)
+        {
+            p_thing = &things[thing];
+            cor_x = (short)(p_thing->X >> 8);
+            cor_z = (short)(p_thing->Z >> 8);
+            if ((p_thing->Flag & TngF_Destroyed) == 0)
+            {
+                if ((cor_x > (ushort)x) && (cor_x < (ushort)x2) &&
+                  (cor_z > (ushort)z) && (cor_z < (ushort)z2))
+                    m++;
+            }
+            if (m >= (ushort)count)
+                DIFFTEST_RETURN((ubyte)1);
+        }
+    }
+    DIFFTEST_RETURN((ubyte)0);
 }
 
 ubyte mem_group_arrived(ushort group, short cor_x, short cor_y, short cor_z,
