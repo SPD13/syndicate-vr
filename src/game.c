@@ -968,10 +968,65 @@ void update_map_thing_and_traffic_refs(void)
     }
 }
 
-void unkn_lights_processing(void)
+static DIFFTEST_REF_FUNC void unkn_lights_processing_asm(void)
 {
     asm volatile ("call ASM_unkn_lights_processing\n"
         :  :  : "eax" );
+}
+
+void unkn_lights_processing(void)
+{
+    struct FullLight *p_fulights;
+    ushort n_cmds;
+    ushort cmd, i;
+
+    DIFFTEST_SHADOW(unkn_lights_processing, unkn_lights_processing_asm());
+    n_cmds = next_light_command;
+    p_fulights = game_full_lights;
+
+    // Clear references to commands beyond the list end
+    for (i = 0; i < next_full_light; i++)
+    {
+        if ((ushort)p_fulights[i].Command > n_cmds)
+            p_fulights[i].Command = 0;
+    }
+
+    // Remove commands which reference non-existing lights
+    for (cmd = 1; cmd < n_cmds; cmd++)
+    {
+        s32 light;
+        ushort k;
+
+        light = (*(s32 *)&game_light_commands[cmd].lcfld_0[0x10]) >> 16;
+        if (light >= 0)
+        {
+            if (light <= (s32)next_full_light)
+                continue;
+        }
+        else if (light >= -1500)
+        {
+            ushort head;
+
+            head = sthings[light].U.UScenery.LightHead;
+            if ((head != 0) && (head <= next_full_light))
+                continue;
+        }
+
+        for (i = 1; i < next_full_light; i++)
+        {
+            if (cmd < (ushort)p_fulights[i].Command)
+                p_fulights[i].Command--;
+        }
+        for (k = cmd; k < n_cmds; k++)
+        {
+            game_light_commands[k] = game_light_commands[k + 1];
+        }
+        cmd--;
+        n_cmds--;
+    }
+
+    game_full_lights = p_fulights;
+    next_light_command = n_cmds;
 }
 
 void change_current_map(ushort mapno)
