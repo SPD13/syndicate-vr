@@ -2341,11 +2341,32 @@ int train_unkn_st21_exit_func_1(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void thing_unkn_change_speed(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void thing_unkn_change_speed_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_thing_unkn_change_speed\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void thing_unkn_change_speed(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing = (struct Thing *)a1;
+    struct Thing *p_other;
+    s32 dist_lim, dx, dz, dist_sq;
+
+    DIFFTEST_SHADOW(thing_unkn_change_speed,
+      thing_unkn_change_speed_asm(a1, a2, a3, a4));
+    p_other = &things[(ushort)a2];
+    dist_lim = ((s32)(2 * 193 * (u32)(ushort)p_thing->Radius) >> 8)
+      + ((s32)(2 * 193 * (u32)(ushort)p_other->Radius) >> 8) + 0x40;
+    dist_lim = dist_lim * dist_lim;
+    dx = (p_thing->X - p_other->X) >> 8;
+    dz = (p_thing->Z - p_other->Z) >> 8;
+    dist_sq = dz * dz + dx * dx;
+    if (dist_sq > dist_lim + 0x100)
+        p_thing->Speed += (short)a3;
+    else if (dist_sq < dist_lim - 0x100)
+        p_thing->Speed -= (short)a3;
 }
 
 
