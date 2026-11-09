@@ -1635,12 +1635,39 @@ void start_landing(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int exit_pod(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int exit_pod_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_exit_pod\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
     return ra;
+}
+
+int exit_pod(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    struct Thing *p_passngr;
+    short passngr;
+
+    DIFFTEST_SHADOW_RET(exit_pod, int, exit_pod_asm(a1, a2, a3, a4));
+    passngr = p_vehicle->U.UVehicle.PassengerHead;
+    if (passngr == 0)
+    {
+        stop_sample_using_heap((ushort)p_vehicle->ThingOffset, 9);
+        DIFFTEST_RETURN(1);
+    }
+    if (passngr < 0)
+        DIFFTEST_RETURN(1);
+
+    p_passngr = &things[passngr];
+    p_passngr->X = (p_vehicle->VX << 16) + 0x8000;
+    p_passngr->Z = (p_vehicle->VZ << 16) + 0x8000;
+    p_passngr->Y = alt_at_point(p_passngr->X >> 8, p_passngr->Z >> 8);
+    p_passngr->Flag &= ~(TngF_Unkn4000 | TngF_Unkn0010 | TngF_Unkn0004);
+    p_passngr->Flag |= (TngF_Unkn0010 | TngF_Unkn0004);
+    p_vehicle->U.UVehicle.PassengerHead = p_passngr->Next;
+    add_node_thing(p_passngr->ThingOffset);
+    DIFFTEST_RETURN(0);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
