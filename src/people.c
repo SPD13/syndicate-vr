@@ -3936,12 +3936,120 @@ void use_nav_data(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int triangle_route_do_unkn5(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int triangle_route_do_unkn5_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_triangle_route_do_unkn5\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Best-first search over triangulation from triangle a2 towards a1,
+ * using distance to (tree_Ax8, tree_Ay8) as heap key.
+ * Unlike triangle_route_do_bak(), it pops two triangles from the heap
+ * per step and expands both; moves are allowed to the 3 siblings and
+ * the jump triangle, as enabled by bits 0-3 of the `enter` flags.
+ * Arguments: a1 = destination tri, a2 = start tri, a3 = s32 *route output
+ * (from a1 back to a2), a4 unused.
+ * Returns number of route steps, or -1 if not found.
+ */
+int triangle_route_do_unkn5(int a1, int a2, int a3, int a4)
+{
+    s32 *p_route = (s32 *)a3;
+    struct TrTriangle *p_tri;
+    s32 tri_dst, tri_beg, tri_cur, tri_sec, tri_nxt;
+    s32 ax, ay, dist, d;
+    int k, n;
+
+    DIFFTEST_SHADOW_RET(triangle_route_do_unkn5, int,
+      triangle_route_do_unkn5_asm(a1, a2, a3, a4));
+
+    tri_dst = a1;
+    tri_beg = a2;
+
+    tag_current++;
+    heap[1] = -1;
+    heap_end = 0;
+    if (tag_current == 0)
+    {
+        memset(routeTags, 0, 8000);
+        tag_current = 1;
+    }
+
+    tree_val[tri_beg] = 1;
+    tree_dad[tri_beg] = tri_beg;
+    routeTags[tri_beg] = tag_current;
+    triangle_route_bak_heap_add(tri_beg);
+
+    while (1)
+    {
+        tri_cur = heap[1];
+        if (tri_cur == tri_dst || tri_cur == -1)
+            break;
+        triangle_route_bak_heap_pop();
+
+        tri_sec = heap[1];
+        if (tri_sec != -1)
+        {
+            if (tri_sec == tri_dst)
+                break;
+            triangle_route_bak_heap_pop();
+        }
+
+        while (1)
+        {
+            for (k = 0; k < 4; k++)
+            {
+                p_tri = &triangulation[0].Triangles[tri_cur];
+                if ((p_tri->enter & (1 << k)) == 0)
+                    continue;
+                // k == 3 reads the jump field, which follows tri[]
+                if (k < 3)
+                    tri_nxt = p_tri->tri[k];
+                else
+                    tri_nxt = p_tri->jump;
+                if (tri_nxt == -1)
+                    continue;
+                if (routeTags[tri_nxt] == tag_current)
+                    continue;
+                p_tri = &triangulation[0].Triangles[tri_nxt];
+                ax = tree_Ax8 >> 8;
+                ay = tree_Ay8 >> 8;
+                dist = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[0]);
+                d = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[1]);
+                if (d < dist)
+                    dist = d;
+                d = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[2]);
+                if (d < dist)
+                    dist = d;
+
+                routeTags[tri_nxt] = tag_current;
+                tree_val[tri_nxt] = dist;
+                tree_dad[tri_nxt] = tri_cur;
+                triangle_route_bak_heap_add(tri_nxt);
+            }
+            if (tri_sec == -1)
+                break;
+            tri_cur = tri_sec;
+            tri_sec = -1;
+        }
+    }
+
+    if (heap[1] == -1)
+        DIFFTEST_RETURN((int)-1);
+
+    tri_cur = tri_dst;
+    n = 0;
+    while (1)
+    {
+        *p_route = tri_cur;
+        if (tri_cur == tri_beg)
+            break;
+        p_route++;
+        n++;
+        tri_cur = tree_dad[tri_cur];
+    }
+    DIFFTEST_RETURN((int)n);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
