@@ -11459,13 +11459,189 @@ void delete_vect(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 }
 
 
-short person_hit_razor_wire(struct Thing *p_person, ThingIdx thing)
+static DIFFTEST_REF_FUNC short person_hit_razor_wire_asm(struct Thing *p_person, ThingIdx thing)
 {
     short ret;
     asm volatile (
       "call ASM_person_hit_razor_wire\n"
-        : "=r" (ret) : "a" (p_person), "d" (thing));
+        : "=a" (ret) : "a" (p_person), "d" (thing));
     return ret;
+}
+
+/** Remove the razor wire thing, together with its collision vector.
+ */
+static void razor_wire_delete(struct Thing *p_razor)
+{
+    delete_vect((short)(p_razor->X >> 8), (short)((p_razor->Y >> 5) + 60),
+      (short)(p_razor->Z >> 8), (short)(p_razor->VX + 50),
+      (short)(p_razor->VY * 8 + 60), (short)p_razor->VZ,
+      p_razor->Frame, 2);
+    remove_thing(p_razor->ThingOffset);
+    delete_node(p_razor);
+}
+
+static s32 razor_abs(s32 val)
+{
+    return (val < 0) ? -val : val;
+}
+
+short person_hit_razor_wire(struct Thing *p_person, ThingIdx thing)
+{
+    struct Thing *p_razor;
+    s32 dx, dz, len, dist, height;
+    ushort damage;
+    TbBool deleted;
+
+    DIFFTEST_SHADOW_RET(person_hit_razor_wire, short,
+      person_hit_razor_wire_asm(p_person, thing));
+
+    deleted = false;
+    p_razor = &things[thing];
+    if (p_person->U.UPerson.EffectiveGroup == p_razor->U.UObject.Group)
+        DIFFTEST_RETURN((short)0);
+    if ((war_flags[p_razor->U.UObject.Group].Truce &
+      (1u << (p_person->U.UPerson.EffectiveGroup & 0x1F))) != 0)
+        DIFFTEST_RETURN((short)0);
+
+    if (p_razor->Health-- < 0)
+    {
+        razor_wire_delete(p_razor);
+        deleted = true;
+    }
+
+    // The wire spans from (X,Y,Z)>>8 to (VX,VY,VZ); get wire height at the person
+    dx = razor_abs(p_razor->VX - (p_razor->X >> 8));
+    dz = razor_abs(p_razor->VZ - (p_razor->Z >> 8));
+    if (dx > dz)
+        len = dx + (dz >> 1);
+    else
+        len = dz + (dx >> 1);
+    if (len == 0)
+        len = 1;
+
+    dx = razor_abs(p_person->X - p_razor->X);
+    dz = razor_abs(p_person->Z - p_razor->Z);
+    if ((dx >> 8) > (dz >> 8))
+        dist = (dx >> 8) + (dz >> 9);
+    else
+        dist = (dz >> 8) + (dx >> 9);
+
+    height = (p_razor->Y >> 8) + ((p_razor->VY - (p_razor->Y >> 8)) * dist) / len
+      - (p_person->Y >> 8);
+    if (height < 0 || height > 0x1A00)
+        DIFFTEST_RETURN((short)0);
+
+    if (p_razor->SubType != 0)
+    {
+        struct Thing *p_owner;
+
+        bang_new4(p_person->X, p_person->Y, p_person->Z, 15);
+        if (p_razor->Owner != 0)
+            p_owner = &things[(ushort)p_razor->Owner];
+        else
+            p_owner = NULL;
+        do_shockwave(p_person->X >> 8, p_person->Y >> 8, p_person->Z >> 8,
+          0x400, 1000, p_owner);
+        if (((gameturn & 7) != 0) && !deleted)
+            razor_wire_delete(p_razor);
+        create_sound_effect(p_person->X >> 8, p_person->Y >> 8, p_person->Z >> 8,
+          0x25, 0x7F, 0);
+        if ((p_person->Flag & TngF_Destroyed) != 0)
+            DIFFTEST_RETURN((short)1);
+        DIFFTEST_RETURN((short)0);
+    }
+
+    if (p_person->SubType == SubTT_PERS_MECH_SPIDER)
+    {
+        razor_wire_delete(p_razor);
+        DIFFTEST_RETURN((short)0);
+    }
+
+    {
+        struct SimpleThing *p_spark;
+
+        p_spark = init_spark(p_person->X >> 8, (p_person->Y >> 8) + 20,
+          p_person->Z >> 8);
+        if (p_spark != NULL)
+        {
+            p_spark->Timer1 = 13;
+            p_spark->U.UEffect.VX >>= 1;
+            p_spark->U.UEffect.VY >>= 1;
+            p_spark->U.UEffect.VZ >>= 1;
+        }
+    }
+
+    if (((gameturn & 7) == 0) && ((LbRandomAnyShort() & 1) == 0))
+    {
+        ushort smpl_no;
+
+        if (((1 << p_person->SubType) & female_peep) != 0)
+            smpl_no = sfx_woman_shot[(gameturn + p_person->ThingOffset) & 1];
+        else
+            smpl_no = sfx_man_shot[(gameturn + p_person->ThingOffset) & 7];
+        play_dist_sample(p_person, smpl_no, 0x7F, 0x40, 100, 0, 2);
+    }
+
+    damage = weapon_defs[WEP_RAZORWIRE].HitDamage;
+    if ((p_person->U.UPerson.UMod.Mods >> 12) == 1)
+        damage >>= 1;
+    p_person->Health -= damage;
+    if (p_person->Health > 0)
+        DIFFTEST_RETURN((short)0);
+
+    set_person_dead(p_person, 11);
+
+    if (!in_network_game)
+    {
+        struct MissionStatus *p_mistat;
+
+        if (p_razor->U.UObject.Group != ingame.MyGroup)
+            DIFFTEST_RETURN((short)1);
+        p_mistat = &mission_status[open_brief];
+        switch ((ubyte)(p_person->SubType - 1))
+        {
+        case SubTT_PERS_AGENT - 1:
+        case SubTT_PERS_ZEALOT - 1:
+        case SubTT_PERS_PUNK_F - 1:
+        case SubTT_PERS_PUNK_M - 1:
+        case SubTT_PERS_HIGH_PRIEST - 1:
+            p_mistat->SP.EnemiesKilled++;
+            break;
+        case SubTT_PERS_BRIEFCASE_M - 1:
+        case SubTT_PERS_WHITE_BRUN_F - 1:
+        case SubTT_PERS_SCIENTIST - 1:
+        case SubTT_PERS_SHADY_M - 1:
+        case SubTT_PERS_WHIT_BLOND_F - 1:
+        case SubTT_PERS_LETH_JACKT_M - 1:
+            p_mistat->SP.CivsKilled++;
+            break;
+        case SubTT_PERS_MERCENARY - 1:
+        case SubTT_PERS_MECH_SPIDER - 1:
+        case SubTT_PERS_POLICE - 1:
+            p_mistat->SP.SecurityKilled++;
+            break;
+        default:
+            break;
+        }
+    }
+    else if ((p_person->Flag & TngF_PlayerAgent) != 0)
+    {
+        PlayerIdx plyr;
+
+        for (plyr = 0; plyr < 8; plyr++)
+        {
+            struct Thing *p_agent;
+
+            if ((ingame.InNetGame_UNSURE & (1 << plyr)) == 0)
+                continue;
+            p_agent = players[plyr].MyAgent[0];
+            if (p_razor->U.UObject.Group != p_agent->U.UPerson.Group)
+                continue;
+            // TODO no range checks on the player indexes, same as the original
+            mission_status[p_agent->U.UPerson.ComCur >> 2].MP.AgentsKilled[p_person->U.UPerson.ComCur >> 2]++;
+        }
+    }
+    DIFFTEST_RETURN((short)1);
 }
 
 static DIFFTEST_REF_FUNC ubyte create_intelligent_door_asm(short col)
