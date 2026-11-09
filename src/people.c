@@ -39,6 +39,7 @@
 #include "huddrwlstm.h"
 
 #include "bmbang.h"
+#include "bmcrater.h"
 #include "bigmap.h"
 #include "building.h"
 #include "command.h"
@@ -6434,13 +6435,210 @@ void scare_civs(int a1, int a2, int a3, int a4)
 
 
 
-void set_person_dead(struct Thing *p_person, ushort anim_mode)
+static DIFFTEST_REF_FUNC void set_person_dead_asm(struct Thing *p_person, ushort anim_mode)
 {
-#if 1
     asm volatile ("call ASM_set_person_dead\n"
         : : "a" (p_person), "d" (anim_mode));
-    return;
-#endif
+}
+
+void set_person_dead(struct Thing *p_person, ushort anim_mode)
+{
+    ushort frm;
+
+    DIFFTEST_SHADOW(set_person_dead, set_person_dead_asm(p_person, anim_mode));
+
+    if (anim_mode == ANIM_PERS_DEAD_ASH)
+    {
+        p_person->U.UPerson.FrameId.Version[0] = 0;
+        p_person->U.UPerson.FrameId.Version[4] = 0;
+        p_person->U.UPerson.FrameId.Version[3] = 0;
+    }
+    if (p_person->Type != TT_PERSON)
+        return;
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+
+    if ((p_person->Flag2 & TgF2_Unkn0001) != 0)
+        finalise_razor_wire(p_person);
+
+    if ((p_person->U.UPerson.Flag3 & (PrsF3_Unkn01|PrsF3_Unkn02)) != 0)
+    {
+        struct Thing *p_target;
+
+        p_target = NULL;
+        if (p_person->U.UPerson.Target2 != 0)
+            p_target = &things[p_person->U.UPerson.Target2];
+        else if (p_person->PTarget != NULL)
+            p_target = p_person->PTarget;
+
+        if (p_target != NULL)
+        {
+            ubyte group;
+
+            p_person->U.UPerson.Flag3 &= ~(PrsF3_Unkn01|PrsF3_Unkn02);
+            group = p_target->U.UPerson.EffectiveGroup & 0x1F;
+            if (group_actions[group].Storming != 0)
+                group_actions[group].Storming--;
+        }
+    }
+
+    p_person->Flag |= TngF_Destroyed;
+    if ((p_person->Flag & TngF_WepCharging) != 0)
+    {
+        stop_sample_using_heap((ushort)p_person->ThingOffset, 7);
+        stop_sample_using_heap((ushort)p_person->ThingOffset, 52);
+    }
+
+    if ((p_person->Flag & TngF_SelectedAgent) != 0)
+    {
+        ushort plyr;
+        ushort i;
+
+        plyr = ((ushort)p_person->U.UPerson.ComCur >> 2) & 7;
+        for (i = 0; i < playable_agents; i++)
+        {
+            struct Thing *p_agent;
+
+            p_agent = players[plyr].MyAgent[i];
+            if ((p_agent->Flag & TngF_Destroyed) == 0)
+            {
+                player_change_person(p_agent->ThingOffset, plyr);
+                break;
+            }
+        }
+    }
+
+    scare_civs((int)p_person, 0, 0, 0);
+
+    if ((p_person->Flag2 & TgF2_Unkn0200) != 0)
+    {
+        ushort plagent;
+
+        switch (p_person->U.UPerson.CurrentWeapon)
+        {
+        case 1:
+            if ((p_person->Flag & TngF_PlayerAgent) != 0)
+                plagent = (ushort)p_person->U.UPerson.ComCur & 3;
+            else
+                plagent = 0;
+            ReleaseLoopedSample(p_person->ThingOffset, (short)(plagent + 80));
+            p_person->Flag2 &= ~TgF2_Unkn0200;
+            break;
+        case 2:
+            if ((p_person->Flag & TngF_PlayerAgent) != 0)
+                plagent = (ushort)p_person->U.UPerson.ComCur & 3;
+            else
+                plagent = 0;
+            ReleaseLoopedSample(p_person->ThingOffset, (short)(plagent + 84));
+            play_dist_sample(p_person, ((ushort)p_person->U.UPerson.ComCur & 3) + 88,
+              0x7F, 0x40, 100, 0, 1);
+            p_person->Flag2 &= ~TgF2_Unkn0200;
+            break;
+        case 8:
+            ReleaseLoopedSample(p_person->ThingOffset, 14);
+            p_person->Flag2 &= ~TgF2_Unkn0200;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if ((p_person->Flag & TngF_PlayerAgent) != 0)
+    {
+        uint i;
+
+        for (i = 0; i < 4; i++)
+        {
+            if (players[local_player_no].MyAgent[i] != p_person)
+                continue;
+            if (!in_network_game)
+                mission_status[open_brief].AgentsLost++;
+            else
+                mission_status[local_player_no].AgentsLost++;
+            break;
+        }
+    }
+
+    if ((ushort)p_person->State == PerSt_DIEING)
+        return;
+
+    if ((p_person->Flag2 & TgF2_AlteredSubType) != 0)
+        p_person->SubType = p_person->U.UPerson.OldSubType;
+    if (p_person->U.UPerson.PathIndex != 0)
+        remove_path(p_person);
+
+    p_person->U.UPerson.OldAnimMode = anim_mode;
+    p_person->U.UPerson.AnimMode = anim_mode;
+    if ((p_person->Flag & TngF_Persuaded) != 0)
+        stop_being_persuaded(p_person);
+
+    frm = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+    p_person->Frame = nstart_ani[frm + p_person->U.UPerson.Angle];
+    frm = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+    p_person->Timer1 = 16;
+    p_person->StartTimer1 = 16;
+    p_person->U.UPerson.RecoilTimer = 0;
+    p_person->State = PerSt_DIEING;
+    p_person->GotoThingIndex = 0;
+    p_person->U.UPerson.Shadows[0] = 0;
+    p_person->U.UPerson.Shadows[1] = 0;
+    p_person->U.UPerson.Shadows[2] = 0;
+    p_person->U.UPerson.Shadows[3] = 0;
+    p_person->U.UPerson.BumpMode = 0;
+    p_person->U.UPerson.FrameId.Version[3] = 0;
+    p_person->U.UPerson.FrameId.Version[4] = 0;
+    p_person->StartFrame = frm - 1;
+    p_person->Flag &= ~(TngF_StationrSht|TngF_Unkn4000|TngF_WepRecoil
+      |TngF_Unkn00020000|TngF_Unkn00040000|TngF_Persuaded);
+    p_person->Flag2 &= ~(TgF2_Unkn0008|TgF2_Unkn00080000|TgF2_Unkn10000000);
+
+    if ((p_person->Flag & TngF_Unkn00800000) != 0)
+        things[(ushort)p_person->Owner].Flag &= ~TngF_Unkn00400000;
+
+    if ((p_person->Flag & TngF_WepCharging) != 0)
+    {
+        stop_sample_using_heap((ushort)p_person->ThingOffset, 7);
+        stop_sample_using_heap((ushort)p_person->ThingOffset, 52);
+    }
+
+    p_person->PTarget = NULL;
+    p_person->U.UPerson.Target2 = 0;
+    remove_path(p_person);
+
+    if (p_person->SubType == SubTT_PERS_MECH_SPIDER)
+    {
+        stop_sample_using_heap((ushort)p_person->ThingOffset, 79);
+        play_dist_sample(p_person, 37, 0x7F, 0x40, 100, 0, 3);
+        bang_new4(p_person->X, p_person->Y, p_person->Z, 20);
+        quick_crater(p_person->X >> 16, p_person->Z >> 16, 0);
+        p_person->Flag |= TngF_Unkn02000000;
+        group_actions[p_person->U.UPerson.Group].Alive--;
+        group_actions[p_person->U.UPerson.Group].Dead++;
+        p_person->State = PerSt_DEAD;
+        return;
+    }
+
+    if (p_person->U.UPerson.AnimMode == ANIM_PERS_Unkn12)
+        play_dist_sample(p_person, 57, 0x7F, 0x40, 100, 0, 3);
+    else
+        play_dist_sample(p_person, 25, 0x7F, 0x40, 100, 0, 3);
+    person_drops_weapons((int)p_person, 0, 0, 0);
+
+    if ((p_person->Flag2 & TgF2_KnockedOut) == 0)
+        return;
+    p_person->Flag2 &= ~TgF2_KnockedOut;
+    if ((p_person->U.UPerson.AnimMode == ANIM_PERS_LAY_DOWN)
+      || (p_person->U.UPerson.AnimMode == ANIM_PERS_DEAD_ASH))
+    {
+        ushort nxframe;
+
+        nxframe = frame[(ushort)p_person->Frame].Next;
+        while ((frame[nxframe].Flags & 0x01) == 0)
+        {
+            p_person->Frame = nxframe;
+            nxframe = frame[nxframe].Next;
+        }
+    }
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
