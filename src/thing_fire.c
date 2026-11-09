@@ -21,9 +21,12 @@
 #include <stdlib.h>
 #include "bfutility.h"
 
+#include "enginlights.h"
 #include "enginshrapn.h"
+#include "frame_sprani.h"
 
 #include "bigmap.h"
+#include "bmbang.h"
 #include "difftest.h"
 #include "enginfexpl.h"
 #include "sound.h"
@@ -401,11 +404,196 @@ void apply_unkn_vehicle50_damage(int a1, int a2, int a3, int a4)
 }
 
 
-void set_static_on_fire(struct SimpleThing *p_static)
+struct SimpleThing *init_nuclear_bomb(MapCoord x, MapCoord y, MapCoord z);
+
+static DIFFTEST_REF_FUNC void set_static_on_fire_asm(struct SimpleThing *p_static)
 {
     asm volatile (
       "call ASM_set_static_on_fire\n"
         :  : "a" (p_static));
+}
+
+void set_static_on_fire(struct SimpleThing *p_static)
+{
+    struct FullLight *p_fulights;
+    struct SimpleThing *p_sthing;
+    ushort light, cmd, n;
+    ushort sframe;
+    int damage;
+
+    DIFFTEST_SHADOW(set_static_on_fire, set_static_on_fire_asm(p_static));
+    p_fulights = game_full_lights;
+    if ((u32)p_static < (u32)sthings - STHINGS_LIMIT * sizeof(struct SimpleThing))
+        return;
+    if ((u32)p_static > (u32)sthings)
+        return;
+
+    p_static->State = 0x24;
+    p_static->StartTimer1 = 10;
+    p_static->Flag |= TngF_Destroyed;
+
+    // Switch off lights attached to the static
+    light = p_static->U.UScenery.LightHead;
+    n = 0;
+    while (light != 0)
+    {
+        struct FullLight *p_fulight;
+
+        if (n >= 1000)
+            break;
+        n++;
+        if (light >= next_full_light)
+            break;
+        p_fulight = &p_fulights[light];
+        cmd = p_fulight->Command;
+        p_fulight->Intensity = 0;
+        if ((cmd <= next_light_command) && (cmd != 0))
+            game_light_commands[cmd].lcfld_0[1] = 5;
+        light = p_fulights[light].NextFull;
+    }
+
+    sframe = p_static->StartFrame;
+    if ((sframe >= 0x424) && (sframe <= 0x428))
+    {
+        p_static->State = 0xD;
+        game_full_lights = p_fulights;
+        p_static->Timer1 = 0;
+        return;
+    }
+
+    if ((sframe > 0x400) && (sframe < 0x405))
+    {
+        game_full_lights = p_fulights;
+        p_static->Timer1 = 100;
+        switch (sframe)
+        {
+        case 0x401:
+            p_sthing = init_nuclear_bomb(p_static->X >> 8, p_static->Y >> 8, p_static->Z >> 8);
+            if (p_sthing != NULL)
+            {
+                p_sthing->Type = SmTT_CANISTER;
+                p_sthing->SubType = 4;
+                play_dist_ssample(p_sthing, 0x20, 0x7F, 0x40, 100, -1, 3);
+            }
+            break;
+        case 0x402:
+            p_sthing = init_nuclear_bomb(p_static->X >> 8, p_static->Y >> 8, p_static->Z >> 8);
+            if (p_sthing != NULL)
+            {
+                p_sthing->Type = SmTT_CANISTER;
+                p_sthing->SubType = 5;
+                play_dist_ssample(p_sthing, 0x1F, 0x7F, 0x40, 100, -1, 3);
+            }
+            break;
+        case 0x403:
+            p_sthing = init_nuclear_bomb(p_static->X >> 8, p_static->Y >> 8, p_static->Z >> 8);
+            if (p_sthing != NULL)
+            {
+                p_sthing->Timer1 = 0x13;
+                p_sthing->Radius = -5;
+            }
+            break;
+        case 0x404:
+            play_dist_ssample(p_static, 0x25, 0x7F, 0x40, 100, 0, 3);
+            bang_new4(p_static->X, p_static->Y, p_static->Z, 20);
+            do_shockwave(p_static->X >> 8, p_static->Y >> 8, p_static->Z >> 8,
+              0x300, 200, NULL);
+            break;
+        }
+        p_static->StartFrame = 0x422;
+        p_static->Frame = nstart_ani[1058];
+        return;
+    }
+
+    game_full_lights = p_fulights;
+    if ((sframe > 0x3EC) && (sframe < 0x3F0))
+    {
+        p_sthing = create_scale_effect(p_static->X >> 8, p_static->Y >> 8,
+          p_static->Z >> 8, 0x39C, 40);
+        if (p_sthing != NULL)
+        {
+            p_sthing->SubType = 0x39;
+            p_sthing->Object = 0;
+            p_sthing->StartFrame = 0;
+            p_sthing->U.UEffect.VX = 0;
+            p_sthing->U.UEffect.VY = 0;
+            p_sthing->U.UEffect.VZ = 0;
+            p_sthing->U.UEffect.OX = p_static->X >> 8;
+            p_sthing->U.UEffect.OY = p_static->Y >> 8;
+            p_sthing->U.UEffect.OZ = p_static->Z >> 8;
+        }
+        remove_sthing(p_static->ThingOffset);
+        delete_snode(p_static);
+        return;
+    }
+
+    if ((sframe == 0x3E7) || (sframe == 0x3EA) || (sframe == 0x3EC) ||
+      (sframe == 0x3F0) || (sframe == 0x408) || (sframe == 0x40D) ||
+      (sframe == 0x40E) || (sframe == 0x41A))
+    {
+        play_dist_ssample(p_static, 0x36, 0x7F, 0x40, 100, 0, 1);
+        p_static->State = 0xC;
+        p_static->Timer1 = 9;
+        sframe = p_static->StartFrame;
+        p_static->State = 0xC;
+        if ((sframe == 0x40E) || (sframe == 0x3EC))
+        {
+            bang_new4(p_static->X, p_static->Y, p_static->Z, 120);
+            damage = 2500;
+        }
+        else
+        {
+            bang_new4(p_static->X, p_static->Y, p_static->Z, 115);
+            damage = 5000;
+        }
+        apply_unkn_vehicle50_damage(p_static->X, p_static->Z, damage, 0);
+        p_static->StartFrame = 0x41C;
+        do_shockwave(p_static->X >> 8, p_static->Y >> 8, p_static->Z >> 8,
+          0x300, 100, NULL);
+        return;
+    }
+
+    if ((sframe == 0x3E9) || (sframe == 0x406) || (sframe == 0x40A) ||
+      (sframe == 0x40B) || (sframe == 0x417) || (sframe == 0x419))
+    {
+        p_static->Timer1 = 40;
+        p_static->State = 0xC;
+        sframe = p_static->StartFrame;
+        switch (sframe)
+        {
+        case 0x3E9:
+            p_static->StartFrame = 0x425;
+            FIRE_new(p_static->X, p_static->Y >> 5, p_static->Z, 4);
+            FIRE_new(p_static->X, p_static->Y >> 5, p_static->Z, 4);
+            break;
+        case 0x40A:
+            p_static->StartFrame = 0x428;
+            FIRE_new(p_static->X, p_static->Y >> 5, p_static->Z, 2);
+            break;
+        case 0x40B:
+            p_static->StartFrame = 0x426;
+            FIRE_new(p_static->X, p_static->Y >> 5, p_static->Z, 2);
+            break;
+        case 0x417:
+            p_static->StartFrame = 0x429;
+            FIRE_new(p_static->X, p_static->Y >> 5, p_static->Z, 2);
+            break;
+        case 0x419:
+            p_static->StartFrame = 0x427;
+            FIRE_new(p_static->X, p_static->Y >> 5, p_static->Z, 4);
+            FIRE_new(p_static->X, p_static->Y >> 5, p_static->Z, 4);
+            break;
+        }
+        return;
+    }
+
+    play_dist_ssample(p_static, 0x25, 0x3C, 0x40, 100, 0, 3);
+    bang_new4(p_static->X, p_static->Y, p_static->Z, 20);
+    do_shockwave(p_static->X >> 8, p_static->Y >> 8, p_static->Z >> 8,
+      0x300, 100, NULL);
+    p_static->Timer1 = 40;
+    remove_sthing(p_static->ThingOffset);
+    delete_snode(p_static);
 }
 
 /******************************************************************************/
