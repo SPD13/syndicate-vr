@@ -4635,29 +4635,63 @@ struct SimpleThing *create_time_pod(MapCoord x, MapCoord y, MapCoord z,
     return p_podtng;
 }
 
-struct SimpleThing *create_electric_strand(MapCoord x, MapCoord y, MapCoord z,
+static DIFFTEST_REF_FUNC struct SimpleThing *create_electric_strand_asm(
+  MapCoord x, MapCoord y, MapCoord z,
   MapCoord x2, MapCoord y2, MapCoord z2, int sound)
 {
-#if 1
     struct SimpleThing *ret;
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
     int stkargs[3];
+    int edx = y, ebx = z, ecx = x2;
 
     stkargs[0] = (int)(intptr_t)y2;
     stkargs[1] = (int)(intptr_t)z2;
     stkargs[2] = (int)(intptr_t)sound;
 
     asm volatile (
-      "push 8(%5)\n"
-      "push 4(%5)\n"
-      "push 0(%5)\n"
+      "push 8(%4)\n"
+      "push 4(%4)\n"
+      "push 0(%4)\n"
       "call ASM_create_electric_strand\n"
-        : "=r" (ret)
-        : "a" ((s32)x), "d" ((s32)y), "b" ((s32)z), "c" ((s32)x2), "S" (stkargs)
+        : "=a" (ret), "+d" (edx), "+b" (ebx), "+c" (ecx)
+        : "S" (stkargs), "0" ((s32)x)
         : "cc", "memory");
     return ret;
-#endif
+}
+
+struct SimpleThing *create_electric_strand(MapCoord x, MapCoord y, MapCoord z,
+  MapCoord x2, MapCoord y2, MapCoord z2, int sound)
+{
+    struct SimpleThing *p_sthing;
+    short sthing;
+
+    DIFFTEST_SHADOW_RET(create_electric_strand, struct SimpleThing *,
+      create_electric_strand_asm(x, y, z, x2, y2, z2, sound));
+    if ((s32)x < 0 || (s32)x > 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if ((s32)z < 0 || (s32)z > 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    sthing = get_new_sthing();
+    if (sthing == 0)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    p_sthing = &sthings[sthing];
+    p_sthing->X = (s32)x << 8;
+    p_sthing->Z = (s32)z << 8;
+    p_sthing->U.UEffect.VY = y2;
+    p_sthing->U.UEffect.VZ = z2;
+    p_sthing->Y = (s32)y << 8;
+    p_sthing->U.UEffect.VX = x2;
+    add_node_sthing(p_sthing->ThingOffset);
+    p_sthing->Type = SmTT_ELECTRIC_STRAND;
+    p_sthing->SubType = 0;
+    p_sthing->Radius = 50;
+    p_sthing->Timer1 = 5;
+    if ((ubyte)sound != 0)
+        play_dist_ssample(p_sthing, 0x28, 0x7F, 0x40, 100, 0, 1);
+    DIFFTEST_RETURN(p_sthing);
 }
 
 void mine_detonate(struct Thing *p_thing)
