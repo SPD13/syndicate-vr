@@ -2829,10 +2829,69 @@ void process_my_flying_vehicle(struct Thing *p_vehicle)
     p_vehicle->U.UVehicle.ReqdSpeed = 2000 - abs(p_vehicle->U.UVehicle.AngleDY << 2);
 }
 
-void process_unplacing(struct Thing *p_vehicle)
+/** Unplacing animation steps: AngleDY (in 1/8 units), AngleX delta, ReqdSpeed.
+ */
+extern short unplace[];
+
+static DIFFTEST_REF_FUNC void process_unplacing_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_unplacing\n"
         : : "a" (p_vehicle));
+}
+
+void process_unplacing(struct Thing *p_vehicle)
+{
+    struct TrafficNode *p_nodes;
+    struct TrafficNode *p_tnode;
+    s32 step;
+    s32 dx, dz;
+    int i;
+
+    DIFFTEST_SHADOW(process_unplacing, process_unplacing_asm(p_vehicle));
+    p_nodes = game_traffic_nodes;
+    step = p_vehicle->U.UVehicle.Dummy4a & 0x3f;
+    if (step == 0x14)
+    {
+        p_vehicle->U.UVehicle.Dummy4b = 0;
+        p_vehicle->U.UVehicle.Dummy4b = p_vehicle->U.UVehicle.TNode;
+        step = p_vehicle->U.UVehicle.TNode;
+        p_tnode = &p_nodes[-step];
+        for (i = 0; i < 4; i++)
+        {
+            if (p_tnode->UTraffic.Link[i] != 0) {
+                p_vehicle->U.UVehicle.TNode = p_tnode->UTraffic.Link[i];
+                break;
+            }
+        }
+        step = 0x13;
+    }
+
+    if (step <= 0x12)
+    {
+        p_vehicle->U.UVehicle.ReqdSpeed = unplace[3 * step + 2];
+        p_vehicle->U.UVehicle.AngleDY = unplace[3 * step + 0] << 3;
+        p_vehicle->U.UVehicle.AngleX += unplace[3 * step + 1];
+        if (step > 0)
+            step--;
+        game_traffic_nodes = p_nodes;
+        if (step == 0)
+        {
+            p_vehicle->State = 50;
+            start_goto_vehicle(p_vehicle, p_vehicle->U.UVehicle.Dummy5b,
+              p_vehicle->U.UVehicle.Dummy5a);
+        }
+    }
+    else
+    {
+        p_tnode = &p_nodes[-p_vehicle->U.UVehicle.TNode];
+        p_vehicle->U.UVehicle.ReqdSpeed = -600;
+        dx = (p_vehicle->X >> 8) - p_tnode->X;
+        dz = (p_vehicle->Z >> 8) - p_tnode->Z;
+        game_traffic_nodes = p_nodes;
+        if (dx * dx + dz * dz < 0x10000)
+            step = 0x12;
+    }
+    p_vehicle->U.UVehicle.Dummy4a = (p_vehicle->U.UVehicle.Dummy4a & ~0x3f) | step;
 }
 
 void process_stop_as_soon_as_you_can(struct Thing *p_vehicle)

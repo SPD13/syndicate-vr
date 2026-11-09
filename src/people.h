@@ -542,6 +542,7 @@ ubyte thing_deselect_weapon(struct Thing *p_person);
 
 void person_go_enter_vehicle_fast(struct Thing *p_person, struct Thing *p_vehicle, ushort plyr);
 void person_go_enter_vehicle(struct Thing *p_person, struct Thing *p_vehicle);
+int start_goto_vehicle(struct Thing *p_vehicle, int x, int z);
 void person_init_follow_person(struct Thing *p_person, struct Thing *p_other);
 void person_self_destruct(struct Thing *p_person);
 
