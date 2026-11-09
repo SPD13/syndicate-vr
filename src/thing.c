@@ -41,6 +41,7 @@
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
 #include "enginzoom.h"
+#include "febrief.h"
 #include "frame_sprani.h"
 #include "game.h"
 #include "game_data.h"
@@ -48,6 +49,7 @@
 #include "game_speed.h"
 #include "lvdraw3d.h"
 #include "matrix.h"
+#include "misstat.h"
 #include "packet.h"
 #include "pepgroup.h"
 #include "player.h"
@@ -2479,11 +2481,178 @@ void process_special_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_it
     }
 }
 
-void process_napalm_flame(struct SimpleThing *p_sthing, ThingIdx thing_item)
+static DIFFTEST_REF_FUNC void process_napalm_flame_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
     asm volatile (
       "call ASM_process_napalm_flame\n"
         : : "a" (p_sthing), "d" (thing_item));
+}
+
+/** Count a person killed by a napalm flame in the mission statistics.
+ */
+static void napalm_flame_person_killed_add_to_stats(struct Thing *p_person,
+  struct Thing *p_owner)
+{
+    struct MissionStatus *p_mistat;
+
+    if (!in_network_game)
+    {
+        if (p_owner->U.UPerson.EffectiveGroup != ingame.MyGroup)
+            return;
+        p_mistat = &mission_status[open_brief];
+        switch ((ubyte)(p_person->SubType - 1))
+        {
+        case SubTT_PERS_AGENT - 1:
+        case SubTT_PERS_ZEALOT - 1:
+        case SubTT_PERS_PUNK_F - 1:
+        case SubTT_PERS_PUNK_M - 1:
+        case SubTT_PERS_HIGH_PRIEST - 1:
+            p_mistat->SP.EnemiesKilled++;
+            break;
+        case SubTT_PERS_BRIEFCASE_M - 1:
+        case SubTT_PERS_WHITE_BRUN_F - 1:
+        case SubTT_PERS_SCIENTIST - 1:
+        case SubTT_PERS_SHADY_M - 1:
+        case SubTT_PERS_WHIT_BLOND_F - 1:
+        case SubTT_PERS_LETH_JACKT_M - 1:
+            p_mistat->SP.CivsKilled++;
+            break;
+        case SubTT_PERS_MERCENARY - 1:
+        case SubTT_PERS_MECH_SPIDER - 1:
+        case SubTT_PERS_POLICE - 1:
+            p_mistat->SP.SecurityKilled++;
+            break;
+        default:
+            break;
+        }
+    }
+    else
+    {
+        struct Thing *p_killer;
+
+        if ((p_person->Flag & TngF_PlayerAgent) == 0)
+            return;
+        p_killer = NULL;
+        if ((p_owner->Flag & TngF_PlayerAgent) != 0)
+        {
+            p_killer = p_owner;
+        }
+        else if ((p_owner->Flag & TngF_Persuaded) != 0)
+        {
+            struct Thing *p_ownown;
+
+            p_ownown = &things[(ushort)p_owner->Owner];
+            if ((p_ownown->Flag & TngF_PlayerAgent) != 0)
+                p_killer = p_ownown;
+        }
+        if (p_killer == NULL)
+            return;
+        if ((p_killer->Flag & TngF_PlayerAgent) == 0)
+            return;
+        // TODO no range checks on the player indexes, same as the original
+        p_mistat = &mission_status[p_killer->U.UPerson.ComCur >> 2];
+        p_mistat->MP.AgentsKilled[p_person->U.UPerson.ComCur >> 2]++;
+    }
+}
+
+void process_napalm_flame(struct SimpleThing *p_sthing, ThingIdx thing_item)
+{
+    struct Thing *p_person;
+    s32 intens;
+
+    DIFFTEST_SHADOW(process_napalm_flame,
+      process_napalm_flame_asm(p_sthing, thing_item));
+
+    if (((p_sthing->ThingOffset + gameturn) & 1) != 0)
+        p_sthing->Frame = frame[(ushort)p_sthing->Frame].Next;
+
+    if ((p_sthing->Flag & TngF_Unkn0008) == 0)
+    {
+        s32 new_x, new_y, new_z;
+
+        new_x = p_sthing->X + 4 * p_sthing->U.UEffect.VX;
+        new_y = p_sthing->Y + 4 * p_sthing->U.UEffect.VY;
+        new_z = p_sthing->Z + 4 * p_sthing->U.UEffect.VZ;
+        if ((new_x >> 16) < 0 || (new_x >> 16) >= 128 ||
+          (new_z >> 16) < 0 || (new_z >> 16) >= 128)
+        {
+            p_sthing->Timer1 = -1;
+        }
+        else
+        {
+            if (check_col_collision(new_x >> 8, (new_y >> 8) + 8, new_z >> 8) != 0)
+                p_sthing->Flag |= TngF_Unkn0008;
+            else
+                move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+            p_sthing->U.UEffect.VX += p_sthing->U.UEffect.OX;
+            p_sthing->U.UEffect.VY += p_sthing->U.UEffect.OY;
+            p_sthing->U.UEffect.VZ += p_sthing->U.UEffect.OZ;
+        }
+    }
+
+    if (p_sthing->Timer1 < 10)
+        p_sthing->Object += p_sthing->StartFrame;
+    else
+        p_sthing->Object += 5;
+
+    p_sthing->Timer1--;
+    if (p_sthing->Timer1 <= 0)
+    {
+        remove_sthing(thing_item);
+        delete_snode(p_sthing);
+        ingame.FlameCount--;
+        return;
+    }
+
+    p_person = check_for_radius_hit_person(p_sthing->X, p_sthing->Y,
+      p_sthing->Z, (ushort)p_sthing->Object, NULL, 0, 0);
+    if ((p_person != NULL) && (p_person->Type != TT_VEHICLE))
+    {
+        struct Thing *p_owner;
+        TbBool hit;
+
+        hit = true;
+        if (p_person->Type != SmTT_STATIC)
+        {
+            p_owner = &things[(ushort)p_sthing->Owner2];
+            if (p_person->ThingOffset == p_sthing->Owner2)
+                hit = false;
+            else if (p_person->U.UPerson.EffectiveGroup == p_owner->U.UPerson.EffectiveGroup)
+                hit = false;
+            else if ((ushort)p_person->State == PerSt_PERSON_BURNING)
+                hit = false;
+            else if ((ushort)p_person->State == PerSt_DIEING)
+                hit = false;
+            else if ((p_person->Flag & TngF_Destroyed) != 0)
+                hit = false;
+        }
+        if (hit)
+        {
+            p_sthing->Flag |= TngF_Unkn0008;
+            if ((p_person->Type != SmTT_STATIC) &&
+              ((p_person->Flag2 & TgF2_KnockedOut) == 0))
+            {
+                short angle;
+
+                angle = arctan((p_sthing->X >> 8) - (p_person->X >> 8),
+                  -((p_sthing->Z >> 8) - (p_person->Z >> 8)));
+                p_person->U.UPerson.RecoilDir = ((s32)angle + 0x80) >> 8;
+                p_person->U.UPerson.RecoilDir = (p_person->U.UPerson.RecoilDir + 8) & 7;
+                change_person_angle(p_person, (p_person->U.UPerson.RecoilDir + 4) & 7);
+            }
+            if (napalm_person(p_person, 1) != 0)
+            {
+                p_owner = &things[(ushort)p_sthing->Owner2];
+                napalm_flame_person_killed_add_to_stats(p_person, p_owner);
+            }
+        }
+    }
+
+    intens = (LbRandomAnyShort() & 0x1F) + 0x50;
+    if ((ushort)ingame.FlameCount < 20)
+        intens = (intens * (ushort)ingame.FlameCount) / 20;
+    apply_full_light(p_sthing->X >> 8, (p_sthing->Y >> 8) + 100, p_sthing->Z >> 8,
+      (short)intens, p_sthing->U.UEffect.OZ);
 }
 
 void process_flame1(struct SimpleThing *p_sthing)
