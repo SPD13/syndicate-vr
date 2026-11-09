@@ -1077,12 +1077,40 @@ ThingIdx find_nearest_object2(short mx, short mz, ushort sub_type)
     DIFFTEST_RETURN(best_thing);
 }
 
-short search_object_for_qface(ushort object, ubyte gflag, ubyte flag, ushort after)
+static DIFFTEST_REF_FUNC short search_object_for_qface_asm(ushort object, ubyte gflag, ubyte flag, ushort after)
 {
     short ret;
     asm volatile ("call ASM_search_object_for_qface\n"
-        : "=r" (ret) : "a" (object), "d" (gflag), "b" (flag), "c" (after));
+        : "=a" (ret) : "a" (object), "d" (gflag), "b" (flag), "c" (after));
     return ret;
+}
+
+short search_object_for_qface(ushort object, ubyte gflag, ubyte flag, ushort after)
+{
+    struct SingleObject *p_sobj;
+    struct SingleObjectFace4 *p_face4;
+    s32 end_face;
+    short face;
+
+    DIFFTEST_SHADOW_RET(search_object_for_qface, short,
+      search_object_for_qface_asm(object, gflag, flag, after));
+    p_sobj = &game_objects[object];
+    if ((ushort)p_sobj->NumbFaces4 == 0)
+        DIFFTEST_RETURN((short)0);
+
+    p_face4 = &game_object_faces4[(ushort)p_sobj->StartFace4];
+    face = (short)p_sobj->StartFace4;
+    for (; ; p_face4++, face++)
+    {
+        end_face = (s32)(ushort)p_sobj->StartFace4 + (s32)(ushort)p_sobj->NumbFaces4;
+        if ((s32)face >= end_face)
+            break;
+        if ((s32)face <= (s32)after)
+            continue;
+        if ((p_face4->GFlags & gflag) == gflag && p_face4->Flags == flag)
+            DIFFTEST_RETURN(face);
+    }
+    DIFFTEST_RETURN((short)0);
 }
 
 ThingIdx search_for_station(short X, short Z)
