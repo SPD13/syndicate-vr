@@ -36,6 +36,7 @@
 #include "game_speed.h"
 #include "game.h"
 #include "matrix.h"
+#include "people.h"
 #include "pepgroup.h"
 #include "sound.h"
 #include "thing.h"
@@ -344,15 +345,64 @@ int sit_on_my_face(int a1, int a2, int a3, int a4)
     DIFFTEST_RETURN(0);
 }
 
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void do_people_on_exploding_building(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void do_people_on_exploding_building_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_do_people_on_exploding_building\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Updates people standing on faces of an exploding building: drops them
+ * to the ground, and kills them if the ground tile is marked MEF2_Unkn04.
+ *
+ * Routed asm (internal label): a1 = building thing index.
+ */
+void do_people_on_exploding_building(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_building;
+    int thing;
+    int remain;
+
+    DIFFTEST_SHADOW(do_people_on_exploding_building,
+      do_people_on_exploding_building_asm(a1, a2, a3, a4));
+    thing = (ushort)things_used_head;
+    remain = things_used;
+    if (thing <= 0)
+        return;
+    do
+    {
+        struct Thing *p_thing;
+
+        remain--;
+        if (remain == -1)
+            break;
+        p_thing = &things[thing];
+        thing = p_thing->LinkChild;
+        if (p_thing->Type != TT_PERSON)
+            continue;
+        if ((p_thing->Flag & TngF_InVehicle) != 0)
+            continue;
+        if (p_thing->U.UPerson.OnFace == 0)
+            continue;
+        p_building = &things[(short)a1];
+        if (sit_on_my_face(p_thing->U.UPerson.OnFace, (int)p_building, 0, 0) == 0)
+            continue;
+        {
+            int alt;
+            struct MyMapElement *p_mapel;
+
+            alt = alt_at_point((short)(p_thing->X >> 8), (short)(p_thing->Z >> 8));
+            p_thing->U.UPerson.OnFace = 0;
+            p_thing->Y = alt;
+            if ((p_thing->Flag & TngF_Destroyed) != 0)
+                continue;
+            p_mapel = &game_my_big_map[((p_thing->Z >> 16) << 7) + (p_thing->X >> 16)];
+            if ((p_mapel->Flags2 & MEF2_Unkn04) == 0)
+                continue;
+            p_thing->U.UPerson.WeaponsCarried = 0;
+            set_person_dead(p_thing, 10);
+        }
+    } while (thing > 0);
 }
 
 
