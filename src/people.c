@@ -70,6 +70,7 @@
 #include "thing_search.h"
 #include "tngcolisn.h"
 #include "vehicle.h"
+#include "vehtraffic.h"
 #include "weapon.h"
 #include "swlog.h"
 /******************************************************************************/
@@ -2558,11 +2559,80 @@ int build_tank_path(struct Thing *p_thing, int x, int z)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void veh_heap_add(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void veh_heap_add_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_veh_heap_add\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Heap of negated traffic node indices, 1-based; entry 0 unused. */
+extern s32 veh_ma_heap[];
+/** Amount of entries in veh_ma_heap[]. */
+extern s32 data_1c8a5c;
+
+/** Sort key of a veh_ma_heap[] entry: short at offset 0x18 of the node.
+ */
+static short veh_heap_key(s32 pos)
+{
+    struct TrafficNode *p_node;
+
+    p_node = &game_traffic_nodes[-veh_ma_heap[pos]];
+    return *(short *)&p_node->field_16[2];
+}
+
+void veh_heap_add(int a1, int a2, int a3, int a4)
+{
+    s32 pos, parent, sibling, target, tmp;
+    short key_cur, key_sib, key_par;
+
+    DIFFTEST_SHADOW(veh_heap_add, veh_heap_add_asm(a1, a2, a3, a4));
+    if (data_1c8a5c < 0x100)
+        data_1c8a5c++;
+    pos = data_1c8a5c;
+    veh_ma_heap[pos] = a1;
+    if (pos == 1)
+        return;
+
+    if ((pos & 1) == 0)
+    {
+        parent = pos >> 1;
+        if (veh_heap_key(parent) < veh_heap_key(pos))
+            return;
+        tmp = veh_ma_heap[parent];
+        veh_ma_heap[parent] = veh_ma_heap[pos];
+        veh_ma_heap[pos] = tmp;
+        pos = parent;
+    }
+
+    while (pos != 1)
+    {
+        sibling = pos ^ 1;
+        parent = pos >> 1;
+        key_cur = veh_heap_key(pos);
+        key_sib = veh_heap_key(sibling);
+        key_par = veh_heap_key(parent);
+        if (key_cur < key_sib)
+        {
+            if (key_sib < key_par || key_cur < key_par)
+                target = pos;
+            else
+                target = parent;
+        }
+        else
+        {
+            if (key_cur < key_par || key_par > key_sib)
+                target = sibling;
+            else
+                target = parent;
+        }
+        if (target == parent)
+            return;
+        tmp = veh_ma_heap[parent];
+        veh_ma_heap[parent] = veh_ma_heap[target];
+        veh_ma_heap[target] = tmp;
+        pos = parent;
+    }
 }
 
 /** Routed asm (internal label). Arguments and return value are the
