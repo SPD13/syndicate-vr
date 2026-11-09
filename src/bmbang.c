@@ -399,12 +399,56 @@ void unused_func_025(short a1, short a2, short a3)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int del_thing_vectors_from_mapwho(int a1, int a2, int a3, int a4)
+extern short link__MapColListEmptyHead;
+
+static DIFFTEST_REF_FUNC int del_thing_vectors_from_mapwho_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_del_thing_vectors_from_mapwho\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Remove the first ColVectList entry owned by given thing from the
+ * collision list of a map element, returning it to the empty list.
+ *
+ * @param a1 Pointer to the MyMapElement.
+ * @param a2 Index of the thing owning the vectors (low 16 bits used).
+ * @return 1 if an entry was removed, 0 otherwise.
+ */
+int del_thing_vectors_from_mapwho(int a1, int a2, int a3, int a4)
+{
+    struct MyMapElement *p_mapel = (struct MyMapElement *)a1;
+    struct ColVectList *p_list;
+    short thing;
+    ushort cvlist, prev_cvlist, next;
+
+    DIFFTEST_SHADOW_RET(del_thing_vectors_from_mapwho, int,
+      del_thing_vectors_from_mapwho_asm(a1, a2, a3, a4));
+
+    p_list = game_col_vects_list;
+    thing = (short)a2;
+    prev_cvlist = 0;
+    cvlist = p_mapel->ColHead;
+    while (cvlist != 0)
+    {
+        next = p_list[cvlist].NextColList;
+        if (p_list[cvlist].Object == thing)
+        {
+            if (prev_cvlist != 0)
+                p_list[prev_cvlist].NextColList = next;
+            else
+                p_mapel->ColHead = next & 0x7FFF;
+            p_list[cvlist].NextColList = link__MapColListEmptyHead;
+            link__MapColListEmptyHead = cvlist;
+            game_col_vects_list = p_list;
+            DIFFTEST_RETURN((int)1);
+        }
+        prev_cvlist = cvlist;
+        cvlist = next & 0x7FFF;
+    }
+    game_col_vects_list = p_list;
+    DIFFTEST_RETURN((int)0);
 }
 
 
