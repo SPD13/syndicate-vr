@@ -3599,13 +3599,106 @@ int path_init8_thing(int a1, int a2, int a3, int a4, int a5, int a6)
 }
 
 
-ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face)
+static DIFFTEST_REF_FUNC ushort build_navigate_path_asm(struct Thing *p_thing, int x, int z, int face)
 {
     ushort ret;
     asm volatile (
       "call ASM_build_navigate_path\n"
-        : "=r" (ret) : "a" (p_thing), "d" (x), "b" (z), "c" (face));
+        : "=a" (ret) : "a" (p_thing), "d" (x), "b" (z), "c" (face));
     return ret;
+}
+
+static void build_navigate_face_xz(struct Thing *p_thing, struct Thing *p_thing_to,
+  short face, int *p_x, int *p_z, short *p_tringl);
+int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+
+/** Builds a navigation path for a person towards given map coords.
+ * Arguments x and z are map coords (not shifted by 8), used as short;
+ * face is unused. Returns 1 if a path was built, 0 otherwise.
+ */
+ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face)
+{
+    short tgt_x, tgt_z;
+    s32 x8, z8;
+    int x0, z0;
+    short face0;
+    ubyte zip;
+
+    DIFFTEST_SHADOW_RET(build_navigate_path, ushort,
+      build_navigate_path_asm(p_thing, x, z, face));
+
+    tgt_x = x;
+    tgt_z = z;
+    if ((p_thing->Flag2 & TgF2_Unkn0008) == 0)
+        p_thing->U.UPerson.BumpCount = 0;
+    if ((p_thing->Flag & TngF_PlayerAgent) == 0 && (p_thing->Flag2 & TgF2_Unkn00020000) != 0)
+    {
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        DIFFTEST_RETURN((ushort)0);
+    }
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+        DIFFTEST_RETURN((ushort)0);
+
+    p_thing->U.UPerson.LastDist = 0x7d00;
+    if ((p_thing->X >> 8) < 0 || (p_thing->X >> 8) >= 0x8000 ||
+      (p_thing->Z >> 8) < 0 || (p_thing->Z >> 8) >= 0x8000 ||
+      tgt_x < 0 || tgt_x >= 0x8000 || tgt_z < 0 || tgt_z >= 0x8000)
+    {
+        p_thing->U.UPerson.PathIndex = 0;
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        DIFFTEST_RETURN((ushort)0);
+    }
+
+    zip = game_my_big_map[((p_thing->Z >> 16) << 7) + (p_thing->X >> 16)].Zip;
+    if (zip != 0 && game_my_big_map[((tgt_z >> 8) << 7) + (tgt_x >> 8)].Zip == zip)
+    {
+        g_fat_data.PathLength = 1;
+        g_fat_data.WayPoints[0].x8 = tgt_x << 8;
+        g_fat_data.WayPoints[0].y8 = tgt_z << 8;
+        gamep_unknval_14++;
+        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        DIFFTEST_RETURN((ushort)1);
+    }
+
+    x8 = tgt_x << 8;
+    z8 = tgt_z << 8;
+    if (p_thing->U.UPerson.OnFace != 0)
+    {
+        build_navigate_face_xz(p_thing, p_thing, p_thing->U.UPerson.OnFace,
+          &x0, &z0, &face0);
+        nav_stats__ThisTurn++;
+        tri_path_init8(face0, -1, (int)(intptr_t)&g_nav_data, x0, z0, x8, z8, -2);
+    }
+    else
+    {
+        nav_stats__ThisTurn++;
+        // The asm wraps this in a retry loop (up to 11 tries), but it exits
+        // after the first try whenever the path is not empty.
+        path_init8_thing((int)(intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
+          x8, z8, -2);
+        // The asm here has unreachable code appending (x8,z8) as a way point
+        // to g_nav_data, guarded by a local which is always 0.
+    }
+
+    if ((ushort)g_nav_data.PathLength == 0)
+    {
+        g_fat_data.bx8 = x8;
+        g_fat_data.by8 = z8;
+        g_fat_data.ax8 = p_thing->X;
+        g_fat_data.WayPoints[0].x8 = x8;
+        g_fat_data.ay8 = p_thing->Z;
+        g_fat_data.WayPoints[0].y8 = z8;
+        g_fat_data.PathLength = 1;
+        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        count_fnavs(0);
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        DIFFTEST_RETURN((ushort)0);
+    }
+
+    fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data, 0x80, 0);
+    use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+    unkn_path_func_001(p_thing, 1);
+    DIFFTEST_RETURN((ushort)1);
 }
 
 static DIFFTEST_REF_FUNC ushort build_navigate_path_to_person_asm(struct Thing *p_thing, struct Thing *p_thing_to)
