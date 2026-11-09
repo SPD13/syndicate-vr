@@ -6734,16 +6734,50 @@ void set_person_dead(struct Thing *p_person, ushort anim_mode)
         }
     }
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int available_for_guard_duty(int a1, int a2, int a3)
+static DIFFTEST_REF_FUNC int available_for_guard_duty_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
     asm volatile ("call ASM_available_for_guard_duty\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
-    return ra;
+    // The asm only sets al; upper bits of eax are leftovers
+    return (ubyte)ra;
+}
+
+/** Checks whether given person can be assigned to guard duty.
+ *
+ * Arguments are the raw registers the asm takes (eax, edx, ebx); only
+ * eax (the person thing pointer) is used. Return value is in al only.
+ */
+int available_for_guard_duty(int a1, int a2, int a3)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    ushort state;
+
+    DIFFTEST_SHADOW_RET(available_for_guard_duty, int,
+      available_for_guard_duty_asm(a1, a2, a3));
+    if (p_person->U.UPerson.WeaponTurn > 0)
+        DIFFTEST_RETURN(0);
+    if ((p_person->Flag & 0x12097402) != 0)
+        DIFFTEST_RETURN(0);
+    if (p_person->U.UPerson.Target2 != 0)
+        DIFFTEST_RETURN(0);
+    if (p_person->U.UPerson.Within != 0)
+        DIFFTEST_RETURN(0);
+    if ((p_person->Flag & TngF_Unkn0008) != 0)
+        DIFFTEST_RETURN(0);
+
+    state = p_person->State & 0x7FFF;
+    switch (state)
+    {
+    case PerSt_NONE:
+    case PerSt_GOTO_POINT:
+    case PerSt_WANDER:
+    case PerSt_WAIT:
+    case PerSt_AGENT_DEFENSIVE:
+        DIFFTEST_RETURN(1);
+    default:
+        DIFFTEST_RETURN(0);
+    }
 }
 
 /** Routed asm (internal label). Arguments and return value are the
