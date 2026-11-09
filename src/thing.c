@@ -2184,12 +2184,55 @@ void FIRE_finish_flame(struct SimpleThing *p_sthing, ThingIdx thing)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int move_smapwho(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int move_smapwho_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_move_smapwho\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int move_smapwho(int a1, int a2, int a3, int a4)
+{
+    struct SimpleThing *p_sthing = (struct SimpleThing *)a1;
+    s32 *p_x = (s32 *)a2;
+    s32 new_y = (s32)a3;
+    s32 *p_z = (s32 *)a4;
+    ushort *p_tile_x = (ushort *)p_x + 1;
+    ushort *p_tile_z = (ushort *)p_z + 1;
+
+    DIFFTEST_SHADOW_RET(move_smapwho, int, move_smapwho_asm(a1, a2, a3, a4));
+    if (((*p_x >> 16) >= 128) || ((*p_z >> 16) >= 128) ||
+      ((*p_x >> 16) < 0) || ((*p_z >> 16) < 0))
+    {
+        *p_tile_x &= 0x7f;
+        *p_tile_z &= 0x7f;
+    }
+    if ((*p_tile_x != ((ushort *)&p_sthing->X)[1]) ||
+      (*p_tile_z != ((ushort *)&p_sthing->Z)[1]))
+    {
+        struct MyMapElement *p_mapel;
+        ushort tile;
+        short child;
+        ThingIdx offset;
+
+        delete_snode(p_sthing);
+        tile = (ushort)((*p_tile_z << 7) + *p_tile_x);
+        p_mapel = &game_my_big_map[tile];
+        child = p_mapel->Child;
+        offset = p_sthing->ThingOffset;
+        p_sthing->Next = child;
+        if (child > 0)
+            things[child].Parent = offset;
+        else if (child < 0)
+            sthings[child].Parent = offset;
+        p_sthing->Parent = 0;
+        p_mapel->Child = offset;
+    }
+    p_sthing->X = *p_x;
+    p_sthing->Z = *p_z;
+    p_sthing->Y = new_y;
+    DIFFTEST_RETURN((int)*p_z);
 }
 
 
