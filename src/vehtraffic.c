@@ -270,12 +270,20 @@ int VNAV_renavigate(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int VNAV_there(int a1)
+static DIFFTEST_REF_FUNC int VNAV_there_asm(int a1)
 {
     int ra = a1;
     asm volatile ("call ASM_VNAV_there\n"
         : "+a" (ra) : : "edx", "ebx", "ecx", "esi", "edi", "cc", "memory");
     return ra;
+}
+
+int VNAV_there(int a1)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+
+    DIFFTEST_SHADOW_RET(VNAV_there, int, VNAV_there_asm(a1));
+    DIFFTEST_RETURN((int)((p_vehicle->U.UVehicle.Dummy4a & 0x3F) == 0));
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
