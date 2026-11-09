@@ -3556,13 +3556,49 @@ int start_goto_vehicle(struct Thing *p_vehicle, int x, int z)
     }
 }
 
-short find_peep_in_area(struct Thing *p_me, struct Command *p_cmd)
+ubyte check_person_within(struct Command *p_cmd, int x, int z);
+
+static DIFFTEST_REF_FUNC short find_peep_in_area_asm(struct Thing *p_me, struct Command *p_cmd)
 {
     short ret;
     asm volatile (
       "call ASM_find_peep_in_area\n"
-        : "=r" (ret) : "a" (p_me), "d" (p_cmd));
+        : "=a" (ret) : "a" (p_me), "d" (p_cmd));
     return ret;
+}
+
+short find_peep_in_area(struct Thing *p_me, struct Command *p_cmd)
+{
+    ushort thing;
+    ushort count;
+
+    DIFFTEST_SHADOW_RET(find_peep_in_area, short, find_peep_in_area_asm(p_me, p_cmd));
+    thing = same_type_head[1];
+    count = 0;
+    while (thing != 0)
+    {
+        struct Thing *p_thing;
+        ubyte grp;
+
+        if (count >= 1000)
+            break;
+        p_thing = &things[thing];
+        if ((p_thing->Flag & TngF_Destroyed) == 0)
+        {
+            grp = p_thing->U.UPerson.Group;
+            if (grp != p_me->U.UPerson.Group)
+            {
+                if ((war_flags[p_me->U.UPerson.Group].Truce & (1u << (grp & 0x1f))) == 0)
+                {
+                    if (check_person_within(p_cmd, p_thing->X >> 8, p_thing->Z >> 8))
+                        DIFFTEST_RETURN((short)thing);
+                }
+            }
+        }
+        count++;
+        thing = p_thing->LinkSame;
+    }
+    DIFFTEST_RETURN((short)0);
 }
 
 void set_person_animmode_run(struct Thing *p_person)
