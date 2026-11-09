@@ -3671,10 +3671,59 @@ void init_time_gun(struct Thing *p_owner)
     }
 }
 
-void init_c_iff(struct Thing *p_owner)
+static DIFFTEST_REF_FUNC void init_c_iff_asm(struct Thing *p_owner)
 {
     asm volatile ("call ASM_init_c_iff\n"
         : : "a" (p_owner));
+}
+
+void init_c_iff(struct Thing *p_owner)
+{
+    struct Thing *p_mine;
+    ThingIdx mine;
+    s32 cor_x, cor_y, cor_z;
+    ubyte angl;
+
+    DIFFTEST_SHADOW(init_c_iff, init_c_iff_asm(p_owner));
+
+    play_dist_sample(p_owner, 0x27, 0x7F, 0x40, 100, 0, 1);
+
+    angl = p_owner->U.UPerson.Angle;
+    cor_x = p_owner->X + (angle_direction[angl].DiX << 7);
+    cor_y = p_owner->Y;
+    cor_z = p_owner->Z + (angle_direction[angl].DiY << 7);
+
+    mine = get_new_thing();
+    if (mine == 0)
+        return;
+
+    p_mine = &things[(ushort)mine];
+    p_mine->Z = cor_z;
+    p_mine->Y = cor_y;
+    p_mine->Timer1 = 30;
+    p_mine->Owner = p_owner - things;
+    p_mine->X = cor_x;
+    p_mine->StartFrame = 1032;
+    p_mine->Frame = nstart_ani[1032];
+    p_mine->Flag = TngF_Unkn0004;
+    add_node_thing((ushort)mine);
+    p_mine->Type = TT_MINE;
+    p_mine->SubType = 0x30;
+    p_mine->Radius = 50;
+    p_mine->U.UPerson.Energy = 0x400;
+    p_mine->U.UPerson.MaxEnergy = 0x400;
+    p_mine->U.UPerson.Stamina = 0;
+    p_mine->U.UPerson.MaxStamina = 0;
+    p_mine->Health = 0xC00;
+    p_mine->U.UPerson.MaxHealth = 0xC00;
+    p_mine->U.UPerson.AnimMode = 0;
+    p_mine->U.UPerson.CurrentWeapon = 3;
+    p_mine->U.UPerson.OnFace = 1;
+    p_mine->U.UPerson.UMod.Mods = 0;
+    p_mine->PTarget = NULL;
+    p_mine->State = PerSt_WAIT;
+    p_mine->U.UPerson.EffectiveGroup = p_owner->U.UPerson.EffectiveGroup;
+    p_mine->U.UPerson.Group = p_owner->U.UPerson.EffectiveGroup;
 }
 
 void init_grenade(struct Thing *p_owner, ushort gtype)
