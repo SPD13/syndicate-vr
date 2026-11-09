@@ -609,11 +609,65 @@ ushort veh_passenger_count(struct Thing *p_veh)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void VNAV_find_nearnodes(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void VNAV_find_nearnodes_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_VNAV_find_nearnodes\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Nodes nearest to the point, filled by VNAV_find_nearnodes().
+ * The asm data spans VNAV_nearnodes (6 bytes) and data_1c8540 (4 bytes).
+ */
+extern short VNAV_nearnodes[5];
+extern s32 VNAV_nodedists[5];
+
+/** Finds the 5 traffic nodes nearest to point (a1,a2) in map coords,
+ * storing their indices in VNAV_nearnodes[] and squared distances
+ * in VNAV_nodedists[].
+ */
+void VNAV_find_nearnodes(int a1, int a2, int a3, int a4)
+{
+    struct TrafficNode *p_tnode;
+    short cor_x, cor_z;
+    s32 dist, max_dist, dx, dz;
+    int i, tnode, max_i;
+
+    DIFFTEST_SHADOW(VNAV_find_nearnodes, VNAV_find_nearnodes_asm(a1, a2, a3, a4));
+    cor_x = a1;
+    cor_z = a2;
+    for (i = 0; i < 5; i++)
+    {
+        VNAV_nearnodes[i] = 0;
+        VNAV_nodedists[i] = 0xfffffff;
+    }
+    max_dist = 0xfffffff;
+    max_i = 0;
+    for (tnode = 1; tnode < next_traffic_node; tnode++)
+    {
+        p_tnode = &game_traffic_nodes[tnode];
+        if (p_tnode->Flags == 0xff)
+            continue;
+        if ((((ubyte *)&p_tnode->Flags)[1] & 0x0a) != 0)
+            continue;
+        dx = (s32)cor_x - (s32)p_tnode->X;
+        dz = (s32)cor_z - (s32)p_tnode->Z;
+        dist = (s32)((u32)dz * (u32)dz + (u32)dx * (u32)dx);
+        if (dist >= max_dist)
+            continue;
+        VNAV_nearnodes[max_i] = tnode;
+        VNAV_nodedists[max_i] = dist;
+        max_dist = VNAV_nodedists[0];
+        max_i = 0;
+        for (i = 1; i < 5; i++)
+        {
+            if (VNAV_nodedists[i] > max_dist)
+            {
+                max_i = i;
+                max_dist = VNAV_nodedists[i];
+            }
+        }
+    }
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
