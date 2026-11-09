@@ -1579,10 +1579,38 @@ TbBool check_vehicle_col(struct Thing *p_vehicle)
     return false;
 }
 
-void start_crashing(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void start_crashing_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_start_crashing\n"
         : : "a" (p_vehicle));
+}
+
+void start_crashing(struct Thing *p_vehicle)
+{
+    DIFFTEST_SHADOW(start_crashing, start_crashing_asm(p_vehicle));
+    if (p_vehicle->SubType == SubTT_VEH_MECH)
+    {
+        p_vehicle->State = VehSt_UNKN_D;
+        p_vehicle->Flag |= TngF_Destroyed;
+        init_mech_explode(p_vehicle);
+        return;
+    }
+    if ((ushort)p_vehicle->State == VehSt_UNKN_45)
+        return;
+
+    p_vehicle->Flag |= TngF_Destroyed;
+    p_vehicle->State = VehSt_UNKN_45;
+    if (p_vehicle->SubType == SubTT_VEH_TRAIN)
+    {
+        struct Thing *p_station;
+
+        p_station = &things[p_vehicle->U.UVehicle.TNode];
+        if ((p_station->Flag & TngF_Destroyed) == 0)
+            p_station->Flag |= TngF_Unkn00040000;
+    }
+    p_vehicle->VY = 0;
+    p_vehicle->U.UVehicle.ReqdSpeed = p_vehicle->Speed >> 1;
+    bang_new4(p_vehicle->X, p_vehicle->Y, p_vehicle->Z, 95);
 }
 
 static DIFFTEST_REF_FUNC void start_landing_asm(struct Thing *p_vehicle)
