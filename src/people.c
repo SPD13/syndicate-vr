@@ -10847,10 +10847,28 @@ void person_kill_person(struct Thing *p_person)
     p_person->U.UPerson.Target2 = 0;
 }
 
-void person_save_victim(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_save_victim_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_save_victim\n"
         : : "a" (p_person));
+}
+
+void person_save_victim(struct Thing *p_person)
+{
+    int range;
+
+    DIFFTEST_SHADOW(person_save_victim, person_save_victim_asm(p_person));
+    if ((ushort)p_person->State != PerSt_INIT_SAVE_VICTIM)
+        return;
+
+    check_weapon(p_person, 0x500);
+    p_person->State = PerSt_KILL_PERSON;
+    p_person->Flag |= TngF_Unkn0040;
+    p_person->U.UPerson.ComTimer = -1;
+    range = get_weapon_range(p_person);
+    p_person->U.UPerson.Timer2 = 50;
+    p_person->U.UPerson.StartTimer2 = 50;
+    p_person->U.UPerson.ComRange = range >> 6;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
