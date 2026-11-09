@@ -727,10 +727,26 @@ int rotate_obj(int a1, int a2, int a3, int a4)
 }
 
 
-void rotate_object(struct Thing *p_object)
+static DIFFTEST_REF_FUNC void rotate_object_asm(struct Thing *p_object)
 {
     asm volatile ("call ASM_rotate_object\n"
         : : "a" (p_object));
+}
+
+void rotate_object(struct Thing *p_object)
+{
+    struct M33 *p_mat;
+    short angle;
+
+    DIFFTEST_SHADOW(rotate_object, rotate_object_asm(p_object));
+    angle = p_object->U.UMGun.AngleY + (p_object->U.UMGun.AngleDY >> 3);
+    p_object->U.UMGun.AngleY = angle;
+    p_object->U.UMGun.AngleY = angle & 0x7FF;
+    p_mat = &local_mats[p_object->U.UMGun.MatrixIndex];
+    if (p_object->U.UMGun.AngleX > 0x400)
+        p_object->U.UMGun.AngleX -= 0x800;
+    rotate_obj(0, (short)(-p_object->U.UMGun.AngleY), 0, (int)p_mat);
+    rotate_object_axis(p_mat, 0, (short)(-p_object->U.UMGun.AngleX), 0);
 }
 
 int mounted_los(int x1, int y1, int z1, int x2, int y2, int z2)
