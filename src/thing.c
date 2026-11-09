@@ -2193,11 +2193,36 @@ int move_smapwho(int a1, int a2, int a3, int a4)
 }
 
 
-void process_spark(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_spark_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_spark\n"
         : : "a" (p_sthing));
+}
+
+void process_spark(struct SimpleThing *p_sthing)
+{
+    s32 new_x, new_y, new_z;
+    short timer;
+
+    DIFFTEST_SHADOW(process_spark, process_spark_asm(p_sthing));
+    timer = p_sthing->Timer1;
+    p_sthing->Timer1 = timer - 1;
+    if ((timer == 0) ||
+      (alt_at_point(p_sthing->X >> 8, p_sthing->Z >> 8) > p_sthing->Y))
+    {
+        remove_sthing(p_sthing - sthings);
+        delete_snode(p_sthing);
+        return;
+    }
+    new_x = p_sthing->X + p_sthing->U.UEffect.VX;
+    new_z = p_sthing->Z + p_sthing->U.UEffect.VZ;
+    new_y = p_sthing->Y + p_sthing->U.UEffect.VY;
+    p_sthing->U.UEffect.OX = p_sthing->X >> 8;
+    p_sthing->U.UEffect.OY = p_sthing->Y >> 8;
+    p_sthing->U.UEffect.VY -= 0x20;
+    p_sthing->U.UEffect.OZ = p_sthing->Z >> 8;
+    move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
