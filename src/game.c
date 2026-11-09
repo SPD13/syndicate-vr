@@ -1831,11 +1831,35 @@ void nullsub_7(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void create_unkn_building_subtp27(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void create_unkn_building_subtp27_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_create_unkn_building_subtp27\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void create_unkn_building_subtp27(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing;
+    ThingIdx thing;
+    ushort obj;
+
+    DIFFTEST_SHADOW(create_unkn_building_subtp27,
+      create_unkn_building_subtp27_asm(a1, a2, a3, a4));
+    thing = get_new_thing();
+    p_thing = &things[thing];
+    p_thing->U.UObject.NumbObjects = 1;
+    p_thing->Y = (s32)(short)a4 << 8;
+    p_thing->Type = TT_BUILDING;
+    p_thing->SubType = SubTT_BLD_STANDARD;
+    p_thing->Z = (s32)(ushort)a2 << 8;
+    p_thing->X = (s32)(ushort)a1 << 8;
+    obj = (ushort)a3;
+    p_thing->U.UObject.Object = obj;
+    game_objects[obj].ThingNo = thing;
+    add_node_thing(thing);
+    if ((thing > 1000) || (thing < 0))
+        nullsub_7();
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
