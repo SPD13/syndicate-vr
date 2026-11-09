@@ -458,6 +458,8 @@ void change_person_angle(struct Thing *p_person, ubyte angl);
  */
 void change_person_angle_full(struct Thing *p_person, short full_angle);
 
+void person_go_sleep(struct Thing *p_person);
+
 /** Resets Frame number of a person, using its current properties.
  */
 void reset_person_frame(struct Thing *p_person);

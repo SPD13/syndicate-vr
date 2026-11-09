@@ -2417,11 +2417,139 @@ void person_go_insane(int a1, int a2, int a3, int a4)
 }
 
 
-void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
+static void napalm_flame_person_killed_add_to_stats(struct Thing *p_person,
+  struct Thing *p_owner);
+
+static DIFFTEST_REF_FUNC void process_drift_smoke_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
     asm volatile (
       "call ASM_process_drift_smoke\n"
         : : "a" (p_sthing), "d" (thing_item));
+}
+
+void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
+{
+    struct Thing *p_person;
+
+    DIFFTEST_SHADOW(process_drift_smoke,
+      process_drift_smoke_asm(p_sthing, thing_item));
+
+    if ((p_sthing->Timer1 < 12) && ((gameturn & 1) != 0))
+        p_sthing->Frame = frame[(ushort)p_sthing->Frame].Next;
+
+    if ((p_sthing->Flag & TngF_Unkn0008) == 0)
+    {
+        s32 new_x, new_y, new_z;
+
+        new_x = p_sthing->X + 4 * p_sthing->U.UEffect.VX;
+        new_y = p_sthing->Y + 4 * p_sthing->U.UEffect.VY;
+        new_z = p_sthing->Z + 4 * p_sthing->U.UEffect.VZ;
+        if (p_sthing->SubType != 30)
+        {
+            s32 alt;
+
+            alt = alt_at_point((short)(new_x >> 8), (short)(new_z >> 8));
+            if ((new_y < alt) && (alt - new_y < 0x800))
+                new_y = alt + 0x40;
+        }
+        if ((new_x >> 16) < 0 || (new_x >> 16) >= 128 ||
+          (new_z >> 16) < 0 || (new_z >> 16) >= 128)
+        {
+            p_sthing->Timer1 = -1;
+        }
+        else
+        {
+            if (check_col_collision(new_x >> 8, new_y >> 8, new_z >> 8) != 0)
+            {
+                p_sthing->Flag |= TngF_Unkn0008;
+                if (p_sthing->Timer1 > 5)
+                    p_sthing->Timer1 = 5;
+            }
+            else
+            {
+                move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+            }
+            p_sthing->U.UEffect.VX += p_sthing->U.UEffect.OX;
+            p_sthing->U.UEffect.VY += p_sthing->U.UEffect.OY;
+            p_sthing->U.UEffect.VZ += p_sthing->U.UEffect.OZ;
+        }
+    }
+
+    p_sthing->Object += p_sthing->StartFrame;
+    p_sthing->Timer1--;
+    if (p_sthing->Timer1 <= 0)
+    {
+        remove_sthing(thing_item);
+        delete_snode(p_sthing);
+        return;
+    }
+
+    if (((p_sthing->Flag & (TngF_Unkn0010|TngF_Unkn0020)) != 0) &&
+      ((gameturn & 3) == 0) && ((ushort)p_sthing->Object > 60) &&
+      (things != NULL))
+    {
+        short skip;
+
+        skip = 0;
+        do
+        {
+            p_person = check_for_radius_hit_person(p_sthing->X, p_sthing->Y,
+              p_sthing->Z, (ushort)p_sthing->Object, NULL, 0, skip);
+            if ((p_person != NULL) && (p_person->Type != TT_VEHICLE) &&
+              (p_person->Type != SmTT_STATIC) &&
+              (p_person->ThingOffset != p_sthing->Owner2) &&
+              (person_mod_chest_level(p_person) < 3) &&
+              (p_person->U.UPerson.Group !=
+                things[(ushort)p_sthing->Owner2].U.UPerson.Group))
+            {
+                if ((p_person->Flag2 & TgF2_Unkn0001) != 0)
+                    finalise_razor_wire(p_person);
+                if ((p_sthing->Flag & TngF_Unkn0010) != 0)
+                    person_go_insane((int)p_person, 0, 0, 0);
+                else
+                    person_go_sleep(p_person);
+            }
+            skip++;
+        }
+        while (p_person != NULL);
+    }
+
+    if (p_sthing->SubType != 45)
+        return;
+
+    p_person = check_for_radius_hit_person(p_sthing->X, p_sthing->Y,
+      p_sthing->Z, (ushort)p_sthing->Object, NULL, 0, 0);
+    if (p_person == NULL)
+        return;
+    if (p_person->Type == TT_VEHICLE)
+        return;
+    if (p_person->Type != SmTT_STATIC)
+    {
+        if ((ushort)p_person->State == PerSt_PERSON_BURNING)
+            return;
+        if ((ushort)p_person->State == PerSt_DIEING)
+            return;
+        if ((p_person->Flag & TngF_Destroyed) != 0)
+            return;
+    }
+    if ((p_person->Type != SmTT_STATIC) &&
+      ((p_person->Flag2 & TgF2_KnockedOut) == 0))
+    {
+        short angle;
+
+        angle = arctan((p_sthing->X >> 8) - (p_person->X >> 8),
+          -((p_sthing->Z >> 8) - (p_person->Z >> 8)));
+        p_person->U.UPerson.RecoilDir = ((s32)angle + 0x80) >> 8;
+        p_person->U.UPerson.RecoilDir = (p_person->U.UPerson.RecoilDir + 8) & 7;
+        change_person_angle(p_person, (p_person->U.UPerson.RecoilDir + 4) & 7);
+    }
+    if (napalm_person(p_person, 2) != 0)
+    {
+        struct Thing *p_owner;
+
+        p_owner = &things[(ushort)p_sthing->Owner2];
+        napalm_flame_person_killed_add_to_stats(p_person, p_owner);
+    }
 }
 
 void process_mushroom(struct SimpleThing *p_sthing, ThingIdx thing_item)
