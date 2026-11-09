@@ -2429,11 +2429,54 @@ void process_mushroom(struct SimpleThing *p_sthing, ThingIdx thing_item)
         : : "a" (p_sthing), "d" (thing_item));
 }
 
-void process_special_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
+static DIFFTEST_REF_FUNC void process_special_drift_smoke_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
     asm volatile (
       "call ASM_process_special_drift_smoke\n"
         : : "a" (p_sthing), "d" (thing_item));
+}
+
+void process_special_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
+{
+    s32 new_x, new_y, new_z;
+    s32 radius, angle;
+    short dx, dz;
+
+    DIFFTEST_SHADOW(process_special_drift_smoke,
+      process_special_drift_smoke_asm(p_sthing, thing_item));
+    p_sthing->State++;
+    p_sthing->Frame = frame[(ushort)p_sthing->Frame].Next;
+    new_x = p_sthing->X + 4 * p_sthing->U.UEffect.VX;
+    new_y = p_sthing->Y + 4 * p_sthing->U.UEffect.VY;
+    new_z = p_sthing->Z + 4 * p_sthing->U.UEffect.VZ;
+    radius = (ushort)p_sthing->State;
+    angle = (radius << 5) & 0x7FF;
+    dx = (lbSinTable[angle + 512] * radius) >> 11;
+    dz = (lbSinTable[angle] * radius) >> 11;
+    new_x += dx;
+    new_z += dz;
+    move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+    p_sthing->Object += p_sthing->StartFrame;
+    if (p_sthing->StartTimer1 > 0)
+    {
+        short damp;
+
+        p_sthing->StartTimer1--;
+        damp = p_sthing->U.UEffect.OX;
+        p_sthing->U.UEffect.VX = (p_sthing->U.UEffect.VX * damp) >> 8;
+        p_sthing->U.UEffect.VY = (p_sthing->U.UEffect.VY * damp) >> 8;
+        p_sthing->U.UEffect.VZ = (p_sthing->U.UEffect.VZ * damp) >> 8;
+    }
+    p_sthing->U.UEffect.VY += p_sthing->U.UEffect.OY;
+    if (p_sthing->Timer1 > 0)
+    {
+        p_sthing->Timer1--;
+        if (p_sthing->Timer1 == 0)
+        {
+            remove_sthing(thing_item);
+            delete_snode(p_sthing);
+        }
+    }
 }
 
 void process_napalm_flame(struct SimpleThing *p_sthing, ThingIdx thing_item)
