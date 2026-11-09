@@ -45,6 +45,7 @@
 #include "sound.h"
 #include "thing.h"
 #include "thing_fire.h"
+#include "thing_onface.h"
 #include "swlog.h"
 #include "weapon.h"
 /******************************************************************************/
@@ -2330,12 +2331,42 @@ void set_xz_for_unkn3(int a1, int a2, int a3, int a4)
 }
 
 
-int train_unkn_st21_exit_func_1(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC int train_unkn_st21_exit_func_1_asm(struct Thing *p_vehicle)
 {
     int ret;
     asm volatile ("call ASM_train_unkn_st21_exit_func_1\n"
-        : "=r" (ret) : "a" (p_vehicle));
+        : "=a" (ret) : "a" (p_vehicle));
     return ret;
+}
+
+int train_unkn_st21_exit_func_1(struct Thing *p_vehicle)
+{
+    DIFFTEST_SHADOW_RET(train_unkn_st21_exit_func_1, int,
+      train_unkn_st21_exit_func_1_asm(p_vehicle));
+    while (p_vehicle->U.UVehicle.PassengerHead != 0)
+    {
+        struct Thing *p_passngr;
+        int pos_x, pos_z;
+        short face;
+
+        things[(ushort)p_vehicle->U.UVehicle.PassengerHead].Flag &=
+          ~(TngF_InVehicle | TngF_Unkn02000000);
+        p_passngr = &things[(ushort)p_vehicle->U.UVehicle.PassengerHead];
+        // TODO the asm reads U.UVehicle.ComCur as the face index of the train
+        face = p_vehicle->U.UVehicle.ComCur;
+        p_vehicle->U.UVehicle.PassengerHead = p_passngr->U.UPerson.LinkPassenger;
+        set_xz_for_unkn3((int)&game_object_faces4[face], (int)&pos_x,
+          (int)&pos_z, face);
+        p_passngr->X = pos_x << 8;
+        p_passngr->Z = pos_z << 8;
+        p_passngr->U.UPerson.OnFace = face;
+        p_passngr->U.UPerson.OnFace = -face;
+        set_thing_height_on_face_quad(p_passngr, pos_x << 8, pos_z << 8, face);
+        p_passngr->Flag |= TngF_Unkn0004;
+        add_node_thing(p_passngr->ThingOffset);
+        p_passngr->U.UPerson.Flag3 |= 0x80;
+    }
+    DIFFTEST_RETURN((int)0);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
