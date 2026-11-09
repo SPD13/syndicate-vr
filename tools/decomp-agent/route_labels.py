@@ -237,7 +237,7 @@ def parse_asm():
     return lines, funcs, order
 
 
-def analyse(f, funcs, callers):
+def analyse(f, funcs, callers, force=False):
     """Returns dict with args, ret, saved, skip reason."""
     body = []
     labels = {}
@@ -338,14 +338,16 @@ def analyse(f, funcs, callers):
                             if r == 'eax':
                                 ret_used = True
                             elif r in clobbered and not amn.startswith('call'):
-                                return {'skip': 'caller %s reads %s after call' % (cname, r)}
+                                if not force:
+                                    return {'skip': 'caller %s reads %s after call' % (cname, r)}
                         break
                     u, d = use_def(amn, aops)
                     for r in u - written:
                         if r == 'eax':
                             ret_used = True
                         elif r in clobbered and r in ('edx', 'ebx', 'ecx', 'esi', 'edi'):
-                            return {'skip': 'caller %s reads %s after call' % (cname, r)}
+                            if not force:
+                                return {'skip': 'caller %s reads %s after call' % (cname, r)}
                     written |= d
     return {'args': ARGREGS[:nargs], 'ret': ret_used, 'saved': saved,
             'clobbered': clobbered, 'nstack': nstack or 0}
@@ -423,6 +425,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--list', action='store_true')
     ap.add_argument('--apply', action='store_true')
+    ap.add_argument('--force', action='append', default=[])
     ap.add_argument('names', nargs='*')
     args = ap.parse_args()
     lines, funcs, order = parse_asm()
@@ -461,7 +464,7 @@ def main():
         if re.search(r'\b%s\s*\(' % re.escape(name), csrc):
             print('SKIP  %-34s already a C function; the asm copy is still called' % name)
             continue
-        a = analyse(funcs[name], funcs, callers_of(name, funcs))
+        a = analyse(funcs[name], funcs, callers_of(name, funcs), name in args.force)
         if 'skip' in a:
             print('SKIP  %-34s %s' % (name, a['skip']))
             continue
