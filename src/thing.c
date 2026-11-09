@@ -2180,6 +2180,18 @@ void FIRE_finish_flame(struct SimpleThing *p_sthing, ThingIdx thing)
     remove_sthing(thing);
     delete_snode(p_sthing);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int move_smapwho(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_move_smapwho\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void process_spark(struct SimpleThing *p_sthing)
 {

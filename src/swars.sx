@@ -12136,7 +12136,7 @@ GLOBAL_FUNC(ASM_move_mapwho)	/* 0x046FB0 */
 
 
 /*----------------------------------------------------------------*/
-move_smapwho:	/* 0x0470FC */
+GLOBAL_FUNC(ASM_move_smapwho)	/* 0x0470FC */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -24772,7 +24772,7 @@ GLOBAL_FUNC(ASM_process_soul)	/* 0x052020 */
 		mov    %esp,%edx
 		mov    %ebp,%ebx
 		mov    %esi,%eax
-		call   move_smapwho
+		call   ac_move_smapwho
 		add    $0x14,%esp
 		pop    %ebp
 		pop    %edi
@@ -105148,7 +105148,7 @@ GLOBAL_FUNC(ASM_process_mushroom)	/* 0x0C65E0 */
 		mov    %esp,%edx
 		add    %eax,%ebx
 		mov    %esi,%eax
-		call   move_smapwho
+		call   ac_move_smapwho
 		mov    0x12(%esi),%bx
 		mov    0x26(%esi),%eax
 		add    $0x4,%ebx
@@ -105872,7 +105872,7 @@ GLOBAL_FUNC(ASM_process_special_drift_smoke)	/* 0x0C6E5C */
 		add    %eax,%ebp
 		mov    %esi,%eax
 		mov    %ebp,0x4(%esp)
-		call   move_smapwho
+		call   ac_move_smapwho
 		mov    0x26(%esi),%ax
 		mov    0x12(%esi),%bx
 		add    %eax,%ebx
@@ -106207,7 +106207,7 @@ GLOBAL_FUNC(ASM_process_drift_smoke)	/* 0x0C71CC */
 		mov    %esp,%edx
 		mov    %edi,%ebx
 		mov    %esi,%eax
-		call   move_smapwho
+		call   ac_move_smapwho
 	jump_c72e0:
 		mov    0x32(%esi),%ax
 		mov    0x2c(%esi),%dx
@@ -106594,7 +106594,7 @@ GLOBAL_FUNC(ASM_process_napalm_flame)	/* 0x0C7678 */
 		mov    %esp,%edx
 		mov    %edi,%ebx
 		mov    %esi,%eax
-		call   move_smapwho
+		call   ac_move_smapwho
 	jump_c7743:
 		mov    0x32(%esi),%ax
 		mov    0x2c(%esi),%dx
@@ -108136,7 +108136,7 @@ GLOBAL_FUNC(ASM_process_spark)	/* 0x0C87E4 */
 		mov    %esp,%edx
 		mov    %ax,0x36(%esi)
 		mov    %esi,%eax
-		call   move_smapwho
+		call   ac_move_smapwho
 	jump_c889b:
 		add    $0x8,%esp
 		pop    %edi
