@@ -9,7 +9,7 @@ if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
     exec "$(dirname "$0")/msys.sh" "$(printf "%q " "$0" "$@")"
 fi
 set -eu
-SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1}"
+SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19}"
 TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 COMMON="$(git -C "$REPO" rev-parse --path-format=absolute --git-common-dir)"

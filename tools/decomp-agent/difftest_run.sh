@@ -12,7 +12,7 @@ if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
 fi
 set -u
 FN="$1"; shift
-SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1}"
+SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19}"
 TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"

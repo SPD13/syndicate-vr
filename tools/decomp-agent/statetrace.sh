@@ -1,5 +1,5 @@
 #!/bin/bash
-# Whole-game state trace of the 6 mission scenarios, for comparing builds.
+# Whole-game state trace of the mission scenarios, for comparing builds.
 # Usage: tools/decomp-agent/statetrace.sh <outdir> [scenario ...]
 # Runs build/difftest of this worktree with no function shadowed and writes
 # <outdir>/<scenario>.trace: one line per turn with a hash of the things
@@ -12,7 +12,7 @@ if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
 fi
 set -u
 OUTDIR="$(mkdir -p "$1" && cd "$1" && pwd)"; shift
-SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1}"
+SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19}"
 TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
