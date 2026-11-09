@@ -4308,7 +4308,7 @@ int ma_triangle_route_3(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+static DIFFTEST_REF_FUNC int tri_path_init8_asm(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[4];
@@ -4320,6 +4320,71 @@ int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a
     asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_tri_path_init8\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
     return ra;
+}
+
+/** Initializes a path from (ax8,ay8) to (bx8,by8), with optionally given
+ * start/end triangles (-1 means find them with triangle_findSE8()).
+ * Arguments: a1 = triA, a2 = triB (both used as short), a3 = struct Path *,
+ * a4..a7 = ax8, ay8, bx8, by8; a8 unused.
+ * Returns the number of way points, or another value on failure.
+ */
+int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+{
+    struct Path *p_path = (struct Path *)a3;
+    int ax8 = a4, ay8 = a5, bx8 = a6, by8 = a7;
+    struct TrTriangle *p_tri;
+    int len2;
+    s32 triA, triB;
+    s32 ret;
+
+    DIFFTEST_SHADOW_RET(tri_path_init8, int, tri_path_init8_asm(a1, a2, a3, a4, a5, a6, a7, a8));
+    navi_onscreen_debug(0);
+
+    tree_Ax8 = ax8;
+    p_path->ay8 = ay8;
+    tree_Bx8 = bx8;
+    p_path->by8 = by8;
+    tree_routelen = -1;
+    tree_Ay8 = ay8;
+    p_path->PathLength = 0;
+    tree_By8 = by8;
+    p_path->ax8 = ax8;
+    p_path->bx8 = bx8;
+
+    triA = (short)a1;
+    if (triA == -1)
+        triA = triangle_findSE8(ax8, ay8);
+    tree_triA = triA;
+    triB = (short)a2;
+    if (triB == -1)
+    {
+        triB = triangle_findSE8(bx8, by8);
+        if (triB == -1)
+            DIFFTEST_RETURN((int)-1);
+    }
+
+    // TODO the asm reads Triangles[-1] when triA is -1; kept as is
+    p_tri = &triangulation[0].Triangles[tree_triA];
+    tree_altA = (sbyte)p_tri->solid;
+    p_tri = &triangulation[0].Triangles[triB];
+    tree_triB = triB;
+    ret = (sbyte)p_tri->solid;
+    tree_altB = ret;
+    // On failure the asm returns the altB value left in eax
+    if (tree_triA == -1)
+        DIFFTEST_RETURN((int)ret);
+    if (triB == -1)
+        DIFFTEST_RETURN((int)ret);
+
+    ret = ma_triangle_route_3(tree_triA, triB, (int)(intptr_t)tree_route,
+      (int)(intptr_t)&tree_routecost);
+    tree_routelen = ret;
+    if (ret == -1)
+        DIFFTEST_RETURN((int)ret);
+
+    ret = route_to_path(ax8, ay8, bx8, by8, tree_route, ret, p_path, &len2);
+    p_path->PathLength = ret;
+    DIFFTEST_RETURN((int)ret);
 }
 
 
