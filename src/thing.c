@@ -916,11 +916,86 @@ void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void quick_light_unkn_func_05(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void quick_light_unkn_func_05_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_quick_light_unkn_func_05\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Adds a new full light at given position (a1=X, a2=Y, a3=Z, a4=intensity),
+ * and applies it to map elements and building objects within 7 tiles.
+ */
+void quick_light_unkn_func_05(int a1, int a2, int a3, int a4)
+{
+    struct FullLight *p_fulight;
+    short x, y, z;
+    short tile_x, tile_z;
+    short dx, dz;
+
+    DIFFTEST_SHADOW(quick_light_unkn_func_05,
+      quick_light_unkn_func_05_asm(a1, a2, a3, a4));
+    x = (short)a1;
+    y = (short)a2;
+    z = (short)a3;
+    p_fulight = &game_full_lights[next_full_light];
+    p_fulight->lgtfld_10 = 0;
+    p_fulight->lgtfld_12 = 0;
+    p_fulight->Intensity = (short)a4;
+    p_fulight->TrueIntensity = (short)a4;
+    p_fulight->lgtfld_E = (short)a4;
+    p_fulight->Z = z;
+    p_fulight->X = x;
+    p_fulight->Y = y;
+
+    tile_x = x >> 8;
+    tile_z = z >> 8;
+    for (dx = -7; dx < 7; dx++)
+    {
+        for (dz = -7; dz < 7; dz++)
+        {
+            s32 mx, mz;
+            ThingIdx thing;
+
+            mx = tile_x + dx;
+            if (mx <= 0 || mx >= 128)
+                continue;
+            mz = tile_z + dz;
+            if (mz <= 0 || mz >= 128)
+                continue;
+            quick_light_unkn_func_08((ushort)mx, (ushort)mz, x, y, z,
+              next_full_light);
+
+            thing = game_my_big_map[(mz << 7) + mx].Child;
+            while (thing != 0)
+            {
+                if (thing > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[thing];
+                    if (p_thing->Type == TT_BUILDING
+                      && p_thing->SubType != SubTT_BLD_MGUN)
+                    {
+                        short i;
+
+                        for (i = 0; i < p_thing->U.UObject.NumbObjects; i++)
+                        {
+                            quick_light_unkn_func_06(
+                              (ushort)(p_thing->U.UObject.Object + i),
+                              x, y, z, mx << 8, mz << 8, next_full_light);
+                        }
+                    }
+                    thing = things[thing].Next;
+                }
+                else
+                {
+                    thing = sthings[thing].Next;
+                }
+            }
+        }
+    }
+    next_full_light++;
 }
 
 
