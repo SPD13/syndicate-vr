@@ -910,12 +910,65 @@ int triangle_route_do_unkn7(int a1, int a2, int a3, int a4)
 }
 
 
-s32 ma_triangle_route_4(int triA, int triB, s32 *p_treert)
+static DIFFTEST_REF_FUNC s32 ma_triangle_route_4_asm(int triA, int triB, s32 *p_treert)
 {
     s32 ret;
+    int rd = triB, rb = (int)(intptr_t)p_treert, rc = 0;
     asm volatile ("call ASM_ma_triangle_route_4\n"
-        : "=r" (ret) : "a" (triA), "d" (triB), "b" (p_treert));
+        : "=a" (ret), "+d" (rd), "+b" (rb), "+c" (rc) : "a" (triA) : "cc", "memory");
     return ret;
+}
+
+extern struct Path fwd_path;
+
+s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
+  s32 treert_len, struct Path *p_path, int *p_len2);
+
+/** Finds a triangle route from triA to triB by searching backwards from
+ * triB with triangle_route_do_unkn7() (A and B points swapped meanwhile),
+ * checks it converts to a path, and stores it reversed in p_treert.
+ * Returns the route length, or -1 (then the points stay swapped).
+ */
+s32 ma_triangle_route_4(int triA, int triB, s32 *p_treert)
+{
+    s32 *p_dst;
+    s32 ret;
+    s32 tmp;
+    int len;
+    s32 i;
+
+    DIFFTEST_SHADOW_RET(ma_triangle_route_4, s32,
+      ma_triangle_route_4_asm(triA, triB, p_treert));
+
+    tmp = tree_Ax8;
+    tree_Ax8 = tree_Bx8;
+    tree_Bx8 = tmp;
+    tmp = tree_Ay8;
+    tree_Ay8 = tree_By8;
+    tree_By8 = tmp;
+
+    // TODO the asm passes its incoming ecx as a4; unused by the callee
+    ret = triangle_route_do_unkn7(triB, triA, (int)(intptr_t)route_bak, 0);
+    if (ret == -1)
+        DIFFTEST_RETURN((s32)-1);
+
+    if (route_to_path(tree_Ax8, tree_Ay8, tree_Bx8, tree_By8, route_bak,
+      ret, &fwd_path, &len) == -1)
+        DIFFTEST_RETURN((s32)-1);
+
+    tmp = tree_Ax8;
+    tree_Ax8 = tree_Bx8;
+    tree_Bx8 = tmp;
+    tmp = tree_Ay8;
+    tree_Ay8 = tree_By8;
+    tree_By8 = tmp;
+
+    // Store the backward route reversed
+    p_dst = p_treert;
+    for (i = ret; i >= 0; i--)
+        *p_dst++ = route_bak[i];
+
+    DIFFTEST_RETURN(ret);
 }
 static DIFFTEST_REF_FUNC int fov_region_asm(int a1, int a2, int a3, int a4)
 {
