@@ -6816,11 +6816,9 @@ int available_for_guard_duty(int a1, int a2, int a3)
     }
 }
 
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int find_best_guardian(int a1, int a2, int a3, int a4)
+extern s32 dword_1AA680;
+
+static DIFFTEST_REF_FUNC int find_best_guardian_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_find_best_guardian\n"
@@ -6828,8 +6826,59 @@ int find_best_guardian(int a1, int a2, int a3, int a4)
     return ra;
 }
 
+/** Finds the nearest person of given group who can take guard duty
+ * for the person.
+ *
+ * Arguments are the raw registers the asm takes (eax, edx, ebx, ecx);
+ * eax is the person thing pointer, dx the group. Returns the guardian
+ * thing pointer, or 0. Stores the found distance in dword_1AA680.
+ */
+int find_best_guardian(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_thing;
+    ushort thing, best_thing;
+    u32 best_dist;
+    s32 dist_x, dist_z, dist;
+    int k;
 
-extern s32 dword_1AA680;
+    DIFFTEST_SHADOW_RET(find_best_guardian, int,
+      find_best_guardian_asm(a1, a2, a3, a4));
+    best_thing = 0;
+    best_dist = 16000;
+    k = 0;
+    thing = same_type_head[256 + (ushort)a2];
+    while (thing != 0)
+    {
+        if (k >= 1000)
+            break;
+        if (thing > 1000)
+            DIFFTEST_RETURN((int)0);
+        p_thing = &things[thing];
+        k++;
+        if ((ushort)p_person->ThingOffset != thing
+          && p_person->GotoThingIndex != thing
+          && (ubyte)available_for_guard_duty((int)p_thing, a2, (int)p_thing))
+        {
+            dist_x = abs((p_thing->X - p_person->X) >> 8);
+            dist_z = abs((p_thing->Z - p_person->Z) >> 8);
+            if (dist_x > dist_z)
+                dist = dist_x + (dist_z >> 1);
+            else
+                dist = dist_z + (dist_x >> 1);
+            if ((u32)dist < best_dist)
+            {
+                best_dist = dist;
+                best_thing = thing;
+            }
+        }
+        thing = p_thing->LinkSameGroup;
+    }
+    dword_1AA680 = best_dist;
+    if (best_thing == 0)
+        DIFFTEST_RETURN((int)0);
+    DIFFTEST_RETURN((int)&things[best_thing]);
+}
 
 static DIFFTEST_REF_FUNC uint find_and_alert_guardian_asm(struct Thing *p_person,
   struct Thing *p_attacker)
