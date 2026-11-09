@@ -38,6 +38,7 @@
 #include "sound.h"
 #include "thing.h"
 #include "tngcolisn.h"
+#include "vehicle.h"
 #include "swlog.h"
 /******************************************************************************/
 
@@ -636,8 +637,8 @@ void do_shockwave_building(int dist, int intensity, struct Thing *p_thing, struc
     }
 }
 
-void do_shockwave_vehicle(int dx, int dz, int dist, int intensity,
-  struct Thing *p_vevicle, struct Thing *p_owner)
+static DIFFTEST_REF_FUNC void do_shockwave_vehicle_asm(int dx, int dz,
+  int dist, int intensity, struct Thing *p_vevicle, struct Thing *p_owner)
 {
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
@@ -652,6 +653,37 @@ void do_shockwave_vehicle(int dx, int dz, int dist, int intensity,
       "call ASM_do_shockwave_vehicle\n"
         : : "a" (dx), "d" (dz), "b" (dist), "c" (intensity), "S" (stkargs)
         : "cc", "memory");
+}
+
+void do_shockwave_vehicle(int dx, int dz, int dist, int intensity,
+  struct Thing *p_vevicle, struct Thing *p_owner)
+{
+    s32 dist_sq;
+    s32 damage;
+
+    DIFFTEST_SHADOW(do_shockwave_vehicle,
+      do_shockwave_vehicle_asm(dx, dz, dist, intensity, p_vevicle, p_owner));
+
+    if ((p_vevicle->Flag & TngF_Destroyed) != 0)
+        return;
+
+    // Local copy: writing to the parameter would change the caller's
+    // stack slot, which the asm does not do.
+    damage = intensity;
+    dist_sq = (dist >> 7) * (dist >> 7);
+    if (dist_sq > 0)
+        damage /= dist_sq;
+    if (p_vevicle->SubType == SubTT_VEH_TANK)
+        damage >>= 1;
+    p_vevicle->Health -= damage;
+
+    p_vevicle->U.UVehicle.RecoilTimer = 10;
+    if (p_vevicle->Health > 0)
+        return;
+    if (p_vevicle->Type == TT_VEHICLE)
+        start_crashing(p_vevicle);
+    else
+        init_mgun_explode(p_vevicle);
 }
 
 static DIFFTEST_REF_FUNC void do_shockwave_person_asm(int dx, int dz,
