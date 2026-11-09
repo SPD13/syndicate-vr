@@ -36,6 +36,7 @@
 #include "display.h"
 #include "engindrwlstx.h"
 #include "engincam.h"
+#include "engincolour.h"
 #include "enginlights.h"
 #include "enginshrapn.h"
 #include "enginsngobjs.h"
@@ -1473,11 +1474,39 @@ void process_grenade(struct Thing *p_grenade)
     }
 }
 
-void process_laser_elec(struct Thing *p_elec)
+static DIFFTEST_REF_FUNC void process_laser_elec_asm(struct Thing *p_elec)
 {
     asm volatile (
       "call ASM_process_laser_elec\n"
         : : "a" (p_elec));
+}
+
+void process_laser_elec(struct Thing *p_elec)
+{
+    DIFFTEST_SHADOW(process_laser_elec, process_laser_elec_asm(p_elec));
+    p_elec->Timer1--;
+    if (p_elec->Timer1 == 0)
+    {
+        remove_thing((ushort)(p_elec - things));
+        delete_node(p_elec);
+        return;
+    }
+    if ((p_elec->State == 0) || ((gameturn & 7) == 0))
+    {
+        struct SimpleThing *p_spark;
+
+        // Beam end point is stored in velocity fields
+        p_spark = init_spark(p_elec->VX, p_elec->VY, p_elec->VZ);
+        if (p_spark != NULL)
+            p_spark->Object = colour_lookup[4];
+    }
+    if ((p_elec->State != 0) && (p_elec->Timer1 > 10))
+    {
+        p_elec->VX -= ((3 * p_elec->U.UEffect.GotoX
+          * p_elec->U.UEffect.GotoY) >> 6) / 20;
+        p_elec->VZ -= ((3 * p_elec->U.UEffect.GotoZ
+          * p_elec->U.UEffect.GotoY) >> 6) / 20;
+    }
 }
 
 void process_razor_wire(struct Thing *p_thing)
