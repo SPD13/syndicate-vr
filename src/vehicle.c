@@ -1674,11 +1674,51 @@ int exit_pod(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void set_object_flag(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void set_object_flag_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_set_object_flag\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void set_object_flag(int a1, int a2, int a3, int a4)
+{
+    struct SingleObject *p_sobj;
+    ushort face, face_end;
+    ushort flag;
+
+    DIFFTEST_SHADOW(set_object_flag, set_object_flag_asm(a1, a2, a3, a4));
+    p_sobj = &game_objects[(ushort)a1];
+    flag = (ushort)a2;
+
+    face_end = p_sobj->StartFace + p_sobj->NumbFaces;
+    for (face = p_sobj->StartFace; face < face_end; face++)
+    {
+        game_object_faces3[face].Flags = (ubyte)flag;
+    }
+
+    face_end = p_sobj->StartFace4 + p_sobj->NumbFaces4;
+    for (face = p_sobj->StartFace4; face < face_end; face++)
+    {
+        struct SingleObjectFace4 *p_face4;
+
+        p_face4 = &game_object_faces4[face];
+        p_face4->Flags = (ubyte)flag;
+        if (flag == 5)
+        {
+            p_face4->Shade0 = 0x80;
+            p_face4->Shade1 = 0x80;
+            p_face4->Shade2 = 0x3f;
+            p_face4->Shade3 = 0x3f;
+        }
+        else
+        {
+            p_face4->Shade0 = 0x20;
+            p_face4->Shade1 = 0x20;
+            p_face4->Shade2 = 0x20;
+            p_face4->Shade3 = 0x20;
+        }
+    }
 }
 
 
