@@ -289,12 +289,30 @@ int VNAV_there(int a1)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int VNAV_turn(int a1, int a2, int a3)
+static DIFFTEST_REF_FUNC int VNAV_turn_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
     asm volatile ("call ASM_VNAV_turn\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "esi", "edi", "cc", "memory");
     return ra;
+}
+
+int VNAV_turn(int a1, int a2, int a3)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    s32 *p_turns_left;
+    s32 *p_turns;
+    s32 turns;
+
+    DIFFTEST_SHADOW_RET(VNAV_turn, int, VNAV_turn_asm(a1, a2, a3));
+    // Dummy4a/Dummy4b and Dummy5a/Dummy5b are accessed as 32-bit values:
+    // a counter of remaining turns, and a list of 2-bit turn directions.
+    p_turns_left = (s32 *)&p_vehicle->U.UVehicle.Dummy4a;
+    p_turns = (s32 *)&p_vehicle->U.UVehicle.Dummy5a;
+    (*p_turns_left)--;
+    turns = *p_turns;
+    *p_turns = turns >> 2;
+    DIFFTEST_RETURN((int)(turns & 0x3));
 }
 
 
