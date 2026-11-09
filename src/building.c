@@ -293,16 +293,55 @@ void process_dome1(struct Thing *p_building)
         break;
     }
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int sit_on_my_face(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int sit_on_my_face_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_sit_on_my_face\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Checks whether given face belongs to one of the objects of given thing.
+ * Negative face index refers to a quad face (SingleObjectFace4).
+ *
+ * Routed asm (internal label): a1 = face, a2 = thing pointer.
+ */
+int sit_on_my_face(int a1, int a2, int a3, int a4)
+{
+    int face = a1;
+    struct Thing *p_thing = (struct Thing *)a2;
+    struct SingleObject *p_objects;
+    int i;
+
+    DIFFTEST_SHADOW_RET(sit_on_my_face, int, sit_on_my_face_asm(a1, a2, a3, a4));
+    p_objects = game_objects;
+    for (i = 0; i < (int)p_thing->U.UObject.NumbObjects; i++)
+    {
+        struct SingleObject *p_sobj;
+        int start, end;
+
+        p_sobj = &p_objects[p_thing->U.UObject.Object + i];
+        if (face < 0)
+        {
+            start = p_sobj->StartFace4;
+            end = start + p_sobj->NumbFaces4;
+            if (-face >= start && -face <= end) {
+                game_objects = p_objects;
+                DIFFTEST_RETURN(1);
+            }
+        }
+        else
+        {
+            start = p_sobj->StartFace;
+            end = start + p_sobj->NumbFaces;
+            if (face >= start && face <= end) {
+                game_objects = p_objects;
+                DIFFTEST_RETURN(1);
+            }
+        }
+    }
+    game_objects = p_objects;
+    DIFFTEST_RETURN(0);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
