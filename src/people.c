@@ -6829,13 +6829,60 @@ int find_best_guardian(int a1, int a2, int a3, int a4)
 }
 
 
-uint find_and_alert_guardian(struct Thing *p_person, struct Thing *p_attacker)
+extern s32 dword_1AA680;
+
+static DIFFTEST_REF_FUNC uint find_and_alert_guardian_asm(struct Thing *p_person,
+  struct Thing *p_attacker)
 {
     uint ret;
     asm volatile (
       "call ASM_find_and_alert_guardian\n"
-        : "=r" (ret) : "a" (p_person), "d" (p_attacker));
+        : "=a" (ret) : "a" (p_person), "d" (p_attacker));
     return ret;
+}
+
+/** Sends guardian groups of the person's group to attack the attacker.
+ *
+ * Returns 1 if at least one guardian was alerted and the limit was reached,
+ * 0 when the guardian list ended.
+ */
+uint find_and_alert_guardian(struct Thing *p_person, struct Thing *p_attacker)
+{
+    struct Thing *p_guard;
+    ushort i, count;
+    ushort grp;
+
+    DIFFTEST_SHADOW_RET(find_and_alert_guardian, uint,
+      find_and_alert_guardian_asm(p_person, p_attacker));
+    count = 0;
+    for (i = 0; i < 8; i++)
+    {
+        grp = war_flags[p_person->U.UPerson.EffectiveGroup].Guardians[i];
+        if (grp == 0)
+            DIFFTEST_RETURN((uint)0);
+        if (things == NULL)
+            continue;
+        while (1)
+        {
+            p_guard = (struct Thing *)find_best_guardian((int)p_person, grp,
+              (int)p_person, count);
+            if (p_guard == NULL)
+                break;
+            p_guard->State = PerSt_INIT_SAVE_VICTIM;
+            p_guard->U.UPerson.ComRange = 20;
+            p_guard->GotoThingIndex = p_attacker->ThingOffset;
+            p_guard->PTarget = p_attacker;
+            p_guard->Flag |= TngF_Unkn00800000;
+            p_guard->Owner = p_person->ThingOffset;
+            p_person->Flag |= TngF_Unkn00400000;
+            if (dword_1AA680 >= 0x1000)
+                DIFFTEST_RETURN((uint)1);
+            if (count >= 10)
+                DIFFTEST_RETURN((uint)1);
+            count++;
+        }
+    }
+    DIFFTEST_RETURN((uint)0);
 }
 
 static DIFFTEST_REF_FUNC void init_recoil_asm(struct Thing *p_person,
