@@ -1723,10 +1723,52 @@ void set_object_flag(int a1, int a2, int a3, int a4)
 
 
 
-void process_shuttle_pod(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_shuttle_pod_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_shuttle_pod\n"
         : : "a" (p_vehicle));
+}
+
+void process_shuttle_pod(struct Thing *p_vehicle)
+{
+    struct Thing *p_station;
+    short tnode, station;
+
+    DIFFTEST_SHADOW(process_shuttle_pod, process_shuttle_pod_asm(p_vehicle));
+    tnode = p_vehicle->U.UVehicle.TNode;
+    if (tnode < 0)
+    {
+        if ((short)exit_pod((int)p_vehicle, tnode, (int)p_vehicle, 0) != 0)
+        {
+            station = -tnode;
+            set_object_flag((ushort)things[(ushort)station].U.UObject.Object,
+              0x15, (int)p_vehicle, 0);
+            remove_thing(p_vehicle->ThingOffset);
+        }
+        return;
+    }
+
+    p_station = &things[tnode];
+    set_object_flag((ushort)things[(ushort)tnode].U.UObject.Object,
+      5, (int)p_vehicle, 0);
+    station = p_station->U.UObject.PrevThing;
+    if (station != 0)
+    {
+        set_object_flag((ushort)things[(ushort)station].U.UObject.Object,
+          0x15, (int)p_vehicle, 0);
+    }
+    p_vehicle->X = p_station->X;
+    p_vehicle->Y = p_station->Y;
+    p_vehicle->Z = p_station->Z;
+    station = p_station->U.UObject.NextThing;
+    if (station == 0)
+    {
+        p_vehicle->U.UVehicle.TNode = -p_vehicle->U.UVehicle.TNode;
+        p_vehicle->VX = p_station->VX;
+        p_vehicle->VZ = p_station->VZ;
+        return;
+    }
+    p_vehicle->U.UVehicle.TNode = station;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
