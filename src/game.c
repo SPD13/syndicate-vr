@@ -1129,12 +1129,47 @@ void check_mouse_overvehicle(struct Thing *p_thing, ubyte target_assign)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int can_the_tank_run_over(int a1, int a2)
+static DIFFTEST_REF_FUNC int can_the_tank_run_over_asm(int a1, int a2)
 {
     int ra = a1, rd = a2;
     asm volatile ("call ASM_can_the_tank_run_over\n"
         : "+a" (ra), "+d" (rd) : : "ebx", "ecx", "esi", "edi", "cc", "memory");
     return ra;
+}
+
+int can_the_tank_run_over(int a1, int a2)
+{
+    struct SimpleThing *p_sthing = (struct SimpleThing *)a1;
+    ushort frame;
+
+    DIFFTEST_SHADOW_RET(can_the_tank_run_over, int, can_the_tank_run_over_asm(a1, a2));
+    frame = (ushort)p_sthing->StartFrame;
+    if ((frame > 1024) && (frame < 1029))
+        DIFFTEST_RETURN((int)1);
+    if ((frame > 1004) && (frame < 1008))
+        DIFFTEST_RETURN((int)1);
+    switch (frame)
+    {
+    case 999:
+    case 1002:
+    case 1004:
+    case 1008:
+    case 1032:
+    case 1037:
+    case 1038:
+    case 1050:
+        DIFFTEST_RETURN((int)1);
+    case 1001:
+    case 1030:
+    case 1034:
+    case 1035:
+    case 1047:
+    case 1049:
+        DIFFTEST_RETURN((int)1);
+    default:
+        break;
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 /** Advances one crater from the map craters buffer.
