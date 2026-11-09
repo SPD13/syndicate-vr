@@ -966,10 +966,166 @@ int apply_object_morph(int a1, int a2, int a3, int a4)
 }
 
 
-void process_gate1(struct Thing *p_building)
+static DIFFTEST_REF_FUNC void process_gate1_asm(struct Thing *p_building)
 {
     asm volatile ("call ASM_process_gate1\n"
         : : "a" (p_building));
+}
+
+void process_gate1(struct Thing *p_building)
+{
+    short dx, dz;
+    short obj;
+
+    DIFFTEST_SHADOW(process_gate1, process_gate1_asm(p_building));
+    dx = p_building->U.UObject.TargetDX;
+    dz = p_building->U.UObject.TargetDZ;
+
+    switch ((ushort)p_building->State)
+    {
+    // TODO both panel pairs use MinY[0], and state 13 sets the bottom OffsetY
+    // without the +500 used everywhere else; kept as in the original
+    case 13: // panels moving down (RaiseY towards -500)
+        if (p_building->U.UObject.Timer[0] == 0)
+        {
+            if (p_building->U.UObject.RaiseY[0] > -500)
+            {
+                apply_object_morph((ushort)(p_building->U.UObject.Object + 1), (short)(-dx), (short)(-dz), 1);
+                apply_object_morph((ushort)(p_building->U.UObject.Object + 3), dx, dz, 0);
+                obj = p_building->U.UObject.Object;
+                game_objects[obj + 1].OffsetY = p_building->U.UObject.RaiseY[0] + p_building->U.UObject.MinY[0] + 500;
+                game_objects[obj + 3].OffsetY = p_building->U.UObject.RaiseY[0] + p_building->U.UObject.MinY[0] + 500;
+                p_building->U.UObject.RaiseY[0] += p_building->U.UObject.RaiseDY[0];
+            }
+            else
+            {
+                obj = p_building->U.UObject.Object;
+                game_objects[obj + 1].OffsetY = p_building->U.UObject.MinY[0];
+                game_objects[obj + 3].OffsetY = p_building->U.UObject.MinY[0];
+            }
+        }
+        else
+        {
+            p_building->U.UObject.Timer[0]--;
+        }
+        if (p_building->U.UObject.Timer[1] == 0)
+        {
+            if (p_building->U.UObject.RaiseY[1] > -500)
+            {
+                apply_object_morph((ushort)(p_building->U.UObject.Object + 2), (short)(-dx), (short)(-dz), 0);
+                apply_object_morph((ushort)(p_building->U.UObject.Object + 4), dx, dz, 1);
+                obj = p_building->U.UObject.Object;
+                game_objects[obj + 2].OffsetY = p_building->U.UObject.RaiseY[1] + p_building->U.UObject.MinY[0] + 500;
+                game_objects[obj + 4].OffsetY = p_building->U.UObject.RaiseY[1] + p_building->U.UObject.MinY[0] + 500;
+                p_building->U.UObject.RaiseY[1] += p_building->U.UObject.RaiseDY[1];
+            }
+            else
+            {
+                obj = p_building->U.UObject.Object;
+                game_objects[obj + 2].OffsetY = p_building->U.UObject.MinY[0];
+                game_objects[obj + 4].OffsetY = p_building->U.UObject.MinY[0];
+            }
+        }
+        else
+        {
+            p_building->U.UObject.Timer[1]--;
+        }
+        if ((p_building->U.UObject.RaiseY[0] <= -500) && (p_building->U.UObject.RaiseY[1] <= -500))
+        {
+            p_building->Flag = 0x40;
+            p_building->State = 19;
+        }
+        break;
+    case 15: // panels moving back up (RaiseY towards 0)
+        if ((p_building->Flag & 0x20) != 0)
+        {
+            p_building->State = 13;
+            p_building->Flag = 0;
+            p_building->U.UObject.Timer[0] = 3;
+            p_building->U.UObject.Timer[1] = 0;
+            p_building->U.UObject.RaiseDY[0] = -50;
+            p_building->U.UObject.RaiseDY[1] = -50;
+            break;
+        }
+        if (p_building->U.UObject.Timer[0] == 0)
+        {
+            if (p_building->U.UObject.RaiseY[0] < 0)
+            {
+                apply_object_morph((ushort)(p_building->U.UObject.Object + 1), dx, dz, 1);
+                apply_object_morph((ushort)(p_building->U.UObject.Object + 3), (short)(-dx), (short)(-dz), 0);
+                obj = p_building->U.UObject.Object;
+                game_objects[obj + 1].OffsetY = p_building->U.UObject.RaiseY[0] + p_building->U.UObject.MinY[0] + 500;
+                game_objects[obj + 3].OffsetY = p_building->U.UObject.RaiseY[0] + p_building->U.UObject.MinY[0] + 500;
+                p_building->U.UObject.RaiseY[0] += p_building->U.UObject.RaiseDY[0];
+            }
+            else
+            {
+                obj = p_building->U.UObject.Object;
+                game_objects[obj + 1].OffsetY = p_building->U.UObject.MinY[0] + 500;
+                game_objects[obj + 3].OffsetY = p_building->U.UObject.MinY[0] + 500;
+            }
+        }
+        else
+        {
+            p_building->U.UObject.Timer[0]--;
+        }
+        if (p_building->U.UObject.Timer[1] == 0)
+        {
+            if (p_building->U.UObject.RaiseY[1] < 0)
+            {
+                apply_object_morph((ushort)(p_building->U.UObject.Object + 2), dx, dz, 0);
+                apply_object_morph((ushort)(p_building->U.UObject.Object + 4), (short)(-dx), (short)(-dz), 1);
+                obj = p_building->U.UObject.Object;
+                game_objects[obj + 2].OffsetY = p_building->U.UObject.RaiseY[1] + p_building->U.UObject.MinY[0] + 500;
+                game_objects[obj + 4].OffsetY = p_building->U.UObject.RaiseY[1] + p_building->U.UObject.MinY[0] + 500;
+                p_building->U.UObject.RaiseY[1] += p_building->U.UObject.RaiseDY[1];
+            }
+            else
+            {
+                obj = p_building->U.UObject.Object;
+                game_objects[obj + 2].OffsetY = p_building->U.UObject.MinY[0] + 500;
+                game_objects[obj + 4].OffsetY = p_building->U.UObject.MinY[0] + 500;
+            }
+        }
+        else
+        {
+            p_building->U.UObject.Timer[1]--;
+        }
+        if ((p_building->U.UObject.RaiseY[0] < 0) || (p_building->U.UObject.RaiseY[1] < 0))
+            break;
+        obj = p_building->U.UObject.Object;
+        p_building->U.UObject.RaiseY[0] = 0;
+        p_building->U.UObject.RaiseY[1] = 0;
+        game_objects[obj + 1].OffsetY = p_building->U.UObject.MinY[0] + 500;
+        game_objects[obj + 3].OffsetY = p_building->U.UObject.MinY[0] + 500;
+        game_objects[obj + 2].OffsetY = p_building->U.UObject.MinY[0] + 500;
+        game_objects[obj + 4].OffsetY = p_building->U.UObject.MinY[0] + 500;
+        p_building->Flag = 0x80;
+        p_building->State = 19;
+        break;
+    case 19: // waiting for a trigger flag
+        if ((p_building->Flag & 0x20) != 0)
+        {
+            p_building->State = 13;
+            p_building->Flag = 0;
+            p_building->U.UObject.Timer[0] = 3;
+            p_building->U.UObject.Timer[1] = 0;
+            p_building->U.UObject.RaiseDY[0] = -50;
+            p_building->U.UObject.RaiseDY[1] = -50;
+        }
+        if ((p_building->Flag & 0x100) != 0)
+        {
+            p_building->State = 15;
+            p_building->Flag = 0;
+            p_building->U.UObject.Timer[0] = 0;
+            p_building->U.UObject.Timer[1] = 3;
+            p_building->U.UObject.RaiseDY[0] = 50;
+            p_building->U.UObject.RaiseDY[1] = 50;
+        }
+        break;
+    default:
+        break;
+    }
 }
 
 void process_bld36(struct Thing *p_building)
