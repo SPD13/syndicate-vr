@@ -11441,6 +11441,23 @@ short do_move_colide(struct Thing *p_person, int dx, int dz, struct MyMapElement
 
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void delete_vect(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[4];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    stkargs[2] = a7;
+    stkargs[3] = a8;
+    asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_delete_vect\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
 
 short person_hit_razor_wire(struct Thing *p_person, ThingIdx thing)
 {

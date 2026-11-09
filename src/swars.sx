@@ -15128,7 +15128,7 @@ GLOBAL_FUNC(ASM_snap_razor_wire)	/* 0x0491F0 */
 		mov    0x18(%esi),%eax
 		sar    $0x8,%eax
 		cwtl
-		call   delete_vect
+		call   ac_delete_vect
 		xor    %eax,%eax
 		mov    0x16(%esi),%ax
 		call   ac_remove_thing
@@ -15227,7 +15227,7 @@ GLOBAL_FUNC(ASM_person_hit_razor_wire)	/* 0x049294 */
 		mov    %eax,0x10(%esp)
 		mov    0x10(%esp),%eax
 		cwtl
-		call   delete_vect
+		call   ac_delete_vect
 		xor    %eax,%eax
 		mov    0x16(%esi),%ax
 		mov    $0x1,%dh
@@ -15423,7 +15423,7 @@ GLOBAL_FUNC(ASM_person_hit_razor_wire)	/* 0x049294 */
 		mov    %eax,0x10(%esp)
 		mov    0x10(%esp),%eax
 		cwtl
-		call   delete_vect
+		call   ac_delete_vect
 		xor    %eax,%eax
 		mov    0x16(%esi),%ax
 		call   ac_remove_thing
@@ -15481,7 +15481,7 @@ GLOBAL_FUNC(ASM_person_hit_razor_wire)	/* 0x049294 */
 		mov    0x18(%esi),%eax
 		sar    $0x8,%eax
 		cwtl
-		call   delete_vect
+		call   ac_delete_vect
 		xor    %eax,%eax
 		mov    0x16(%esi),%ax
 		call   ac_remove_thing
@@ -38123,7 +38123,7 @@ del_col_vect_from_mapwho:	/* 0x05D5B0 */
 
 
 /*----------------------------------------------------------------*/
-delete_vect:	/* 0x05D694 */
+GLOBAL_FUNC(ASM_delete_vect)	/* 0x05D694 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -59129,7 +59129,7 @@ GLOBAL_FUNC(ASM_process_shuttle_pod)	/* 0x078E90 */
 		mov    0x52(%edx,%eax,1),%ax
 		mov    $0x15,%edx
 		and    $0xffff,%eax
-		call   set_object_flag
+		call   ac_set_object_flag
 		xor    %eax,%eax
 		mov    0x16(%ebx),%ax
 		call   ac_remove_thing
@@ -59151,7 +59151,7 @@ GLOBAL_FUNC(ASM_process_shuttle_pod)	/* 0x078E90 */
 		mov    0x52(%edi,%eax,8),%ax
 		mov    $0x5,%edx
 		and    $0xffff,%eax
-		call   set_object_flag
+		call   ac_set_object_flag
 		mov    0x4e(%ecx),%dx
 		test   %dx,%dx
 		je     jump_78f6a
@@ -59166,7 +59166,7 @@ GLOBAL_FUNC(ASM_process_shuttle_pod)	/* 0x078E90 */
 		mov    0x52(%edx,%eax,8),%ax
 		mov    $0x15,%edx
 		and    $0xffff,%eax
-		call   set_object_flag
+		call   ac_set_object_flag
 	jump_78f6a:
 		mov    0x18(%ecx),%eax
 		mov    %eax,0x18(%ebx)
@@ -65532,7 +65532,7 @@ GLOBAL_FUNC(ASM_process_mounted_gun)	/* 0x07D710 */
 
 
 /*----------------------------------------------------------------*/
-set_object_flag:	/* 0x07D848 */
+GLOBAL_FUNC(ASM_set_object_flag)	/* 0x07D848 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -65876,7 +65876,7 @@ func_7dbc0:
 
 
 /*----------------------------------------------------------------*/
-apply_object_morph:	/* 0x07DC28 */
+GLOBAL_FUNC(ASM_apply_object_morph)	/* 0x07DC28 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -66107,7 +66107,7 @@ GLOBAL_FUNC(ASM_process_gate1)	/* 0x07DEAC */
 		inc    %eax
 		mov    $0x1,%ecx
 		and    $0xffff,%eax
-		call   apply_object_morph
+		call   ac_apply_object_morph
 		mov    -0x2(%esp),%ebx
 		movswl %di,%edx
 		mov    0x52(%esi),%ax
@@ -66115,7 +66115,7 @@ GLOBAL_FUNC(ASM_process_gate1)	/* 0x07DEAC */
 		add    $0x3,%eax
 		and    $0xffff,%eax
 		xor    %ecx,%ecx
-		call   apply_object_morph
+		call   ac_apply_object_morph
 		mov    0x72(%esi),%ax
 		mov    0x76(%esi),%cx
 		add    %eax,%ecx
@@ -66179,7 +66179,7 @@ GLOBAL_FUNC(ASM_process_gate1)	/* 0x07DEAC */
 		add    $0x2,%eax
 		and    $0xffff,%eax
 		xor    %ecx,%ecx
-		call   apply_object_morph
+		call   ac_apply_object_morph
 		mov    -0x2(%esp),%ebx
 		movswl %di,%edx
 		mov    0x52(%esi),%ax
@@ -66187,7 +66187,7 @@ GLOBAL_FUNC(ASM_process_gate1)	/* 0x07DEAC */
 		add    $0x4,%eax
 		mov    $0x1,%ecx
 		and    $0xffff,%eax
-		call   apply_object_morph
+		call   ac_apply_object_morph
 		mov    0x50(%esi),%edx
 		mov    EXPORT_SYMBOL(game_objects),%ebx
 		sar    $0x10,%edx
@@ -66285,7 +66285,7 @@ GLOBAL_FUNC(ASM_process_gate1)	/* 0x07DEAC */
 		inc    %eax
 		mov    $0x1,%ecx
 		and    $0xffff,%eax
-		call   apply_object_morph
+		call   ac_apply_object_morph
 		mov    (%esp),%eax
 		neg    %eax
 		movswl %ax,%ebx
@@ -66296,7 +66296,7 @@ GLOBAL_FUNC(ASM_process_gate1)	/* 0x07DEAC */
 		add    $0x3,%eax
 		and    $0xffff,%eax
 		xor    %ecx,%ecx
-		call   apply_object_morph
+		call   ac_apply_object_morph
 		mov    0x72(%esi),%ax
 		mov    0x76(%esi),%bx
 		add    %eax,%ebx
@@ -66358,7 +66358,7 @@ GLOBAL_FUNC(ASM_process_gate1)	/* 0x07DEAC */
 		add    $0x2,%eax
 		and    $0xffff,%eax
 		xor    %ecx,%ecx
-		call   apply_object_morph
+		call   ac_apply_object_morph
 		mov    (%esp),%eax
 		neg    %eax
 		neg    %edi
@@ -66368,7 +66368,7 @@ GLOBAL_FUNC(ASM_process_gate1)	/* 0x07DEAC */
 		add    $0x4,%eax
 		mov    $0x1,%ecx
 		and    $0xffff,%eax
-		call   apply_object_morph
+		call   ac_apply_object_morph
 		mov    0x74(%esi),%ax
 		mov    0x76(%esi),%cx
 		add    %eax,%ecx
