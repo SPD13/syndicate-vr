@@ -2594,12 +2594,47 @@ void VNAV_find_dropoff_point(int a1, int a2, int a3, int a4, int a5)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int VNAV_can_i_get_there(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int VNAV_can_i_get_there_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_VNAV_can_i_get_there\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
     return ra;
+}
+
+/** Route buffer filled by VNAV_do(); asm data at VNAV_route,
+ * the route node list starts at VNAV_route__route.
+ */
+extern short VNAV_route;
+extern short VNAV_route__route[];
+
+void VNAV_find_nearnodes(int a1, int a2, int a3, int a4);
+
+/** Checks whether vehicle a1 can drive to map point (a2,a3).
+ * Returns 0 if no drop-off node is found, or if a route from the vehicle's
+ * current traffic node is computed and its second entry is 42.
+ */
+int VNAV_can_i_get_there(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    s32 drop_a, drop_node, drop_b;
+    s32 x, z;
+    short tnode;
+
+    DIFFTEST_SHADOW_RET(VNAV_can_i_get_there, int, VNAV_can_i_get_there_asm(a1, a2, a3, a4));
+    z = (short)a3;
+    x = (short)a2;
+    VNAV_find_nearnodes(x, z, z, x);
+    VNAV_find_dropoff_point((int)&drop_node, (int)&drop_b, (int)&drop_a, x, z);
+    tnode = (short)drop_node;
+    if (tnode == 9999)
+        DIFFTEST_RETURN(0);
+    if (p_vehicle->U.UVehicle.TNode == -tnode)
+        DIFFTEST_RETURN(1);
+    VNAV_do(p_vehicle->U.UVehicle.TNode, (short)(-drop_node), (int)&VNAV_route, x);
+    if (VNAV_route__route[1] == 42)
+        DIFFTEST_RETURN(0);
+    DIFFTEST_RETURN(1);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
