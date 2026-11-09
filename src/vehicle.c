@@ -755,7 +755,7 @@ void VNAV_qwertyuiop(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void VNAV_find_start_dropoff_point(int a1, int a2, int a3, int a4, int a5)
+static DIFFTEST_REF_FUNC void VNAV_find_start_dropoff_point_asm(int a1, int a2, int a3, int a4, int a5)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[1];
@@ -763,6 +763,53 @@ void VNAV_find_start_dropoff_point(int a1, int a2, int a3, int a4, int a5)
     stkargs[0] = a5;
     asm volatile ("push 0(%4)\n""call ASM_VNAV_find_start_dropoff_point\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+/** Among links of the nodes in VNAV_nearnodes[], finds the one whose
+ * segment is closest to point (a4,a5). Stores the node in *a1, link
+ * index in *a2 and position along the segment in *a3.
+ */
+void VNAV_find_start_dropoff_point(int a1, int a2, int a3, int a4, int a5)
+{
+    short *p_tnode_out = (short *)a1;
+    ubyte *p_link_out = (ubyte *)a2;
+    s32 *p_frac_out = (s32 *)a3;
+    struct TrafficNode *p_tnode;
+    struct TrafficNode *p_lnode;
+    s32 best_dist, dist, frac;
+    s32 node_x, node_z;
+    short link;
+    int i, j;
+
+    DIFFTEST_SHADOW(VNAV_find_start_dropoff_point,
+      VNAV_find_start_dropoff_point_asm(a1, a2, a3, a4, a5));
+    if (VNAV_nearnodes[0] == 0)
+        return;
+    best_dist = 0xfffffff;
+    *p_tnode_out = 9999;
+    for (i = 0; i < 5; i++)
+    {
+        p_tnode = &game_traffic_nodes[VNAV_nearnodes[i]];
+        node_x = p_tnode->X;
+        node_z = p_tnode->Z;
+        for (j = 0; j < 4; j++)
+        {
+            link = p_tnode->UTraffic.Link[j];
+            if (link >= 0)
+                continue;
+            if ((p_tnode->UTraffic.Flags[j] & 0x40) != 0)
+                continue;
+            p_lnode = &game_traffic_nodes[-link];
+            VNAV_qwertyuiop((int)&dist, (int)&frac, node_x, node_z,
+              p_lnode->X, p_lnode->Z, (short)a4, (short)a5);
+            if (dist >= best_dist)
+                continue;
+            *p_tnode_out = VNAV_nearnodes[i];
+            *p_link_out = j;
+            *p_frac_out = frac;
+            best_dist = dist;
+        }
+    }
 }
 
 
