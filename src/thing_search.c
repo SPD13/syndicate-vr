@@ -1261,7 +1261,7 @@ struct Thing *check_for_radius_hit_person(int prc_x, int prc_y, int prc_z,
 #endif
 }
 
-short find_nearest_person_min(int x, int y, int z,
+static DIFFTEST_REF_FUNC short find_nearest_person_min_asm(int x, int y, int z,
   int n_dist, int *a_dist, int angle1, u32 group_bits)
 {
     short ret;
@@ -1278,10 +1278,59 @@ short find_nearest_person_min(int x, int y, int z,
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_find_nearest_person_min\n"
-        : "=r" (ret)
+        : "=a" (ret)
         : "a" (x), "d" (y), "b" (z), "c" (n_dist), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+short find_nearest_person_min(int x, int y, int z,
+  int n_dist, int *a_dist, int angle1, u32 group_bits)
+{
+    ThingIdx thing;
+    ThingIdx nearest;
+    u32 best_dist;
+
+    DIFFTEST_SHADOW_RET(find_nearest_person_min, short,
+      find_nearest_person_min_asm(x, y, z, n_dist, a_dist, angle1, group_bits));
+    best_dist = 0xFFFFFFFF;
+    nearest = 0;
+    for (thing = same_type_head[1]; thing != 0; thing = things[thing].LinkSame)
+    {
+        struct Thing *p_thing;
+        s32 dt_x, dt_z;
+        u32 dist;
+        ubyte outside_angle;
+
+        p_thing = &things[thing];
+        if ((group_bits & (1u << (p_thing->U.UPerson.EffectiveGroup & 0x1F))) == 0)
+            continue;
+        if ((p_thing->Flag2 & TgF2_Unkn0020) != 0)
+            continue;
+        if ((p_thing->Flag & TngF_Destroyed) != 0)
+            continue;
+        dt_x = (p_thing->X >> 8) - x;
+        dt_z = (p_thing->Z >> 8) - z;
+        outside_angle = 0;
+        if ((short)angle1 >= 0)
+        {
+            short angdt;
+
+            angdt = (short)((angle1 - arctan(dt_x, -dt_z) + 0x800) & 0x7FF);
+            if ((angdt > 200) && (angdt < 0x737))
+                outside_angle = 1;
+        }
+        if (outside_angle)
+            continue;
+        dist = (u32)dt_x * (u32)dt_x + (u32)dt_z * (u32)dt_z;
+        if ((dist < best_dist) && (dist > (u32)n_dist))
+        {
+            best_dist = dist;
+            nearest = thing;
+        }
+    }
+    *a_dist = best_dist;
+    DIFFTEST_RETURN((short)nearest);
 }
 
 struct Thing *check_for_people(int x, int y, int z, ushort radius)
