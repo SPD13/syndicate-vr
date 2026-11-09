@@ -42,6 +42,7 @@
 #include "matrix.h"
 #include "misstat.h"
 #include "pathtrig.h"
+#include "people.h"
 #include "sound.h"
 #include "thing.h"
 #include "thing_fire.h"
@@ -2580,12 +2581,74 @@ void person_clear_route_and_teleport_to_vehicle(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int train_unkn_func_02(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int train_unkn_func_02_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
+    // The asm only sets the low 16 bits of esi before returning it;
+    // clear esi so the upper bits of the result are defined.
     asm volatile ("call ASM_train_unkn_func_02\n"
-        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : "S" (0) : "cc", "memory");
     return ra;
+}
+
+/** Finds a person standing on given face which waits for a train.
+ *
+ * @param a1 Index of the face (positive; persons on it have OnFace == -a1).
+ * @return Person thing index, or 0 if none found.
+ */
+int train_unkn_func_02(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person;
+    struct Thing *p_owner;
+    ushort face;
+    ThingIdx person;
+
+    DIFFTEST_SHADOW_RET(train_unkn_func_02, int, train_unkn_func_02_asm(a1, a2, a3, a4));
+    face = (ushort)a1;
+    for (person = same_type_head[1]; person != 0; person = p_person->LinkSame)
+    {
+        s32 onface;
+
+        p_person = &things[(ushort)person];
+        onface = p_person->U.UPerson.OnFace;
+        if (onface >= 0)
+            continue;
+        if (-onface != (s32)face)
+            continue;
+        if ((p_person->Flag & TngF_InVehicle) != 0)
+            continue;
+
+        if ((p_person->Flag & TngF_Persuaded) != 0)
+        {
+            p_owner = &things[(ushort)p_person->Owner];
+            if ((p_owner->Flag & TngF_InVehicle) == 0)
+                continue;
+            if (things[p_owner->U.UPerson.Vehicle].SubType != SubTT_VEH_TRAIN)
+                continue;
+            DIFFTEST_RETURN((int)(ushort)person);
+        }
+        else if ((p_person->Flag & TngF_PlayerAgent) != 0)
+        {
+            if ((p_person->U.UPerson.Flag3 & PrsF3_Unkn20) != 0)
+                DIFFTEST_RETURN((int)(ushort)person);
+            if ((ushort)p_person->State != PerSt_PROTECT_PERSON)
+                continue;
+            p_owner = &things[(ushort)p_person->Owner];
+            if ((p_owner->U.UPerson.Flag3 & PrsF3_Unkn20) != 0)
+                DIFFTEST_RETURN((int)(ushort)person);
+            if ((p_owner->Flag & TngF_InVehicle) == 0)
+                continue;
+            if (things[p_owner->U.UPerson.Vehicle].SubType != SubTT_VEH_TRAIN)
+                continue;
+            DIFFTEST_RETURN((int)(ushort)person);
+        }
+        else
+        {
+            if ((p_person->U.UPerson.Flag3 & PrsF3_Unkn80) == 0)
+                DIFFTEST_RETURN((int)(ushort)person);
+        }
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 
