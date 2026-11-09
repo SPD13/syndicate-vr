@@ -3236,16 +3236,89 @@ void path_init8_wide(int a1, int a2, int a3, int a4, int a5, int a6)
       p_path, &len2);
 }
 
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int ariadne_initialise_route(int a1, int a2, int a3, int a4)
+extern struct Path g_nav_data;
+extern u32 nav_stats__ThisTurn;
+extern s32 gamep_unknval_14;
+
+void count_fnavs(TbBool now_draw);
+void use_nav_data(int a1, int a2, int a3, int a4);
+void fatter_than_nothing(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC int ariadne_initialise_route_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_ariadne_initialise_route\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Prepares g_fat_data route for a thing towards given target coords.
+ * Arguments: a1 = struct Thing *, a2 = target x, a3 = target z (map
+ * coords, not shifted by 8); a4 unused.
+ * Returns 0 if coords are out of range, 1 otherwise.
+ */
+int ariadne_initialise_route(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing = (struct Thing *)a1;
+    s32 tgt_x = a2, tgt_z = a3;
+    s32 alt_x, alt_z;
+    ubyte zip;
+
+    DIFFTEST_SHADOW_RET(ariadne_initialise_route, int,
+      ariadne_initialise_route_asm(a1, a2, a3, a4));
+
+    // TODO the asm accepts tgt_z == 0x8000 while it rejects 0x8000 elsewhere
+    if ((p_thing->X >> 8) < 0 || (p_thing->X >> 8) >= 0x8000 ||
+      (p_thing->Z >> 8) < 0 || (p_thing->Z >> 8) >= 0x8000 ||
+      tgt_x < 0 || tgt_x >= 0x8000 ||
+      tgt_z < 0 || tgt_z > 0x8000)
+        DIFFTEST_RETURN((int)0);
+
+    zip = game_my_big_map[((p_thing->Z >> 16) << 7) + (p_thing->X >> 16)].Zip;
+    if (zip != 0)
+    {
+        gamep_unknval_14++;
+        if (game_my_big_map[((tgt_z >> 8) << 7) + (tgt_x >> 8)].Zip == zip)
+        {
+            g_fat_data.PathLength = 1;
+            g_fat_data.WayPoints[0].x8 = tgt_x << 8;
+            g_fat_data.WayPoints[0].y8 = tgt_z << 8;
+            use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+            DIFFTEST_RETURN((int)1);
+        }
+    }
+
+    if (func_5fe50(p_thing->X >> 8, p_thing->Z >> 8, tgt_x, tgt_z) != 0)
+    {
+        g_fat_data.WayPoints[0].x8 = tgt_x << 8;
+        g_fat_data.WayPoints[0].y8 = tgt_z << 8;
+        g_fat_data.PathLength = 1;
+        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        DIFFTEST_RETURN((int)1);
+    }
+
+    alt_x = dword_1AA3AC;
+    alt_z = dword_1AA3B0;
+    triangulation_select(2);
+    nav_stats__ThisTurn++;
+    path_init8_wide((int)(intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
+      tgt_x << 8, tgt_z << 8, -2);
+    if (g_nav_data.PathLength != 0)
+    {
+        fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data,
+          0x100, tgt_x << 8);
+        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        triangulation_select(1);
+        DIFFTEST_RETURN((int)1);
+    }
+
+    count_fnavs((TbBool)-1);
+    triangulation_select(1);
+    g_fat_data.WayPoints[0].x8 = alt_x << 8;
+    g_fat_data.PathLength = 1;
+    g_fat_data.WayPoints[0].y8 = alt_z << 8;
+    use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+    DIFFTEST_RETURN((int)1);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
