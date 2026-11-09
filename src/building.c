@@ -41,6 +41,7 @@
 #include "sound.h"
 #include "thing.h"
 #include "tngcolisn.h"
+#include "vehicle.h"
 #include "vehtraffic.h"
 #include "weapon.h"
 #include "swlog.h"
@@ -695,13 +696,61 @@ void collapse_building(short x, short y, short z, struct Thing *p_building)
     }
 }
 
-short create_a_pod(struct Thing *p_thing, struct Thing *p_loader, ushort pod_id)
+static DIFFTEST_REF_FUNC short create_a_pod_asm(struct Thing *p_thing,
+  struct Thing *p_loader, ushort pod_id)
 {
     short ret;
     asm volatile (
       "call ASM_create_a_pod\n"
-        : "=r" (ret) : "a" (p_thing), "d" (p_loader), "b" (pod_id));
+        : "=a" (ret) : "a" (p_thing), "d" (p_loader), "b" (pod_id));
     return ret;
+}
+
+short create_a_pod(struct Thing *p_thing, struct Thing *p_loader, ushort pod_id)
+{
+    struct Thing *p_pod;
+    short next;
+
+    DIFFTEST_SHADOW_RET(create_a_pod, short,
+      create_a_pod_asm(p_thing, p_loader, pod_id));
+    if (p_thing != NULL)
+        delete_node(p_thing);
+
+    if (pod_id == 0)
+    {
+        ThingIdx pod;
+
+        pod = get_new_thing();
+        if (pod == 0)
+            DIFFTEST_RETURN((short)0);
+        p_pod = &things[pod];
+        p_pod->Type = TT_VEHICLE;
+        p_pod->SubType = SubTT_VEH_SHUTTLE_POD;
+        p_pod->U.UVehicle.TNode = p_loader->ThingOffset;
+        if ((p_thing != NULL) && ((p_thing->Flag & TngF_PlayerAgent) != 0))
+            play_dist_sample(p_pod, 9, 127, 64, 100, -1, 1);
+    }
+    else
+    {
+        // TODO the asm leaves the pod pointer uninitialised when pod_id
+        // is non-zero; all callers pass 0, assume the id was meant
+        p_pod = &things[pod_id];
+    }
+
+    if (p_thing == NULL)
+    {
+        p_pod->U.UVehicle.PassengerHead = 0;
+        DIFFTEST_RETURN((short)0);
+    }
+
+    next = p_thing->Next;
+    p_thing->Next = p_pod->U.UVehicle.PassengerHead;
+    p_thing->U.UPerson.Vehicle = p_pod->ThingOffset;
+    p_pod->U.UVehicle.PassengerHead = p_thing->ThingOffset;
+    p_thing->U.UPerson.GotoX = ((p_thing->X >> 8) & ~0xFF) + 0x80;
+    p_thing->Flag |= TngF_Unkn4000;
+    p_thing->U.UPerson.GotoZ = ((p_thing->Z >> 8) & ~0xFF) + 0x80;
+    DIFFTEST_RETURN(next);
 }
 
 static DIFFTEST_REF_FUNC void process_shuttle_loader_asm(struct Thing *p_building)
