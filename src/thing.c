@@ -2931,11 +2931,82 @@ void test_stuff(int x, int y, int z, ushort owner)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void do_explode(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void do_explode_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_do_explode\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void explode_thing_object(int a1, int a2, int a3, int a4);
+
+void do_explode(int a1, int a2, int a3, int a4)
+{
+    short x, y, z;
+    short tile_x, tile_z;
+    short dx, dz;
+
+    DIFFTEST_SHADOW(do_explode, do_explode_asm(a1, a2, a3, a4));
+
+    x = (short)a1;
+    y = (short)a2;
+    z = (short)a3;
+
+    if (current_map == 11)
+    {
+        unkn01_pos_x = engn_xc >> 8;
+        unkn01_downcount = 50;
+        unkn01_pos_y = engn_zc >> 8;
+        return;
+    }
+
+    tile_x = x >> 8;
+    tile_z = z >> 8;
+    for (dx = -4; dx < 4; dx++)
+    {
+        for (dz = -4; dz < 4; dz++)
+        {
+            s32 tx, tz;
+            short thing;
+
+            tx = tile_x + dx;
+            if (tx <= 0 || tx >= 128)
+                continue;
+            tz = tile_z + dz;
+            if (tz <= 0 || tz >= 128)
+                continue;
+            thing = game_my_big_map[(tz << 7) + tx].Child;
+
+            while (thing != 0)
+            {
+                if (thing > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[thing];
+                    if ((p_thing->Type == TT_BUILDING)
+                      && ((p_thing->Flag & TngF_Destroyed) == 0)
+                      && (p_thing->SubType != SubTT_BLD_MGUN))
+                    {
+                        // TODO the same thing is checked again after collapse;
+                        // relies on collapse_building() setting TngF_Destroyed
+                        collapse_building(x, y, z, p_thing);
+                        continue;
+                    }
+                    thing = p_thing->Next;
+                }
+                else
+                {
+                    struct SimpleThing *p_sthing;
+
+                    p_sthing = &sthings[thing];
+                    if (p_sthing->Type == TT_BUILDING)
+                        explode_thing_object(thing, x, y, z);
+                    thing = p_sthing->Next;
+                }
+            }
+        }
+    }
 }
 
 
