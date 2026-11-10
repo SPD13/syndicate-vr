@@ -1226,16 +1226,58 @@ void process_mounted_gun(struct Thing *p_building)
         break;
     }
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int apply_object_morph(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int apply_object_morph_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_apply_object_morph\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Routed asm (internal label). Arguments are the raw registers the asm
+ * takes: a1 = object index, a2 = X shift, a3 = Z shift, a4 = which set
+ * of points to move. The return value is the leftover eax of the asm.
+ */
+int apply_object_morph(int a1, int a2, int a3, int a4)
+{
+    static const ubyte pts_set1[] = {0, 3, 4, 7, 9};
+    static const ubyte pts_set0[] = {1, 2, 5, 6, 8};
+    struct SingleObject *p_sobj;
+    const ubyte *pts;
+    short dx, dz;
+    u32 pt;
+    int i;
+
+    DIFFTEST_SHADOW_RET(apply_object_morph, int,
+      apply_object_morph_asm(a1, a2, a3, a4));
+    dx = (short)a2;
+    dz = (short)a3;
+    p_sobj = &game_objects[(ushort)a1];
+    pts = ((short)a4 != 0) ? pts_set1 : pts_set0;
+
+    // Only one axis is shifted; X takes precedence over Z
+    if (dx != 0)
+    {
+        for (i = 0; i < 5; i++)
+        {
+            pt = p_sobj->StartPoint + pts[i];
+            game_object_points[pt].X += dx;
+        }
+    }
+    else if (dz != 0)
+    {
+        for (i = 0; i < 5; i++)
+        {
+            pt = p_sobj->StartPoint + pts[i];
+            game_object_points[pt].Z += dz;
+        }
+    }
+    else
+    {
+        DIFFTEST_RETURN(a1);
+    }
+    // The asm leaves the scaled last point index in eax
+    DIFFTEST_RETURN((int)(pt * 5));
 }
 
 
