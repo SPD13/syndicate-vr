@@ -1934,12 +1934,81 @@ int func_4225c(int a1, int a2, int a3, int a4)
 }
 
 
-int create_train_carriage(short cor_dx, short cor_dy, short cor_dz, short otype)
+extern ushort word_1C83E2;
+extern ushort word_1C83E8;
+
+struct Thing *find_unused_train_track(void);
+
+static DIFFTEST_REF_FUNC int create_train_carriage_asm(short cor_dx, short cor_dy, short cor_dz, short otype)
 {
     int ret;
     asm volatile ("call ASM_create_train_carriage\n"
-        : "=r" (ret) : "a" (cor_dx), "d" (cor_dy), "b" (cor_dz), "c" (otype));
+        : "=a" (ret) : "a" (cor_dx), "d" (cor_dy), "b" (cor_dz), "c" (otype));
     return ret;
+}
+
+int create_train_carriage(short cor_dx, short cor_dy, short cor_dz, short otype)
+{
+    struct Thing *p_track;
+    struct Thing *p_thing;
+    ThingIdx thing;
+    s32 cor_x, cor_y, cor_z;
+    short radius;
+
+    DIFFTEST_SHADOW_RET(create_train_carriage, int,
+      create_train_carriage_asm(cor_dx, cor_dy, cor_dz, otype));
+    p_track = find_unused_train_track();
+    if (p_track == NULL) {
+        // TODO the asm returns the caller's EDI register here (undefined value)
+        DIFFTEST_RETURN((int)0);
+    }
+    cor_x = p_track->X >> 8;
+    cor_y = p_track->Y >> 8;
+    cor_z = p_track->Z >> 8;
+    cor_x += cor_dx;
+    cor_z += cor_dz;
+    // TODO cor_dy is not used by the original code
+    copy_prim_obj_to_game_object((ushort)cor_x, (ushort)cor_z,
+      (short)(-prim_unknprop01 - otype), 0);
+    unkn_object_shift_03((ushort)(next_object - 1));
+    create_unkn_building_subtp27((ushort)cor_x, (ushort)cor_z,
+      (ushort)(next_object - 1), 0);
+
+    thing = things_used_head;
+    p_thing = &things[(ushort)thing];
+    p_thing->VX = 0;
+    p_thing->VZ = 0;
+    p_thing->VY = 0;
+    p_thing->U.UVehicle.AngleX = 0;
+    p_thing->U.UVehicle.AngleY = 0;
+    p_thing->U.UVehicle.AngleZ = 0;
+    p_thing->X = cor_x << 8;
+    p_thing->Type = TT_VEHICLE;
+    p_thing->Z = cor_z << 8;
+    p_thing->SubType = SubTT_VEH_TRAIN;
+    p_thing->Y = cor_y << 5;
+    word_1C83E2 = thing;
+    radius = func_4225c((ushort)p_thing->U.UVehicle.Object, 0, 0, 0);
+
+    p_thing = &things[(ushort)thing];
+    p_thing->Health = 2000;
+    p_thing->U.UVehicle.MaxHealth = 2000;
+    p_thing->Radius = radius;
+    p_thing->Parent = 0;
+    p_thing->U.UVehicle.Object = next_object - 1;
+    p_thing->U.UVehicle.ReqdSpeed = 1024;
+    p_thing->Speed = 1024;
+    p_thing->U.UVehicle.TNode = p_track->ThingOffset;
+    p_thing->State = VehSt_UNKN_12;
+    p_thing->U.UVehicle.WorkPlace = 0;
+    p_thing->U.UVehicle.MatrixIndex = next_local_mat;
+    p_thing->Health = 30000;
+    p_thing->U.UVehicle.SubThing = 0;
+    next_local_mat++;
+    matrix_identity_fill(&local_mats[(short)p_thing->U.UVehicle.MatrixIndex]);
+    word_1C83E8 = thing;
+
+    DIFFTEST_RETURN((int)(ushort)thing);
 }
 
 static DIFFTEST_REF_FUNC struct Thing *find_unused_train_track_asm(void)
