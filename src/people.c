@@ -4270,11 +4270,13 @@ void fatter_than_nothing(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void set_xz_for_quad123(int a1, int a2, int a3, int a4)
+int set_xz_for_quad123(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_set_xz_for_quad123\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    // The asm returns the face triangle index in ax; asm callers rely on it
+    return ra;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -4760,10 +4762,81 @@ int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a
 
 
 
-void build_navigate_path_to_face_xz(struct Thing *p_thing, short face, int x, int z)
+static DIFFTEST_REF_FUNC void build_navigate_path_to_face_xz_asm(struct Thing *p_thing,
+  short face, int x, int z)
 {
     asm volatile ("call ASM_build_navigate_path_to_face_xz\n"
         : : "a" (p_thing), "d" (face), "b" (x), "c" (z));
+}
+
+/** Builds a navigation path for a person towards given map coords (not
+ * shifted by 8) lying on given face (negative - triangle, otherwise quad).
+ */
+void build_navigate_path_to_face_xz(struct Thing *p_thing, short face, int x, int z)
+{
+    int x0, z0;
+    s32 x8, z8;
+    short tringl0, tringl1;
+
+    DIFFTEST_SHADOW(build_navigate_path_to_face_xz,
+      build_navigate_path_to_face_xz_asm(p_thing, face, x, z));
+
+    tringl0 = -1;
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+        return;
+    if ((p_thing->Flag & TngF_PlayerAgent) == 0 && (p_thing->Flag2 & TgF2_Unkn00020000) != 0)
+    {
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        return;
+    }
+
+    p_thing->U.UPerson.LastDist = 0x7d00;
+    if ((p_thing->Flag2 & TgF2_Unkn0008) == 0)
+        p_thing->U.UPerson.BumpCount = 0;
+    if ((p_thing->X >> 8) < 0 || (p_thing->X >> 8) >= 0x8000 ||
+      (p_thing->Z >> 8) < 0 || (p_thing->Z >> 8) >= 0x8000)
+    {
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        return;
+    }
+
+    x0 = p_thing->X;
+    z0 = p_thing->Z;
+    if (p_thing->U.UPerson.OnFace != 0)
+    {
+        build_navigate_face_xz(p_thing, p_thing, p_thing->U.UPerson.OnFace,
+          &x0, &z0, &tringl0);
+    }
+
+    if (face < 0)
+        tringl1 = game_object_faces3[-face].UnknTringl;
+    else
+        tringl1 = set_xz_for_quad123((int)(intptr_t)&game_object_faces4[face],
+          x, z, tringl0);
+
+    x8 = x << 8;
+    z8 = z << 8;
+    nav_stats__ThisTurn++;
+    tri_path_init8(tringl0, tringl1, (int)(intptr_t)&g_nav_data, x0, z0, x8, z8, -2);
+
+    if (g_nav_data.PathLength == 0)
+    {
+        g_fat_data.bx8 = x8;
+        g_fat_data.ax8 = x0;
+        g_fat_data.by8 = z8;
+        g_fat_data.ay8 = z0;
+        g_fat_data.WayPoints[0].x8 = x8;
+        g_fat_data.PathLength = 1;
+        g_fat_data.WayPoints[0].y8 = z8;
+        use_nav_data((int)(intptr_t)p_thing, tringl1, 0, 0);
+        count_fnavs(0);
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        return;
+    }
+
+    fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data, 0x80, 0);
+    use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+    unkn_path_func_001(p_thing, 1);
 }
 
 /** Initialize drop item state.
