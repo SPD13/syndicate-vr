@@ -393,11 +393,84 @@ int VNAV_turn(int a1, int a2, int a3)
 
 
 
-void process_next_vnav_turn(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_next_vnav_turn_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_next_vnav_turn\n"
         : : "a" (p_vehicle));
-    return;
+}
+
+/** Moves the vehicle to the next traffic node of its VNAV route.
+ * Dummy4a/Dummy4b and Dummy5a/Dummy5b are accessed as 32-bit values.
+ */
+void process_next_vnav_turn(struct Thing *p_vehicle)
+{
+    struct TrafficNode *p_tnode;
+    struct TrafficNode *p_nxtnode;
+    u32 *p_d4;
+    u32 *p_d5;
+    ubyte *p_d4b;
+    s32 tnode, link, frac;
+    s32 x, z;
+    TbBool follow_route;
+
+    DIFFTEST_SHADOW(process_next_vnav_turn, process_next_vnav_turn_asm(p_vehicle));
+    p_d4 = (u32 *)&p_vehicle->U.UVehicle.Dummy4a;
+    p_d4b = (ubyte *)&p_vehicle->U.UVehicle.Dummy4a;
+    p_d5 = (u32 *)&p_vehicle->U.UVehicle.Dummy5a;
+
+    follow_route = !VNAV_there((int)p_vehicle);
+    if (!follow_route &&
+      p_vehicle->U.UVehicle.AccelX != p_vehicle->U.UVehicle.TNode)
+    {
+        // ecx is passed through by the asm; VNAV_do does not read it
+        follow_route = (VNAV_renavigate((int)p_vehicle, (int)p_vehicle,
+          p_vehicle->U.UVehicle.TNode, 0) != 0);
+        if (!follow_route)
+            p_vehicle->State = 0x3c;
+    }
+
+    if (follow_route)
+    {
+        // Follow the next turn of the computed route
+        tnode = p_vehicle->U.UVehicle.TNode;
+        p_tnode = &game_traffic_nodes[-tnode];
+        p_vehicle->U.UVehicle.Dummy4b = 0;
+        *p_d4 |= (u32)tnode << 16;
+        link = VNAV_turn((int)p_vehicle, (int)p_vehicle, (int)p_tnode);
+        *p_d4b &= 0x3f;
+        *p_d4 |= (u32)link << 6;
+        p_vehicle->U.UVehicle.TNode = p_tnode->UTraffic.Link[link];
+        if ((p_tnode->UTraffic.Flags[link] & 0x01) != 0)
+            p_vehicle->Flag |= TngF_Unkn08000000;
+        else
+            p_vehicle->Flag &= ~TngF_Unkn08000000;
+        if (p_vehicle->U.UVehicle.TNode == 0)
+            start_crashing(p_vehicle);
+        return;
+    }
+
+    // Arrived; take the link stored in low bits of AccelZ
+    tnode = p_vehicle->U.UVehicle.TNode;
+    p_tnode = &game_traffic_nodes[-tnode];
+    p_vehicle->U.UVehicle.Dummy4b = 0;
+    *p_d4 |= (u32)tnode << 16;
+    link = p_vehicle->U.UVehicle.AccelZ & 0xf;
+    *p_d4b &= 0x3f;
+    *p_d4 |= (u32)link << 6;
+    p_vehicle->U.UVehicle.TNode = p_tnode->UTraffic.Link[link];
+    p_vehicle->State = 0x33;
+
+    p_nxtnode = &game_traffic_nodes[-p_vehicle->U.UVehicle.TNode];
+    frac = (*p_d4 & 0xff00) >> 8;
+    if (frac < 0x30)
+        frac = 0x30;
+    else if (frac > 0xe0)
+        frac = 0xe0;
+    x = (((s32)p_nxtnode->X - p_tnode->X) * frac >> 8) + p_tnode->X;
+    z = (((s32)p_nxtnode->Z - p_tnode->Z) * frac >> 8) + p_tnode->Z;
+    *p_d5 = (u32)x;
+    *p_d5 = (u32)x << 16;
+    *p_d5 = ((u32)x << 16) | (u32)z;
 }
 
 void add_agphase1_lock(struct Thing *p_vehicle)
