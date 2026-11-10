@@ -3151,10 +3151,66 @@ int check_for_a_moving_vehicle_here(int a1, int a2, int a3, int a4)
 }
 
 
-void process_unstopping(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_unstopping_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_unstopping\n"
         : : "a" (p_vehicle));
+}
+
+void process_unstopping(struct Thing *p_vehicle)
+{
+    s32 accel_x, accel_z, step;
+    s32 base_x, base_z;
+
+    DIFFTEST_SHADOW(process_unstopping, process_unstopping_asm(p_vehicle));
+    accel_x = p_vehicle->U.UVehicle.AccelX;
+    accel_z = p_vehicle->U.UVehicle.AccelZ;
+    step = p_vehicle->U.UVehicle.Dummy4a & 0x3f;
+    if (step == 10)
+    {
+        base_x = (p_vehicle->X >> 8) - accel_x * 8;
+        base_z = (p_vehicle->Z >> 8) - accel_z * 8;
+        if (check_for_a_moving_vehicle_here(base_x + accel_z * 2,
+          base_z - accel_x * 2, (int)p_vehicle, (int)p_vehicle) != 0)
+        {
+            p_vehicle->U.UVehicle.ReqdSpeed = 0;
+            p_vehicle->U.UVehicle.WorkPlace |= 0x0200;
+            return;
+        }
+        if (check_for_a_moving_vehicle_here(base_x - accel_z * 2,
+          base_z + accel_x * 2, (int)p_vehicle, (int)p_vehicle) != 0)
+        {
+            p_vehicle->U.UVehicle.ReqdSpeed = 0;
+            p_vehicle->U.UVehicle.WorkPlace |= 0x0200;
+            return;
+        }
+    }
+
+    p_vehicle->U.UVehicle.WorkPlace &= ~0x0200;
+    if (step > 5)
+    {
+        p_vehicle->U.UVehicle.AngleZ = (11 - step) * -100;
+        accel_x += accel_x >> 1;
+        accel_z += accel_z >> 1;
+    }
+    else
+    {
+        p_vehicle->U.UVehicle.AngleZ = step * -100;
+        accel_x -= accel_x >> 2;
+        accel_z -= accel_z >> 2;
+    }
+    p_vehicle->U.UVehicle.AccelX = accel_x;
+    p_vehicle->U.UVehicle.AccelZ = accel_z;
+    p_vehicle->U.UVehicle.ReqdSpeed += 100;
+    if (step > 0)
+        step--;
+    p_vehicle->U.UVehicle.Dummy4a = (p_vehicle->U.UVehicle.Dummy4a & ~0x3f) | step;
+    if (step == 0)
+    {
+        p_vehicle->State = 50;
+        start_goto_vehicle(p_vehicle, p_vehicle->U.UVehicle.Dummy5b,
+          p_vehicle->U.UVehicle.Dummy5a);
+    }
 }
 
 void process_stopping(struct Thing *p_vehicle)
