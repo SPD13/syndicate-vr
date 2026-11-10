@@ -2934,12 +2934,49 @@ void generate_thin_paths(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int func_5fcf4(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int func_5fcf4_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_func_5fcf4\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Checks whether no collision vector at the tile of point (x1,z1)
+ * matches the segment (x1,z1)-(x2,z2), in either direction, within
+ * a tolerance of 32. Returns 0 if a matching vector exists, 1 otherwise.
+ */
+int func_5fcf4(int a1, int a2, int a3, int a4)
+{
+    s32 x1 = a1, z1 = a2, x2 = a3, z2 = a4;
+    s32 tile_x, tile_z;
+    ushort colvl;
+    int count;
+
+    DIFFTEST_SHADOW_RET(func_5fcf4, int, func_5fcf4_asm(a1, a2, a3, a4));
+    tile_x = x1 >> 8;
+    tile_z = z1 >> 8;
+    if ((tile_x < 0) || (tile_x >= 128) || (tile_z < 0) || (tile_z >= 128))
+        DIFFTEST_RETURN(0);
+
+    colvl = game_my_big_map[(tile_z << 7) + tile_x].ColHead;
+    count = 0;
+    while (colvl != 0)
+    {
+        struct ColVect *p_colvect;
+
+        if (count++ >= 200)
+            break;
+        p_colvect = &game_col_vects[game_col_vects_list[colvl].Vect];
+        if ((abs(p_colvect->X1 - x1) < 32) && (abs(p_colvect->X2 - x2) < 32)
+          && (abs(p_colvect->Z2 - z2) < 32) && (abs(p_colvect->Z1 - z1) < 32))
+            DIFFTEST_RETURN(0);
+        if ((abs(p_colvect->X1 - x2) < 32) && (abs(p_colvect->X2 - x1) < 32)
+          && (abs(p_colvect->Z2 - z1) < 32) && (abs(p_colvect->Z1 - z2) < 32))
+            DIFFTEST_RETURN(0);
+        colvl = game_col_vects_list[colvl].NextColList & 0x7FFF;
+    }
+    DIFFTEST_RETURN(1);
 }
 
 
