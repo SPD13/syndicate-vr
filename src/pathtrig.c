@@ -2980,11 +2980,86 @@ int func_5fcf4(int a1, int a2, int a3, int a4)
 }
 
 
-void triangulation_unkn_func_002(int x1, int z1, int x2, int z2)
+static DIFFTEST_REF_FUNC void triangulation_unkn_func_002_asm(int x1, int z1, int x2, int z2)
 {
     asm volatile (
       "call ASM_triangulation_unkn_func_002\n"
         : : "a" (x1), "d" (z1), "b" (x2), "c" (z2));
+}
+
+/** Marks edges of non-solid triangles within the given tile rectangle
+ * as enterable, when no collision vector lies along the edge and the
+ * sibling triangle across the edge is not solid; the sibling also gets
+ * its matching edge marked.
+ */
+void triangulation_unkn_func_002(int x1, int z1, int x2, int z2)
+{
+    s32 xmin, zmin, xmax, zmax;
+    int tri;
+
+    DIFFTEST_SHADOW(triangulation_unkn_func_002,
+      triangulation_unkn_func_002_asm(x1, z1, x2, z2));
+    xmin = x1 << 8;
+    zmin = z1 << 8;
+    xmax = (x2 + 1) << 8;
+    zmax = (z2 + 1) << 8;
+
+    for (tri = 0; tri < triangulation[0].ix_Triangles; tri++)
+    {
+        struct TrTriangle *p_tri;
+        struct TrTriangle *p_sibl;
+        struct TrPoint *p_pt[3];
+        ubyte inside;
+        int cor, i;
+
+        p_tri = &triangulation[0].Triangles[tri];
+        if ((p_tri->solid & 0x06) != 0)
+            continue;
+
+        inside = 0;
+        for (cor = 0; cor < 3; cor++)
+        {
+            struct TrPoint *p_pt_cor;
+
+            p_pt_cor = &triangulation[0].Points[(ushort)p_tri->point[cor]];
+            p_pt[cor] = p_pt_cor;
+            if ((p_pt_cor->x >= xmin) && (p_pt_cor->x <= xmax)
+              && (p_pt_cor->y >= zmin) && (p_pt_cor->y <= zmax))
+                inside |= (1 << cor);
+            // Third point is only checked if any of the first two is inside
+            if ((cor == 1) && (inside == 0))
+                break;
+        }
+        if (inside == 0)
+            continue;
+
+        for (cor = 0; cor < 3; cor++)
+        {
+            int cor2;
+            ubyte mask;
+
+            cor2 = MOD3[cor + 1];
+            mask = (1 << cor) | (1 << cor2);
+            if ((inside & mask) != mask)
+                continue;
+            if ((p_tri->enter & (1 << cor)) != 0)
+                continue;
+            if (func_5fcf4(p_pt[cor]->x, p_pt[cor]->y,
+              p_pt[cor2]->x, p_pt[cor2]->y) == 0)
+                continue;
+            p_sibl = &triangulation[0].Triangles[p_tri->tri[cor]];
+            if ((p_sibl->solid & 0x06) != 0)
+                continue;
+            p_tri->enter |= (1 << cor);
+            for (i = 0; i < 3; i++)
+            {
+                if (p_sibl->tri[i] == tri) {
+                    p_sibl->enter |= (1 << i);
+                    break;
+                }
+            }
+        }
+    }
 }
 
 int fringe_at_tile(short tile_x, short tile_z)
