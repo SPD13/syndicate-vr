@@ -2617,10 +2617,145 @@ void thing_unkn_change_speed(int a1, int a2, int a3, int a4)
 }
 
 
-void train_unkn_st18_func_1(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void train_unkn_st18_func_1_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_train_unkn_st18_func_1\n"
         : : "a" (p_vehicle));
+}
+
+void train_unkn_st18_func_1(struct Thing *p_vehicle)
+{
+    struct Thing *p_station;
+    struct Thing *p_other;
+    short tnode, angle, dt_angle;
+    s32 st_x, st_y, st_z;
+    s32 dt_x, dt_y, dt_z, dist_sq;
+
+    DIFFTEST_SHADOW(train_unkn_st18_func_1,
+      train_unkn_st18_func_1_asm(p_vehicle));
+    // TODO when TNode <= 0 the asm uses uninitialized registers/stack for
+    // the station and its position; callers only call it with TNode > 0
+    p_station = &things[0];
+    st_x = st_y = st_z = 0;
+    tnode = p_vehicle->U.UVehicle.TNode;
+    if (tnode > 0)
+    {
+        p_station = &things[tnode];
+        st_x = p_station->X >> 8;
+        st_y = (p_station->Y + 0xf00) >> 3;
+        st_z = p_station->Z >> 8;
+    }
+    dt_x = st_x - (p_vehicle->X >> 8);
+    dt_z = st_z - (p_vehicle->Z >> 8);
+    dist_sq = dt_x * dt_x + dt_z * dt_z;
+    p_vehicle->U.UVehicle.ReqdSpeed = (short)0xfaba;
+
+    if (p_vehicle->U.UVehicle.GotoX != 0)
+    {
+        p_other = &things[p_vehicle->U.UVehicle.GotoX];
+        p_vehicle->U.UVehicle.ReqdSpeed = p_other->U.UVehicle.ReqdSpeed;
+        if ((p_other->Flag & TngF_Unkn08000000) != (p_vehicle->Flag & TngF_Unkn08000000))
+        {
+            ThingIdx tng1, tng2, tng3;
+
+            tng1 = things[p_station->U.UObject.NextThing].U.UObject.NextThing;
+            tng2 = things[tng1].U.UObject.NextThing;
+            tng3 = things[tng2].U.UObject.NextThing;
+            p_vehicle->U.UVehicle.TNode = things[tng3].U.UObject.NextThing;
+            p_vehicle->Flag &= ~TngF_Unkn08000000;
+            if (p_vehicle->U.UVehicle.ComHead != 0)
+                play_dist_sample(p_vehicle, 0x62, 0x7f, 0x40, 100, 0, 1);
+            p_other = &things[p_vehicle->U.UVehicle.GotoX];
+            p_vehicle->State = 0x15;
+            p_vehicle->U.UVehicle.ComHead = p_other->U.UVehicle.ComHead;
+            p_vehicle->U.UVehicle.ReqdSpeed = 0;
+            p_vehicle->U.UVehicle.ComCur = p_other->U.UVehicle.ComCur;
+        }
+        else
+        {
+            thing_unkn_change_speed((int)p_vehicle,
+              (ushort)p_vehicle->U.UVehicle.GotoX, -200, 0);
+        }
+    }
+
+    if ((ushort)p_vehicle->State != 0x15 && dist_sq < 0x40000 && tnode > 0)
+    {
+        if (p_station->U.UObject.PrevThing != 0)
+        {
+            p_vehicle->U.UVehicle.TNode = p_station->U.UObject.PrevThing;
+        }
+        else if (p_vehicle->Speed != 0)
+        {
+            p_vehicle->U.UVehicle.ReqdSpeed = 0;
+        }
+        else
+        {
+            ThingIdx tng1, tng2, tng3;
+            short new_tnode;
+
+            p_vehicle->Flag &= ~TngF_Unkn08000000;
+            tng1 = things[p_station->U.UObject.NextThing].U.UObject.NextThing;
+            tng2 = things[tng1].U.UObject.NextThing;
+            tng3 = things[tng2].U.UObject.NextThing;
+            new_tnode = things[tng3].U.UObject.NextThing;
+            p_vehicle->State = 0x13;
+            p_vehicle->U.UVehicle.TNode = new_tnode;
+            p_vehicle->U.UVehicle.ComHead = p_station->U.UObject.ComHead;
+            p_vehicle->U.UVehicle.ReqdSpeed = 0;
+            p_vehicle->U.UVehicle.ComCur = p_station->U.UObject.ComCur;
+        }
+    }
+
+    if (dist_sq > 0x4000)
+    {
+        dt_y = (st_y >> 6) - (p_vehicle->Y >> 6);
+        // TODO the asm passes squared values to arctan()
+        angle = arctan(dt_y * dt_y, dt_z * dt_z + dt_x * dt_x) - 0x400;
+        if (angle > 100)
+            angle = 100;
+        else if (angle < -100)
+            angle = -100;
+        if (dt_y > 0)
+        {
+            p_vehicle->U.UVehicle.AngleX = angle;
+            p_vehicle->U.UVehicle.AngleX = -angle;
+        }
+        else
+        {
+            p_vehicle->U.UVehicle.AngleX = angle;
+        }
+    }
+
+    angle = (arctan(dt_x, dt_z) + 0x400) & 0x7ff;
+    dt_angle = p_vehicle->U.UVehicle.AngleY - angle;
+    if (dt_angle < -0x400)
+        dt_angle += 0x800;
+    else if (dt_angle > 0x400)
+        dt_angle -= 0x800;
+
+    if (dt_angle < 0)
+    {
+        if (dt_angle < -100)
+            p_vehicle->Speed = 0;
+        if (dt_angle > -50)
+            p_vehicle->U.UVehicle.AngleDY = -2 * dt_angle;
+        else
+            p_vehicle->U.UVehicle.AngleDY = 0x1e0;
+    }
+    else if (dt_angle > 0)
+    {
+        if (dt_angle > 100)
+            p_vehicle->Speed = 0;
+        if (dt_angle < 50)
+        {
+            p_vehicle->U.UVehicle.AngleDY = 2 * dt_angle;
+            p_vehicle->U.UVehicle.AngleDY = -2 * dt_angle;
+        }
+        else
+        {
+            p_vehicle->U.UVehicle.AngleDY = (short)0xfe20;
+        }
+    }
 }
 
 void train_unkn_st18_func_2(struct Thing *p_vehicle)
