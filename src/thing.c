@@ -2862,11 +2862,70 @@ void process_napalm_flame(struct SimpleThing *p_sthing, ThingIdx thing_item)
       (short)intens, p_sthing->U.UEffect.OZ);
 }
 
-void process_flame1(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_flame1_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_flame1\n"
         : : "a" (p_sthing));
+}
+
+void process_flame1(struct SimpleThing *p_sthing)
+{
+    struct Thing *p_person;
+
+    DIFFTEST_SHADOW(process_flame1, process_flame1_asm(p_sthing));
+
+    if (((p_sthing->ThingOffset + gameturn) & 1) != 0)
+        p_sthing->Frame = frame[(ushort)p_sthing->Frame].Next;
+
+    if (p_sthing->Timer1 > 0)
+    {
+        p_sthing->Timer1--;
+        // TODO the original keeps processing the flame after deleting it
+        if (p_sthing->Timer1 == 0)
+        {
+            remove_sthing(p_sthing->ThingOffset);
+            delete_snode(p_sthing);
+        }
+    }
+
+    p_person = check_for_radius_hit_person(p_sthing->X, p_sthing->Y,
+      p_sthing->Z, (ushort)p_sthing->Object, NULL, 0, 0);
+    if ((p_person == NULL) || (p_person->Type == TT_VEHICLE))
+        return;
+
+    if (p_person->Type != SmTT_STATIC)
+    {
+        struct Thing *p_owner;
+
+        if (p_person->ThingOffset == p_sthing->Owner2)
+            return;
+        p_owner = &things[(ushort)p_sthing->Owner2];
+        if (p_person->U.UPerson.EffectiveGroup == p_owner->U.UPerson.EffectiveGroup)
+            return;
+        if ((ushort)p_person->State == PerSt_PERSON_BURNING)
+            return;
+    }
+
+    p_sthing->Flag |= TngF_Unkn0008;
+    if ((p_person->Type != SmTT_STATIC) &&
+      ((p_person->Flag2 & TgF2_KnockedOut) == 0))
+    {
+        short angle;
+
+        angle = arctan((p_sthing->X >> 8) - (p_person->X >> 8),
+          -((p_sthing->Z >> 8) - (p_person->Z >> 8)));
+        p_person->U.UPerson.RecoilDir = ((s32)angle + 0x80) >> 8;
+        p_person->U.UPerson.RecoilDir = (p_person->U.UPerson.RecoilDir + 8) & 7;
+        change_person_angle(p_person, (p_person->U.UPerson.RecoilDir + 4) & 7);
+    }
+    if (napalm_person(p_person, 1) != 0)
+    {
+        struct Thing *p_owner;
+
+        p_owner = &things[(ushort)p_sthing->Owner2];
+        napalm_flame_person_killed_add_to_stats(p_person, p_owner);
+    }
 }
 
 void process_splash(struct SimpleThing *p_sthing)
