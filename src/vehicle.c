@@ -3271,10 +3271,75 @@ void process_unstopping(struct Thing *p_vehicle)
     }
 }
 
-void process_stopping(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_stopping_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_stopping\n"
         : : "a" (p_vehicle));
+}
+
+void process_stopping(struct Thing *p_vehicle)
+{
+    s32 step, accel_x, accel_z, dt_angle, angle_dy;
+
+    DIFFTEST_SHADOW(process_stopping, process_stopping_asm(p_vehicle));
+    step = (ushort)p_vehicle->U.UVehicle.Dummy5a;
+    accel_x = p_vehicle->U.UVehicle.AccelX;
+    accel_z = p_vehicle->U.UVehicle.AccelZ;
+    if (step > 10)
+    {
+        p_vehicle->U.UVehicle.AngleZ = (17 - step) * 80;
+        accel_x += accel_x >> 1;
+        accel_z += accel_z >> 1;
+    }
+    else
+    {
+        p_vehicle->U.UVehicle.AngleZ = step * 40;
+        accel_x -= accel_x >> 2;
+        accel_z -= accel_z >> 2;
+    }
+    p_vehicle->U.UVehicle.AccelZ = accel_z;
+    p_vehicle->U.UVehicle.AccelX = accel_x;
+
+    dt_angle = p_vehicle->U.UVehicle.AngleY - p_vehicle->U.UVehicle.Dummy5b;
+    if (dt_angle < -0x400)
+        dt_angle += 0x800;
+    else if (dt_angle > 0x400)
+        dt_angle -= 0x800;
+
+    if (dt_angle < 0)
+    {
+        if (dt_angle > -50)
+            p_vehicle->U.UVehicle.AngleDY = -dt_angle * 2;
+        else
+            p_vehicle->U.UVehicle.AngleDY = (0x800 - (p_vehicle->Speed >> 3)) >> 2;
+    }
+    else if (dt_angle > 0)
+    {
+        if (dt_angle < 50)
+            p_vehicle->U.UVehicle.AngleDY = -(dt_angle * 2);
+        else
+            p_vehicle->U.UVehicle.AngleDY = -((0x800 - (p_vehicle->Speed >> 3)) >> 2);
+    }
+    p_vehicle->U.UVehicle.ReqdSpeed = 0;
+
+    if (step > 0)
+        step--;
+    p_vehicle->U.UVehicle.Dummy5a = step;
+
+    if (p_vehicle->Speed != 0 || step != 0)
+        return;
+    angle_dy = p_vehicle->U.UVehicle.AngleDY;
+    if (abs(angle_dy) >= 20)
+        return;
+
+    if ((p_vehicle->U.UVehicle.TNode < 0) &&
+      (game_traffic_nodes[-p_vehicle->U.UVehicle.TNode].Flags & TNdF_Unkn0800) != 0)
+        p_vehicle->State = VehSt_PARKED_PERPN;
+    else
+        p_vehicle->State = VehSt_PARKED_PARAL;
+    p_vehicle->Flag |= TngF_Unkn0004;
+    p_vehicle->U.UVehicle.WorkPlace &= ~VWPFlg_Unkn0100;
+    remove_locks(p_vehicle);
 }
 
 void process_vehicle_goto_point_land(struct Thing *p_vehicle)
