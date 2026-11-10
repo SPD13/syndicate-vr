@@ -11178,12 +11178,87 @@ void person_save_victim(struct Thing *p_person)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int search_floor_for_item(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int search_floor_for_item_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_search_floor_for_item\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int search_floor_for_item(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    short item = (short)a2;
+    s32 pos_x, pos_y, pos_z;
+    short tile_x, tile_z;
+    short dx, dz;
+
+    DIFFTEST_SHADOW_RET(search_floor_for_item, int,
+      search_floor_for_item_asm(a1, a2, a3, a4));
+    pos_x = p_person->X;
+    pos_y = p_person->Y;
+    pos_z = p_person->Z;
+    tile_x = pos_x >> 16;
+    tile_z = pos_z >> 16;
+
+    for (dx = -1; dx < 2; dx++)
+    {
+        for (dz = -1; dz < 2; dz++)
+        {
+            struct MyMapElement *p_mapel;
+            s32 cx, cz;
+            ushort count;
+            short thing;
+
+            cx = tile_x + dx;
+            if ((cx <= 0) || (cx >= 128))
+                continue;
+            cz = tile_z + dz;
+            if ((cz <= 0) || (cz >= 128))
+                continue;
+            p_mapel = &game_my_big_map[(cz << 7) + cx];
+            thing = p_mapel->Child;
+            count = 0;
+            while ((thing != 0) && (count < 0x19A))
+            {
+                count++;
+                if (thing > 0)
+                {
+                    thing = things[thing].Next;
+                }
+                else
+                {
+                    struct SimpleThing *p_sthing;
+                    s32 dy, adx, adz, dist;
+
+                    p_sthing = &sthings[thing];
+                    if (p_sthing->Type == SmTT_DROPPED_ITEM)
+                    {
+                        dy = (p_sthing->Y - pos_y) >> 8;
+                        if ((dy < 25) && (dy > -25))
+                        {
+                            adx = abs((p_sthing->X - pos_x) >> 8);
+                            adz = abs((p_sthing->Z - pos_z) >> 8);
+                            if (adx > adz)
+                                dist = adx + (adz >> 1);
+                            else
+                                dist = adz + (adx >> 1);
+                            if ((dist < (ushort)p_sthing->Radius + (ushort)p_person->Radius)
+                              && (item == p_sthing->ThingOffset))
+                            {
+                                p_person->U.UPerson.StandOnThing = p_sthing->ThingOffset;
+                                p_person->Flag |= TngF_Unkn08000000;
+                                DIFFTEST_RETURN((int)1);
+                            }
+                        }
+                    }
+                    thing = sthings[thing].Next;
+                }
+            }
+        }
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 
