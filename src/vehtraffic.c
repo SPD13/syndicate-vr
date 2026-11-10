@@ -259,12 +259,87 @@ short get_next_tnode(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int VNAV_renavigate(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int VNAV_renavigate_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_VNAV_renavigate\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Route buffer filled by VNAV_do(); asm data at VNAV_route,
+ * the route node list starts at VNAV_route__route.
+ */
+extern short VNAV_route;
+extern short VNAV_route__route[];
+
+void VNAV_do(int a1, int a2, int a3, int a4);
+
+/** Computes a route from the vehicle's traffic node to node AccelX, and
+ * packs the link index taken at each route step (2 bits per step, up to
+ * 16 steps) into Dummy5a/Dummy5b, step count into low bits of Dummy4a.
+ * Returns 0 if no route exists or a step has no matching link.
+ */
+int VNAV_renavigate(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    short *p_route_hdr = &VNAV_route;
+    u32 *p_path;
+    u32 *p_flags32;
+    ubyte *p_path8;
+    ubyte *p_flags8;
+    s32 nsteps, ridx;
+    s32 j, lnk, node;
+    u32 val;
+    uint sh;
+
+    DIFFTEST_SHADOW_RET(VNAV_renavigate, int, VNAV_renavigate_asm(a1, a2, a3, a4));
+    // Dummy5a/Dummy5b and Dummy4a/Dummy4b are accessed as 32-bit values
+    p_path = (u32 *)&p_vehicle->U.UVehicle.Dummy5a;
+    p_path8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy5a;
+    p_flags32 = (u32 *)&p_vehicle->U.UVehicle.Dummy4a;
+    p_flags8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy4a;
+
+    VNAV_do(p_vehicle->U.UVehicle.TNode, p_vehicle->U.UVehicle.AccelX,
+      (int)&VNAV_route, a4);
+    if (VNAV_route__route[1] == 42)
+        DIFFTEST_RETURN((int)0);
+
+    // route length is the short at VNAV_route+4
+    ridx = p_route_hdr[2] - 2;
+    nsteps = 0;
+    while (ridx >= 0)
+    {
+        for (j = 0; ; j++)
+        {
+            node = -VNAV_route__route[2 + ridx];
+            lnk = game_traffic_nodes[node].UTraffic.Link[j];
+            if (lnk < 0 && lnk == VNAV_route__route[1 + ridx])
+                break;
+            if (lnk > 0 && (ushort)things[lnk].U.UObject.TNode ==
+              (ushort)VNAV_route__route[1 + ridx])
+                break;
+            if (2 * j > 6)
+                DIFFTEST_RETURN((int)0);
+        }
+        *p_path8 &= 0xfc;
+        val = *p_path | (u32)j;
+        *p_path = val;
+        val = (val >> 2) | (val << 30);
+        *p_path = val;
+        ridx--;
+        nsteps++;
+        if (nsteps >= 16)
+            break;
+    }
+    val = *p_path;
+    sh = (2 * nsteps) & 31;
+    if (sh != 0)
+        val = (val << sh) | (val >> (32 - sh));
+    *p_path = val;
+    *p_flags8 &= 0xc0;
+    *p_flags32 = *p_flags32 | (u32)nsteps;
+    DIFFTEST_RETURN((int)1);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
