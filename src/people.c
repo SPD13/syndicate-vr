@@ -4326,11 +4326,74 @@ void set_xz_for_quad210(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void set_xz_for_quad_unkn03(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void set_xz_for_quad_unkn03_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_set_xz_for_quad_unkn03\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Sign of the 64-bit 2D cross product (b-a) x (p-b), as the asm computes it.
+ */
+static int quad_unkn03_cross_sign(s32 ax, s32 az, s32 bx, s32 bz, s32 px, s32 pz)
+{
+    s64 v;
+
+    v = (s64)(s32)((u32)bx - (u32)ax) * (s32)((u32)pz - (u32)bz)
+      - (s64)(s32)((u32)bz - (u32)az) * (s32)((u32)px - (u32)bx);
+    if (v < 0)
+        return -1;
+    return (v > 0) ? 1 : 0;
+}
+
+void set_xz_for_quad_unkn03(int a1, int a2, int a3, int a4)
+{
+    struct SingleObjectFace4 *p_face = (struct SingleObjectFace4 *)a1;
+    s32 *x = (s32 *)a2;
+    s32 *z = (s32 *)a3;
+    struct SingleObject *p_obj;
+    struct SinglePoint *p_pt0;
+    struct SinglePoint *p_pt1;
+    struct SinglePoint *p_pt2;
+    s32 dx0, dz0, dx1, dz1;
+    s32 ax, az, bx, bz, cx, cz;
+
+    DIFFTEST_SHADOW(set_xz_for_quad_unkn03, set_xz_for_quad_unkn03_asm(a1, a2, a3, a4));
+    p_obj = &game_objects[p_face->Object];
+    p_pt0 = &game_object_points[(ushort)p_face->PointNo[0]];
+    p_pt1 = &game_object_points[(ushort)p_face->PointNo[1]];
+    p_pt2 = &game_object_points[(ushort)p_face->PointNo[2]];
+
+    dx0 = ((s32)p_pt1->X - (s32)p_pt0->X) >> 2;
+    dz0 = ((s32)p_pt1->Z - (s32)p_pt0->Z) >> 2;
+    dx1 = ((s32)p_pt2->X - (s32)p_pt0->X) >> 2;
+    dz1 = ((s32)p_pt2->Z - (s32)p_pt0->Z) >> 2;
+
+    *x = p_obj->MapX;
+    *z = p_obj->MapZ;
+    *x += p_pt0->X;
+    *z += p_pt0->Z;
+    *x += dx0;
+    *z += dz0;
+    *x += dx1;
+    *z += dz1;
+
+    ax = p_obj->MapX + p_pt0->X;
+    az = p_obj->MapZ + p_pt0->Z;
+    bx = p_obj->MapX + p_pt1->X;
+    bz = p_obj->MapZ + p_pt1->Z;
+    cx = p_obj->MapX + p_pt2->X;
+    cz = p_obj->MapZ + p_pt2->Z;
+
+    if ((quad_unkn03_cross_sign(ax, az, bx, bz, *x, *z) < 0) ||
+      (quad_unkn03_cross_sign(bx, bz, cx, cz, *x, *z) < 0) ||
+      (quad_unkn03_cross_sign(cx, cz, ax, az, *x, *z) < 0))
+    {
+        // TODO the fallback stores the corner point without the object
+        // MapX/MapZ offset; looks like an original bug, kept as is.
+        *x = p_pt0->X;
+        *z = p_pt0->Z;
+    }
 }
 static DIFFTEST_REF_FUNC void use_nav_data_asm(int a1, int a2, int a3, int a4)
 {
