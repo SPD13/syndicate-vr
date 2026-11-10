@@ -29,6 +29,7 @@
 
 #include "bigmap.h"
 #include "bmbang.h"
+#include "bmcrater.h"
 #include "difftest.h"
 #include "engincam.h"
 #include "enginpriobjs.h"
@@ -1784,10 +1785,62 @@ void explode_thing_object(int a1, int a2, int a3, int a4)
 }
 
 
-void init_vehicle_explode(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void init_vehicle_explode_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_init_vehicle_explode\n"
         : : "a" (p_vehicle));
+}
+
+void init_vehicle_explode(struct Thing *p_vehicle)
+{
+    char locstr[52];
+    struct Thing *p_owner;
+    ushort count;
+    short passngr;
+    ubyte ret;
+    s32 cond;
+
+    DIFFTEST_SHADOW(init_vehicle_explode, init_vehicle_explode_asm(p_vehicle));
+    count = 0;
+    if (p_vehicle->SubType == SubTT_VEH_TANK)
+        stop_sample_using_heap((ushort)p_vehicle->ThingOffset, 0x31);
+    remove_locks(p_vehicle);
+    p_vehicle->Flag |= TngF_Destroyed;
+    play_dist_sample(p_vehicle, 0x25, 0x7f, 0x40, 100, 0, 3);
+    p_vehicle->State = VehSt_UNKN_D;
+    while (p_vehicle->U.UVehicle.PassengerHead != 0 && count < 100)
+    {
+        passngr = p_vehicle->U.UVehicle.PassengerHead;
+        ret = person_leave_vehicle(&things[(ushort)passngr], p_vehicle);
+        if (ret != 0)
+            sprintf(locstr, "TELL MD failed exit car person ret %d \n", (int)ret);
+        count++;
+        if ((ushort)p_vehicle->U.UVehicle.PassengerHead == (s32)passngr)
+            break;
+    }
+
+    explode_thing_object(p_vehicle->ThingOffset, 0, 0, 0);
+    if (p_vehicle->SubType == SubTT_VEH_FLYING)
+    {
+        cond = alt_at_point((short)(p_vehicle->X >> 8), (short)(p_vehicle->Z >> 8))
+          + ((s32)(386 * (ushort)p_vehicle->Radius) >> 5) + 250 > p_vehicle->Y;
+    }
+    else
+    {
+        cond = 1;
+    }
+    if (cond)
+        quick_crater(p_vehicle->X >> 16, p_vehicle->Z >> 16, 2);
+
+    bang_new4(p_vehicle->X, p_vehicle->Y, p_vehicle->Z, 15);
+    delete_node(p_vehicle);
+    p_vehicle->Type = TT_UNKN1;
+    if (p_vehicle->OldTarget != 0)
+        p_owner = &things[p_vehicle->OldTarget];
+    else
+        p_owner = NULL;
+    do_shockwave(p_vehicle->X >> 8, p_vehicle->Y >> 8, p_vehicle->Z >> 8,
+      (ushort)p_vehicle->Radius << 2, 5000, p_owner);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
