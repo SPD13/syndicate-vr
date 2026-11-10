@@ -1673,11 +1673,61 @@ void create_another_strand(struct SimpleThing *p_sthing)
         : : "a" (p_sthing));
 }
 
-void process_electric_strand(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_electric_strand_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_electric_strand\n"
         : : "a" (p_sthing));
+}
+
+void process_electric_strand(struct SimpleThing *p_sthing)
+{
+    short timer;
+
+    DIFFTEST_SHADOW(process_electric_strand, process_electric_strand_asm(p_sthing));
+    if (p_sthing->SubType == 0)
+    {
+        timer = p_sthing->Timer1;
+        p_sthing->Timer1 = timer - 1;
+        if (timer == 0)
+        {
+            // TODO the asm keeps processing the sthing after deleting it
+            delete_snode(p_sthing);
+            remove_sthing(p_sthing->ThingOffset);
+        }
+        if (p_sthing->Timer1 == 4 && p_sthing->StartTimer1 < 15)
+            create_another_strand(p_sthing);
+    }
+    else if (p_sthing->SubType == 6)
+    {
+        ThingIdx person;
+        int dist;
+
+        timer = p_sthing->Timer1;
+        p_sthing->Timer1 = timer - 1;
+        if (timer == 0)
+        {
+            things[(ushort)p_sthing->Radius].Flag2 &= ~TgF2_Unkn0020;
+            delete_snode(p_sthing);
+            remove_sthing(p_sthing->ThingOffset);
+            return;
+        }
+        if (p_sthing->Timer1 != p_sthing->StartTimer1 - 1)
+        {
+            if ((LbRandomAnyShort() & 0xF) >= 7)
+                return;
+        }
+        dist = 0;
+        person = find_nearest_person_min(p_sthing->X >> 8, p_sthing->Y >> 8,
+          p_sthing->Z >> 8, 0, &dist, p_sthing->Object, -1);
+        if (person == 0)
+            return;
+        if (dist >= 0x200000)
+            return;
+        create_growing_e_strand(p_sthing->U.UEffect.VX, p_sthing->U.UEffect.VY,
+          p_sthing->U.UEffect.VZ, &things[person],
+          (ushort)p_sthing->Timer1, (ushort)p_sthing->Owner2);
+    }
 }
 
 void process_canister(struct SimpleThing *p_sthing)
