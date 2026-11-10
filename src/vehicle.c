@@ -39,6 +39,7 @@
 #include "game.h"
 #include "game_options.h"
 #include "game_speed.h"
+#include "lvwalk.h"
 #include "matrix.h"
 #include "misstat.h"
 #include "pathtrig.h"
@@ -2653,10 +2654,67 @@ int train_unkn_func_02(int a1, int a2, int a3, int a4)
 
 
 
-void train_unkn_st20_func_1(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void train_unkn_st20_func_1_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_train_unkn_st20_func_1\n"
         : : "a" (p_vehicle));
+}
+
+void train_unkn_st20_func_1(struct Thing *p_vehicle)
+{
+    struct WalkHeader *p_walk_head;
+    struct WalkHeader *p_walk_head2;
+    s32 face;
+    s32 i, k;
+    short item;
+    int person;
+
+    DIFFTEST_SHADOW(train_unkn_st20_func_1, train_unkn_st20_func_1_asm(p_vehicle));
+    person = 0;
+    while (1)
+    {
+        // TODO the field at this offset is used as a face index for trains
+        if (p_vehicle->U.UVehicle.ComHead != 0)
+        {
+            person = 0;
+            face = (short)p_vehicle->U.UVehicle.ComHead;
+            p_walk_head = &game_walk_headers[(short)game_object_faces4[face].WalkHeader];
+            for (i = p_walk_head->StartItem;
+              i < (s32)p_walk_head->Count + (s32)p_walk_head->StartItem; i++)
+            {
+                item = game_walk_items[i];
+                person = train_unkn_func_02((ushort)(-item), 0, 0, 0);
+                if ((ushort)person != 0)
+                    break;
+                face = -(s32)item;
+                p_walk_head2 = &game_walk_headers[(short)game_object_faces4[face].WalkHeader];
+                for (k = p_walk_head2->StartItem;
+                  k < (s32)p_walk_head2->Count + (s32)p_walk_head2->StartItem; k++)
+                {
+                    person = train_unkn_func_02((ushort)(-game_walk_items[k]), 0, 0, 0);
+                    if ((ushort)person != 0)
+                        break;
+                }
+                if ((ushort)person != 0)
+                    break;
+            }
+            if ((ushort)person == 0)
+                person = train_unkn_func_02(p_vehicle->U.UVehicle.ComHead, 0, 0, 0);
+        }
+        // TODO if ComHead becomes 0 after a teleport, the last person is teleported again forever
+        if ((ushort)person == 0)
+            break;
+        person_clear_route_and_teleport_to_vehicle((int)p_vehicle,
+          (int)&things[(ushort)person], 0, 0);
+        p_vehicle->U.UVehicle.Timer2 = 100;
+    }
+
+    p_vehicle->U.UVehicle.Timer2--;
+    if (p_vehicle->U.UVehicle.Timer2 <= 0)
+    {
+        p_vehicle->State = VehSt_UNKN_12;
+        play_dist_sample(p_vehicle, 0x61, 0x7f, 0x40, 100, 0, 1);
+    }
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
