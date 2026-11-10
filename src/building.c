@@ -1018,13 +1018,71 @@ ThingIdx aquire_target(struct Thing *p_gun)
     DIFFTEST_RETURN(best_thing);
 }
 
-ubyte track_target(struct Thing *p_mgun)
+static DIFFTEST_REF_FUNC ubyte track_target_asm(struct Thing *p_mgun)
 {
     ubyte ret;
     asm volatile (
       "call ASM_track_target\n"
-        : "=r" (ret) : "a" (p_mgun));
+        : "=a" (ret) : "a" (p_mgun));
     return ret;
+}
+
+ubyte track_target(struct Thing *p_mgun)
+{
+    struct Thing *p_target;
+    s32 dt_x, dt_z, dt_y;
+    s32 tgt_y;
+    short angle, dangle_y, dangle_x;
+    ubyte ret;
+
+    DIFFTEST_SHADOW_RET(track_target, ubyte, track_target_asm(p_mgun));
+    ret = 0;
+    if (p_mgun->U.UMGun.WeaponTurn != 0)
+        p_mgun->U.UMGun.WeaponTurn--;
+
+    p_target = p_mgun->PTarget;
+    dt_x = (p_target->X >> 8) - (p_mgun->X >> 8);
+    dt_z = (p_target->Z >> 8) - (p_mgun->Z >> 8);
+    tgt_y = p_target->Y;
+    angle = arctan(dt_x, dt_z);
+    dangle_y = (short)(p_mgun->U.UMGun.AngleY - angle);
+    if (dangle_y < -0x400)
+        dangle_y = (short)(dangle_y + 0x800);
+    else if (dangle_y > 0x400)
+        dangle_y = (short)(dangle_y - 0x800);
+
+    if (dangle_y < 0)
+    {
+        if (dangle_y > -20)
+            p_mgun->U.UMGun.AngleDY = 0;
+        else
+            p_mgun->U.UMGun.AngleDY = 0x100;
+    }
+    else if (dangle_y > 0)
+    {
+        if (dangle_y < 20)
+            p_mgun->U.UMGun.AngleDY = 0;
+        else
+            p_mgun->U.UMGun.AngleDY = (short)0xFF00;
+    }
+
+    if (dangle_y <= -200 || dangle_y >= 200)
+        DIFFTEST_RETURN(ret);
+
+    dt_y = (tgt_y >> 4) - (p_mgun->Y >> 5);
+    angle = arctan(dt_y * dt_y, dt_x * dt_x + dt_z * dt_z);
+    angle = (short)(angle - 0x400);
+    dangle_x = (short)(p_mgun->U.UMGun.AngleX - angle);
+    if (dangle_x < -0x400)
+        dangle_x = (short)(dangle_x + 0x800);
+    else if (dangle_x > 0x400)
+        dangle_x = (short)(dangle_x - 0x800);
+
+    p_mgun->U.UMGun.AngleX = (short)(p_mgun->U.UMGun.AngleX - (dangle_x >> 1));
+    p_mgun->U.UMGun.AngleX = (short)((p_mgun->U.UMGun.AngleX + 0x800) & 0x7FF);
+    if (abs(dangle_x) < 200)
+        ret = 1;
+    DIFFTEST_RETURN(ret);
 }
 
 ubyte mgun_shoot_at_target(struct Thing *p_mgun)
