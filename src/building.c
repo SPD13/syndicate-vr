@@ -887,7 +887,7 @@ void rotate_object(struct Thing *p_object)
     rotate_object_axis(p_mat, 0, (short)(-p_object->U.UMGun.AngleX), 0);
 }
 
-int mounted_los(int x1, int y1, int z1, int x2, int y2, int z2)
+static DIFFTEST_REF_FUNC int mounted_los_asm(int x1, int y1, int z1, int x2, int y2, int z2)
 {
     int ret;
     // Pushed through a register holding them: a "g" operand may be placed
@@ -901,10 +901,71 @@ int mounted_los(int x1, int y1, int z1, int x2, int y2, int z2)
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_mounted_los\n"
-        : "=r" (ret)
+        : "=a" (ret)
         : "a" (x1), "d" (y1), "b" (z1), "c" (x2), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+/** Line of sight check for mounted guns: steps along the line from
+ * (x1,y1,z1) to (x2,y2,z2) in about 128-unit steps, checking collision
+ * columns. Returns 0 if blocked or too far, 1 otherwise.
+ */
+int mounted_los(int x1, int y1, int z1, int x2, int y2, int z2)
+{
+    s32 dx, dy, dz;
+    s32 adx, ady, adz;
+    s32 dist, sum;
+    s32 n, i;
+    s32 x, y, z;
+
+    DIFFTEST_SHADOW_RET(mounted_los, int, mounted_los_asm(x1, y1, z1, x2, y2, z2));
+    dx = x2 - x1;
+    dy = y2 - y1;
+    dz = z2 - z1;
+    adx = abs(dx);
+    ady = abs(dy);
+    adz = abs(dz);
+
+    // Approximate distance
+    if (adx > ady && adx > adz)
+    {
+        sum = ady + adz;
+        dist = adx - (adx >> 4) + (sum >> 1) - (sum >> 3);
+    }
+    else if (adx <= ady && ady > adz)
+    {
+        sum = adx + adz;
+        dist = ady - (ady >> 4) + (sum >> 1) - (sum >> 3);
+    }
+    else
+    {
+        sum = ady + adx;
+        dist = adz - (adz >> 4) + (sum >> 1) - (sum >> 3);
+    }
+
+    if (dist > 0xC00)
+        DIFFTEST_RETURN(0);
+
+    n = dist >> 7;
+    if (n == 0)
+        DIFFTEST_RETURN(0);
+
+    dx /= n;
+    dy /= n;
+    dz /= n;
+    x = x1;
+    y = y1;
+    z = z1;
+    for (i = 0; i < n; i++)
+    {
+        if (check_col_collision(x, y, z) != 0)
+            DIFFTEST_RETURN(0);
+        x += dx;
+        y += dy;
+        z += dz;
+    }
+    DIFFTEST_RETURN(1);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
