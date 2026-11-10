@@ -3253,12 +3253,90 @@ void set_vehicle_alt(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int check_for_a_moving_vehicle_here(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int check_for_a_moving_vehicle_here_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_check_for_a_moving_vehicle_here\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Check if a ground vehicle other than given one is at given point.
+ * Coordinates are in map units (tile size 256); args are raw registers.
+ */
+int check_for_a_moving_vehicle_here(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_self = (struct Thing *)a3;
+    s32 x = a1, z = a2;
+    s32 tile_x, tile_z, tx, tz;
+    ThingIdx thing;
+
+    DIFFTEST_SHADOW_RET(check_for_a_moving_vehicle_here, int,
+      check_for_a_moving_vehicle_here_asm(a1, a2, a3, a4));
+    tile_x = x >> 8;
+    tile_z = z >> 8;
+    for (tx = tile_x - 2; tx <= tile_x + 2; tx++)
+    {
+        for (tz = tile_z - 2; tz <= tile_z + 2; tz++)
+        {
+            if (tx < 0 || tx > 127 || tz < 0 || tz > 127)
+                continue;
+            thing = game_my_big_map[128 * tz + tx].Child;
+            while (thing != 0)
+            {
+                struct Thing *p_thing;
+                struct M33 *p_mat;
+                s32 radius, mat02, mat22, off_x, off_z;
+                s32 pos_x, pos_z, dist_x, dist_z, dist;
+
+                if (thing <= 0)
+                {
+                    thing = sthings[thing].Next;
+                    continue;
+                }
+                p_thing = &things[thing];
+                thing = p_thing->Next;
+                if (p_thing->Type != TT_VEHICLE)
+                    continue;
+                if (p_thing == p_self)
+                    continue;
+                if (p_thing->SubType != SubTT_VEH_GROUND)
+                    continue;
+
+                radius = (s32)((u32)p_thing->Radius * 400) >> 9;
+                p_mat = &local_mats[p_thing->U.UVehicle.MatrixIndex];
+                mat02 = -4 * p_mat->R[0][2];
+                mat22 = -4 * p_mat->R[2][2];
+                off_x = (mat02 * radius) >> 8;
+                off_z = (mat22 * radius) >> 8;
+
+                // Front point
+                pos_x = (p_thing->X + off_x) >> 8;
+                pos_z = (p_thing->Z + off_z) >> 8;
+                dist_x = abs(x - pos_x);
+                dist_z = abs(z - pos_z);
+                if (dist_x > dist_z)
+                    dist = dist_x + (dist_z >> 1);
+                else
+                    dist = dist_z + (dist_x >> 1);
+                if (dist < radius)
+                    DIFFTEST_RETURN((int)1);
+
+                // Rear point
+                pos_x = (p_thing->X - off_x) >> 8;
+                pos_z = (p_thing->Z - off_z) >> 8;
+                dist_x = abs(x - pos_x);
+                dist_z = abs(z - pos_z);
+                if (dist_x > dist_z)
+                    dist = dist_x + (dist_z >> 1);
+                else
+                    dist = dist_z + (dist_x >> 1);
+                if (dist < radius)
+                    DIFFTEST_RETURN((int)1);
+            }
+        }
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 
