@@ -4282,11 +4282,45 @@ int set_xz_for_quad123(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void set_xz_for_quad210(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void set_xz_for_quad210_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_set_xz_for_quad210\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void set_xz_for_quad210(int a1, int a2, int a3, int a4)
+{
+    struct SingleObjectFace4 *p_face = (struct SingleObjectFace4 *)a1;
+    s32 *x = (s32 *)a2;
+    s32 *z = (s32 *)a3;
+    struct SingleObject *p_obj;
+    struct SinglePoint *p_pt1;
+    struct SinglePoint *p_pt2;
+    struct SinglePoint *p_pt3;
+    s32 dx0, dz0, dx1, dz1;
+
+    DIFFTEST_SHADOW(set_xz_for_quad210, set_xz_for_quad210_asm(a1, a2, a3, a4));
+    p_obj = &game_objects[p_face->Object];
+    p_pt1 = &game_object_points[p_face->PointNo[1]];
+    p_pt2 = &game_object_points[p_face->PointNo[2]];
+    p_pt3 = &game_object_points[p_face->PointNo[3]];
+
+    dx0 = ((s32)p_pt1->X - (s32)p_pt3->X) >> 2;
+    dz0 = ((s32)p_pt1->Z - (s32)p_pt3->Z) >> 2;
+    dx1 = ((s32)p_pt2->X - (s32)p_pt3->X) >> 2;
+    dz1 = ((s32)p_pt2->Z - (s32)p_pt3->Z) >> 2;
+
+    *x = p_obj->MapX;
+    *z = p_obj->MapZ;
+    *x += p_pt3->X;
+    *z += p_pt3->Z;
+    *x += dx0;
+    *z += dz0;
+    *x += dx1;
+    *z += dz1;
+    // The asm then computes point-in-triangle cross product signs against
+    // the face corners, but only into eax which no caller uses (void).
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
