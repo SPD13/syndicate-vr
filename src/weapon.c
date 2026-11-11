@@ -4015,11 +4015,143 @@ void init_mech_rocket(struct Thing *p_owner, struct Thing *p_mech, int x, int y,
     shot_alerts_peeps(p_shot);
 }
 
-void give_take_me_weapon(struct Thing *p_person, int item, int giveortake, short id)
+static DIFFTEST_REF_FUNC void give_take_me_weapon_asm(struct Thing *p_person,
+  int item, int giveortake, short id)
 {
     asm volatile (
       "call ASM_give_take_me_weapon\n"
         : : "a" (p_person), "d" (item), "b" (giveortake), "c" (id));
+}
+
+void give_take_me_weapon(struct Thing *p_person, int item, int giveortake, short id)
+{
+    PlayerInfo *p_player;
+    ubyte *p_fpcount;
+    u32 wmask;
+    ushort plyr, plagent;
+    TbBool changed;
+
+    DIFFTEST_SHADOW(give_take_me_weapon,
+      give_take_me_weapon_asm(p_person, item, giveortake, id));
+
+    changed = false;
+    if (item == 0)
+        return;
+
+    if (item == 31)
+    {
+        ushort ammo;
+
+        ammo = sthings[id].U.UWeapon.Ammo;
+        p_person->U.UPerson.UMod.Mods &= 0x0FFF;
+        p_person->U.UPerson.UMod.Mods |= (ammo & 0xF) << 12;
+        return;
+    }
+
+    if ((p_person->Flag & TngF_PlayerAgent) == 0)
+    {
+        wmask = (u32)1 << ((item - 1) & 0x1F);
+        if (giveortake == 1)
+            p_person->U.UPerson.WeaponsCarried |= wmask;
+        else
+            p_person->U.UPerson.WeaponsCarried &= ~wmask;
+        return;
+    }
+
+    plagent = p_person->U.UPerson.ComCur & 0x3;
+    plyr = (p_person->U.UPerson.ComCur & 0x1C) >> 2;
+    p_player = &players[plyr];
+    wmask = (u32)1 << ((item - 1) & 0x1F);
+
+    switch (item)
+    {
+    case 6:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+        switch (item)
+        {
+        case 6:
+            p_fpcount = &p_player->FourPacks[WFRPK_NUCLGREN][plagent];
+            break;
+        case 10:
+            p_fpcount = &p_player->FourPacks[WFRPK_CRAZYGAS][plagent];
+            break;
+        case 11:
+            p_fpcount = &p_player->FourPacks[WFRPK_KOGAS][plagent];
+            break;
+        case 12:
+            p_fpcount = &p_player->FourPacks[WFRPK_ELEMINE][plagent];
+            break;
+        case 13:
+        default:
+            p_fpcount = &p_player->FourPacks[WFRPK_EXPLMINE][plagent];
+            break;
+        }
+        *p_fpcount += (ubyte)giveortake;
+        changed = true;
+        if (*p_fpcount == 0)
+        {
+            p_person->U.UPerson.WeaponsCarried &= ~wmask;
+        }
+        else
+        {
+            p_person->U.UPerson.WeaponsCarried |= wmask;
+            if (item == 12 || item == 13)
+                stop_sample_using_heap(id, 0x26);
+        }
+        break;
+    default:
+        if (giveortake == 1)
+            p_person->U.UPerson.WeaponsCarried |= wmask;
+        else
+            p_person->U.UPerson.WeaponsCarried &= ~wmask;
+        break;
+    }
+
+    plyr = p_person->U.UPerson.ComCur >> 2;
+    plagent = p_person->U.UPerson.ComCur & 0x3;
+
+    if (giveortake < 0)
+    {
+        if (changed)
+        {
+            if ((p_person->U.UPerson.WeaponsCarried & wmask) != 0)
+                return;
+            if (((p_person->Flag & TngF_PlayerAgent) != 0) &&
+              ((p_person->Flag2 & TgF2_Unkn0800) == 0))
+            {
+                players[plyr].PrevWeapon[plagent] =
+                  find_nth_weapon_held(p_person->ThingOffset, 1);
+            }
+            p_person->U.UPerson.CurrentWeapon = 0;
+            return;
+        }
+        if (((p_person->Flag & TngF_PlayerAgent) != 0) &&
+          ((p_person->Flag2 & TgF2_Unkn0800) == 0) &&
+          (players[plyr].PrevWeapon[plagent] == item))
+        {
+            players[plyr].PrevWeapon[plagent] =
+              find_nth_weapon_held(p_person->ThingOffset, 1);
+        }
+        if (p_person->U.UPerson.CurrentWeapon == item)
+            p_person->U.UPerson.CurrentWeapon = 0;
+        return;
+    }
+    else if (giveortake > 0)
+    {
+        if ((p_person->Flag & TngF_PlayerAgent) == 0)
+            return;
+        if ((p_person->Flag2 & TgF2_Unkn0800) != 0)
+            return;
+        if (p_person->U.UPerson.CurrentWeapon != 0)
+            return;
+        if (players[plyr].PrevWeapon[plagent] != 0)
+            return;
+        players[plyr].PrevWeapon[plagent] =
+          find_nth_weapon_held(p_person->ThingOffset, 1);
+    }
 }
 
 ushort set_player_weapon_turn(struct Thing *p_person, ushort delay_turns)
