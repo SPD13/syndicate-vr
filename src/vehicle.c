@@ -2129,10 +2129,126 @@ void process_tank_stationary(struct Thing *p_vehicle)
         init_vehicle_explode(p_vehicle);
 }
 
-void process_tank(struct Thing *p_vehicle)
+int do_next_navigate_index(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC void process_tank_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_tank\n"
         : : "a" (p_vehicle));
+}
+
+void process_tank(struct Thing *p_vehicle)
+{
+    struct Thing *p_turret;
+    struct M33 *p_mat;
+    ubyte flags2;
+    s32 dt_x, dt_z, dist_sq;
+    s32 angle;
+    s32 new_x, new_y, new_z;
+
+    DIFFTEST_SHADOW(process_tank, process_tank_asm(p_vehicle));
+    if ((gameturn & 7) == 0)
+    {
+        if (!IsSamplePlaying((ushort)p_vehicle->ThingOffset, 49, 0))
+        {
+            if (p_vehicle->U.UVehicle.PassengerHead != 0)
+                play_dist_sample(p_vehicle, 49, 127, 64, 100, -1, 1);
+        }
+        else if (p_vehicle->U.UVehicle.PassengerHead == 0)
+        {
+            stop_sample_using_heap((ushort)p_vehicle->ThingOffset, 49);
+        }
+    }
+
+    if ((game_my_big_map[((p_vehicle->Z >> 16) << 7) + (p_vehicle->X >> 16)].Flags2 & MEF2_Unkn08) == 0)
+    {
+        s32 alt;
+
+        alt = alt_at_point((short)(p_vehicle->X >> 8), (short)(p_vehicle->Z >> 8));
+        alt += 0xdac;
+        if (alt > p_vehicle->Y)
+            p_vehicle->Y = p_vehicle->Y + ((alt - p_vehicle->Y) >> 4) + 0x40;
+        if (alt < p_vehicle->Y)
+            p_vehicle->Y = p_vehicle->Y - (((p_vehicle->Y - alt) >> 4) + 0x40);
+    }
+
+    dt_x = p_vehicle->U.UVehicle.GotoX - (p_vehicle->X >> 8);
+    dt_z = p_vehicle->U.UVehicle.GotoZ - (p_vehicle->Z >> 8);
+    angle = (ushort)arctan(dt_x, dt_z) - p_vehicle->U.UVehicle.AngleY;
+    if (angle > 0x400)
+        angle -= 0x7ff;
+    if (angle < -0x400)
+        angle += 0x7ff;
+    p_vehicle->U.UVehicle.AngleDY = angle >> 1;
+    if (p_vehicle->U.UVehicle.AngleDY > 300)
+        p_vehicle->U.UVehicle.AngleDY = 300;
+    else if (p_vehicle->U.UVehicle.AngleDY < -300)
+        p_vehicle->U.UVehicle.AngleDY = -300;
+
+    dist_sq = dt_x * dt_x + dt_z * dt_z;
+    p_vehicle->U.UVehicle.ReqdSpeed = 500 - 2 * abs(p_vehicle->U.UVehicle.AngleDY)
+      - abs(p_vehicle->U.UVehicle.AngleDY);
+    if ((ushort)p_vehicle->State == 0x33)
+    {
+        p_vehicle->U.UVehicle.ReqdSpeed = 0;
+        if (p_vehicle->U.UVehicle.AngleDY > 0)
+            p_vehicle->U.UVehicle.AngleDY -= 8;
+        if (p_vehicle->U.UVehicle.AngleDY < 0)
+            p_vehicle->U.UVehicle.AngleDY += 8;
+        if (p_vehicle->U.UVehicle.AngleDY <= 8)
+            p_vehicle->U.UVehicle.AngleDY = 0;
+        if (p_vehicle->Speed == 0)
+            p_vehicle->State = 0x21;
+    }
+    else if (dist_sq < 0x30000)
+    {
+        if ((ubyte)do_next_navigate_index((int)p_vehicle, 0, 0, 0))
+        {
+            p_vehicle->U.UVehicle.PathIndex = 0;
+            p_vehicle->State = 0x33;
+        }
+        else
+        {
+            struct MyPath *p_path;
+            ubyte pt;
+
+            p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+            pt = p_vehicle->PathOffset & 3;
+            p_vehicle->U.UVehicle.GotoX = p_path->X[pt];
+            p_vehicle->U.UVehicle.GotoZ = p_path->Z[pt];
+        }
+    }
+
+    check_tank_collision((int)p_vehicle, 0, 0, 0);
+    if (p_vehicle->Speed < p_vehicle->U.UVehicle.ReqdSpeed)
+        p_vehicle->Speed += 12;
+    if (p_vehicle->Speed > p_vehicle->U.UVehicle.ReqdSpeed)
+        p_vehicle->Speed -= 38;
+
+    p_vehicle->U.UVehicle.AngleY = ((p_vehicle->U.UVehicle.AngleDY >> 3)
+      + p_vehicle->U.UVehicle.AngleY) & 0x7ff;
+    p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
+    p_turret = &things[(ushort)p_vehicle->U.UVehicle.SubThing];
+    rotate_obj(0, p_turret->U.UVehicle.AngleY, 0,
+      (int)&local_mats[p_turret->U.UVehicle.MatrixIndex]);
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (int)p_mat);
+
+    p_vehicle->VX = (-p_mat->R[0][2] * p_vehicle->Speed) >> 10;
+    p_vehicle->VY = (-p_mat->R[1][2] * p_vehicle->Speed) >> 10;
+    p_vehicle->VZ = (-p_mat->R[2][2] * p_vehicle->Speed) >> 10;
+    new_x = p_vehicle->X + p_vehicle->VX;
+    new_z = p_vehicle->Z + p_vehicle->VZ;
+    new_y = p_vehicle->Y + p_vehicle->VY;
+
+    flags2 = game_my_big_map[((p_vehicle->Z >> 16) << 7) + (p_vehicle->X >> 16)].Flags2;
+    if (((flags2 & (MEF2_Unkn01|MEF2_Unkn04)) != 0) && ((flags2 & MEF2_Unkn08) == 0))
+    {
+        init_vehicle_explode(p_vehicle);
+        return;
+    }
+    flags2 = game_my_big_map[((new_z >> 16) << 7) + (new_x >> 16)].Flags2;
+    if (((flags2 & (MEF2_Unkn01|MEF2_Unkn04)) == 0) || ((flags2 & MEF2_Unkn08) != 0))
+        move_mapwho(p_vehicle, new_x, new_y, new_z);
 }
 
 static DIFFTEST_REF_FUNC void set_passengers_location_asm(struct Thing *p_vehicle)
