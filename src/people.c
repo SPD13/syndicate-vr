@@ -2839,7 +2839,7 @@ build_route:
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void VNAV_find_dropoff_point(int a1, int a2, int a3, int a4, int a5)
+static DIFFTEST_REF_FUNC void VNAV_find_dropoff_point_asm(int a1, int a2, int a3, int a4, int a5)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[1];
@@ -2847,6 +2847,121 @@ void VNAV_find_dropoff_point(int a1, int a2, int a3, int a4, int a5)
     stkargs[0] = a5;
     asm volatile ("push 0(%4)\n""call ASM_VNAV_find_dropoff_point\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+extern short VNAV_nearnodes[5];
+void VNAV_qwertyuiop(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+
+/** Returns 1 if the thing list of map element mapel contains a vehicle,
+ * as inlined in VNAV_find_dropoff_point() asm.
+ */
+static int VNAV_mapel_has_vehicle(s32 mapel)
+{
+    ThingIdx thing;
+
+    thing = game_my_big_map[mapel].Child;
+    while (thing != 0)
+    {
+        if (thing > 0)
+        {
+            if (things[thing].Type == TT_VEHICLE)
+                return 1;
+            thing = things[thing].Next;
+        }
+        else
+        {
+            thing = sthings[thing].Next;
+        }
+    }
+    return 0;
+}
+
+/** Among links of the nodes in VNAV_nearnodes[], finds the one whose
+ * segment is closest to point (a4,a5), skipping links to nodes with flag
+ * 0x0800 which have a vehicle on the 3x3 tiles around them or on 4 points
+ * along the link. Stores the node in *a1 (9999 if none), link index
+ * in *a2 and position along the segment in *a3.
+ */
+void VNAV_find_dropoff_point(int a1, int a2, int a3, int a4, int a5)
+{
+    short *p_tnode_out = (short *)a1;
+    ubyte *p_link_out = (ubyte *)a2;
+    s32 *p_frac_out = (s32 *)a3;
+    struct TrafficNode *p_tnode;
+    struct TrafficNode *p_lnode;
+    s32 best_dist, dist, frac;
+    s32 node_x, node_z, lnode_x, lnode_z;
+    s32 tile_x, tile_z, dx, dz, px, pz;
+    short link;
+    int i, j, k;
+
+    DIFFTEST_SHADOW(VNAV_find_dropoff_point,
+      VNAV_find_dropoff_point_asm(a1, a2, a3, a4, a5));
+    if (VNAV_nearnodes[0] == 0)
+        return;
+    best_dist = 0xfffffff;
+    *p_tnode_out = 9999;
+    for (i = 0; i < 5; i++)
+    {
+        p_tnode = &game_traffic_nodes[VNAV_nearnodes[i]];
+        node_x = p_tnode->X;
+        node_z = p_tnode->Z;
+        for (j = 0; j < 4; j++)
+        {
+            link = p_tnode->UTraffic.Link[j];
+            if (link >= 0)
+                continue;
+            if ((p_tnode->UTraffic.Flags[j] & 0x40) != 0)
+                continue;
+            p_lnode = &game_traffic_nodes[-link];
+            lnode_x = p_lnode->X;
+            lnode_z = p_lnode->Z;
+            if ((p_lnode->Flags & TNdF_Unkn0800) != 0)
+            {
+                tile_z = lnode_z >> 8;
+                tile_x = lnode_x >> 8;
+                if (VNAV_mapel_has_vehicle((tile_z - 1) * MAP_TILE_WIDTH + (tile_x - 1)))
+                    continue;
+                if (VNAV_mapel_has_vehicle((tile_z - 1) * MAP_TILE_WIDTH + tile_x))
+                    continue;
+                if (VNAV_mapel_has_vehicle((tile_z - 1) * MAP_TILE_WIDTH + (tile_x + 1)))
+                    continue;
+                if (VNAV_mapel_has_vehicle(tile_z * MAP_TILE_WIDTH + (tile_x - 1)))
+                    continue;
+                if (VNAV_mapel_has_vehicle(tile_z * MAP_TILE_WIDTH + tile_x))
+                    continue;
+                if (VNAV_mapel_has_vehicle(tile_z * MAP_TILE_WIDTH + (tile_x + 1)))
+                    continue;
+                if (VNAV_mapel_has_vehicle((tile_z + 1) * MAP_TILE_WIDTH + (tile_x - 1)))
+                    continue;
+                if (VNAV_mapel_has_vehicle((tile_z + 1) * MAP_TILE_WIDTH + tile_x))
+                    continue;
+                if (VNAV_mapel_has_vehicle((tile_z + 1) * MAP_TILE_WIDTH + (tile_x + 1)))
+                    continue;
+                dx = (node_x - lnode_x) >> 3;
+                dz = (node_z - lnode_z) >> 3;
+                px = lnode_x;
+                pz = lnode_z;
+                for (k = 0; k < 4; k++)
+                {
+                    px += dx;
+                    pz += dz;
+                    if (VNAV_mapel_has_vehicle((pz >> 8) * MAP_TILE_WIDTH + (px >> 8)))
+                        break;
+                }
+                if (k < 4)
+                    continue;
+            }
+            VNAV_qwertyuiop((int)&dist, (int)&frac, node_x, node_z,
+              lnode_x, lnode_z, (short)a4, (short)a5);
+            if (dist >= best_dist)
+                continue;
+            *p_tnode_out = VNAV_nearnodes[i];
+            *p_link_out = j;
+            *p_frac_out = frac;
+            best_dist = dist;
+        }
+    }
 }
 
 /** Routed asm (internal label). Arguments and return value are the
