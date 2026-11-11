@@ -1169,12 +1169,51 @@ void light_cmd_unkn_func_06(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int light_cmd_unkn_func_05(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int light_cmd_unkn_func_05_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_light_cmd_unkn_func_05\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Sets Intensity of a full light, or of every full light in the list of
+ * a scenery sthing (negative index), to TrueIntensity * a2 / 256.
+ * The return value is whatever the asm left in eax; no caller uses it.
+ */
+int light_cmd_unkn_func_05(int a1, int a2, int a3, int a4)
+{
+    short light = (short)a1;
+    ushort mult = (ushort)a2;
+    struct FullLight *p_fulight;
+    u32 ret;
+
+    DIFFTEST_SHADOW_RET(light_cmd_unkn_func_05, int,
+      light_cmd_unkn_func_05_asm(a1, a2, a3, a4));
+    if (light >= 0)
+    {
+        p_fulight = &game_full_lights[light];
+        p_fulight->Intensity = (short)(((s32)mult * p_fulight->TrueIntensity) >> 8);
+        DIFFTEST_RETURN((int)p_fulight);
+    }
+
+    ret = (u32)((s32)light * 15) & 0xFFFF0000;
+    light = sthings[light].U.UScenery.LightHead;
+    ret |= (ushort)light;
+    while (light != 0)
+    {
+        ret = (u32)(s32)light;
+        // TODO the asm checks light > next_full_light, so index next_full_light is accepted
+        if ((s32)light > (s32)(ushort)next_full_light)
+            break;
+        if (light < 0)
+            break;
+        p_fulight = &game_full_lights[light];
+        p_fulight->Intensity = (short)(((s32)mult * p_fulight->TrueIntensity) >> 8);
+        light = p_fulight->NextFull;
+        ret = ((u32)p_fulight & 0xFFFF0000) | (ushort)light;
+    }
+    DIFFTEST_RETURN((int)ret);
 }
 
 
