@@ -4554,7 +4554,7 @@ GLOBAL_FUNC(ASM_FIRE_process_flame)	/* 0x0DAAB8 */
 		call   ac_do_shockwave
 	jump_dacb3:
 		mov    %esi,%eax
-		call   ASM_snap_razor_wire
+		call   ac_snap_razor_wire
 	jump_dacba:
 		test   %edi,%edi
 		jne    jump_dac0c
