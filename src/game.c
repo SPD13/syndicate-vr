@@ -1673,6 +1673,17 @@ void blind_progress_game(ulong nturns)
         gameturn++;
     }
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void unkn_obj_faces4_lights_func_10(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_unkn_obj_faces4_lights_func_10\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void map_lights_update(void)
 {

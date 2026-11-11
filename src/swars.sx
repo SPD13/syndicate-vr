@@ -7962,7 +7962,7 @@ GLOBAL_FUNC(ASM_is_animating)	/* 0x042D00 */
 
 
 /*----------------------------------------------------------------*/
-light_cmd_unkn_func_05:	/* 0x043410 */
+GLOBAL_FUNC(ASM_light_cmd_unkn_func_05)	/* 0x043410 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -8186,7 +8186,7 @@ func_4360e:
 		xor    %edx,%edx
 		sar    $0x10,%eax
 		mov    0x3(%ebx),%dl
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 	jump_43648:
 		mov    (%ebx),%ah
 		and    $0xf9,%ah
@@ -8214,7 +8214,7 @@ func_4360e:
 		xor    %edx,%edx
 		sar    $0x10,%eax
 		mov    0x4(%ebx),%dl
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 	jump_43697:
 		mov    (%ebx),%cl
 		and    $0xf9,%cl
@@ -8237,7 +8237,7 @@ func_436a5:
 		mov    0x10(%ebx),%eax
 		xor    %edx,%edx
 		sar    $0x10,%eax
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 	jump_436c3:
 		mov    EXPORT_SYMBOL(next_light_command),%bx
 		inc    %edi
@@ -8308,7 +8308,7 @@ func_43729:
 		xor    %edx,%edx
 		sar    $0x10,%eax
 		mov    0x3(%ebx),%dl
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 		mov    (%ebx),%ch
 		and    $0xf9,%ch
 		mov    %ch,%al
@@ -8338,7 +8338,7 @@ func_43729:
 		xor    %edx,%edx
 		sar    $0x10,%eax
 		mov    0x4(%ebx),%dl
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 		mov    (%ebx),%dh
 		and    $0xf9,%dh
 		mov    %dh,%cl
@@ -8463,7 +8463,7 @@ func_438d6:
 		mov    0x10(%ebx),%eax
 		mov    0x3(%ebx),%dl
 		sar    $0x10,%eax
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 		mov    (%ebx),%dl
 		and    $0xf9,%dl
 		mov    %dl,(%ebx)
@@ -8509,7 +8509,7 @@ func_438d6:
 		sar    $0x10,%eax
 		mov    0x4(%ebx),%dl
 		movb   $0x0,0x2(%ebx)
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 		mov    (%ebx),%cl
 		and    $0xf9,%cl
 		mov    %cl,(%ebx)
@@ -8546,7 +8546,7 @@ func_439c9:
 		xor    %edx,%edx
 		sar    $0x10,%eax
 		mov    0xa(%ebx),%dx
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 		jmp    func_436a5
 	jump_43a12:
 		xor    %eax,%eax
@@ -8571,13 +8571,13 @@ func_439c9:
 		xor    %edx,%edx
 		sar    $0x10,%eax
 		mov    0xa(%ebx),%dx
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 		jmp    func_436a5
 	jump_43a56:
 		mov    0x10(%ebx),%eax
 		mov    $0x100,%edx
 		sar    $0x10,%eax
-		call   light_cmd_unkn_func_05
+		call   ac_light_cmd_unkn_func_05
 		jmp    func_436a5
 
 
@@ -10282,7 +10282,7 @@ vtable_45010:
 
 
 /*----------------------------------------------------------------*/
-unkn_obj_faces4_lights_func_10:	/* 0x045020 */
+GLOBAL_FUNC(ASM_unkn_obj_faces4_lights_func_10)	/* 0x045020 */
 /*----------------------------------------------------------------*/
 		push   %ecx
 		push   %esi
@@ -11090,7 +11090,7 @@ GLOBAL_FUNC (ASM_map_lights_update)	/* 0x04557C */
 		lea    -0x100(%ebp),%ebx
 		movswl %si,%eax
 		movswl %cx,%edx
-		call   unkn_obj_faces4_lights_func_10
+		call   ac_unkn_obj_faces4_lights_func_10
 	jump_4595a:
 		cmp    $0x7a00,%ebp
 		jle    jump_4597c
@@ -11100,14 +11100,14 @@ GLOBAL_FUNC (ASM_map_lights_update)	/* 0x04557C */
 		movswl %cx,%edx
 		mov    %eax,%ebx
 		movswl %si,%eax
-		call   unkn_obj_faces4_lights_func_10
+		call   ac_unkn_obj_faces4_lights_func_10
 	jump_4597c:
 		cmp    $0x600,%edi
 		jge    jump_45995
 		lea    -0x100(%edi),%ebx
 		movswl %cx,%edx
 		movswl %si,%eax
-		call   unkn_obj_faces4_lights_func_10
+		call   ac_unkn_obj_faces4_lights_func_10
 	jump_45995:
 		cmp    $0x7a00,%edi
 		jle    jump_458e1
@@ -11117,7 +11117,7 @@ GLOBAL_FUNC (ASM_map_lights_update)	/* 0x04557C */
 		movswl %cx,%edx
 		mov    %eax,%ebx
 		movswl %si,%eax
-		call   unkn_obj_faces4_lights_func_10
+		call   ac_unkn_obj_faces4_lights_func_10
 		jmp    jump_458e1
 	jump_459c0:
 		mov    $0x1,%esi
@@ -11197,7 +11197,7 @@ GLOBAL_FUNC (ASM_map_lights_update)	/* 0x04557C */
 		lea    -0x100(%ebp),%ebx
 		sar    $0x10,%eax
 		movswl %cx,%edx
-		call   unkn_obj_faces4_lights_func_10
+		call   ac_unkn_obj_faces4_lights_func_10
 	jump_45ac2:
 		cmp    $0x7a00,%ebp
 		jle    jump_45ae6
@@ -11209,7 +11209,7 @@ GLOBAL_FUNC (ASM_map_lights_update)	/* 0x04557C */
 		neg    %eax
 		movswl %cx,%edx
 		cwtl
-		call   unkn_obj_faces4_lights_func_10
+		call   ac_unkn_obj_faces4_lights_func_10
 	jump_45ae6:
 		cmp    $0x600,%edi
 		jge    jump_45b01
@@ -11218,7 +11218,7 @@ GLOBAL_FUNC (ASM_map_lights_update)	/* 0x04557C */
 		neg    %eax
 		movswl %cx,%edx
 		cwtl
-		call   unkn_obj_faces4_lights_func_10
+		call   ac_unkn_obj_faces4_lights_func_10
 	jump_45b01:
 		cmp    $0x7a00,%edi
 		jle    jump_45a38
@@ -11230,7 +11230,7 @@ GLOBAL_FUNC (ASM_map_lights_update)	/* 0x04557C */
 		neg    %eax
 		movswl %cx,%edx
 		cwtl
-		call   unkn_obj_faces4_lights_func_10
+		call   ac_unkn_obj_faces4_lights_func_10
 		jmp    jump_45a38
 	jump_45b2e:
 		add    $0x10,%esp

@@ -1161,6 +1161,18 @@ void light_cmd_unkn_func_06(int a1, int a2, int a3, int a4)
         p_fld[0] |= 0x20;
     }
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int light_cmd_unkn_func_05(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_light_cmd_unkn_func_05\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 
 void unkn_update_lights(void)
