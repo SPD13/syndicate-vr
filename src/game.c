@@ -1925,11 +1925,95 @@ void rotate_texture(int a1, int a2, int a3, int a4)
 }
 
 
-void init_crater_textures(void)
+extern short data_1c42fe;
+extern short data_1c4300;
+
+static DIFFTEST_REF_FUNC void init_crater_textures_asm(void)
 {
     asm volatile ("call ASM_init_crater_textures\n"
         :  :  : "eax" );
     return;
+}
+
+static void crater_texture_set(ushort tx, ubyte page, ubyte x1, ubyte y1,
+  ubyte x2, ubyte y2, ubyte x3, ubyte y3, ubyte x4, ubyte y4)
+{
+    struct SingleFloorTexture *p_fltex;
+
+    p_fltex = &game_textures[tx];
+    p_fltex->Page = page;
+    p_fltex->TMapX1 = x1;
+    p_fltex->TMapY1 = y1;
+    p_fltex->TMapX2 = x2;
+    p_fltex->TMapY2 = y2;
+    p_fltex->TMapX3 = x3;
+    p_fltex->TMapY3 = y3;
+    p_fltex->TMapX4 = x4;
+    p_fltex->TMapY4 = y4;
+}
+
+/** Copies the previous floor texture into slot `tx`, advances
+ * next_floor_texture past it and rotates the new copy.
+ */
+static void crater_texture_copy_rotate(ushort tx)
+{
+    game_textures[tx] = game_textures[(int)tx - 1];
+    next_floor_texture = tx + 1;
+    rotate_texture((short)tx, 0, 0, 0);
+}
+
+/** Adds a base crater texture at next_floor_texture, followed by
+ * three copies, each rotated once more than the previous one.
+ */
+static void crater_texture_set_with_rotations(ubyte page, ubyte x1, ubyte y1,
+  ubyte x2, ubyte y2, ubyte x3, ubyte y3, ubyte x4, ubyte y4)
+{
+    ushort tx;
+
+    tx = next_floor_texture;
+    crater_texture_set(tx, page, x1, y1, x2, y2, x3, y3, x4, y4);
+    crater_texture_copy_rotate(tx + 1);
+    crater_texture_copy_rotate(next_floor_texture);
+    crater_texture_copy_rotate(next_floor_texture);
+}
+
+void init_crater_textures(void)
+{
+    ushort tx;
+
+    DIFFTEST_SHADOW(init_crater_textures, init_crater_textures_asm());
+
+    tx = next_floor_texture;
+    crater_texture_set(tx, 0, 0x20, 0x60, 0x3f, 0x60, 0x3f, 0x7f, 0x20, 0x7f);
+    crater_unkn_texture_flags = tx;
+    tx++;
+    crater_texture_set(tx, 2, 0xdf, 0x20, 0xdf, 0x3f, 0xc0, 0x3f, 0xc0, 0x20);
+    data_1c42fe = tx;
+    crater_texture_copy_rotate(tx + 1);
+    crater_texture_copy_rotate(next_floor_texture);
+    crater_texture_copy_rotate(next_floor_texture);
+
+    crater_texture_set_with_rotations(2,
+      0xc0, 0x60, 0xdf, 0x60, 0xdf, 0x7f, 0xc0, 0x7f);
+    crater_texture_set_with_rotations(0,
+      0xe0, 0x20, 0xff, 0x20, 0xff, 0x3f, 0xe0, 0x3f);
+    crater_texture_set_with_rotations(0,
+      0xc0, 0x20, 0xdf, 0x20, 0xdf, 0x3f, 0xc0, 0x3f);
+
+    tx = next_floor_texture;
+    crater_texture_set(tx, 2, 0xff, 0x20, 0xff, 0x3f, 0xe0, 0x3f, 0xe0, 0x20);
+    data_1c4300 = tx;
+    rotate_texture((short)tx, 0, 0, 0);
+    crater_texture_copy_rotate(next_floor_texture + 1);
+    crater_texture_copy_rotate(next_floor_texture);
+    crater_texture_copy_rotate(next_floor_texture);
+
+    crater_texture_set_with_rotations(2,
+      0xe0, 0x60, 0xff, 0x60, 0xff, 0x7f, 0xe0, 0x7f);
+    crater_texture_set_with_rotations(0,
+      0xe0, 0x60, 0xff, 0x60, 0xff, 0x7f, 0xe0, 0x7f);
+    crater_texture_set_with_rotations(0,
+      0xc0, 0x60, 0xdf, 0x60, 0xdf, 0x7f, 0xc0, 0x7f);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
