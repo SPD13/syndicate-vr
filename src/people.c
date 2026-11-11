@@ -11579,10 +11579,115 @@ void plant_mine(struct Thing *p_person)
 #endif
 }
 
-void person_drop_item(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_drop_item_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_drop_item\n"
         : : "a" (p_person));
+}
+
+void person_drop_item(struct Thing *p_person)
+{
+    ushort frm;
+
+    DIFFTEST_SHADOW(person_drop_item, person_drop_item_asm(p_person));
+    if ((p_person->Flag & (TngF_Destroyed|TngF_StationrSht)) != 0)
+        return;
+
+    p_person->Timer1 -= fifties_per_gameturn;
+    if (p_person->Timer1 >= 0)
+        return;
+
+    p_person->Timer1 = p_person->StartTimer1;
+    p_person->Frame = frame[p_person->Frame].Next;
+    p_person->U.UPerson.Timer2--;
+
+    if (p_person->U.UPerson.Timer2 < 0)
+    {
+        play_dist_sample(p_person, 64, 127, 64, 100, 0, 1);
+
+        if ((p_person->Flag2 & TgF2_Unkn00010000) != 0)
+        {
+            struct SimpleThing *p_sthing;
+
+            p_sthing = &sthings[p_person->U.UPerson.TempWeapon];
+            p_person->Flag2 &= ~TgF2_Unkn00010000;
+            if (p_sthing->Type != SmTT_DROPPED_ITEM)
+            {
+                p_sthing->Type = SmTT_DROPPED_ITEM;
+                add_node_sthing(p_sthing->ThingOffset);
+                p_sthing->U.UWeapon.OnFace = p_person->U.UPerson.OnFace;
+                p_person->U.UPerson.Timer2 = 50;
+            }
+        }
+        else
+        {
+            if (p_person->U.UPerson.TempWeapon == 0)
+                p_person->U.UPerson.TempWeapon = p_person->U.UPerson.CurrentWeapon;
+
+            if ((p_person->Flag2 & TgF2_DroppedActivate) != 0)
+            {
+                if ((p_person->U.UPerson.TempWeapon == WEP_ELEMINE) ||
+                  (p_person->U.UPerson.TempWeapon == WEP_EXPLMINE))
+                {
+                    plant_mine(p_person);
+                    p_person->U.UPerson.Timer2 = 50;
+                }
+                p_person->Flag2 &= ~TgF2_DroppedActivate;
+            }
+            else
+            {
+                struct SimpleThing *p_item;
+
+                p_item = create_item(PRCCOORD_TO_MAPCOORD(p_person->X),
+                  PRCCOORD_TO_MAPCOORD(p_person->Y),
+                  PRCCOORD_TO_MAPCOORD(p_person->Z),
+                  1004, (ubyte)p_person->U.UPerson.TempWeapon);
+                p_person->U.UPerson.Timer2 = 50;
+                if (p_item != NULL)
+                {
+                    p_item->U.UWeapon.OnFace = p_person->U.UPerson.OnFace;
+                    if ((p_person->U.UPerson.TempWeapon == WEP_ELEMINE) ||
+                      (p_person->U.UPerson.TempWeapon == WEP_EXPLMINE))
+                    {
+                        p_item->Radius = 50;
+                        p_item->Timer1 = 999;
+                        p_item->StartTimer1 = 999;
+                    }
+                    give_take_me_weapon(p_person, p_person->U.UPerson.TempWeapon,
+                      -1, p_item->ThingOffset);
+                    // Shift count masked like x86 does; CurrentWeapon 0 checks bit 31
+                    if ((p_person->U.UPerson.WeaponsCarried &
+                      (1u << ((p_person->U.UPerson.CurrentWeapon - 1) & 0x1F))) == 0)
+                        p_person->U.UPerson.CurrentWeapon = WEP_NULL;
+                }
+            }
+        }
+    }
+
+    if ((frame[p_person->Frame].Flags & 0x01) == 0)
+        return;
+
+    if ((p_person->Flag2 & TgF2_Unkn10000000) != 0)
+    {
+        ushort owner;
+
+        owner = p_person->Owner;
+        p_person->GotoThingIndex = owner;
+        p_person->State = PerSt_PROTECT_PERSON;
+        p_person->U.UPerson.ComRange =
+          follow_dist[things[owner].U.UPerson.ComCur & 3][p_person->U.UPerson.ComCur & 3];
+        p_person->Flag2 &= ~TgF2_Unkn10000000;
+    }
+    else
+    {
+        p_person->State = PerSt_NONE;
+    }
+    p_person->Flag &= ~TngF_Unkn0001;
+    p_person->U.UPerson.AnimMode = p_person->U.UPerson.OldAnimMode;
+    frm = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+    p_person->Frame = nstart_ani[frm + p_person->U.UPerson.Angle];
+    p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+    p_person->Speed = calc_person_speed(p_person);
 }
 
 static DIFFTEST_REF_FUNC void person_dieing_asm(struct Thing *p_person)
