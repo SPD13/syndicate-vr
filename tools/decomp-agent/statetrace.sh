@@ -12,7 +12,7 @@ if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
 fi
 set -u
 OUTDIR="$(mkdir -p "$1" && cd "$1" && pwd)"; shift
-SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19}"
+SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19 1,2+bot 1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot}"
 TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -28,11 +28,13 @@ done
 cd "$GAMEDATA"
 RCALL=0
 for SC in $SCENARIOS; do
+    # "<campaign>,<mission>+bot": the mission with scripted player input
+    BOT=""; case "$SC" in *+bot) BOT=1 ;; esac
     T="$OUTDIR/${SC/,/_}.trace"
     # A function name that matches nothing enables the turn limit only
     SWARS_DIFFTEST_FN=statetrace_none SWARS_DIFFTEST_TURNS="$TURNS" \
     SWARS_DIFFTEST_FAST=1 SWARS_DIFFTEST_LOG="$OUTDIR/${SC/,/_}.log" \
-    SWARS_STATETRACE="$T" SWARS_SEED="${SWARS_SEED:-12345}" timeout 600 "$EXE" -q -W -m "$SC" > /dev/null 2>&1
+    SWARS_STATETRACE="$T" SWARS_SEED="${SWARS_SEED:-12345}" timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} "$EXE" -q -W -m "${SC%+bot}" > /dev/null 2>&1
     RC=$?
     echo "  scenario $SC: rc=$RC turns=$(wc -l < "$T" 2>/dev/null || echo 0)"
     # 4: no calls of the (absent) function, the normal end

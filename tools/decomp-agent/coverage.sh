@@ -9,7 +9,7 @@ if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
     exec "$(dirname "$0")/msys.sh" "$(printf "%q " "$0" "$@")"
 fi
 set -eu
-SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19}"
+SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19 1,2+bot 1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot}"
 TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 COMMON="$(git -C "$REPO" rev-parse --path-format=absolute --git-common-dir)"
@@ -27,11 +27,13 @@ nm -n "$EXE" | grep -E ' [tT] |__image_base__' > "$OUT/symbols.txt"
 
 cd "$GAMEDATA"
 for SC in $SCENARIOS; do
+    # "<campaign>,<mission>+bot": the mission with scripted player input
+    BOT=""; case "$SC" in *+bot) BOT=1 ;; esac
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
     SWARS_DIFFTEST_FN=none SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
     SWARS_DIFFTEST_MIN=0 SWARS_DIFFTEST_LOG="$OUT/difftest.log" \
     SWARS_COVERAGE="$OUT/cov_${SC/,/_}.txt" \
-        timeout 900 "$EXE" -q -W -m "$SC" > /dev/null 2>&1 || echo "scenario $SC: rc=$?"
+        timeout 900 env ${BOT:+SWARS_DIFFTEST_BOT=1} "$EXE" -q -W -m "${SC%+bot}" > /dev/null 2>&1 || echo "scenario $SC: rc=$?"
     echo "scenario $SC: $(wc -l < "$OUT/cov_${SC/,/_}.txt" 2>/dev/null || echo 0) functions hit"
 done
 

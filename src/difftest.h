@@ -131,6 +131,11 @@ void difftest_game_turn(void);
  */
 TbBool difftest_skip_turn_wait(void);
 
+/** Builds a scripted player packet now and then, when $SWARS_DIFFTEST_BOT
+ * is set; called after user input was turned into a packet.
+ */
+void difftest_bot_turn(void);
+
 /** Runs random-input tests of pure functions, then exits.
  */
 void difftest_run_fuzz(void);

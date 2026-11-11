@@ -21,6 +21,7 @@
 #include <assert.h>
 #include "bfkeybd.h"
 #include "bftime.h"
+#include "difftest.h"
 #include "enginprops.h"
 #include "game.h"
 #include "keyboard.h"
@@ -158,6 +159,9 @@ void update_tick_time(void)
         fifties_per_gameturn = 50;
     }
     if ( in_network_game )
+        fifties_per_gameturn = 80;
+    // Difftest runs go as fast as possible; keep timers independent of it
+    if (difftest_skip_turn_wait())
         fifties_per_gameturn = 80;
     if ( fifties_per_gameturn > 400 )
         fifties_per_gameturn = 400;

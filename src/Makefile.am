@@ -54,6 +54,7 @@ syndwarsfx_SOURCES = \
 	display.h \
 	difftest.c \
 	difftest.h \
+	difftest_bot.c \
 	difftest_fuzz.c \
 	dos.c \
 	dos.h \

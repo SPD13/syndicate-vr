@@ -1,0 +1,417 @@
+/******************************************************************************/
+// Syndicate Wars Fan Expansion, source port of the classic game from Bullfrog.
+/******************************************************************************/
+/** @file difftest_bot.c
+ *     Scripted player input for difftest mission runs.
+ * @par Purpose:
+ *     Plays the local player's agents during a difftest run, so that code
+ *     reached only through player commands (picking items, vehicles,
+ *     persuading, weapons use, protect/follow, moods) gets exercised.
+ * @par Comment:
+ *     Enabled by $SWARS_DIFFTEST_BOT, whose value seeds the bot's own random
+ *     generator; the game's lbSeed is not touched. Decisions depend only on
+ *     the game state and that generator, so two builds which behave the same
+ *     receive the same packets.
+ *     Every few turns one packet is built, in place of user input.
+ *     $SWARS_DIFFTEST_BOT_LOG names a file to list the packets in.
+ * @author   SyndicateVR decomp agent
+ * @date     11 Nov 2026
+ * @par  Copying and copyrights:
+ *     This program is free software; you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation; either version 2 of the License, or
+ *     (at your option) any later version.
+ */
+/******************************************************************************/
+#include "difftest.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include "bigmap.h"
+#include "game.h"
+#include "game_options.h"
+#include "game_speed.h"
+#include "packet.h"
+#include "people.h"
+#include "player.h"
+#include "thing.h"
+#include "weapon.h"
+/******************************************************************************/
+
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+
+/** Game turns between bot packets. */
+#define BOT_TURN_INTERVAL 6
+/** Search range for targets around an agent, in map coords. */
+#define BOT_RANGE 4096
+
+static TbBool bot_tried = false;
+static TbBool bot_on = false;
+static ulong bot_seed;
+static FILE *bot_log = NULL;
+
+static ulong bot_rand(ulong range)
+{
+    return difftest_fuzz_rand(&bot_seed) % range;
+}
+
+static TbBool bot_agent_usable(struct Thing *p_agent)
+{
+    if (p_agent == NULL || p_agent->Type != TT_PERSON)
+        return false;
+    if ((p_agent->Flag & TngF_Destroyed) != 0)
+        return false;
+    if (p_agent->State == PerSt_DEAD)
+        return false;
+    // While a mission script drives the agent, ComCur is a command index
+    // and not the player slot, which packet handlers expect
+    return !person_is_executing_commands(p_agent->ThingOffset);
+}
+
+/** Cheat packets act on all agents; agents driven by a mission script
+ * cannot take them (see bot_agent_usable()).
+ */
+static TbBool bot_cheat_allowed(void)
+{
+    PlayerInfo *p_locplayer;
+    int i;
+
+    p_locplayer = &players[local_player_no];
+    for (i = 0; i < playable_agents; i++)
+    {
+        struct Thing *p_agent = p_locplayer->MyAgent[i];
+        if (p_agent == NULL || p_agent->Type != TT_PERSON)
+            continue;
+        if (person_is_executing_commands(p_agent->ThingOffset))
+            return false;
+    }
+    return true;
+}
+
+static int bot_dist(struct Thing *p_agent, long x, long z)
+{
+    return abs(PRCCOORD_TO_MAPCOORD(p_agent->X - x)) +
+      abs(PRCCOORD_TO_MAPCOORD(p_agent->Z - z));
+}
+
+/** Picks a random thing of given type within range; for TT_PERSON, other
+ * than the agent itself and alive; with no_own, also not one of the
+ * player's agents (the UI does not offer them as targets).
+ */
+static ThingIdx bot_pick_thing(struct Thing *p_agent, ubyte ttype, TbBool no_own)
+{
+    ThingIdx thing, found[32];
+    int n;
+
+    n = 0;
+    for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
+    {
+        struct Thing *p_thing = &things[thing];
+        if (p_thing->Type != ttype || p_thing == p_agent)
+            continue;
+        if ((p_thing->Flag & TngF_Destroyed) != 0)
+            continue;
+        if (ttype == TT_PERSON && p_thing->State == PerSt_DEAD)
+            continue;
+        if (no_own && ttype == TT_PERSON &&
+          person_slot_as_player_agent(p_thing, local_player_no) >= 0)
+            continue;
+        if (bot_dist(p_agent, p_thing->X, p_thing->Z) > BOT_RANGE)
+            continue;
+        found[n++] = thing;
+        if (n >= 32)
+            break;
+    }
+    return (n > 0) ? found[bot_rand(n)] : 0;
+}
+
+/** Picks a dropped item within range, or 0. */
+static ThingIdx bot_pick_item(struct Thing *p_agent)
+{
+    ThingIdx thing, found[16];
+    int n;
+
+    n = 0;
+    for (thing = sthings_used_head; thing < 0; thing = sthings[thing].LinkChild)
+    {
+        struct SimpleThing *p_sthing = &sthings[thing];
+        if (p_sthing->Type != SmTT_DROPPED_ITEM)
+            continue;
+        if (bot_dist(p_agent, p_sthing->X, p_sthing->Z) > BOT_RANGE)
+            continue;
+        found[n++] = thing;
+        if (n >= 16)
+            break;
+    }
+    return (n > 0) ? found[bot_rand(n)] : 0;
+}
+
+/** Picks a weapon the agent carries, or 0. */
+static WeaponType bot_pick_weapon(struct Thing *p_agent)
+{
+    WeaponType wtypes[WEP_TYPES_COUNT];
+    WeaponType wtype;
+    int n;
+
+    n = 0;
+    for (wtype = WEP_NULL + 1; wtype < WEP_TYPES_COUNT; wtype++)
+    {
+        if (person_carries_weapon(p_agent, wtype))
+            wtypes[n++] = wtype;
+    }
+    return (n > 0) ? wtypes[bot_rand(n)] : WEP_NULL;
+}
+
+/** A ground point near the agent, in map coords. */
+static void bot_near_point(struct Thing *p_agent, short *p_x, short *p_y, short *p_z, int spread)
+{
+    int x, z;
+
+    x = PRCCOORD_TO_MAPCOORD(p_agent->X) + (int)bot_rand(2 * spread) - spread;
+    z = PRCCOORD_TO_MAPCOORD(p_agent->Z) + (int)bot_rand(2 * spread) - spread;
+    if (x < 256) x = 256;
+    if (x > MAP_COORD_WIDTH - 256) x = MAP_COORD_WIDTH - 256;
+    if (z < 256) z = 256;
+    if (z > MAP_COORD_HEIGHT - 256) z = MAP_COORD_HEIGHT - 256;
+    *p_x = x;
+    *p_z = z;
+    *p_y = (alt_at_point(x, z) >> 8) + 20;
+}
+
+static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
+{
+    ThingIdx agent, target;
+    short x, y, z;
+    WeaponType wtype;
+
+    agent = p_agent->ThingOffset;
+    // Within a vehicle only drive or leave; weapons fired from there take
+    // the vehicle as the shot start, which most vehicles cannot be
+    if (person_is_in_a_vehicle(p_agent))
+    {
+        if (bot_rand(3) == 0) {
+            build_packet(p_pckt, PAct_LEAVE_VEHICLE, agent, 0, 0, 0);
+        } else {
+            bot_near_point(p_agent, &x, &y, &z, 4096);
+            build_packet(p_pckt, PAct_AGENT_GOTO_GND_PT_ABS, agent, x, y, z);
+        }
+        return;
+    }
+    switch (bot_rand(24))
+    {
+    case 0:
+    case 1:
+        bot_near_point(p_agent, &x, &y, &z, 2048);
+        build_packet(p_pckt, bot_rand(2) ? PAct_AGENT_GOTO_GND_PT_ABS :
+          PAct_AGENT_GOTO_GND_PT_ABS_FF, agent, x, y, z);
+        break;
+    case 2:
+        x = (int)bot_rand(2048) - 1024;
+        z = (int)bot_rand(2048) - 1024;
+        build_packet(p_pckt, bot_rand(2) ? PAct_AGENT_GOTO_GND_PT_REL :
+          PAct_AGENT_GOTO_GND_PT_REL_FF, agent, x, 0, z);
+        break;
+    case 3:
+        // Walk onto the face another person stands on
+        target = bot_pick_thing(p_agent, TT_PERSON, false);
+        if (target == 0 || things[target].U.UPerson.OnFace == 0)
+            break;
+        build_packet(p_pckt, bot_rand(2) ? PAct_AGENT_GOTO_FACE_PT_ABS :
+          PAct_AGENT_GOTO_FACE_PT_ABS_FF, agent,
+          PRCCOORD_TO_MAPCOORD(things[target].X),
+          things[target].U.UPerson.OnFace,
+          PRCCOORD_TO_MAPCOORD(things[target].Z));
+        break;
+    case 4:
+    case 5:
+        target = bot_pick_item(p_agent);
+        if (target == 0)
+            break;
+        build_packet(p_pckt, bot_rand(2) ? PAct_GET_ITEM : PAct_GET_ITEM_FAST,
+          agent, target, 0, 0);
+        break;
+    case 6:
+        if (p_agent->U.UPerson.StandOnThing >= 0)
+            break;
+        build_packet(p_pckt, PAct_PICKUP, agent,
+          p_agent->U.UPerson.StandOnThing, 0, 0);
+        break;
+    case 7:
+    case 8:
+        target = bot_pick_thing(p_agent, TT_VEHICLE, false);
+        if (target == 0)
+            break;
+        if (bot_dist(p_agent, things[target].X, things[target].Z) < 512)
+            build_packet(p_pckt, PAct_ENTER_VEHICLE, agent, target, 0, 0);
+        else
+            build_packet(p_pckt, bot_rand(2) ? PAct_GO_ENTER_VEHICLE :
+              PAct_GO_ENTER_VEHICLE_FF, agent, target, 0, 0);
+        break;
+    case 9:
+    case 10:
+        wtype = bot_pick_weapon(p_agent);
+        if (wtype == WEP_NULL)
+            break;
+        if (bot_rand(4) == 0)
+            build_packet(p_pckt, PAct_SELECT_GRP_SPEC_WEAPON, agent, wtype,
+              WepSel_SELECT, 0);
+        else
+            build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent, wtype,
+              WepSel_SELECT, 0);
+        break;
+    case 11:
+        build_packet(p_pckt, bot_rand(2) ? PAct_SELECT_NEXT_WEAPON :
+          PAct_SELECT_PREV_WEAPON, agent, 0, 0, 0);
+        break;
+    case 12:
+    case 13:
+    case 14:
+        target = bot_pick_thing(p_agent, bot_rand(4) ? TT_PERSON : TT_VEHICLE, true);
+        if (target == 0)
+            break;
+        build_packet(p_pckt, PAct_SHOOT_AT_THING, agent,
+          target, 0, 0);
+        break;
+    case 15:
+        bot_near_point(p_agent, &x, &y, &z, 1024);
+        wtype = p_agent->U.UPerson.CurrentWeapon;
+        if (weapon_is_for_planting(wtype))
+            build_packet(p_pckt, bot_rand(2) ? PAct_PLANT_MINE_AT_GND_PT :
+              PAct_PLANT_MINE_AT_GND_PT_FF, agent, x, y, z);
+        else
+            build_packet(p_pckt, bot_rand(2) ? PAct_SHOOT_AT_GND_POINT :
+              PAct_SHOOT_AT_GND_POINT_FF, agent, x, y, z);
+        break;
+    case 16:
+        build_packet(p_pckt, bot_rand(2) ? PAct_PROTECT_INC :
+          PAct_PROTECT_TOGGLE, agent, 0, 0, 0);
+        break;
+    case 17:
+        target = bot_pick_thing(p_agent, TT_PERSON, false);
+        if (target == 0)
+            break;
+        build_packet(p_pckt, PAct_FOLLOW_PERSON, agent, target, 0, 0);
+        break;
+    case 18:
+        build_packet(p_pckt, bot_rand(2) ? PAct_AGENT_SET_MOOD :
+          PAct_GROUP_SET_MOOD, agent, (int)bot_rand(201) - 100, 0, 0);
+        break;
+    case 19:
+        build_packet(p_pckt, PAct_PEEPS_SCATTER, agent,
+          PRCCOORD_TO_MAPCOORD(p_agent->X), 0, PRCCOORD_TO_MAPCOORD(p_agent->Z));
+        break;
+    case 20:
+        switch (bot_rand(4))
+        {
+        case 0:
+            build_packet(p_pckt, PAct_SHIELD_TOGGLE, agent, 0, 0, 0);
+            break;
+        case 1:
+            build_packet(p_pckt, PAct_AGENT_USE_MEDIKIT, agent, 0, 0, 0);
+            break;
+        case 2:
+            build_packet(p_pckt, PAct_THERMAL_TOGGLE, agent, 0, 0, 0);
+            break;
+        default:
+            build_packet(p_pckt, PAct_CHAT_MESSAGE_KEY, 'a' + bot_rand(26), 0, 0, 0);
+            break;
+        }
+        break;
+    case 21:
+        wtype = bot_pick_weapon(p_agent);
+        if (wtype == WEP_NULL)
+            break;
+        build_packet(p_pckt, PAct_DROP_HELD_WEAPON_SECR, agent, wtype, 0, 0);
+        break;
+    case 22:
+        build_packet(p_pckt, PAct_SELECT_AGENT, agent, agent, 0, 0);
+        break;
+    default:
+        // Rearm and heal all agents now and then; the drop action and
+        // fights would leave them with nothing to do
+        if (!bot_cheat_allowed())
+            break;
+        build_packet(p_pckt, PAct_CHEAT_ALL_AGENTS, bot_rand(2) ?
+          PCheatAA_RESURRECT_AND_WEPAPN : PCheatAA_BEEFUP_AND_MODS, 0, 0, 0);
+        break;
+    }
+}
+
+static void bot_decide(struct Packet *p_pckt)
+{
+    PlayerInfo *p_locplayer;
+    struct Thing *p_agent;
+    int i, n;
+
+    p_locplayer = &players[local_player_no];
+    n = 0;
+    for (i = 0; i < playable_agents; i++)
+    {
+        if (bot_agent_usable(p_locplayer->MyAgent[i]))
+            n++;
+    }
+    if (n == 0) {
+        if (bot_cheat_allowed())
+            build_packet(p_pckt, PAct_CHEAT_ALL_AGENTS,
+              PCheatAA_RESURRECT_AND_WEPAPN, 0, 0, 0);
+        return;
+    }
+    n = bot_rand(n);
+    for (i = 0; i < playable_agents; i++)
+    {
+        p_agent = p_locplayer->MyAgent[i];
+        if (!bot_agent_usable(p_agent))
+            continue;
+        if (n-- == 0)
+            break;
+    }
+    // Self destruct rarely and late, it ends the agent's part
+    if ((gameturn > 1000) && (bot_rand(200) == 0)) {
+        build_packet(p_pckt, PAct_AGENT_SELF_DESTRUCT, p_agent->ThingOffset, 0, 0, 0);
+        return;
+    }
+    bot_build(p_agent, p_pckt);
+}
+
+void difftest_bot_turn(void)
+{
+    struct Packet *p_pckt;
+
+    if (!bot_tried) {
+        const char *s = getenv("SWARS_DIFFTEST_BOT");
+        bot_tried = true;
+        if (s != NULL) {
+            bot_on = true;
+            bot_seed = strtoul(s, NULL, 0) | 1;
+        }
+        s = getenv("SWARS_DIFFTEST_BOT_LOG");
+        if (bot_on && (s != NULL))
+            bot_log = fopen(s, "w");
+    }
+    if (!bot_on)
+        return;
+    if (ingame.DisplayMode != DpM_ENGINEPLY)
+        return;
+    p_pckt = &packets[local_player_no];
+    if ((p_pckt->Action & ~PActF_All) != PAct_NONE)
+        return;
+    if ((gameturn % BOT_TURN_INTERVAL) != 0)
+        return;
+
+    bot_decide(p_pckt);
+    if ((bot_log != NULL) && ((p_pckt->Action & ~PActF_All) != PAct_NONE)) {
+        fprintf(bot_log, "turn %lu: %s data=%d x=%d y=%d z=%d\n",
+          (ulong)gameturn, get_packet_action_name(p_pckt->Action & ~PActF_All),
+          (int)p_pckt->Data, (int)p_pckt->X, (int)p_pckt->Y, (int)p_pckt->Z);
+        fflush(bot_log);
+    }
+}
+
+#else
+
+void difftest_bot_turn(void)
+{
+}
+
+#endif
+/******************************************************************************/

@@ -7560,6 +7560,7 @@ void game_process(void)
         draw_game();
         debug_trace_turn_bound(gameturn);
         load_packet();
+        difftest_bot_turn();
         if ( ((active_flags_general_unkn01 & 0x8000) != 0) !=
           ((ingame.Flags & GamF_ThermalView) != 0) )
             LbPaletteSet(display_palette);

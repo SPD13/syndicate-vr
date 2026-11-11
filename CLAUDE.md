@@ -14,7 +14,9 @@ Always use the scripts; they enter MSYS2 by themselves when needed.
   into `build/difftest/`. Add `--check` to also run `make check`; omit
   `--difftest` for the plain build in `build/release/`.
 - `tools/decomp-agent/difftest_run.sh <fn>` — verdict for one function:
-  random-input cases (if any) + 13 mission scenarios, ~3 min.
+  random-input cases (if any) + 21 mission scenarios, ~5 min. A scenario
+  "1,2+bot" plays the mission with scripted player commands
+  (`src/difftest_bot.c`), reaching code that needs a player.
 - `python tools/decomp-agent/show_fn.py <fn>` — asm body, wrapper conf
   line, current C, callers.
 - `tools/decomp-agent/offsets.sh <header.h> <Struct> [field...]` — sizeof

@@ -12,7 +12,7 @@ if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
 fi
 set -u
 FN="$1"; shift
-SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19}"
+SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19 1,2+bot 1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot}"
 TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -76,12 +76,14 @@ case $RC in
 esac
 
 for SC in $SCENARIOS; do
+    # "<campaign>,<mission>+bot": the mission with scripted player input
+    BOT=""; case "$SC" in *+bot) BOT=1 ;; esac
     [ "$VERDICT" = PASS ] || break
     LOG="$OUT/scenario_${SC/,/_}.log"
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
     SWARS_DIFFTEST_FN="$FN" SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
     SWARS_DIFFTEST_MIN=0 SWARS_DIFFTEST_LOG="$LOG" \
-        timeout 600 "$EXE" -q -W -m "$SC" > "$OUT/scenario_${SC/,/_}.out" 2>&1
+        timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} "$EXE" -q -W -m "${SC%+bot}" > "$OUT/scenario_${SC/,/_}.out" 2>&1
     RC=$?
     cp -f error.log "$OUT/scenario_${SC/,/_}.error.log" 2>/dev/null
     case $RC in
