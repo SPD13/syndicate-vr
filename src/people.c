@@ -5466,10 +5466,95 @@ int do_i_have_weapon(int a1, int a2)
     return ra;
 }
 
-void person_init_pickup(struct Thing *p_person, ThingIdx item)
+static DIFFTEST_REF_FUNC void person_init_pickup_asm(struct Thing *p_person, ThingIdx item)
 {
     asm volatile ("call ASM_person_init_pickup\n"
         : : "a" (p_person), "d" (item));
+}
+
+void person_init_pickup(struct Thing *p_person, ThingIdx item)
+{
+    struct SimpleThing *p_sthing;
+    ushort weapon;
+    ubyte can_pick;
+    ubyte prev_anim_mode;
+    ushort frame;
+
+    DIFFTEST_SHADOW(person_init_pickup, person_init_pickup_asm(p_person, item));
+
+    if ((p_person->Flag & (TngF_Unkn40000000|TngF_WepRecoil|TngF_StationrSht|TngF_Destroyed)) != 0)
+        return;
+
+    p_sthing = &sthings[item];
+    weapon = p_sthing->U.UWeapon.WeaponType;
+    if (weapon != 0)
+    {
+        can_pick = 1;
+        if (do_i_have_weapon((int)(intptr_t)p_person, weapon) != 0)
+            can_pick = 0;
+
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+        {
+            ushort fp_idx;
+            PlayerIdx plyr;
+            ushort plagent;
+            ubyte fp;
+
+            plagent = p_person->U.UPerson.ComCur & 3;
+            plyr = (ubyte)(p_person->U.UPerson.ComCur >> 2);
+            fp_idx = weapon - 6;
+            fp = WFRPK_COUNT;
+            switch (fp_idx)
+            {
+            case WEP_NUCLGREN - 6:
+                fp = WFRPK_NUCLGREN;
+                break;
+            case WEP_CRAZYGAS - 6:
+                fp = WFRPK_CRAZYGAS;
+                break;
+            case WEP_KOGAS - 6:
+                fp = WFRPK_KOGAS;
+                break;
+            case WEP_ELEMINE - 6:
+                fp = WFRPK_ELEMINE;
+                break;
+            case WEP_EXPLMINE - 6:
+                fp = WFRPK_EXPLMINE;
+                break;
+            default:
+                break;
+            }
+            // Agent already carries a four-pack weapon - can pick up if not full
+            if ((fp != WFRPK_COUNT) && !can_pick)
+            {
+                if ((p_person->U.UPerson.WeaponsCarried & (1 << (weapon - 1))) == 0)
+                    can_pick = 0;
+                else if (players[plyr].FourPacks[fp][plagent] == WEAPONS_FOURPACK_MAX_COUNT)
+                    can_pick = 0;
+                else
+                    can_pick = 1;
+            }
+        }
+        if (!can_pick)
+            return;
+    }
+
+    if (p_sthing->Type == 0x1a)
+        return;
+
+    p_person->Flag |= TngF_Unkn0001;
+    p_person->Frame = nstart_ani[people_frames[p_person->SubType][ANIM_PERS_Unkn13]
+      + p_person->U.UPerson.Angle];
+    frame = people_frames[p_person->SubType][ANIM_PERS_Unkn13];
+    p_person->State = PerSt_PICKUP_ITEM;
+    p_person->Timer1 = 48;
+    p_person->U.UPerson.Timer2 = 3;
+    p_person->StartTimer1 = 48;
+    p_person->U.UPerson.StandOnThing = item;
+    p_person->StartFrame = frame - 1;
+    prev_anim_mode = p_person->U.UPerson.AnimMode;
+    p_person->U.UPerson.AnimMode = ANIM_PERS_Unkn13;
+    p_person->U.UPerson.OldAnimMode = prev_anim_mode;
 }
 
 static DIFFTEST_REF_FUNC void check_weapon_asm(struct Thing *p_person, int range)
