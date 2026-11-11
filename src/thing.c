@@ -1175,12 +1175,229 @@ int light_cmd_unkn_func_05(int a1, int a2, int a3, int a4)
 
 
 
-void unkn_update_lights(void)
+static DIFFTEST_REF_FUNC void unkn_update_lights_asm(void)
 {
     asm volatile ("call ASM_unkn_update_lights\n"
         :  :  : "eax" );
     return;
 }
+
+/** Light command field layout (offsets in lcfld_0): 0 flags, 1 type,
+ * 2 timer, 3 bright A, 4 bright B, 5 and 6 limits/steps, 7 and 8 last
+ * timer values, 0xA current brightness, 0x10 anim tmap, 0x12 light index.
+ */
+#define LCMD_SHORT(p_fld, offs) (*(short *)&(p_fld)[offs])
+
+static ubyte light_cmd_random_between(ubyte hi, ubyte lo)
+{
+    s32 range, rnd;
+
+    range = (s32)hi - (s32)lo;
+    rnd = (ushort)LbRandomAnyShort();
+    return (ubyte)(rnd % range + lo);
+}
+
+static void light_cmd_anim_tmap_lookup(ubyte *p_fld)
+{
+    short light;
+    short tile;
+    ushort tex;
+    short anim;
+
+    light = LCMD_SHORT(p_fld, 0x12);
+    if (light < 0)
+    {
+        struct SimpleThing *p_sthing = &sthings[light];
+        tile = (short)((((ushort)(p_sthing->Z >> 16)) << 7)
+          + (ushort)(p_sthing->X >> 16));
+    }
+    else
+    {
+        struct FullLight *p_fulight = &game_full_lights[light];
+        tile = (short)(((p_fulight->Z >> 8) << 7) + (p_fulight->X >> 8));
+    }
+    tex = game_my_big_map[tile].Texture & 0x3FFF;
+    anim = tex;
+    if (tex != 0)
+    {
+        for (anim = 10; anim < (s32)next_anim_tmap; anim++)
+        {
+            if (game_anim_tmaps[anim].Texture == tex)
+                break;
+        }
+        if (anim >= (s32)next_anim_tmap)
+            anim = 0;
+    }
+    LCMD_SHORT(p_fld, 0x10) = anim;
+    if (anim != 0)
+        return;
+
+    light = LCMD_SHORT(p_fld, 0x12);
+    p_fld[1] = 8;
+    if (light < 0)
+        sthings[light].U.UScenery.LightHead = 0;
+    else
+        game_full_lights[light].Command = 0;
+}
+
+void unkn_update_lights(void)
+{
+    ushort cmd;
+
+    DIFFTEST_SHADOW(unkn_update_lights, unkn_update_lights_asm());
+    for (cmd = 1; cmd < next_light_command; cmd++)
+    {
+        ubyte *p_fld;
+        short light;
+        ubyte flags;
+
+        if (cmd == 0)
+            continue;
+        p_fld = game_light_commands[cmd].lcfld_0;
+        light = LCMD_SHORT(p_fld, 0x12);
+        if ((light > 0) && (game_full_lights[light].Command != (short)cmd))
+            goto tail;
+
+        switch ((ubyte)(p_fld[1] - 1))
+        {
+        case 0:
+            flags = p_fld[0];
+            if ((flags & 0x04) != 0)
+            {
+                p_fld[2]--;
+                if ((sbyte)p_fld[2] >= 0)
+                    break;
+                if (p_fld[5] == p_fld[6])
+                    p_fld[8] = p_fld[6];
+                else
+                    p_fld[8] = light_cmd_random_between(p_fld[5], p_fld[6]);
+                p_fld[2] = p_fld[8];
+                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3], 0, 0);
+                flags = p_fld[0] & 0xF9;
+                p_fld[0] = flags;
+                p_fld[0] = flags | 0x02;
+            }
+            else if ((flags & 0x02) != 0)
+            {
+                p_fld[2]--;
+                if ((sbyte)p_fld[2] >= 0)
+                    break;
+                if (p_fld[5] == p_fld[6])
+                    p_fld[7] = p_fld[6];
+                else
+                    p_fld[7] = light_cmd_random_between(p_fld[5], p_fld[6]);
+                p_fld[2] = 0;
+                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4], 0, 0);
+                flags = p_fld[0] & 0xF9;
+                p_fld[0] = flags;
+                p_fld[0] = flags | 0x04;
+            }
+            break;
+        case 1:
+            if ((p_fld[0] & 0x08) != 0)
+            {
+                LCMD_SHORT(p_fld, 0xA) = (ushort)LCMD_SHORT(p_fld, 0xA) + p_fld[6];
+                if (LCMD_SHORT(p_fld, 0xA) >= (s32)p_fld[3])
+                {
+                    flags = p_fld[0] & 0xF7;
+                    LCMD_SHORT(p_fld, 0xA) = p_fld[3];
+                    p_fld[0] = flags;
+                }
+            }
+            else
+            {
+                LCMD_SHORT(p_fld, 0xA) = (ushort)LCMD_SHORT(p_fld, 0xA) - p_fld[5];
+                if (LCMD_SHORT(p_fld, 0xA) <= (s32)p_fld[4])
+                {
+                    flags = p_fld[0] | 0x08;
+                    LCMD_SHORT(p_fld, 0xA) = p_fld[4];
+                    p_fld[0] = flags;
+                }
+            }
+            light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12),
+              (ushort)LCMD_SHORT(p_fld, 0xA), 0, 0);
+            break;
+        case 2:
+        case 3:
+        case 4:
+        case 7:
+            break;
+        case 5:
+            flags = p_fld[0];
+            if ((flags & 0x04) != 0)
+            {
+                p_fld[2]--;
+                if ((sbyte)p_fld[2] >= 0)
+                    break;
+                p_fld[8] = p_fld[6];
+                p_fld[2] = p_fld[6];
+                if ((sbyte)p_fld[6] > 0)
+                    light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3], 0, 0);
+                flags = p_fld[0] & 0xF9;
+                p_fld[0] = flags;
+                p_fld[0] = flags | 0x02;
+            }
+            else if ((flags & 0x02) != 0)
+            {
+                p_fld[2]--;
+                if ((sbyte)p_fld[2] >= 0)
+                    break;
+                p_fld[7] = p_fld[5];
+                p_fld[2] = p_fld[5];
+                if ((sbyte)p_fld[5] > 0)
+                    light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4], 0, 0);
+                flags = p_fld[0] & 0xF9;
+                p_fld[0] = flags;
+                p_fld[0] = flags | 0x04;
+            }
+            break;
+        case 6:
+            if (LCMD_SHORT(p_fld, 0x10) >= (s32)next_anim_tmap)
+                LCMD_SHORT(p_fld, 0x10) = 0;
+            if (LCMD_SHORT(p_fld, 0x10) == 0)
+            {
+                light_cmd_anim_tmap_lookup(p_fld);
+                break;
+            }
+            flags = p_fld[0];
+            if ((flags & 0x04) != 0)
+            {
+                s32 frame;
+
+                frame = game_anim_tmaps[LCMD_SHORT(p_fld, 0x10)].field_22 + 1;
+                if ((frame != p_fld[6]) && (frame != p_fld[5]))
+                    break;
+                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3], 0, 0);
+                flags = p_fld[0] & 0xF9;
+                p_fld[0] = flags;
+                p_fld[0] = flags | 0x02;
+            }
+            else if ((flags & 0x02) != 0)
+            {
+                s32 frame;
+
+                frame = game_anim_tmaps[LCMD_SHORT(p_fld, 0x10)].field_22 + 1;
+                if ((frame == p_fld[6]) || (frame == p_fld[5]))
+                    break;
+                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4], 0, 0);
+                flags = p_fld[0] & 0xF9;
+                p_fld[0] = flags;
+                p_fld[0] = flags | 0x04;
+            }
+            break;
+        default:
+            light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), 0x100, 0, 0);
+            break;
+        }
+tail:
+        if ((p_fld[0] & 0x10) != 0)
+            light_cmd_unkn_func_06((int)p_fld, 0, 0, 0);
+        if ((p_fld[0] & 0x20) != 0)
+            light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), 0, 0, 0);
+    }
+}
+
+#undef LCMD_SHORT
 
 int recalc_rocket_direction(struct Thing *p_rocket)
 {
