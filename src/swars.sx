@@ -44785,7 +44785,7 @@ GLOBAL_FUNC(ASM_explode_thing_building)	/* 0x063F34 */
 		mov    %al,0x8(%ebx)
 		mov    0x1c(%ebx),%eax
 		sar    $0x10,%eax
-		call   make_triangle_solid
+		call   ac_make_triangle_solid
 	jump_640b7:
 		xor    %eax,%eax
 		mov    (%ebx),%ax
@@ -44941,10 +44941,10 @@ GLOBAL_FUNC(ASM_explode_thing_building)	/* 0x063F34 */
 		and    $0xfb,%dl
 		sar    $0x10,%eax
 		mov    %dl,0xa(%ebx)
-		call   make_triangle_solid
+		call   ac_make_triangle_solid
 		mov    0x22(%ebx),%eax
 		sar    $0x10,%eax
-		call   make_triangle_solid
+		call   ac_make_triangle_solid
 	jump_642eb:
 		xor    %eax,%eax
 		mov    (%ebx),%ax
@@ -78315,25 +78315,6 @@ GLOBAL_FUNC(ASM_is_this_a_nice_place_for_a_picnic)	/* 0x087D24 */
 		pop    %esi
 		pop    %ecx
 		pop    %ebx
-		ret
-
-
-/*----------------------------------------------------------------*/
-make_triangle_solid:	/* 0x087F98 */
-/*----------------------------------------------------------------*/
-		push   %edx
-		cmpl   $0x1,EXPORT_SYMBOL(selected_triangulation_no)
-		jne    jump_87fc1
-		cmp    EXPORT_SYMBOL(triangulation)+0x1C,%eax
-		jge    jump_87fc1
-		cmp    EXPORT_SYMBOL(triangulation)+0x18,%eax
-		jl     jump_87fc1
-		mov    %eax,%edx
-		mov    EXPORT_SYMBOL(triangulation)+0x20,%eax
-		shl    $0x4,%edx
-		orb    $0x6,0xe(%edx,%eax,1)
-	jump_87fc1:
-		pop    %edx
 		ret
 
 
