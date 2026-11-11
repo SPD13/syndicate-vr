@@ -6004,11 +6004,34 @@ StateChRes person_init_scare_person(struct Thing *p_person, short targetng)
     return StCh_ACCEPTED;
 }
 
-void person_init_follow_person(struct Thing *p_person, struct Thing *p_other)
+static DIFFTEST_REF_FUNC void person_init_follow_person_asm(struct Thing *p_person, struct Thing *p_other)
 {
     asm volatile (
       "call ASM_person_init_follow_person\n"
         : : "a" (p_person), "d" (p_other));
+}
+
+void person_init_follow_person(struct Thing *p_person, struct Thing *p_other)
+{
+    ThingIdx targetng;
+
+    DIFFTEST_SHADOW(person_init_follow_person, person_init_follow_person_asm(p_person, p_other));
+    if ((p_person->Flag & (TngF_Destroyed|TngF_StationrSht)) != 0)
+        return;
+
+    if ((p_person->Flag2 & TgF2_Unkn0001) != 0)
+        finalise_razor_wire(p_person);
+
+    p_person->State = PerSt_GOTO_PERSON;
+    p_person->U.UPerson.ComTimer = -1;
+    targetng = p_other->ThingOffset;
+    p_person->U.UPerson.ComRange = 4;
+    p_person->U.UPerson.Timer2 = 50;
+    p_person->U.UPerson.StartTimer2 = 50;
+    p_person->SubState = 0;
+    p_person->Timer1 = 48;
+    p_person->StartTimer1 = 48;
+    p_person->GotoThingIndex = targetng;
 }
 
 StateChRes person_init_cmd_follow_person(struct Thing *p_person, short targetng)
