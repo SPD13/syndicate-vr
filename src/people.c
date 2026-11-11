@@ -9896,13 +9896,36 @@ void call_protect_specific(struct Thing *p_person_client, struct Thing *p_protec
         : : "a" (p_person_client), "d" (p_protector));
 }
 
-ushort count_protect(struct Thing *p_thing, ushort plyr)
+static DIFFTEST_REF_FUNC ushort count_protect_asm(struct Thing *p_thing, ushort plyr)
 {
     ushort ret;
     asm volatile (
       "call ASM_count_protect\n"
-        : "=r" (ret) : "a" (p_thing), "d" (plyr));
+        : "=a" (ret) : "a" (p_thing), "d" (plyr));
     return ret;
+}
+
+ushort count_protect(struct Thing *p_thing, ushort plyr)
+{
+    ushort i;
+    ushort count;
+
+    DIFFTEST_SHADOW_RET(count_protect, ushort, count_protect_asm(p_thing, plyr));
+    count = 0;
+    for (i = 0; i < playable_agents; i++)
+    {
+        struct Thing *p_agent;
+
+        p_agent = players[plyr].MyAgent[i];
+        if (p_agent == p_thing)
+            continue;
+        if (p_agent->State != PerSt_PROTECT_PERSON)
+            continue;
+        if ((p_agent->Flag & TngF_Destroyed) != 0)
+            continue;
+        count++;
+    }
+    DIFFTEST_RETURN(count);
 }
 
 void call_unprotect(struct Thing *p_thing, ushort plyr, ubyte flag)
