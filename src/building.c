@@ -24,8 +24,10 @@
 #include "bfmemory.h"
 #include "bfutility.h"
 
+#include "enginfexpl.h"
 #include "enginprops.h"
 #include "enginsngobjs.h"
+#include "triangls.h"
 
 #include "ssampply.h"
 #include "bigmap.h"
@@ -36,10 +38,12 @@
 #include "game_speed.h"
 #include "game.h"
 #include "matrix.h"
+#include "pathtrig.h"
 #include "people.h"
 #include "pepgroup.h"
 #include "sound.h"
 #include "thing.h"
+#include "thing_expld.h"
 #include "tngcolisn.h"
 #include "vehicle.h"
 #include "vehtraffic.h"
@@ -407,13 +411,456 @@ void do_people_on_exploding_building(int a1, int a2, int a3, int a4)
 }
 
 
-ushort explode_thing_building(short thing, short x, short y, short z)
+int del_thing_vectors_from_mapwho(int a1, int a2, int a3, int a4);
+
+/** Scanner areas to redraw; defined in asm, same layout as in scanner.c. */
+extern ubyte redo_scanner[128][4];
+extern s32 redo_scanner_last;
+extern s32 redo_scanner_first;
+
+static DIFFTEST_REF_FUNC ushort explode_thing_building_asm(short thing,
+  short x, short y, short z)
 {
     ushort ret;
     asm volatile (
       "call ASM_explode_thing_building\n"
-        : "=r" (ret) : "a" (thing), "d" (x), "b" (y), "c" (z));
+        : "=a" (ret) : "a" (thing), "d" (x), "b" (y), "c" (z));
     return ret;
+}
+
+/** Turns faces of a building's objects into explode faces, clears the map
+ * tiles under it (collapsing dependent buildings and mines on the way),
+ * and damages people and vehicles around.
+ *
+ * @return NextObject of the last SingleObject of the building.
+ */
+ushort explode_thing_building(short thing, short x, short y, short z)
+{
+    struct Thing *p_building;
+    struct SingleObject *p_sobj;
+    int obj;
+    ubyte i;
+    int min_x, min_z, max_x, max_z;
+    int intensity, cntr_x, cntr_z;
+    int tile_x, tile_z;
+
+    DIFFTEST_SHADOW_RET(explode_thing_building, ushort,
+      explode_thing_building_asm(thing, x, y, z));
+
+    dont_bother_with_explode_faces = 0;
+    p_building = &things[thing];
+    // TODO the original returns uninitialized data if there are no objects
+    p_sobj = NULL;
+
+    obj = p_building->U.UObject.Object;
+    for (i = 0; i < p_building->U.UObject.NumbObjects; i++, obj++)
+    {
+        int ofs_x, ofs_y, ofs_z;
+        int face, face_end;
+        ushort start_face, numb_faces;
+
+        p_sobj = &game_objects[obj];
+        numb_faces = p_sobj->NumbFaces;
+        start_face = p_sobj->StartFace;
+        if (p_building->SubType == SubTT_BLD_MGUN)
+        {
+            ofs_x = p_building->X >> 8;
+            ofs_y = p_building->Y >> 5;
+            ofs_z = p_building->Z >> 8;
+        }
+        else
+        {
+            do_people_on_exploding_building(thing, numb_faces, start_face,
+              (int)p_building);
+            ofs_x = p_sobj->MapX;
+            ofs_y = p_sobj->OffsetY;
+            ofs_z = p_sobj->MapZ;
+        }
+
+        face_end = (int)start_face + numb_faces;
+        for (face = start_face; face < face_end; face++)
+        {
+            struct SingleObjectFace3 *p_face;
+            struct SinglePoint *p_pt;
+            int x0, y0, z0, x1, y1, z1, x2, y2, z2;
+            int avg_x, avg_z;
+            ushort exface;
+
+            p_face = &game_object_faces3[face];
+            if ((p_face->GFlags & 0x04) != 0)
+            {
+                p_face->GFlags &= ~0x04;
+                make_triangle_solid(p_face->UnknTringl);
+            }
+            p_pt = &game_object_points[(ushort)p_face->PointNo[0]];
+            x0 = ofs_x + p_pt->X;
+            y0 = p_pt->Y + ofs_y;
+            z0 = ofs_z + p_pt->Z;
+            p_pt = &game_object_points[(ushort)p_face->PointNo[1]];
+            x1 = p_pt->X + ofs_x;
+            y1 = p_pt->Y + ofs_y;
+            z1 = ofs_z + p_pt->Z;
+            p_pt = &game_object_points[(ushort)p_face->PointNo[2]];
+            x2 = p_pt->X + ofs_x;
+            y2 = p_pt->Y + ofs_y;
+            z2 = ofs_z + p_pt->Z;
+            avg_x = (x0 + x1 + x2) / 3;
+            avg_z = (z0 + z1 + z2) / 3;
+
+            exface = explode_face_alloc();
+            if (exface != 0)
+            {
+                struct ExplodeFace *p_exface;
+
+                p_exface = &ex_faces[exface];
+                p_exface->Type = EXPL_FACE_TRI_ABS;
+                p_exface->Texture = p_face->Texture;
+                p_exface->Flags = p_face->Flags;
+                p_exface->Col = p_face->ExCol;
+                p_exface->X0 = x0;
+                p_exface->Y0 = y0;
+                p_exface->Z0 = z0;
+                p_exface->Y1 = y1;
+                p_exface->Z1 = z1;
+                p_exface->X2 = x2;
+                p_exface->Y2 = y2;
+                p_exface->Z2 = z2;
+                p_exface->X1 = x1;
+                p_exface->DX = (avg_x - ofs_x) >> 7;
+                p_exface->DY = 1 - (LbRandomAnyShort() & 7);
+                p_exface->Timer = 1;
+                p_exface->DZ = (avg_z - ofs_z) >> 7;
+            }
+        }
+
+        face_end = (int)p_sobj->StartFace4 + p_sobj->NumbFaces4;
+        for (face = p_sobj->StartFace4; face < face_end; face++)
+        {
+            struct SingleObjectFace4 *p_face;
+            struct SinglePoint *p_pt;
+            int x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3;
+            int avg_x, avg_z;
+            ushort exface;
+
+            p_face = &game_object_faces4[face];
+            if ((p_face->GFlags & 0x04) != 0)
+            {
+                p_face->GFlags &= ~0x04;
+                make_triangle_solid(p_face->UnknTringl2);
+                make_triangle_solid(p_face->UnknTringl1);
+            }
+            p_pt = &game_object_points[(ushort)p_face->PointNo[0]];
+            x0 = ofs_x + p_pt->X;
+            y0 = p_pt->Y + ofs_y;
+            z0 = ofs_z + p_pt->Z;
+            p_pt = &game_object_points[(ushort)p_face->PointNo[1]];
+            x1 = p_pt->X + ofs_x;
+            y1 = p_pt->Y + ofs_y;
+            z1 = ofs_z + p_pt->Z;
+            p_pt = &game_object_points[(ushort)p_face->PointNo[2]];
+            x2 = p_pt->X + ofs_x;
+            y2 = p_pt->Y + ofs_y;
+            z2 = ofs_z + p_pt->Z;
+            p_pt = &game_object_points[(ushort)p_face->PointNo[3]];
+            x3 = p_pt->X + ofs_x;
+            y3 = p_pt->Y + ofs_y;
+            z3 = ofs_z + p_pt->Z;
+            avg_x = (x0 + x1 + x2 + x3) / 4;
+            avg_z = (z0 + z1 + z2 + z3) / 4;
+
+            exface = explode_face_alloc();
+            if (exface != 0)
+            {
+                struct ExplodeFace *p_exface;
+
+                p_exface = &ex_faces[exface];
+                p_exface->Type = EXPL_FACE_QUAD_ABS;
+                p_exface->Texture = p_face->Texture;
+                p_exface->Flags = p_face->Flags;
+                p_exface->Col = p_face->ExCol;
+                p_exface->X0 = x0;
+                p_exface->Y0 = y0;
+                p_exface->Z0 = z0;
+                p_exface->Y1 = y1;
+                p_exface->Z1 = z1;
+                p_exface->X2 = x2;
+                p_exface->Y2 = y2;
+                p_exface->Z2 = z2;
+                p_exface->X3 = x3;
+                p_exface->Y3 = y3;
+                p_exface->Z3 = z3;
+                p_exface->X1 = x1;
+                p_exface->DX = (avg_x - ofs_x) >> 7;
+                p_exface->Timer = 1;
+                p_exface->DZ = (avg_z - ofs_z) >> 7;
+                p_exface->DY = 1 - (LbRandomAnyShort() & 7);
+            }
+        }
+    }
+
+    // Get bounds of the building, in tiles
+    max_x = (s32)0x80000000;
+    max_z = (s32)0x80000000;
+    min_x = 0x7FFFFFFF;
+    min_z = 0x7FFFFFFF;
+    obj = p_building->U.UObject.Object;
+    for (i = 0; i < p_building->U.UObject.NumbObjects; i++, obj++)
+    {
+        int ofs_x, ofs_z;
+        int pt;
+
+        p_sobj = &game_objects[obj];
+        ofs_x = p_sobj->MapX;
+        ofs_z = p_sobj->MapZ;
+        for (pt = p_sobj->StartPoint; pt <= (int)p_sobj->EndPoint; pt++)
+        {
+            struct SinglePoint *p_pt;
+            int px, pz;
+
+            p_pt = &game_object_points[pt];
+            px = ofs_x + p_pt->X;
+            pz = ofs_z + p_pt->Z;
+            if (max_x <= px)
+                max_x = px;
+            if (min_x >= px)
+                min_x = px;
+            if (max_z <= pz)
+                max_z = pz;
+            if (min_z >= pz)
+                min_z = pz;
+        }
+    }
+    max_x = (max_x + 0x100) >> 8;
+    min_x >>= 8;
+    min_z >>= 8;
+    max_z = (max_z + 0x100) >> 8;
+    if (min_x < 0)
+        min_x = 0;
+    if (min_z < 0)
+        min_z = 0;
+    if (max_x > 127)
+        max_x = 127;
+    if (max_z > 127)
+        max_z = 127;
+
+    intensity = ((max_x - min_x) + (max_z - min_z)) << 9;
+    if (intensity > 20000)
+        intensity = 20000;
+    cntr_x = (min_x + max_x) << 15;
+    cntr_z = (min_z + max_z) << 15;
+
+    // Clear map tiles under the building
+    for (tile_x = min_x; tile_x <= max_x; tile_x++)
+    {
+        for (tile_z = min_z; tile_z <= max_z; tile_z++)
+        {
+            struct MyMapElement *p_mapel;
+            ubyte flags2;
+            short child;
+
+            p_mapel = &game_my_big_map[tile_z * MAP_TILE_WIDTH + tile_x];
+            p_mapel->Flags &= ~0x80;
+            flags2 = p_mapel->Flags2;
+            p_mapel->ColumnHead = 0;
+            flags2 &= ~0x08;
+            p_mapel->Flags2 = flags2;
+            if (p_building->SubType == SubTT_BLD_GATE)
+            {
+                int tnode;
+
+                p_mapel->Flags2 = flags2 | 0x08;
+                for (tnode = 1; tnode < next_traffic_node; tnode++)
+                {
+                    struct TrafficNode *p_tnode;
+
+                    p_tnode = &game_traffic_nodes[tnode];
+                    if (p_tnode->GateLink == thing)
+                    {
+                        p_tnode->GateLink = 0;
+                        p_tnode->Flags &= ~0x8000;
+                    }
+                }
+            }
+
+            while (del_thing_vectors_from_mapwho((int)p_mapel, thing,
+              (int)p_mapel, 0) != 0)
+                ;
+
+            child = p_mapel->Child;
+            switch (p_building->SubType)
+            {
+            case SubTT_BLD_SHUTLDR:
+            case SubTT_BLD_1D:
+            case SubTT_BLD_TRAINTRK:
+            case SubTT_BLD_BEZIER_ROAD:
+            case SubTT_BLD_MGUN:
+                continue;
+            }
+
+            while (child != 0)
+            {
+                if (child > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[child];
+                    child = p_thing->Next;
+                    if (p_thing->Type == TT_BUILDING)
+                    {
+                        switch (p_thing->SubType)
+                        {
+                        case SubTT_BLD_SHUTLDR:
+                        case SubTT_BLD_1D:
+                        case SubTT_BLD_TRAINTRK:
+                        case SubTT_BLD_BEZIER_ROAD:
+                        case SubTT_BLD_MGUN:
+                            if ((p_thing->Flag & TngF_Destroyed) != 0)
+                                break;
+                            if (p_thing->SubType == SubTT_BLD_MGUN)
+                                init_mgun_explode(p_thing);
+                            else
+                                collapse_building(x, y, z, p_thing);
+                            break;
+                        }
+                    }
+                    else if (p_thing->Type == TT_MINE)
+                    {
+                        if (p_thing->SubType == 0x30)
+                        {
+                            bang_new4(p_thing->X, p_thing->Y, p_thing->Z, 20);
+                            p_thing->State = PerSt_DEAD;
+                            p_thing->Flag |= TngF_Destroyed;
+                            remove_thing(p_thing->ThingOffset);
+                            delete_node(p_thing);
+                        }
+                    }
+                }
+                else
+                {
+                    struct SimpleThing *p_sthing;
+
+                    p_sthing = &sthings[child];
+                    child = p_sthing->Next;
+                    if ((p_sthing->Type == SmTT_DROPPED_ITEM) &&
+                      (p_sthing->U.UWeapon.OnFace != 0))
+                    {
+                        remove_sthing(p_sthing->ThingOffset);
+                        delete_snode(p_sthing);
+                    }
+                }
+            }
+        }
+    }
+
+    triangulation_unkn_func_002(min_x, min_z, max_x, max_z);
+    {
+        s32 next;
+
+        next = (redo_scanner_last + 1) & 0x7F;
+        if (next != redo_scanner_first)
+        {
+            s32 last;
+
+            last = redo_scanner_last;
+            redo_scanner[last][0] = min_z * 2;
+            redo_scanner[last][1] = min_x * 2;
+            redo_scanner[last][2] = max_z * 2;
+            redo_scanner_last = next;
+            redo_scanner[last][3] = max_x * 2;
+        }
+    }
+
+    // Shockwave around the building
+    min_x -= 6;
+    min_z -= 6;
+    max_x += 6;
+    max_z += 6;
+    if (min_x < 0)
+        min_x = 0;
+    if (min_z < 0)
+        min_z = 0;
+    if (max_x > 127)
+        max_x = 127;
+    if (max_z > 127)
+        max_z = 127;
+
+    for (tile_x = min_x; tile_x <= max_x; tile_x++)
+    {
+        for (tile_z = min_z; tile_z <= max_z; tile_z++)
+        {
+            short child;
+
+            child = game_my_big_map[tile_z * MAP_TILE_WIDTH + tile_x].Child;
+            while (child != 0)
+            {
+                if (child > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[child];
+                    if (p_thing->Type == TT_PERSON)
+                        p_thing->Flag2 &= ~TgF2_InsideBuilding;
+                    if ((p_thing->Type == TT_PERSON) &&
+                      ((p_thing->Flag & TngF_Destroyed) == 0) &&
+                      (p_thing->State != PerSt_PERSON_BURNING))
+                    {
+                        int dx, dz;
+                        int dist_x, dist_z, dist;
+
+                        dx = (p_thing->X - cntr_x) >> 8;
+                        dz = (p_thing->Z - cntr_z) >> 8;
+                        dist_x = abs((p_thing->X >> 16) - (min_x + 6));
+                        dist = abs((p_thing->X >> 16) - (max_x - 6));
+                        if (dist_x >= dist)
+                            dist_x = dist;
+                        dist_z = abs((p_thing->Z >> 16) - (max_z - 6));
+                        dist = abs((p_thing->Z >> 16) - (min_z + 6));
+                        if (dist < dist_z)
+                            dist_z = dist;
+                        if (dist_x < dist_z)
+                            dist_z = dist_x;
+                        do_shockwave_person(dx, dz, (dist_z << 7) + 0x100,
+                          intensity, p_thing, NULL);
+                    }
+                    if (p_thing->Type == TT_VEHICLE)
+                    {
+                        int damage;
+
+                        damage = 3500;
+                        p_thing->U.UVehicle.WorkPlace |= VWPFlg_Unkn0080;
+                        if (p_thing->SubType == SubTT_VEH_TANK)
+                            damage = 1750;
+                        if (p_thing->SubType == SubTT_VEH_MECH)
+                            damage >>= 2;
+                        p_thing->Health -= damage;
+                        if (p_thing->Health <= 0)
+                        {
+                            if (p_thing->SubType == SubTT_VEH_MECH)
+                            {
+                                p_thing->Flag |= TngF_Destroyed;
+                                init_mech_explode(p_thing);
+                            }
+                            else
+                            {
+                                p_thing->Flag |= TngF_Destroyed;
+                                start_crashing(p_thing);
+                                play_dist_sample(p_thing, 0x5F, 0x7F, 0x40, 100, 0, 1);
+                            }
+                        }
+                    }
+                    child = p_thing->Next;
+                }
+                else
+                {
+                    child = sthings[child].Next;
+                }
+            }
+        }
+    }
+
+    if (p_sobj == NULL)
+        DIFFTEST_RETURN((ushort)0);
+    DIFFTEST_RETURN(p_sobj->NextObject);
 }
 
 void collapse_building_process_tnodes(struct Thing *p_building)
