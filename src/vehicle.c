@@ -21,6 +21,7 @@
 #include "bfmath.h"
 #include "bfmemut.h"
 #include "bfutility.h"
+#include "poly.h"
 #include "ssampply.h"
 #include "frame_sprani.h"
 #include <assert.h>
@@ -32,6 +33,8 @@
 #include "bmcrater.h"
 #include "difftest.h"
 #include "engincam.h"
+#include "engincolour.h"
+#include "enginfexpl.h"
 #include "enginpriobjs.h"
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
@@ -47,6 +50,7 @@
 #include "people.h"
 #include "sound.h"
 #include "thing.h"
+#include "thing_expld.h"
 #include "thing_fire.h"
 #include "thing_onface.h"
 #include "swlog.h"
@@ -1856,11 +1860,147 @@ void process_shuttle_pod(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void explode_thing_object(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void explode_thing_object_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_explode_thing_object\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void explode_thing_object(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing;
+    struct SingleObject *p_sobj;
+    struct M33 *p_mat;
+    struct ExplodeFace *p_exface;
+    s32 pt_x[4], pt_y[4], pt_z[4];
+    s32 cen_x, cen_y, cen_z;
+    s32 cor_x, cor_y, cor_z;
+    ushort face, exface;
+    int i;
+
+    DIFFTEST_SHADOW(explode_thing_object, explode_thing_object_asm(a1, a2, a3, a4));
+    dont_bother_with_explode_faces = 0;
+    p_thing = &things[(short)a1];
+    p_sobj = &game_objects[(ushort)p_thing->U.UObject.Object];
+    if (p_thing->Type == TT_VEHICLE)
+    {
+        cor_x = (short)(p_thing->X >> 8);
+        cor_y = (short)(p_thing->Y >> 5);
+        cor_z = (short)(p_thing->Z >> 8);
+    }
+    else
+    {
+        cor_x = p_sobj->MapX;
+        cor_y = p_sobj->OffsetY;
+        cor_z = p_sobj->MapZ;
+    }
+    p_mat = &local_mats[p_thing->U.UObject.MatrixIndex];
+
+    for (face = 0; face < p_sobj->NumbFaces; face++)
+    {
+        struct SingleObjectFace3 *p_face;
+
+        p_face = &game_object_faces3[(ushort)(p_sobj->StartFace + face)];
+        vec_colour = colour_grey1;
+        vec_mode = 0;
+        for (i = 0; i < 3; i++)
+        {
+            struct SinglePoint *p_pt;
+            s32 px, py, pz;
+
+            p_pt = &game_object_points[(ushort)p_face->PointNo[i]];
+            px = 2 * (s32)p_pt->X;
+            py = 2 * (s32)p_pt->Y;
+            pz = 2 * (s32)p_pt->Z;
+            pt_x[i] = cor_x + ((p_mat->R[0][0] * px + p_mat->R[0][1] * py + p_mat->R[0][2] * pz) >> 15);
+            pt_y[i] = cor_y + ((p_mat->R[1][0] * px + p_mat->R[1][1] * py + p_mat->R[1][2] * pz) >> 15);
+            pt_z[i] = cor_z + ((p_mat->R[2][0] * px + p_mat->R[2][1] * py + p_mat->R[2][2] * pz) >> 15);
+        }
+        cen_y = (85 * (pt_y[0] + pt_y[1] + pt_y[2])) >> 8;
+        cen_x = (85 * (pt_x[0] + pt_x[1] + pt_x[2])) >> 8;
+        cen_z = (85 * (pt_z[0] + pt_z[1] + pt_z[2])) >> 8;
+
+        exface = explode_face_alloc();
+        if (exface == 0)
+            continue;
+        p_exface = &ex_faces[exface];
+        p_exface->Type = EXPL_FACE_TRI_TYP1;
+        p_exface->Texture = p_face->Texture;
+        p_exface->Flags = p_face->Flags;
+        p_exface->Col = (ubyte)p_face->ExCol;
+        p_exface->X = cen_x;
+        p_exface->Z = cen_z;
+        p_exface->X0 = pt_x[0] - cen_x;
+        p_exface->Y0 = pt_y[0] - cen_y;
+        p_exface->Z0 = pt_z[0] - cen_z;
+        p_exface->X1 = pt_x[1] - cen_x;
+        p_exface->Y1 = pt_y[1] - cen_y;
+        p_exface->Z1 = pt_z[1] - cen_z;
+        p_exface->X2 = pt_x[2] - cen_x;
+        p_exface->Y2 = pt_y[2] - cen_y;
+        p_exface->Z2 = pt_z[2] - cen_z;
+        p_exface->Y = cen_y;
+        p_exface->DX = (cen_x - cor_x) >> 3;
+        p_exface->DY = (cen_y - cor_y) >> 3;
+        p_exface->DZ = (cen_z - cor_z) >> 3;
+        p_exface->DY += 50;
+        p_exface->Timer = 50 - (exface & 0x1F);
+    }
+
+    for (face = 0; face < p_sobj->NumbFaces4; face++)
+    {
+        struct SingleObjectFace4 *p_face;
+
+        p_face = &game_object_faces4[(ushort)(p_sobj->StartFace4 + face)];
+        vec_mode = 0;
+        vec_colour = colour_grey1;
+        for (i = 0; i < 4; i++)
+        {
+            struct SinglePoint *p_pt;
+            s32 px, py, pz;
+
+            p_pt = &game_object_points[(ushort)p_face->PointNo[i]];
+            px = 2 * (s32)p_pt->X;
+            py = 2 * (s32)p_pt->Y;
+            pz = 2 * (s32)p_pt->Z;
+            pt_x[i] = cor_x + ((p_mat->R[0][0] * px + p_mat->R[0][1] * py + p_mat->R[0][2] * pz) >> 15);
+            pt_y[i] = cor_y + ((p_mat->R[1][0] * px + p_mat->R[1][1] * py + p_mat->R[1][2] * pz) >> 15);
+            pt_z[i] = cor_z + ((p_mat->R[2][0] * px + p_mat->R[2][1] * py + p_mat->R[2][2] * pz) >> 15);
+        }
+        cen_x = (pt_x[0] + pt_x[1] + pt_x[2] + pt_x[3]) >> 2;
+        cen_y = (pt_y[0] + pt_y[1] + pt_y[2] + pt_y[3]) >> 2;
+        cen_z = (pt_z[0] + pt_z[1] + pt_z[2] + pt_z[3]) >> 2;
+
+        exface = explode_face_alloc();
+        if (exface == 0)
+            continue;
+        p_exface = &ex_faces[exface];
+        p_exface->Type = EXPL_FACE_QUAD_TYP2;
+        p_exface->Texture = p_face->Texture;
+        p_exface->Flags = p_face->Flags;
+        p_exface->Col = (ubyte)p_face->ExCol;
+        p_exface->X = cen_x;
+        p_exface->Z = cen_z;
+        p_exface->X0 = pt_x[0] - cen_x;
+        p_exface->Y0 = pt_y[0] - cen_y;
+        p_exface->Z0 = pt_z[0] - cen_z;
+        p_exface->X1 = pt_x[1] - cen_x;
+        p_exface->Y1 = pt_y[1] - cen_y;
+        p_exface->Z1 = pt_z[1] - cen_z;
+        p_exface->X2 = pt_x[2] - cen_x;
+        p_exface->Y2 = pt_y[2] - cen_y;
+        p_exface->Z2 = pt_z[2] - cen_z;
+        p_exface->X3 = pt_x[3] - cen_x;
+        p_exface->Y3 = pt_y[3] - cen_y;
+        p_exface->Z3 = pt_z[3] - cen_z;
+        p_exface->Y = cen_y;
+        p_exface->DX = (cen_x - cor_x) >> 3;
+        p_exface->DY = (cen_y - cor_y) >> 3;
+        p_exface->DZ = (cen_z - cor_z) >> 3;
+        p_exface->DY += 50;
+        p_exface->Timer = 50 - (exface & 0x1F);
+    }
 }
 
 
