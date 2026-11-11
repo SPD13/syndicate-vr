@@ -1202,12 +1202,279 @@ int recalc_rocket_direction(struct Thing *p_rocket)
     return 1;
 }
 
-void process_rocket(struct Thing *p_rocket)
+static DIFFTEST_REF_FUNC void process_rocket_asm(struct Thing *p_rocket)
 {
-    //TODO modify to make the rocket disappear when falling into sludge
     asm volatile (
       "call ASM_process_rocket\n"
         : : "a" (p_rocket));
+}
+
+void process_rocket(struct Thing *p_rocket)
+{
+    //TODO modify to make the rocket disappear when falling into sludge
+    struct Thing *p_target;
+    struct Thing *p_owner;
+    struct SimpleThing *p_sthing;
+    s32 new_x, new_y, new_z;
+    s32 neg_vz, vx;
+    s32 dx, dz, dist;
+    s32 cs, ox, tmp, tz;
+    int ground, elev;
+    int angle, alt;
+    int x, z;
+    ushort frame, rnd;
+    ushort col;
+    ubyte check_sea;
+
+    DIFFTEST_SHADOW(process_rocket, process_rocket_asm(p_rocket));
+
+    check_sea = 0;
+    ground = 0;
+    p_rocket->Timer1--;
+    if (p_rocket->Timer1 == 0)
+    {
+        stop_sample_using_heap((ushort)p_rocket->ThingOffset, 0x18);
+        goto finish;
+    }
+
+    p_target = p_rocket->PTarget;
+    if ((p_target >= &things[0]) && (p_target < &things[1000]))
+    {
+        ubyte tgt_grp, own_grp;
+
+        p_owner = &things[(ushort)p_rocket->Owner];
+        tgt_grp = p_target->U.UPerson.EffectiveGroup;
+        own_grp = p_owner->U.UPerson.EffectiveGroup;
+        if (own_grp == tgt_grp)
+            p_rocket->PTarget = NULL;
+        // x86 shl masks the count to 5 bits
+        else if ((war_flags[own_grp & 0x7f].Truce & (1u << ((tgt_grp & 0x7f) & 0x1f))) != 0)
+            p_rocket->PTarget = NULL;
+    }
+    p_target = p_rocket->PTarget;
+    if ((p_target >= &things[0]) && (p_target < &things[1000]))
+    {
+        if ((ushort)p_target->State == PerSt_PERSON_BURNING)
+            p_rocket->PTarget = NULL;
+    }
+
+    if ((p_rocket->SubType == 1) && (p_rocket->PTarget != NULL) &&
+      (((gameturn + (ushort)p_rocket->ThingOffset) & 1) == 0))
+    {
+        if (!recalc_rocket_direction(p_rocket))
+        {
+            stop_sample_using_heap((ushort)p_rocket->ThingOffset, 0x18);
+            goto finish;
+        }
+    }
+
+    new_x = p_rocket->X + ((p_rocket->Speed * p_rocket->VX) >> 2);
+    new_y = p_rocket->Y + ((p_rocket->Speed * p_rocket->VY) >> 2);
+    new_z = p_rocket->Z + ((p_rocket->Speed * p_rocket->VZ) >> 2);
+
+    if ((new_x >> 16) < 0 || (new_x >> 16) >= 0x80 ||
+      (new_z >> 16) < 0 || (new_z >> 16) >= 0x80)
+    {
+        stop_sample_using_heap((ushort)p_rocket->ThingOffset, 0x18);
+        goto finish;
+    }
+
+    alt = alt_at_point((short)(new_x >> 8), (short)(new_z >> 8));
+    ground = alt >> 8;
+    if ((new_y >> 5) + 0x19 < ground * 8 + 0x50)
+    {
+        struct MyMapElement *p_mapel;
+
+        p_mapel = &game_my_big_map[(new_z >> 16) * 128 + (new_x >> 16)];
+        if ((p_mapel->Flags2 & 0x05) != 0)
+        {
+            check_sea = 1;
+            stop_sample_using_heap((ushort)p_rocket->ThingOffset, 0x18);
+            goto finish;
+        }
+    }
+    if ((new_y >> 5) < ground * 8 + 0x50)
+        new_y = (ground << 8) + 0xa00;
+
+    col = check_col_collision(new_x >> 8, (new_y >> 8) + 8, new_z >> 8);
+    if ((col == 0) && (((p_rocket->Flag & TngF_ShootAtPos) != 0) || (p_rocket->SubType == 1)))
+    {
+        dx = abs((p_rocket->X >> 8) - p_rocket->U.UEffect.GotoX);
+        dz = abs((p_rocket->Z >> 8) - p_rocket->U.UEffect.GotoZ);
+        if (dx > dz)
+            dist = dx + (dz >> 1);
+        else
+            dist = (dx >> 1) + dz;
+        if ((dist < 0x80) && ((p_rocket->Flag & TngF_ShootAtPos) != 0))
+        {
+            col = 0xffff;
+            check_sea = 1;
+        }
+    }
+    if (col != 0)
+    {
+        stop_sample_using_heap((ushort)p_rocket->ThingOffset, 0x18);
+        goto finish;
+    }
+
+    if ((new_x >> 16) < 0 || (new_x >> 16) >= 0x80 ||
+      (new_z >> 16) < 0 || (new_z >> 16) >= 0x80)
+        return;
+
+    move_mapwho(p_rocket, new_x, new_y, new_z);
+
+    p_target = p_rocket->PTarget;
+    if (p_target != NULL)
+    {
+        if ((p_target->Flag & TngF_Destroyed) == 0)
+        {
+            struct Thing *p_hit;
+
+            p_owner = &things[(ushort)p_rocket->Owner];
+            p_hit = check_for_radius_hit_person(p_rocket->X, p_rocket->Y,
+              p_rocket->Z, (ushort)p_rocket->Radius, p_owner, 1, 0);
+            if (p_hit != NULL)
+            {
+                stop_sample_using_heap((ushort)p_rocket->ThingOffset, 0x18);
+                p_owner = &things[(ushort)p_rocket->Owner];
+                thing_hit_by_bullet(p_hit, (short)weapon_defs[WEP_RAP].HitDamage,
+                  (short)p_rocket->VX, (short)p_rocket->VY, (short)p_rocket->VZ,
+                  p_owner, 6);
+                goto finish;
+            }
+        }
+        else
+        {
+            s32 dy;
+
+            dy = (p_target->Y - p_rocket->Y) >> 8;
+            if ((dy < 25) && (dy > -25))
+            {
+                dx = abs((p_target->X - p_rocket->X) >> 8);
+                dz = abs((p_target->Z - p_rocket->Z) >> 8);
+                if (dx > dz)
+                    dist = dx + (dz >> 1);
+                else
+                    dist = (dx >> 1) + dz;
+                if (dist < (ushort)p_target->Radius + (ushort)p_rocket->Radius)
+                {
+                    stop_sample_using_heap((ushort)p_rocket->ThingOffset, 0x18);
+                    p_owner = &things[(ushort)p_rocket->Owner];
+                    thing_hit_by_bullet(p_rocket->PTarget, (short)weapon_defs[WEP_RAP].HitDamage,
+                      (short)p_rocket->VX, (short)p_rocket->VY, (short)p_rocket->VZ,
+                      p_owner, 6);
+                    goto finish;
+                }
+            }
+        }
+    }
+
+    // Rocket still flying - emit smoke trail
+    neg_vz = -p_rocket->VZ;
+    vx = p_rocket->VX;
+    for (angle = 0x100; angle < 0x900; angle += 0x200)
+    {
+        x = p_rocket->X >> 8;
+        elev = lbSinTable[angle & 0x7ff] >> 10;
+        z = p_rocket->Z >> 8;
+        if (angle <= 0x400)
+            frame = 0x44d;
+        else
+            frame = 0x44f;
+
+        p_sthing = create_scale_effect(x, p_rocket->Y >> 8, z, frame, 0x20);
+        if (p_sthing != NULL)
+        {
+            cs = lbSinTable[(angle & 0x7ff) + 512];
+            tz = neg_vz * cs;
+            ox = (vx * cs) >> 15;
+            rnd = LbRandomAnyShort();
+            p_sthing->SubType = 0x31;
+            p_sthing->Object = 0x100;
+            p_sthing->StartFrame = 0;
+            p_sthing->Timer1 = p_sthing->Timer1 + (s32)(rnd & 0x7) - 4;
+            tz >>= 15;
+            tmp = ((p_rocket->Speed * p_rocket->VX) >> 5) + tz;
+            rnd = LbRandomAnyShort();
+            p_sthing->U.UEffect.VX = ((rnd & 0x1f) << 4) - 0x100 + tmp;
+            tmp = ((p_rocket->Speed * p_rocket->VY) >> 5) + elev;
+            rnd = LbRandomAnyShort();
+            p_sthing->U.UEffect.VY = (s32)(rnd & 0x1f) - 0x10 + tmp;
+            tmp = ox + ((p_rocket->Speed * p_rocket->VZ) >> 5);
+            rnd = LbRandomAnyShort();
+            p_sthing->U.UEffect.OX = -(tz >> 3);
+            p_sthing->U.UEffect.OY = -(elev >> 3);
+            p_sthing->U.UEffect.VZ = ((rnd & 0x1f) << 4) - 0x100 + tmp;
+            p_sthing->U.UEffect.OZ = -(ox >> 3);
+            p_sthing->Owner2 = p_rocket->Owner;
+        }
+
+        p_sthing = create_scale_effect(x, p_rocket->Y >> 8, z, (ushort)(frame - 1), 0x20);
+        if (p_sthing != NULL)
+        {
+            cs = lbSinTable[(angle & 0x7ff) + 512];
+            tz = neg_vz * cs;
+            ox = (vx * cs) >> 16;
+            rnd = LbRandomAnyShort();
+            p_sthing->SubType = 0x31;
+            p_sthing->Object = 0x100;
+            p_sthing->StartFrame = 0;
+            p_sthing->Timer1 = p_sthing->Timer1 + (s32)(rnd & 0x7) - 4;
+            tz >>= 16;
+            tmp = ((p_rocket->Speed * p_rocket->VX) >> 5) + tz;
+            rnd = LbRandomAnyShort();
+            p_sthing->U.UEffect.VX = ((rnd & 0x1f) << 4) - 0x100 + tmp;
+            tmp = p_rocket->Speed * p_rocket->VY;
+            elev >>= 1;
+            rnd = LbRandomAnyShort();
+            tmp = (tmp >> 5) + elev;
+            p_sthing->U.UEffect.VY = (s32)(rnd & 0x1f) - 0x10 + tmp;
+            tmp = ox + ((p_rocket->Speed * p_rocket->VZ) >> 5);
+            rnd = LbRandomAnyShort();
+            p_sthing->U.UEffect.OX = -(tz >> 3);
+            p_sthing->U.UEffect.OY = -(elev >> 3);
+            p_sthing->U.UEffect.VZ = ((rnd & 0x1f) << 4) - 0x100 + tmp;
+            p_sthing->U.UEffect.OZ = -(ox >> 3);
+            p_sthing->Owner2 = p_rocket->Owner;
+        }
+    }
+    return;
+
+finish:
+    if (check_sea)
+    {
+        struct MyMapElement *p_mapel;
+
+        p_mapel = &game_my_big_map[(p_rocket->Z >> 16) * 128 + (p_rocket->X >> 16)];
+        if (sea_texture((short)(p_mapel->Texture & 0x3fff)))
+        {
+            p_sthing = create_scale_effect(p_rocket->X >> 8, ground,
+              p_rocket->Z >> 8, 0x43f, 8);
+            if (p_sthing != NULL)
+            {
+                rnd = LbRandomAnyShort();
+                p_sthing->SubType = 0x3c;
+                p_sthing->Object = (rnd & 0x7f) + 0x3e;
+                create_sound_effect(p_rocket->X >> 8, 0, p_rocket->Z >> 8, 3, 0, 0);
+            }
+            remove_thing((ushort)(p_rocket - things));
+            delete_node(p_rocket);
+            return;
+        }
+    }
+
+    alt = alt_at_point((short)(p_rocket->X >> 8), (short)(p_rocket->Z >> 8));
+    if (abs(p_rocket->Y - alt) < 20000)
+    {
+        alt = alt_at_point((short)(p_rocket->X >> 8), (short)(p_rocket->Z >> 8));
+        FIRE_new(p_rocket->X, alt >> 5, p_rocket->Z, 1);
+    }
+    bang_new4(p_rocket->X, p_rocket->Y, p_rocket->Z, 0x5f);
+    create_sound_effect(p_rocket->X >> 8, p_rocket->Y >> 8, p_rocket->Z >> 8, 0x25, 0x7f, 0);
+    p_owner = &things[(ushort)p_rocket->Owner];
+    do_shockwave(p_rocket->X >> 8, p_rocket->Y >> 8, p_rocket->Z >> 8, 0x300, 1000, p_owner);
+    remove_thing((ushort)(p_rocket - things));
+    delete_node(p_rocket);
 }
 
 void process_laser_guided(struct Thing *p_laser)
