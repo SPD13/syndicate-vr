@@ -4731,13 +4731,43 @@ void fatter_than_nothing(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int set_xz_for_quad123(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC short set_xz_for_quad123_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_set_xz_for_quad123\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     // The asm returns the face triangle index in ax; asm callers rely on it
-    return ra;
+    return (short)ra;
+}
+
+/** Returns the triangle of the quad face on which the point (x,z) lies,
+ * based on the side of the edge between face points 1 and 2.
+ */
+short set_xz_for_quad123(int a1, int a2, int a3, int a4)
+{
+    struct SingleObjectFace4 *p_face = (struct SingleObjectFace4 *)a1;
+    s32 x = a2;
+    s32 z = a3;
+    struct SingleObject *p_obj;
+    struct SinglePoint *p_pt1;
+    struct SinglePoint *p_pt2;
+    s32 dx, dz, px, pz;
+    s64 v;
+
+    DIFFTEST_SHADOW_RET(set_xz_for_quad123, short, set_xz_for_quad123_asm(a1, a2, a3, a4));
+    p_obj = &game_objects[p_face->Object];
+    p_pt2 = &game_object_points[(ushort)p_face->PointNo[2]];
+    p_pt1 = &game_object_points[(ushort)p_face->PointNo[1]];
+
+    dx = (s32)p_pt2->X - (s32)p_pt1->X;
+    dz = (s32)p_pt2->Z - (s32)p_pt1->Z;
+    px = (s32)((u32)x - (u32)((s32)p_obj->MapX + (s32)p_pt2->X));
+    pz = (s32)((u32)z - (u32)((s32)p_obj->MapZ + (s32)p_pt2->Z));
+
+    v = (s64)dx * pz - (s64)dz * px;
+    if (v > 0)
+        DIFFTEST_RETURN((short)p_face->UnknTringl1);
+    DIFFTEST_RETURN((short)p_face->UnknTringl2);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
