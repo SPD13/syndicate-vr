@@ -793,7 +793,7 @@ void process_shuttle_loader(struct Thing *p_building)
     }
 }
 
-void bul_hit_vector(int x, int y, int z, short col, int hp, int type)
+static DIFFTEST_REF_FUNC void bul_hit_vector_asm(int x, int y, int z, short col, int hp, int type)
 {
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
@@ -809,6 +809,29 @@ void bul_hit_vector(int x, int y, int z, short col, int hp, int type)
         : : "a" (x), "d" (y), "b" (z), "c" (col), "S" (stkargs)
         : "cc", "memory");
 }
+
+void bul_hit_vector(int x, int y, int z, short col, int hp, int type)
+{
+    struct ColVectList *p_cvlist;
+    struct Thing *p_thing;
+    s32 health;
+
+    DIFFTEST_SHADOW(bul_hit_vector, bul_hit_vector_asm(x, y, z, col, hp, type));
+    p_cvlist = &game_col_vects_list[col];
+    if (game_col_vects[p_cvlist->Vect].Face == 0)
+        return;
+
+    p_thing = &things[p_cvlist->Object];
+    if ((p_thing->Flag & TngF_Destroyed) != 0)
+        return;
+
+    play_dist_sample(p_thing, 0x41, 0x7f, 0x40, 100, 0, 1);
+    health = p_thing->Health - ((short)hp >> 1);
+    if (health < 0)
+        collapse_building(p_thing->X >> 8, p_thing->Y >> 8, p_thing->Z >> 8, p_thing);
+    p_thing->Health = health;
+}
+
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
