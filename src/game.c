@@ -1917,11 +1917,60 @@ void func_74934(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void rotate_texture(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void rotate_texture_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_rotate_texture\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+int is_animating(int a1, int a2, int a3, int a4);
+
+/** Rotates the UV coordinates of a floor texture by one corner, so
+ * corner 2 becomes corner 1, etc.
+ */
+static void rotate_floor_texture_uv(struct SingleFloorTexture *p_fltex)
+{
+    ubyte x1, y1;
+
+    y1 = p_fltex->TMapY1;
+    x1 = p_fltex->TMapX1;
+    p_fltex->TMapX1 = p_fltex->TMapX2;
+    p_fltex->TMapY1 = p_fltex->TMapY2;
+    p_fltex->TMapX2 = p_fltex->TMapX3;
+    p_fltex->TMapY2 = p_fltex->TMapY3;
+    p_fltex->TMapX3 = p_fltex->TMapX4;
+    p_fltex->TMapX4 = x1;
+    p_fltex->TMapY3 = p_fltex->TMapY4;
+    p_fltex->TMapY4 = y1;
+}
+
+/** Rotates floor texture `a1` by one corner. If the texture (ignoring
+ * flag bits 0xC000) is animated, rotates every frame of the animation.
+ */
+void rotate_texture(int a1, int a2, int a3, int a4)
+{
+    short tex;
+    short anim;
+    short i;
+
+    DIFFTEST_SHADOW(rotate_texture, rotate_texture_asm(a1, a2, a3, a4));
+
+    tex = (short)a1;
+    if (tex == 0)
+        return;
+    anim = (short)is_animating((s32)(short)(a1 & 0x3FFF), a1, a3, a4);
+    if (anim != 0)
+    {
+        for (i = 0; (s32)i <= (s32)(sbyte)game_anim_tmaps[anim].field_23; i++)
+        {
+            rotate_floor_texture_uv(&game_textures[game_anim_tmaps[anim].TMap[i]]);
+        }
+    }
+    else
+    {
+        rotate_floor_texture_uv(&game_textures[tex]);
+    }
 }
 
 
