@@ -1685,10 +1685,143 @@ void unkn_obj_faces4_lights_func_10(int a1, int a2, int a3, int a4)
 }
 
 
-void map_lights_update(void)
+static DIFFTEST_REF_FUNC void map_lights_update_asm(void)
 {
     asm volatile ("call ASM_map_lights_update\n"
         :  :  : "eax" );
+}
+
+/** Darkens a map tile near the map edge: scales its Ambient by intens/256,
+ * and either scales or clears the Ratio of the quick lights chained to it.
+ */
+static void map_lights_edge_tile(struct MyMapElement *p_mapel, s32 intens,
+  TbBool scale_lights)
+{
+    ushort qlight;
+
+    if ((short)intens < 0)
+        intens = 0;
+    if ((short)intens > 256)
+        intens = 256;
+    intens = (short)intens;
+    p_mapel->Ambient = (intens * (s32)p_mapel->Ambient) >> 8;
+    for (qlight = p_mapel->Shade; qlight != 0; qlight = game_quick_lights[qlight].NextQuick)
+    {
+        struct QuickLight *p_qlight;
+
+        if (qlight >= next_quick_light)
+            break;
+        p_qlight = &game_quick_lights[qlight];
+        if (scale_lights)
+            p_qlight->Ratio = ((s32)p_qlight->Ratio * intens) >> 8;
+        else
+            p_qlight->Ratio = 0;
+    }
+}
+
+static TbBool map_lights_face_object_is_lit_building(ushort obj)
+{
+    struct Thing *p_thing;
+    s32 thing;
+
+    thing = game_objects[obj].ThingNo;
+    if ((thing <= 0) || (thing >= 1000))
+        return false;
+    p_thing = &things[thing];
+    if (p_thing->Type != TT_BUILDING)
+        return false;
+    return (p_thing->SubType != SubTT_BLD_MGUN);
+}
+
+static void map_lights_face_point_edge(short face, short pt, s32 cor_x, s32 cor_z)
+{
+    // The asm leaves the point index in ecx as well
+    if (cor_x < 0x600)
+        unkn_obj_faces4_lights_func_10(face, pt, cor_x - 0x100, (ushort)pt);
+    if (cor_x > 0x7a00)
+        unkn_obj_faces4_lights_func_10(face, pt, 0x500 - (cor_x - 0x7900), (ushort)pt);
+    if (cor_z < 0x600)
+        unkn_obj_faces4_lights_func_10(face, pt, cor_z - 0x100, (ushort)pt);
+    if (cor_z > 0x7a00)
+        unkn_obj_faces4_lights_func_10(face, pt, 0x500 - (cor_z - 0x7900), (ushort)pt);
+}
+
+void map_lights_update(void)
+{
+    ushort i, j;
+    ushort face;
+
+    DIFFTEST_SHADOW(map_lights_update, map_lights_update_asm());
+    for (j = 0; j < 6; j++)
+    {
+        for (i = 0; i < 128; i++)
+            map_lights_edge_tile(&game_my_big_map[(i << 7) + j],
+              70 * ((s32)j - 1), true);
+    }
+    for (j = 123; j < 128; j++)
+    {
+        for (i = 0; i < 128; i++)
+            map_lights_edge_tile(&game_my_big_map[(i << 7) + j],
+              140 - 70 * ((s32)j - 123), false);
+    }
+    for (i = 0; i < 128; i++)
+    {
+        for (j = 122; j < 128; j++)
+            map_lights_edge_tile(&game_my_big_map[(j << 7) + i],
+              70 * (5 - ((s32)j - 121)), false);
+    }
+    for (i = 0; i < 128; i++)
+    {
+        for (j = 0; j < 6; j++)
+            map_lights_edge_tile(&game_my_big_map[(j << 7) + i],
+              70 * ((s32)j - 1), false);
+    }
+
+    for (face = 1; face < next_object_face3; face++)
+    {
+        struct SingleObjectFace3 *p_face;
+        ushort pt;
+
+        p_face = &game_object_faces3[face];
+        if (!map_lights_face_object_is_lit_building(p_face->Object))
+            continue;
+        for (pt = 0; pt < 3; pt++)
+        {
+            struct SinglePoint *p_point;
+            struct SingleObject *p_sobj;
+            s32 cor_x, cor_z;
+
+            p_face = &game_object_faces3[face];
+            p_point = &game_object_points[(ushort)p_face->PointNo[pt]];
+            p_sobj = &game_objects[p_face->Object];
+            cor_x = p_point->X + p_sobj->MapX;
+            cor_z = p_point->Z + p_sobj->MapZ;
+            map_lights_face_point_edge((short)face, (short)pt, cor_x, cor_z);
+        }
+    }
+
+    for (face = 1; face < next_object_face4; face++)
+    {
+        struct SingleObjectFace4 *p_face;
+        ushort pt;
+
+        p_face = &game_object_faces4[face];
+        if (!map_lights_face_object_is_lit_building(p_face->Object))
+            continue;
+        for (pt = 0; pt < 4; pt++)
+        {
+            struct SinglePoint *p_point;
+            struct SingleObject *p_sobj;
+            s32 cor_x, cor_z;
+
+            p_face = &game_object_faces4[face];
+            p_point = &game_object_points[(ushort)p_face->PointNo[pt]];
+            p_sobj = &game_objects[p_face->Object];
+            cor_x = p_point->X + p_sobj->MapX;
+            cor_z = p_point->Z + p_sobj->MapZ;
+            map_lights_face_point_edge((short)(-(s32)face), (short)pt, cor_x, cor_z);
+        }
+    }
 }
 static DIFFTEST_REF_FUNC int train_related_func_01_asm(int a1, int a2, int a3, int a4)
 {
