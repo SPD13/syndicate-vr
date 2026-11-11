@@ -2899,12 +2899,169 @@ int VNAV_can_i_get_there(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int VNAV_goto(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int VNAV_goto_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_VNAV_goto\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Approximate distance from coordinate deltas, as computed inline in
+ * VNAV_goto() asm.
+ */
+static s32 VNAV_goto_approx_dist(s32 dx, s32 dz)
+{
+    if (dx < dz)
+        return dz - (dz >> 5) - (dz >> 7) + (dx >> 2) + (dx >> 3)
+          + (dx >> 6) + (dx >> 7);
+    else
+        return dx - (dx >> 5) - (dx >> 7) + (dz >> 2) + (dz >> 3)
+          + (dz >> 6) + (dz >> 7);
+}
+
+/** Sets vehicle a1 to drive to map point (a2,a3).
+ * Returns 0 if no drop-off node or no route is found, 2 if the vehicle is
+ * already on the drop-off link and only needs to stop at a point along it
+ * (State 0x33, point packed into Dummy5a/Dummy5b), 1 otherwise; then the
+ * route link indices are packed into Dummy5a/Dummy5b (2 bits per step),
+ * step count and drop-off fraction into Dummy4a, and the target node and
+ * link into AccelZ/AccelX.
+ */
+int VNAV_goto(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    s32 drop_a, drop_node, drop_b;
+    s32 x, z;
+    short tnode;
+    s32 lnk, node;
+    u32 *p_path;
+    u32 *p_flags32;
+    u32 *p_target;
+    ubyte *p_path8;
+    ubyte *p_flags8;
+    u32 val;
+
+    DIFFTEST_SHADOW_RET(VNAV_goto, int, VNAV_goto_asm(a1, a2, a3, a4));
+    // Dummy5a/Dummy5b, Dummy4a/Dummy4b and AccelZ/AccelX are accessed
+    // as 32-bit values
+    p_path = (u32 *)&p_vehicle->U.UVehicle.Dummy5a;
+    p_path8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy5a;
+    p_flags32 = (u32 *)&p_vehicle->U.UVehicle.Dummy4a;
+    p_flags8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy4a;
+    p_target = (u32 *)&p_vehicle->U.UVehicle.AccelZ;
+
+    p_vehicle->U.UVehicle.destx = (ushort)a2;
+    p_vehicle->U.UVehicle.destz = (ushort)a3;
+    x = (short)a2;
+    z = (short)a3;
+    VNAV_find_nearnodes(x, z, z, x);
+    VNAV_find_dropoff_point((int)&drop_node, (int)&drop_b, (int)&drop_a, x, z);
+    tnode = (short)drop_node;
+    if (tnode == 9999)
+        DIFFTEST_RETURN((int)0);
+    if (drop_a < 35)
+        drop_a = 35;
+    if (drop_a > 220)
+        drop_a = 220;
+
+    lnk = game_traffic_nodes[tnode].UTraffic.Link[(ubyte)drop_b];
+    if (lnk < 0)
+    {
+        if ((game_traffic_nodes[-lnk].Flags & 0x0800) != 0)
+            drop_a = 200;
+    }
+
+    if (p_vehicle->U.UVehicle.Dummy4b == -tnode &&
+      ((*p_flags8 & 0xc0) >> 6) == (ubyte)drop_b &&
+      p_vehicle->U.UVehicle.TNode < 0)
+    {
+        s32 x1, z1, x2, z2;
+        s32 dist_nodes, dist_veh;
+        struct TrafficNode *p_node1, *p_node2;
+
+        p_node1 = &game_traffic_nodes[-p_vehicle->U.UVehicle.Dummy4b];
+        p_node2 = &game_traffic_nodes[-p_vehicle->U.UVehicle.TNode];
+        x1 = p_node1->X;
+        z1 = p_node1->Z;
+        x2 = p_node2->X;
+        z2 = p_node2->Z;
+        dist_nodes = VNAV_goto_approx_dist(abs(x2 - x1), abs(z2 - z1));
+        dist_veh = VNAV_goto_approx_dist(abs((p_vehicle->X >> 8) - x1),
+          abs((p_vehicle->Z >> 8) - z1));
+        if (((dist_veh << 8) / dist_nodes) < drop_a)
+        {
+            s32 nx, nz;
+
+            p_vehicle->State = 0x33;
+            nx = (((x2 - x1) * drop_a) >> 8) + x1;
+            nz = (((z2 - z1) * drop_a) >> 8) + z1;
+            *p_path = (u32)nx;
+            *p_path = (u32)nx << 16;
+            *p_path = ((u32)nx << 16) | (u32)nz;
+            DIFFTEST_RETURN((int)2);
+        }
+    }
+
+    if (p_vehicle->U.UVehicle.TNode == -tnode)
+    {
+        *(p_flags8 + 1) = 0;
+        *p_path = (ubyte)drop_b;
+        *p_flags32 = *p_flags32 | ((u32)drop_a << 8);
+        *p_flags8 &= 0xc0;
+    }
+    else
+    {
+        short *p_route_hdr = &VNAV_route;
+        s32 nsteps, ridx, j;
+        uint sh;
+
+        VNAV_do(p_vehicle->U.UVehicle.TNode, (short)(-drop_node),
+          (int)&VNAV_route, x);
+        if (VNAV_route__route[1] == 42)
+            DIFFTEST_RETURN((int)0);
+
+        // route length is the short at VNAV_route+4
+        ridx = p_route_hdr[2] - 2;
+        nsteps = 0;
+        while (ridx >= 0)
+        {
+            for (j = 0; ; j++)
+            {
+                node = -VNAV_route__route[2 + ridx];
+                lnk = game_traffic_nodes[node].UTraffic.Link[j];
+                if (lnk < 0 && lnk == VNAV_route__route[1 + ridx])
+                    break;
+                if (lnk > 0 && (ushort)things[lnk].U.UObject.TNode ==
+                  (ushort)VNAV_route__route[1 + ridx])
+                    break;
+            }
+            *p_path8 &= 0xfc;
+            val = *p_path | (u32)j;
+            *p_path = val;
+            val = (val >> 2) | (val << 30);
+            nsteps++;
+            *p_path = val;
+            ridx--;
+            if (nsteps >= 16)
+                break;
+        }
+        val = *p_path;
+        sh = (2 * nsteps) & 31;
+        if (sh != 0)
+            val = (val << sh) | (val >> (32 - sh));
+        *(p_flags8 + 1) = 0;
+        *p_path = val;
+        *p_flags32 = *p_flags32 | ((u32)drop_a << 8);
+        *p_flags8 &= 0xc0;
+        *p_flags32 = *p_flags32 | (u32)nsteps;
+    }
+
+    *p_target = (u32)(s32)tnode;
+    *p_target = (u32)(s32)(-tnode);
+    *p_target = (u32)(s32)(-tnode) << 16;
+    *p_target = ((u32)(s32)(-tnode) << 16) | (ubyte)drop_b;
+    DIFFTEST_RETURN((int)1);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
