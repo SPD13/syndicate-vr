@@ -2639,11 +2639,200 @@ void veh_heap_add(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void VNAV_do(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void VNAV_do_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_VNAV_do\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Parent node of a traffic node in VNAV_do() search: short at offset 0x16.
+ */
+#define VNAV_TNODE_PARENT(p_node) (*(short *)&(p_node)->field_16[0])
+/** Path cost of a traffic node in VNAV_do() search: short at offset 0x18.
+ */
+#define VNAV_TNODE_COST(p_node) (*(short *)&(p_node)->field_16[2])
+
+/** Finds a route between traffic nodes a1 and a2 (both negative indices),
+ * using a cost-ordered heap search. Fills the route buffer at a3: the short
+ * at offset 4 is the route length, the route starts at offset 8 and lists
+ * nodes from destination back to start. If no route is found, the short at
+ * offset 8 is set to 42.
+ */
+void VNAV_do(int a1, int a2, int a3, int a4)
+{
+    short *p_route = (short *)a3;
+    struct TrafficNode *p_cur;
+    struct TrafficNode *p_lnode;
+    struct Thing *p_thing;
+    s32 start, dest, cur, link, tnode;
+    s32 retry, i, n;
+    s32 pos, child, sib, target, count, tmp;
+    s32 dx, dz, cost;
+    short key_pos, key_child, key_sib;
+
+    DIFFTEST_SHADOW(VNAV_do, VNAV_do_asm(a1, a2, a3, a4));
+    start = (short)a1;
+    dest = (short)a2;
+    retry = -1;
+    if (start >= 0 || dest >= 0)
+    {
+        p_route[4] = 42;
+        return;
+    }
+    while (1)
+    {
+        if ((short)start == (short)dest)
+        {
+            p_route[4] = 42;
+            return;
+        }
+        for (i = 1; i < next_traffic_node; i++)
+            VNAV_TNODE_PARENT(&game_traffic_nodes[i]) = 0;
+        VNAV_TNODE_COST(&game_traffic_nodes[0]) = 0;
+        veh_ma_heap[1] = 0xabcd;
+        data_1c8a5c = 0;
+        VNAV_TNODE_COST(&game_traffic_nodes[-start]) = 0;
+        veh_heap_add(start, 0, 0, 0);
+
+        while (veh_ma_heap[1] != 0xabcd)
+        {
+            // Pop the heap top
+            count = data_1c8a5c;
+            tmp = veh_ma_heap[count];
+            cur = veh_ma_heap[1];
+            veh_ma_heap[1] = tmp;
+            veh_ma_heap[count] = 0xabcd;
+            count--;
+            data_1c8a5c = count;
+            if (count != 0)
+            {
+                pos = 1;
+                while (1)
+                {
+                    child = pos * 2;
+                    sib = child ^ 1;
+                    count = data_1c8a5c;
+                    if (sib > count)
+                    {
+                        if (count == pos)
+                            break;
+                        // TODO compares with the last entry rather than the child; kept as in original
+                        if (veh_heap_key(pos) < veh_heap_key(count))
+                            break;
+                        tmp = veh_ma_heap[count];
+                        target = veh_ma_heap[pos];
+                        veh_ma_heap[pos] = tmp;
+                        veh_ma_heap[count] = target;
+                        break;
+                    }
+                    key_pos = veh_heap_key(pos);
+                    key_child = veh_heap_key(child);
+                    key_sib = veh_heap_key(sib);
+                    if (key_pos < key_child)
+                    {
+                        if (key_child < key_sib)
+                            target = pos;
+                        else if (key_sib > key_pos)
+                            target = pos;
+                        else
+                            target = sib;
+                    }
+                    else
+                    {
+                        if (key_pos < key_sib)
+                            target = child;
+                        else if (key_child < key_sib)
+                            target = child;
+                        else
+                            target = sib;
+                    }
+                    if (target == pos)
+                        break;
+                    tmp = veh_ma_heap[target];
+                    n = veh_ma_heap[pos];
+                    veh_ma_heap[pos] = tmp;
+                    veh_ma_heap[target] = n;
+                    pos = target;
+                }
+            }
+
+            if (cur >= 0)
+                continue;
+
+            for (i = 0; i < 4; i++)
+            {
+                p_cur = &game_traffic_nodes[-cur];
+                link = p_cur->UTraffic.Link[i];
+                if (link == dest)
+                {
+                    VNAV_TNODE_PARENT(&game_traffic_nodes[-dest]) = cur;
+                    tnode = link;
+                    goto build_route;
+                }
+                if (link < 0)
+                {
+                    p_lnode = &game_traffic_nodes[-link];
+                    if ((VNAV_TNODE_PARENT(p_lnode) == 0) && ((p_lnode->Flags & 0x2000) == 0))
+                    {
+                        dx = abs(p_lnode->X - p_cur->X);
+                        dz = abs(p_lnode->Z - p_cur->Z);
+                        if (dx > dz)
+                            dz >>= 1;
+                        else
+                            dx >>= 1;
+                        cost = dz + dx;
+                        p_cur = &game_traffic_nodes[-cur];
+                        cost += VNAV_TNODE_COST(p_cur);
+                        if ((p_cur->UTraffic.Flags[i] & 0x40) != 0)
+                            cost += 500;
+                        p_lnode = &game_traffic_nodes[-link];
+                        VNAV_TNODE_COST(p_lnode) = cost;
+                        VNAV_TNODE_PARENT(p_lnode) = cur;
+                        veh_heap_add(link, 0, link, cur);
+                    }
+                }
+                if (link > 0)
+                {
+                    p_thing = &things[link];
+                    tnode = p_thing->U.UObject.TNode;
+                    cost = p_thing->U.UObject.Cost;
+                    if (tnode == dest)
+                    {
+                        VNAV_TNODE_PARENT(&game_traffic_nodes[-dest]) = cur;
+                        goto build_route;
+                    }
+                    p_lnode = &game_traffic_nodes[-tnode];
+                    if (VNAV_TNODE_PARENT(p_lnode) == 0)
+                    {
+                        cost += VNAV_TNODE_COST(&game_traffic_nodes[-cur]);
+                        VNAV_TNODE_COST(p_lnode) = cost;
+                        VNAV_TNODE_PARENT(p_lnode) = cur;
+                        veh_heap_add(tnode, 0, tnode, cur);
+                    }
+                }
+            }
+        }
+
+        if (retry == 0)
+        {
+            p_route[4] = 42;
+            return;
+        }
+        retry = 0;
+    }
+
+build_route:
+    n = 0;
+    do
+    {
+        p_route[4 + n] = tnode;
+        tnode = VNAV_TNODE_PARENT(&game_traffic_nodes[-tnode]);
+        n++;
+    } while (tnode != start);
+    p_route[4 + n] = start;
+    n++;
+    p_route[2] = n;
 }
 
 /** Routed asm (internal label). Arguments and return value are the
