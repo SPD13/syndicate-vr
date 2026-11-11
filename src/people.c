@@ -5458,12 +5458,93 @@ void person_init_drop(struct Thing *p_person, ThingIdx item)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int do_i_have_weapon(int a1, int a2)
+static DIFFTEST_REF_FUNC int do_i_have_weapon_asm(int a1, int a2)
 {
     int ra = a1, rd = a2;
     asm volatile ("call ASM_do_i_have_weapon\n"
         : "+a" (ra), "+d" (rd) : : "cc", "memory");
     return ra;
+}
+
+int do_i_have_weapon(int a1, int a2)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    int weapon = a2;
+    u32 wep_bit;
+    u32 carried;
+    int count;
+    ushort plagent;
+    ushort plyr;
+    int fp;
+
+    DIFFTEST_SHADOW_RET(do_i_have_weapon, int, do_i_have_weapon_asm(a1, a2));
+
+    if (weapon == 0)
+        DIFFTEST_RETURN((int)0);
+
+    if (weapon == 0x1f)
+    {
+        if ((p_person->U.UPerson.UMod.Mods & 0xF000) == 0)
+            DIFFTEST_RETURN((int)0);
+        DIFFTEST_RETURN((int)1);
+    }
+
+    wep_bit = (u32)1 << ((weapon - 1) & 0x1f);
+
+    if ((p_person->Flag & TngF_PlayerAgent) == 0)
+        DIFFTEST_RETURN((int)(wep_bit & p_person->U.UPerson.WeaponsCarried));
+
+    // Count carried weapons, not counting bit 22
+    carried = p_person->U.UPerson.WeaponsCarried & 0xFFBFFFFF;
+    count = 0;
+    while (carried != 0)
+    {
+        if ((carried & 1) != 0)
+            count++;
+        carried >>= 1;
+    }
+
+    plagent = p_person->U.UPerson.ComCur & 0x3;
+    plyr = (p_person->U.UPerson.ComCur & 0x1C) >> 2;
+
+    switch (weapon)
+    {
+    case WEP_NUCLGREN:
+        fp = WFRPK_NUCLGREN;
+        break;
+    case WEP_CRAZYGAS:
+        fp = WFRPK_CRAZYGAS;
+        break;
+    case WEP_KOGAS:
+        fp = WFRPK_KOGAS;
+        break;
+    case WEP_ELEMINE:
+        fp = WFRPK_ELEMINE;
+        break;
+    case WEP_EXPLMINE:
+        fp = WFRPK_EXPLMINE;
+        break;
+    default:
+        fp = WFRPK_COUNT;
+        break;
+    }
+
+    if (fp != WFRPK_COUNT)
+    {
+        if (players[plyr].FourPacks[fp][plagent] == WEAPONS_FOURPACK_MAX_COUNT)
+            DIFFTEST_RETURN((int)1);
+        // TODO: returns 1 only when the four-pack weapon is not carried and
+        // exactly 6 weapons are carried - looks like an original bug
+        if ((p_person->U.UPerson.WeaponsCarried & wep_bit) != 0)
+            DIFFTEST_RETURN((int)0);
+        if (count != 6)
+            DIFFTEST_RETURN((int)0);
+        DIFFTEST_RETURN((int)1);
+    }
+
+    if (count >= 6)
+        DIFFTEST_RETURN((int)1);
+    DIFFTEST_RETURN((int)(wep_bit & p_person->U.UPerson.WeaponsCarried));
 }
 
 static DIFFTEST_REF_FUNC void person_init_pickup_asm(struct Thing *p_person, ThingIdx item)
