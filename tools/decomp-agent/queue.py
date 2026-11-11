@@ -170,8 +170,13 @@ def main():
         attempts = ledger.get(name, [])
         if any(e.get('status') == 'merged' for e in attempts):
             continue
-        fails = sum(1 for e in attempts
-                    if e.get('status') not in ('merged', 'base-build-failed'))
+        # a 'reset' entry (blocker removed by hand) forgets earlier failures
+        fails = 0
+        for e in attempts:
+            if e.get('status') == 'reset':
+                fails = 0
+            elif e.get('status') not in ('merged', 'base-build-failed'):
+                fails += 1
         if fails >= 3:
             excluded = 'failed-3x'
         targets.append({
