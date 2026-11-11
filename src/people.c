@@ -5454,6 +5454,18 @@ void person_init_drop(struct Thing *p_person, ThingIdx item)
     p_person->U.UPerson.OldAnimMode = PrevAnimMode;
 }
 
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int do_i_have_weapon(int a1, int a2)
+{
+    int ra = a1, rd = a2;
+    asm volatile ("call ASM_do_i_have_weapon\n"
+        : "+a" (ra), "+d" (rd) : : "cc", "memory");
+    return ra;
+}
+
 void person_init_pickup(struct Thing *p_person, ThingIdx item)
 {
     asm volatile ("call ASM_person_init_pickup\n"

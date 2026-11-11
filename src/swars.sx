@@ -7727,7 +7727,7 @@ GLOBAL_FUNC(ASM_map_things_unkn_func_04)	/* 0x0428B8 */
 
 
 /*----------------------------------------------------------------*/
-rotate_texture:	/* 0x042AB8 */
+GLOBAL_FUNC(ASM_rotate_texture)	/* 0x042AB8 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -15956,7 +15956,7 @@ GLOBAL_FUNC(ASM_should_i_get_item)	/* 0x04A018 */
 		xor    %edx,%edx
 		mov    %ecx,%eax
 		mov    0x2c(%esi),%dx
-		call   do_i_have_weapon
+		call   ac_do_i_have_weapon
 		test   %eax,%eax
 		jne    jump_4a111
 		mov    0x47(%ecx),%dh
@@ -20852,7 +20852,7 @@ GLOBAL_FUNC(ASM_person_pickup)	/* 0x04EB0C */
 		xor    %edx,%edx
 		mov    %esi,%eax
 		mov    0x2c(%edi),%dx
-		call   do_i_have_weapon
+		call   ac_do_i_have_weapon
 		test   %eax,%eax
 		jne    jump_4ec0e
 		push   $0x1
@@ -21040,7 +21040,7 @@ GLOBAL_FUNC(ASM_person_init_pickup)	/* 0x04EDA8 */
 		mov    %ax,%dx
 		mov    %ebx,%eax
 		mov    $0x1,%cl
-		call   do_i_have_weapon
+		call   ac_do_i_have_weapon
 		test   %eax,%eax
 		je     jump_4edf6
 		xor    %cl,%cl
@@ -21511,7 +21511,7 @@ vtable_4f2dc:
 
 
 /*----------------------------------------------------------------*/
-do_i_have_weapon:	/* 0x04F2FC */
+GLOBAL_FUNC(ASM_do_i_have_weapon)	/* 0x04F2FC */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -22261,7 +22261,7 @@ GLOBAL_FUNC(ASM_send_another_player_peep)	/* 0x04F9F4 */
 		jmp    jump_4fbbc
 	jump_4fa41:
 		mov    0x4(%esp),%eax
-		call   do_i_have_weapon
+		call   ac_do_i_have_weapon
 		test   %eax,%eax
 		jne    jump_4fa58
 		xor    %eax,%eax
@@ -22307,7 +22307,7 @@ GLOBAL_FUNC(ASM_send_another_player_peep)	/* 0x04F9F4 */
 		xor    %edx,%edx
 		mov    %ecx,%eax
 		mov    0x2c(%esi),%dx
-		call   do_i_have_weapon
+		call   ac_do_i_have_weapon
 		test   %eax,%eax
 		jne    jump_4faff
 		mov    0x18(%ecx),%eax
@@ -22744,7 +22744,7 @@ GLOBAL_FUNC(ASM_person_init_get_item)	/* 0x04FEC8 */
 		mov    %ecx,%eax
 		mov    0x2c(%ebp),%dx
 		mov    $0x1,%bl
-		call   do_i_have_weapon
+		call   ac_do_i_have_weapon
 		test   %eax,%eax
 		je     jump_4ff2a
 		xor    %bl,%bl
@@ -78662,7 +78662,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -78684,7 +78684,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -78706,7 +78706,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		inc    %edx
 		xor    %ebx,%ebx
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    0x0(,%ebx,8),%eax
@@ -78742,7 +78742,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -78764,7 +78764,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    -0x1(%ebx),%ecx
@@ -78786,7 +78786,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    0x0(,%ebx,8),%eax
@@ -78824,7 +78824,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		inc    %edx
 		xor    %edi,%edi
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%di
 		lea    -0x1(%edi),%ebx
@@ -78846,7 +78846,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -78869,7 +78869,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    0x0(,%ebx,8),%eax
@@ -78907,7 +78907,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    -0x1(%ebx),%ecx
@@ -78929,7 +78929,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    -0x1(%ebx),%ecx
@@ -78951,7 +78951,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    0x0(,%ebx,8),%eax
@@ -78969,7 +78969,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movb   $0x20,0x7(%ebx,%eax,1)
 		movswl %dx,%eax
 		mov    %dx,data_1c4300
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		xor    %ecx,%ecx
 		inc    %edx
@@ -78992,7 +78992,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		xor    %edi,%edi
 		mov    %dx,%di
@@ -79015,7 +79015,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -79037,7 +79037,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    0x0(,%ebx,8),%eax
@@ -79075,7 +79075,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -79097,7 +79097,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -79119,7 +79119,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    0x0(,%ebx,8),%eax
@@ -79157,7 +79157,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -79179,7 +79179,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		inc    %edx
 		xor    %esi,%esi
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%si
 		lea    -0x1(%esi),%ebx
@@ -79201,7 +79201,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		xor    %eax,%eax
 		mov    %dx,%ax
@@ -79240,7 +79240,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%cx
 		lea    -0x1(%ecx),%ebx
@@ -79262,7 +79262,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		mov    %dx,%bx
 		lea    -0x1(%ebx),%ecx
@@ -79283,7 +79283,7 @@ GLOBAL_FUNC(ASM_init_crater_textures)	/* 0x0885B0 */
 		movsl  %ds:(%esi),%es:(%edi)
 		movsw  %ds:(%esi),%es:(%edi)
 		mov    %dx,EXPORT_SYMBOL(next_floor_texture)
-		call   rotate_texture
+		call   ac_rotate_texture
 		mov    EXPORT_SYMBOL(next_floor_texture),%dx
 		pop    %edi
 		pop    %esi
