@@ -9466,10 +9466,32 @@ ubyte person_attempt_to_leave_vehicle(struct Thing *p_person)
     return 0;
 }
 
-void make_peep_protect_peep(struct Thing *p_protector, struct Thing *p_leader)
+static DIFFTEST_REF_FUNC void make_peep_protect_peep_asm(struct Thing *p_protector, struct Thing *p_leader)
 {
     asm volatile ("call ASM_make_peep_protect_peep\n"
         : : "a" (p_protector), "d" (p_leader));
+}
+
+void make_peep_protect_peep(struct Thing *p_protector, struct Thing *p_leader)
+{
+    ThingIdx leadtng;
+    ubyte dist;
+
+    DIFFTEST_SHADOW(make_peep_protect_peep, make_peep_protect_peep_asm(p_protector, p_leader));
+    p_protector->State = PerSt_PROTECT_PERSON;
+    p_protector->U.UPerson.ComTimer = -1;
+    leadtng = p_leader->ThingOffset;
+    p_protector->GotoThingIndex = leadtng;
+    p_protector->Owner = leadtng;
+    dist = follow_dist[p_leader->U.UPerson.ComCur & 3][p_protector->U.UPerson.ComCur & 3];
+    p_protector->U.UPerson.Timer2 = 50;
+    p_protector->U.UPerson.StartTimer2 = 50;
+    p_protector->Timer1 = 48;
+    p_protector->StartTimer1 = 48;
+    p_protector->U.UPerson.ComRange = dist;
+    p_protector->SubState = 0;
+    p_protector->Flag2 &= ~TgF2_Unkn08000000;
+    remove_path(p_protector);
 }
 
 void player_change_person(short thing, ushort plyr)
