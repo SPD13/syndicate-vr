@@ -1677,11 +1677,102 @@ void blind_progress_game(ulong nturns)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void unkn_obj_faces4_lights_func_10(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void unkn_obj_faces4_lights_func_10_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_unkn_obj_faces4_lights_func_10\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Scales the Ratio of every quick light in the chain starting at given index,
+ * clearing NextQuick links which point beyond the used lights.
+ */
+static void face_point_lights_scale(ushort qlight, s32 intens)
+{
+    while ((qlight != 0) && (qlight < next_quick_light))
+    {
+        struct QuickLight *p_qlight;
+
+        p_qlight = &game_quick_lights[qlight];
+        p_qlight->Ratio = (intens * (s32)p_qlight->Ratio) >> 8;
+        if (p_qlight->NextQuick >= next_quick_light)
+            p_qlight->NextQuick = 0;
+        qlight = game_quick_lights[qlight].NextQuick;
+    }
+}
+
+/** Darkens one point of an object face: scales the lights chained to it and
+ * its shade by intens (clipped to 0..256) * 140/256 / 256.
+ * Positive face is an index into game_object_faces3, negative into
+ * game_object_faces4. The 4th register (ecx) is not used.
+ */
+void unkn_obj_faces4_lights_func_10(int a1, int a2, int a3, int a4)
+{
+    short face;
+    ushort pt;
+    s32 intens;
+
+    DIFFTEST_SHADOW(unkn_obj_faces4_lights_func_10,
+      unkn_obj_faces4_lights_func_10_asm(a1, a2, a3, a4));
+    face = (short)a1;
+    pt = (ushort)a2;
+    intens = a3;
+    if (intens < 0)
+        intens = 0;
+    if (intens > 0x100)
+        intens = 0x100;
+    intens = (intens * 140) >> 8;
+
+    if (face > 0)
+    {
+        struct SingleObjectFace3 *p_face3;
+
+        p_face3 = &game_object_faces3[face];
+        switch (pt)
+        {
+        case 0:
+            face_point_lights_scale(p_face3->Light0, intens);
+            p_face3->Shade0 = (intens * (s32)(ushort)p_face3->Shade0) >> 8;
+            break;
+        case 1:
+            face_point_lights_scale(p_face3->Light1, intens);
+            p_face3->Shade1 = (intens * (s32)(ushort)p_face3->Shade1) >> 8;
+            break;
+        case 2:
+            face_point_lights_scale(p_face3->Light2, intens);
+            p_face3->Shade2 = (intens * (s32)(ushort)p_face3->Shade2) >> 8;
+            break;
+        default:
+            break;
+        }
+    }
+    else if (face < 0)
+    {
+        struct SingleObjectFace4 *p_face4;
+
+        p_face4 = &game_object_faces4[(short)-face];
+        switch (pt)
+        {
+        case 0:
+            face_point_lights_scale(p_face4->Light0, intens);
+            p_face4->Shade0 = (intens * (s32)(ushort)p_face4->Shade0) >> 8;
+            break;
+        case 1:
+            face_point_lights_scale(p_face4->Light1, intens);
+            p_face4->Shade1 = (intens * (s32)(ushort)p_face4->Shade1) >> 8;
+            break;
+        case 2:
+            face_point_lights_scale(p_face4->Light2, intens);
+            p_face4->Shade2 = (intens * (s32)(ushort)p_face4->Shade2) >> 8;
+            break;
+        case 3:
+            face_point_lights_scale(p_face4->Light3, intens);
+            p_face4->Shade3 = (intens * (s32)(ushort)p_face4->Shade3) >> 8;
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 
