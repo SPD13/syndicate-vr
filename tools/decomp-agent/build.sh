@@ -48,11 +48,15 @@ if [ -n "$EXTRA_CFLAGS" ]; then
     if ! grep -q -- "$EXTRA_CFLAGS" src/.extra_cflags 2>/dev/null; then
         rm -f src/*.o src/syndwarsfx.exe
         echo "$EXTRA_CFLAGS" > src/.extra_cflags
+    else
+        # the plain make above rebuilt changed sources without the flags
+        find src -maxdepth 1 -name '*.o' -newer src/.extra_cflags -delete
     fi
     if ! make -C src -j"$JOBS" CFLAGS="$ORIG_CFLAGS $EXTRA_CFLAGS" >> make.log 2>&1; then
         grep -E -B2 -A6 '(error|Error)[: ]' make.log | tail -40
         echo "BUILD FAILED (full log: $BDIR/make.log)"; exit 1
     fi
+    touch src/.extra_cflags
 fi
 echo "BUILD OK: $BDIR/src/syndwarsfx.exe"
 if [ $CHECK -eq 1 ]; then
