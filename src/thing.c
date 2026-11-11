@@ -32,11 +32,13 @@
 #include "bmbang.h"
 #include "bmcrater.h"
 #include "command.h"
+#include "cybmod.h"
 #include "difftest.h"
 #include "display.h"
 #include "engindrwlstx.h"
 #include "engincam.h"
 #include "engincolour.h"
+#include "enginfexpl.h"
 #include "enginlights.h"
 #include "enginshrapn.h"
 #include "enginsngobjs.h"
@@ -52,12 +54,14 @@
 #include "matrix.h"
 #include "misstat.h"
 #include "packet.h"
+#include "people.h"
 #include "pepgroup.h"
 #include "player.h"
 #include "sound.h"
 #include "thing_expld.h"
 #include "thing_fire.h"
 #include "thing_search.h"
+#include "tngcolisn.h"
 #include "vehicle.h"
 #include "weapon.h"
 #include "game.h"
@@ -2743,11 +2747,362 @@ void finish_bang(struct SimpleThing *p_sthing, ThingIdx thing)
     delete_snode(p_sthing);
 }
 
-void FIRE_process_flame(struct SimpleThing *p_sthing)
+extern s32 dword_1E08BC;
+void snap_razor_wire(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC void FIRE_process_flame_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_FIRE_process_flame\n"
         : : "a" (p_sthing));
+}
+
+/** Takes a flame from the free list, fills it and links it at the head
+ * of the fire flames list. Returns pointer to the new flame `next` field,
+ * or NULL if no free flame was available.
+ */
+static ushort *FIRE_process_flame_spawn(struct SimpleThing *p_sthing,
+  short x, short y, short z, ubyte type, sbyte big, sbyte dbig, sbyte ddbig,
+  ushort anim, ubyte life, ubyte count, sbyte fvel)
+{
+    struct FireFlame *p_nflame;
+    ushort nflame;
+
+    nflame = word_1E08B8;
+    if (nflame == 0)
+        return NULL;
+    word_1E08B8 = FIRE_flame[nflame].next;
+    dword_1E08BC++;
+
+    p_nflame = &FIRE_flame[nflame];
+    p_nflame->x = x;
+    p_nflame->z = z;
+    p_nflame->y = y;
+    p_nflame->type = type;
+    p_nflame->big = big;
+    p_nflame->dbig = dbig;
+    p_nflame->ddbig = ddbig;
+    p_nflame->frame = nstart_ani[anim];
+    while ((LbRandomAnyShort() & 0x3) != 0)
+        p_nflame->frame = frame[p_nflame->frame].Next;
+    p_nflame->life = life;
+    p_nflame->count = count;
+    p_nflame->fvel = fvel;
+    p_nflame->fcount = LbRandomAnyShort() & 0x7F;
+    p_nflame->next = p_sthing->U.UFire.flame;
+    p_sthing->U.UFire.flame = nflame;
+    return &p_nflame->next;
+}
+
+void FIRE_process_flame(struct SimpleThing *p_sthing)
+{
+    struct MyMapElement *p_mapel;
+    struct FireFlame *p_fflame;
+    ushort *p_prev;
+    ushort *p_nnext;
+    int cor_x, cor_y, cor_z;
+    int x, y, z;
+    ThingIdx thing;
+    ushort colvect;
+    ushort fflame, nxflame;
+    ubyte life, count;
+    sbyte fvel;
+    int i;
+
+    DIFFTEST_SHADOW(FIRE_process_flame, FIRE_process_flame_asm(p_sthing));
+
+    cor_x = p_sthing->X >> 8;
+    cor_y = p_sthing->Y;
+    cor_z = p_sthing->Z >> 8;
+    apply_super_quick_light(cor_x, cor_z, LbRandomAnyShort() & 0xF);
+
+    p_mapel = &game_my_big_map[((cor_z >> 8) << 7) + (cor_x >> 8)];
+
+    // Burn things standing on the tile
+    thing = p_mapel->Child;
+    while (thing != 0)
+    {
+        if (thing > 0)
+        {
+            struct Thing *p_thing;
+
+            p_thing = &things[thing];
+            if ((p_thing->Type == TT_PERSON)
+              && ((p_thing->Flag & TngF_Destroyed) == 0)
+              && (p_thing->Health >= 0))
+            {
+                int dmg;
+
+                dmg = 0x20 - (cybmod_chest_level(&p_thing->U.UPerson.UMod) << 4);
+                if (dmg > 0)
+                {
+                    p_thing->Health -= dmg;
+                    if (p_thing->Health < 0)
+                        set_person_dead(p_thing, 0x12);
+                }
+            }
+            thing = p_thing->Next;
+        }
+        else
+        {
+            struct SimpleThing *p_static;
+
+            p_static = &sthings[thing];
+            if ((p_static->Type == SmTT_STATIC)
+              && ((p_static->Flag & TngF_Destroyed) == 0))
+                set_static_on_fire(p_static);
+            thing = p_static->Next;
+        }
+    }
+
+    // Burn objects with collision vectors on the tile
+    colvect = p_mapel->ColHead;
+    while (colvect != 0)
+    {
+        struct ColVectList *p_cvlist;
+        short obj;
+
+        p_cvlist = &game_col_vects_list[colvect];
+        obj = p_cvlist->Object;
+        colvect = p_cvlist->NextColList & 0x7FFF;
+        if ((obj < 0) && ((LbRandomAnyShort() & 0x7) == 0))
+        {
+            struct Thing *p_thing;
+
+            p_thing = &things[-obj];
+            if (p_thing->SubType != 0)
+            {
+                bang_new4(p_sthing->X, p_sthing->Y, p_sthing->Z, 15);
+                do_shockwave(p_sthing->X >> 8, p_sthing->Y >> 8, p_sthing->Z >> 8,
+                  0x400, 1000, &things[(ushort)p_thing->Owner]);
+            }
+            snap_razor_wire((int)p_thing, 0, 0, 0);
+        }
+    }
+
+    // Update the flames
+    p_prev = &p_sthing->U.UFire.flame;
+    fflame = *p_prev;
+    while (fflame != 0)
+    {
+        p_fflame = &FIRE_flame[fflame];
+        nxflame = p_fflame->next;
+        p_fflame->life--;
+        if (p_fflame->life == 0)
+        {
+            p_fflame->next = word_1E08B8;
+            word_1E08B8 = fflame;
+            *p_prev = nxflame;
+            dword_1E08BC--;
+            fflame = nxflame;
+            continue;
+        }
+        p_fflame->big += (p_fflame->dbig >> 3);
+        if ((gameturn & 0x3) == 0)
+            p_fflame->dbig += p_fflame->ddbig;
+        p_fflame->fcount -= p_fflame->fvel;
+        if (p_fflame->fcount <= 0)
+        {
+            p_fflame->fcount = 100;
+            p_fflame->frame = frame[p_fflame->frame].Next;
+        }
+        p_fflame->count--;
+        if (p_fflame->count != 0)
+        {
+            p_prev = &p_fflame->next;
+            fflame = nxflame;
+            continue;
+        }
+
+        switch (p_fflame->type)
+        {
+        case 1:
+        case 5:
+        case 20:
+        case 24:
+            p_fflame->count = 0x7F;
+            p_prev = &p_fflame->next;
+            break;
+        case 4:
+            if ((LbRandomAnyShort() & 0x1) == 0)
+            {
+                life = (LbRandomAnyShort() & 0xF) + 0x21;
+                z = cor_z + (LbRandomAnyShort() & 0xFF) - 0x7F;
+                x = cor_x + (LbRandomAnyShort() & 0xFF) - 0x7F;
+                fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+                p_nnext = FIRE_process_flame_spawn(p_sthing, x, cor_y, z,
+                  5, 0x1E, 0, -1, 0x39B, life, 100, fvel);
+
+                life = (LbRandomAnyShort() & 0xF) + 0x21;
+                z = cor_z + (LbRandomAnyShort() & 0x1FF) - 0xFF;
+                x = cor_x + (LbRandomAnyShort() & 0x1FF) - 0xFF;
+                fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+                FIRE_process_flame_spawn(p_sthing, x, cor_y, z,
+                  5, 0x1E, 0, -1, 0x39C, life, 100, fvel);
+
+                life = (LbRandomAnyShort() & 0xF) + 0x21;
+                z = cor_z + (LbRandomAnyShort() & 0x1FF) - 0xFF;
+                x = cor_x + (LbRandomAnyShort() & 0x1FF) - 0xFF;
+                fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+                FIRE_process_flame_spawn(p_sthing, x, cor_y, z,
+                  5, 0x1E, 0, -1, 0x39C, life, 100, fvel);
+
+                // TODO comparing list pointer with free list head looks like an original bug
+                if ((p_prev == &word_1E08B8) && (p_nnext != NULL))
+                    p_prev = p_nnext;
+                else
+                    p_prev = &p_fflame->next;
+            }
+            else
+            {
+                p_prev = &p_fflame->next;
+            }
+            p_fflame->count = 0x7F;
+            break;
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+            if (p_fflame->type <= 7) {
+                count = 0x2B - (LbRandomAnyShort() & 0x3);
+                life = (LbRandomAnyShort() & 0xF) + 0x2B;
+            } else {
+                count = 0x35 - (LbRandomAnyShort() & 0x3);
+                life = (LbRandomAnyShort() & 0xF) + 0x35;
+            }
+            if (p_fflame->type == 6)
+                z = cor_z + (LbRandomAnyShort() & 0x3F) - 0x1F;
+            else if (p_fflame->type == 9)
+                z = cor_z + (LbRandomAnyShort() & 0x1FF) - 0xFF;
+            else
+                z = cor_z + (LbRandomAnyShort() & 0xFF) - 0x7F;
+            y = alt_at_point(cor_x, cor_z) >> 5;
+            if (p_fflame->type == 6)
+                x = cor_x + (LbRandomAnyShort() & 0x3F) - 0x1F;
+            else if (p_fflame->type == 9)
+                x = cor_x + (LbRandomAnyShort() & 0x1FF) - 0xFF;
+            else
+                x = cor_x + (LbRandomAnyShort() & 0xFF) - 0x7F;
+            fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+            p_nnext = FIRE_process_flame_spawn(p_sthing, x, y, z,
+              p_fflame->type,
+              (p_fflame->type == 6 || p_fflame->type == 8) ? 100 : 0x1E,
+              0, -1, (p_fflame->type <= 7) ? 0x39B : 0x39C, life, count, fvel);
+            // TODO comparing list pointer with free list head looks like an original bug
+            if ((p_prev == &word_1E08B8) && (p_nnext != NULL))
+                p_prev = p_nnext;
+            else
+                p_prev = &p_fflame->next;
+            break;
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
+            life = (LbRandomAnyShort() & 0xF) + 0x35;
+            z = cor_z + (LbRandomAnyShort() & 0x3F) - 0x1F;
+            y = p_fflame->y + 0x32;
+            x = cor_x + (LbRandomAnyShort() & 0x3F) - 0x1F;
+            fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+            p_nnext = FIRE_process_flame_spawn(p_sthing, x, y, z,
+              p_fflame->type + 1, 0x1E, 0, -1, 0x39B, life, 3, fvel);
+            if (p_fflame->type >= 15)
+            {
+                for (i = 0; i < 2; i++)
+                {
+                    int angle, dist;
+                    int sn, cs;
+
+                    angle = LbRandomAnyShort() & 0x7FF;
+                    sn = lbSinTable[angle] >> 9;
+                    cs = lbSinTable[angle + 512] >> 9;
+                    dist = LbRandomAnyShort() & 0xFF;
+                    sn *= dist;
+                    cs *= dist;
+                    count = (LbRandomAnyShort() & 0xF) + 0x12;
+                    life = (LbRandomAnyShort() & 0xF) + 0x2B;
+                    z = (cs >> 8) + p_fflame->z;
+                    y = p_fflame->y;
+                    x = (sn >> 8) + p_fflame->x;
+                    fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+                    FIRE_process_flame_spawn(p_sthing, x, y, z,
+                      5, 100, 0, -1, 0x39B, life, count, fvel);
+                }
+                for (i = 0; i < 2; i++)
+                {
+                    int angle, dist;
+                    int sn, cs;
+
+                    angle = LbRandomAnyShort() & 0x7FF;
+                    sn = lbSinTable[angle] >> 8;
+                    cs = lbSinTable[angle + 512] >> 8;
+                    dist = LbRandomAnyShort() & 0xFF;
+                    sn *= dist;
+                    cs *= dist;
+                    count = (LbRandomAnyShort() & 0xF) + 0x18;
+                    life = (LbRandomAnyShort() & 0xF) + 0x35;
+                    z = (cs >> 8) + p_fflame->z;
+                    y = p_fflame->y;
+                    x = (sn >> 8) + p_fflame->x;
+                    fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+                    FIRE_process_flame_spawn(p_sthing, x, y, z,
+                      5, 100, 0, -1, 0x39C, life, count, fvel);
+                }
+            }
+            // TODO comparing list pointer with free list head looks like an original bug
+            if ((p_prev == &word_1E08B8) && (p_nnext != NULL))
+                p_prev = p_nnext;
+            else
+                p_prev = &p_fflame->next;
+            p_fflame->count = 0x7F;
+            break;
+        case 21:
+            life = (LbRandomAnyShort() & 0xF) + 0x35;
+            z = cor_z + (LbRandomAnyShort() & 0x7F) - 0x3F;
+            y = p_fflame->y + 0x23;
+            x = cor_x + (LbRandomAnyShort() & 0x7F) - 0x3F;
+            fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+            p_nnext = FIRE_process_flame_spawn(p_sthing, x, y, z,
+              p_fflame->type + 1, 0x1E, 0, -1, 0x39B, life, 8, fvel);
+            // TODO comparing list pointer with free list head looks like an original bug
+            if ((p_prev == &word_1E08B8) && (p_nnext != NULL))
+                p_prev = p_nnext;
+            else
+                p_prev = &p_fflame->next;
+            p_fflame->count = 0x7F;
+            break;
+        case 22:
+        case 23:
+            life = (LbRandomAnyShort() & 0xF) + 0x35;
+            if (p_fflame->type == 22)
+                z = cor_z + (LbRandomAnyShort() & 0x3F) - 0x1F;
+            else
+                z = cor_z + (LbRandomAnyShort() & 0x1F) - 0xF;
+            y = p_fflame->y + 0x37;
+            if (p_fflame->type == 22)
+                x = cor_x + (LbRandomAnyShort() & 0x3F) - 0x1F;
+            else
+                x = cor_x + (LbRandomAnyShort() & 0x1F) - 0xF;
+            fvel = (LbRandomAnyShort() & 0x3F) + 0x32;
+            p_nnext = FIRE_process_flame_spawn(p_sthing, x, y, z,
+              p_fflame->type + 1, 0x1E, 0, -1, 0x39B, life, 8, fvel);
+            // TODO comparing list pointer with free list head looks like an original bug
+            if ((p_prev == &word_1E08B8) && (p_nnext != NULL))
+                p_prev = p_nnext;
+            else
+                p_prev = &p_fflame->next;
+            p_fflame->count = 0x7F;
+            break;
+        default: // types 2, 3 and unknown keep the list pointer
+            break;
+        }
+        fflame = nxflame;
+    }
 }
 
 void FIRE_finish_flame(struct SimpleThing *p_sthing, ThingIdx thing)
