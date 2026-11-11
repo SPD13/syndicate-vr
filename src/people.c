@@ -11579,10 +11579,101 @@ void person_wait(struct Thing *p_person)
         p_person->Frame = frame[p_person->Frame].Next;
 }
 
-void person_pickup(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_pickup_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_pickup\n"
         : : "a" (p_person));
+}
+
+void person_pickup(struct Thing *p_person)
+{
+    ushort pframe;
+
+    DIFFTEST_SHADOW(person_pickup, person_pickup_asm(p_person));
+    p_person->Timer1 -= fifties_per_gameturn;
+    if (p_person->Timer1 >= 0)
+        return;
+
+    p_person->Timer1 = p_person->StartTimer1;
+    p_person->Frame = frame[p_person->Frame].Next;
+    p_person->U.UPerson.Timer2--;
+    if (p_person->U.UPerson.Timer2 < 0)
+    {
+        ThingIdx item;
+        TbBool reset_timer;
+
+        reset_timer = true;
+        item = p_person->U.UPerson.StandOnThing;
+        if (item < 0)
+        {
+            struct SimpleThing *p_sthing;
+
+            p_sthing = &sthings[item];
+            if (p_sthing->Type != SmTT_DROPPED_ITEM)
+            {
+                reset_timer = false;
+            }
+            else if (do_i_have_weapon((int)p_person, p_sthing->U.UWeapon.WeaponType) == 0)
+            {
+                play_dist_sample(p_person, 0x45, 0x7F, 0x40, 100, 0, 1);
+                if (p_sthing->Type != SmTT_CARRIED_ITEM)
+                {
+                    delete_snode(p_sthing);
+                    p_sthing->Type = SmTT_CARRIED_ITEM;
+                    p_sthing->U.UWeapon.Owner = p_person->ThingOffset;
+                    if (p_sthing->U.UWeapon.WeaponType != 0)
+                    {
+                        give_take_me_weapon(p_person, p_sthing->U.UWeapon.WeaponType,
+                          1, p_sthing->ThingOffset);
+                        remove_sthing(p_sthing->ThingOffset);
+                        ingame.fld_unkCB7--;
+                    }
+                    p_person->U.UPerson.StandOnThing = 0;
+                }
+            }
+        }
+        if (reset_timer)
+            p_person->U.UPerson.Timer2 = 50;
+    }
+
+    if ((frame[p_person->Frame].Flags & 0x01) == 0)
+        return;
+
+    p_person->U.UPerson.AnimMode = p_person->U.UPerson.OldAnimMode;
+    p_person->Flag &= ~TngF_Unkn0001;
+    pframe = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+    p_person->Frame = nstart_ani[pframe + p_person->U.UPerson.Angle];
+    p_person->StartFrame = pframe - 1;
+
+    if ((p_person->Flag2 & TgF2_Unkn08000000) != 0)
+    {
+        p_person->State = PerSt_NONE;
+        p_person->Flag2 &= ~TgF2_Unkn08000000;
+        return;
+    }
+    if (((p_person->Flag & TngF_PlayerAgent) == 0) && (p_person->U.UPerson.ComCur != 0))
+    {
+        p_person->U.UPerson.ComCur = game_commands[p_person->U.UPerson.ComCur].Next;
+    }
+    if ((p_person->Flag2 & TgF2_Unkn10000000) != 0)
+    {
+        struct Thing *p_owner;
+
+        p_person->GotoThingIndex = p_person->Owner;
+        p_owner = &things[(ushort)p_person->Owner];
+        p_person->State = PerSt_PROTECT_PERSON;
+        p_person->U.UPerson.ComRange =
+          follow_dist[p_owner->U.UPerson.ComCur & 3][p_person->U.UPerson.ComCur & 3];
+        p_person->Flag2 &= ~TgF2_Unkn10000000;
+        return;
+    }
+    if ((p_person->Flag & TngF_PlayerAgent) != 0)
+    {
+        p_person->State = PerSt_NONE;
+        return;
+    }
+    // TODO the asm passes 6 as `from`; meaning not known
+    person_init_command(p_person, 6);
 }
 
 void plant_mine(struct Thing *p_person)
