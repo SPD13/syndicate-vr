@@ -4961,10 +4961,36 @@ short process_persuadertron(struct Thing *p_person, ubyte target_select, ushort 
       p_person->ThingOffset, target_select, energy_reqd);
 }
 
-void get_soul(struct Thing *p_dead, struct Thing *p_person)
+static DIFFTEST_REF_FUNC void get_soul_asm(struct Thing *p_dead, struct Thing *p_person)
 {
     asm volatile ("call ASM_get_soul\n"
         : : "a" (p_dead), "d" (p_person));
+}
+
+void get_soul(struct Thing *p_dead, struct Thing *p_person)
+{
+    struct SimpleThing *p_soul;
+    ThingIdx soul;
+
+    DIFFTEST_SHADOW(get_soul, get_soul_asm(p_dead, p_person));
+    soul = get_new_sthing();
+    if (soul == 0)
+        return;
+
+    p_dead->Flag2 |= TgF2_SoulDepleted;
+    p_soul = &sthings[soul];
+    p_soul->X = p_dead->X;
+    p_soul->Y = p_dead->Y;
+    p_soul->Type = SmTT_SOUL;
+    p_soul->State = 0;
+    p_soul->Z = p_dead->Z;
+    p_soul->U.UEffect.VX = 0;
+    p_soul->U.UEffect.VY = 0;
+    p_soul->U.UEffect.VZ = 0;
+    p_soul->Owner2 = p_person->ThingOffset;
+    add_node_sthing(soul);
+    p_soul->Timer1 = 15;
+    p_soul->StartTimer1 = 50;
 }
 
 void choose_best_weapon_for_range(struct Thing *p_person, int dist)
