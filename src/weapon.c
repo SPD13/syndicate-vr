@@ -2392,15 +2392,29 @@ void finalise_razor_wire(struct Thing *p_person)
     p_wire->Frame = new_vect;
 }
 
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void snap_razor_wire(int a1, int a2, int a3, int a4)
+void delete_vect(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+
+static DIFFTEST_REF_FUNC void snap_razor_wire_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_snap_razor_wire\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Remove a razor wire thing, together with its collision vector.
+ * Routed asm (internal label); only a1 (eax) is used, as the wire thing.
+ */
+void snap_razor_wire(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_wire = (struct Thing *)a1;
+
+    DIFFTEST_SHADOW(snap_razor_wire, snap_razor_wire_asm(a1, a2, a3, a4));
+    delete_vect((short)(p_wire->X >> 8), (short)((p_wire->Y >> 5) + 60),
+      (short)(p_wire->Z >> 8), (short)(p_wire->VX + 50),
+      (short)(p_wire->VY * 8 + 60), (short)p_wire->VZ,
+      (short)p_wire->Frame, 2);
+    remove_thing((ushort)p_wire->ThingOffset);
+    delete_node(p_wire);
 }
 
 void init_lay_razor(struct Thing *p_thing, short x, short y, short z, int flag)
