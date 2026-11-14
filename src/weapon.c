@@ -31,6 +31,7 @@
 
 #include "engincam.h"
 #include "engincolour.h"
+#include "enginsngobjs.h"
 #include "enginsngtxtr.h"
 #include "engintrns.h"
 #include "enginzoom.h"
@@ -1267,10 +1268,83 @@ struct SimpleThing *init_spark(int x, int y, int z)
     return p_sthing;
 }
 
-void elec_hit_building(int x, int y, int z, short col)
+static DIFFTEST_REF_FUNC void elec_hit_building_asm(int x, int y, int z, short col)
 {
     asm volatile ("call ASM_elec_hit_building\n"
         : : "a" (x), "d" (y), "b" (z), "c" (col));
+}
+
+void elec_hit_building(int x, int y, int z, short col)
+{
+    struct ColVectList *p_cvlist;
+    struct ColVect *p_colvect;
+    struct SingleObject *p_sobj;
+    struct SimpleThing *p_strand;
+    struct SinglePoint *p_point;
+    s32 map_x, map_z, ofs_y;
+    short face;
+    short thing;
+    ushort i;
+
+    DIFFTEST_SHADOW(elec_hit_building, elec_hit_building_asm(x, y, z, col));
+    p_cvlist = &game_col_vects_list[col];
+    thing = p_cvlist->Object;
+    if (thing == 0)
+        return;
+    p_colvect = &game_col_vects[p_cvlist->Vect];
+    if (p_colvect->Face == 0)
+        return;
+    face = p_colvect->Face;
+    p_sobj = &game_objects[things[thing].U.UObject.Object];
+    map_x = p_sobj->MapX;
+    map_z = p_sobj->MapZ;
+    ofs_y = p_sobj->OffsetY;
+
+    if (face < 0)
+    {
+        struct SingleObjectFace4 *p_face4;
+        short *p_pointno;
+
+        p_face4 = &game_object_faces4[-face];
+        for (i = 0; i < 4; i += 2)
+        {
+            p_pointno = &p_face4->PointNo[i];
+            p_point = &game_object_points[(ushort)*p_pointno];
+            p_strand = create_electric_strand(x, y, z,
+              p_point->X + map_x, p_point->Y + ofs_y, p_point->Z + map_z,
+              (i == 0));
+            if (p_strand == NULL)
+                continue;
+            p_strand->U.UEffect.OX =
+              things[game_col_vects_list[col].Object].U.UObject.Object;
+            p_strand->U.UEffect.OY = face;
+            p_strand->StartTimer1 = 1;
+            p_strand->U.UEffect.OZ = *p_pointno;
+        }
+    }
+
+    if (face > 0)
+    {
+        struct SingleObjectFace3 *p_face3;
+        short *p_pointno;
+
+        p_face3 = &game_object_faces3[face];
+        for (i = 0; i < 3; i += 2)
+        {
+            p_pointno = &p_face3->PointNo[i];
+            p_point = &game_object_points[(ushort)*p_pointno];
+            p_strand = create_electric_strand(x, y, z,
+              p_point->X + map_x, p_point->Y + ofs_y, p_point->Z + map_z,
+              (i == 0));
+            if (p_strand == NULL)
+                continue;
+            p_strand->U.UEffect.OX =
+              things[game_col_vects_list[col].Object].U.UObject.Object;
+            p_strand->U.UEffect.OY = p_colvect->Face;
+            p_strand->StartTimer1 = 1;
+            p_strand->U.UEffect.OZ = *p_pointno;
+        }
+    }
 }
 
 void init_shoot_recoil(struct Thing *p_person, short vx, short vy, short vz)
