@@ -3610,10 +3610,71 @@ void process_unplacing(struct Thing *p_vehicle)
     p_vehicle->U.UVehicle.Dummy4a = (p_vehicle->U.UVehicle.Dummy4a & ~0x3f) | step;
 }
 
-void process_stop_as_soon_as_you_can(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_stop_as_soon_as_you_can_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_stop_as_soon_as_you_can\n"
         : : "a" (p_vehicle));
+}
+
+void process_stop_as_soon_as_you_can(struct Thing *p_vehicle)
+{
+    struct TrafficNode *p_tnode;
+    s32 *p_dummy5;
+    s32 *p_accel;
+    ubyte *p_dummy5_8;
+    s32 dx, dz, adx, adz, dist;
+    s32 accel_x, accel_z;
+    ushort angle;
+    ushort link;
+
+    DIFFTEST_SHADOW(process_stop_as_soon_as_you_can,
+      process_stop_as_soon_as_you_can_asm(p_vehicle));
+
+    // Dummy5a/Dummy5b and AccelZ/AccelX are accessed as 32-bit values.
+    p_dummy5 = (s32 *)&p_vehicle->U.UVehicle.Dummy5a;
+    p_dummy5_8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy5a;
+    p_accel = (s32 *)&p_vehicle->U.UVehicle.AccelZ;
+
+    link = (p_vehicle->U.UVehicle.Dummy4a >> 6) & 0x3;
+    if (p_vehicle->U.UVehicle.AngleDY >= 20)
+        return;
+    if (p_vehicle->U.UVehicle.TNode >= 0)
+        return;
+    if (p_vehicle->U.UVehicle.Dummy4b >= 0)
+        return;
+
+    p_tnode = &game_traffic_nodes[-p_vehicle->U.UVehicle.Dummy4b];
+    if ((p_tnode->Flags & 0x8000) != 0)
+        return;
+    if ((p_tnode->UTraffic.Flags[link] & 0x40) != 0)
+        return;
+
+    p_tnode = &game_traffic_nodes[-p_vehicle->U.UVehicle.TNode];
+    dx = p_tnode->X - (p_vehicle->X >> 8);
+    dz = (p_vehicle->Z >> 8) - p_tnode->Z;
+    angle = arctan(dx, -dz);
+    *p_dummy5 = angle;
+    *p_dummy5 = ((u32)angle) << 16;
+    *p_dummy5_8 |= 0x11;
+
+    adx = abs(dx);
+    adz = abs(dz);
+    if (adz > adx)
+        dist = (adx >> 1) + adz;
+    else
+        dist = (adz >> 1) + adx;
+
+    accel_x = dz << 5;
+    accel_z = dx << 5;
+    if (dist != 0)
+    {
+        accel_x /= dist;
+        accel_z /= dist;
+    }
+    *p_accel = accel_x;
+    p_vehicle->State = VehSt_UNKN_36;
+    *p_accel = ((u32)accel_x) << 16;
+    *p_accel = (((u32)accel_x) << 16) | (accel_z & 0xffff);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
