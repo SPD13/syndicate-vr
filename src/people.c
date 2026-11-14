@@ -9988,10 +9988,52 @@ ushort count_protect(struct Thing *p_thing, ushort plyr)
     DIFFTEST_RETURN(count);
 }
 
-void call_unprotect(struct Thing *p_thing, ushort plyr, ubyte flag)
+static DIFFTEST_REF_FUNC void call_unprotect_asm(struct Thing *p_thing, ushort plyr, ubyte flag)
 {
     asm volatile ("call ASM_call_unprotect\n"
         : : "a" (p_thing), "d" (plyr), "b" (flag));
+}
+
+void call_unprotect(struct Thing *p_thing, ushort plyr, ubyte flag)
+{
+    ubyte n_agents;
+    ubyte unprotected;
+    ushort i;
+
+    DIFFTEST_SHADOW(call_unprotect, call_unprotect_asm(p_thing, plyr, flag));
+    n_agents = playable_agents;
+    unprotected = flag;
+    if (flag == 2)
+    {
+        if (p_thing->State == PerSt_PROTECT_PERSON)
+        {
+            p_thing->State = 0;
+            remove_path(p_thing);
+            p_thing->U.UPerson.ComTimer = -1;
+        }
+        return;
+    }
+
+    for (i = 0; i < n_agents; i++)
+    {
+        struct Thing *p_agent;
+
+        p_agent = players[plyr].MyAgent[i];
+        if (p_agent->State != PerSt_PROTECT_PERSON)
+            continue;
+        if ((p_agent->Flag & TngF_Destroyed) != 0)
+            continue;
+        unprotected = 1;
+        p_agent->State = 0;
+    }
+    playable_agents = n_agents;
+
+    if (unprotected == 0)
+    {
+        call_protect(p_thing, plyr);
+        call_protect(p_thing, plyr);
+        call_protect(p_thing, plyr);
+    }
 }
 
 TbBool weapon_can_target_enemy_thing(WeaponType wtype)
