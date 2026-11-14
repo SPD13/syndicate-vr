@@ -3774,12 +3774,129 @@ int triangle_route_do_given(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int triangle_route_do_unkn3(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int triangle_route_do_unkn3_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_triangle_route_do_unkn3\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Adds neighbours of given triangle to the route heap, for
+ * triangle_route_do_unkn3().
+ */
+static void triangle_route_unkn3_expand(s32 tri_cur)
+{
+    struct TrTriangle *p_tri;
+    s32 tri_nxt;
+    s32 ax, ay, dist, d;
+    int k, walkable;
+
+    for (k = 0; k < 3; k++)
+    {
+        tri_nxt = triangulation[0].Triangles[tri_cur].tri[k];
+        if (tri_nxt == -1)
+            continue;
+        if ((triangulation[0].Triangles[tri_cur].enter & (1 << k)) == 0)
+            continue;
+        if (routeTags[tri_nxt] == tag_current)
+            continue;
+        // TODO the asm tests the solid flag of the current triangle,
+        // not of the neighbour like triangle_route_do_unkn4() does
+        walkable = ((triangulation[0].Triangles[tri_cur].solid & 0x01) == 0);
+        if (!walkable)
+            continue;
+        p_tri = &triangulation[0].Triangles[tri_nxt];
+        ax = tree_Ax8 >> 8;
+        ay = tree_Ay8 >> 8;
+        dist = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[0]);
+        d = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[1]);
+        if (d < dist)
+            dist = d;
+        d = triangle_route_bak_pt_dist(ax, ay, (ushort)p_tri->point[2]);
+        if (d < dist)
+            dist = d;
+        // TODO the asm compares the walkable flag (0 or 1) to 2, so this
+        // penalty is never applied
+        if (walkable == 2)
+            dist += dist >> 3;
+
+        tree_val[tri_nxt] = dist;
+        routeTags[tri_nxt] = tag_current;
+        tree_dad[tri_nxt] = tri_cur;
+        triangle_route_bak_heap_add(tri_nxt);
+    }
+}
+
+/** Best-first search over triangulation from triangle a2 towards a1,
+ * using distance to (tree_Ax8, tree_Ay8) as heap key.
+ * Same as triangle_route_do_unkn4(), except the 0x01 solid flag is tested
+ * on the triangle being expanded rather than on the neighbour.
+ * Arguments: a1 = destination tri, a2 = start tri, a3 = s32 *route output
+ * (from a1 back to a2), a4 unused.
+ * Returns number of route steps, or -1 if not found.
+ */
+int triangle_route_do_unkn3(int a1, int a2, int a3, int a4)
+{
+    s32 *p_route = (s32 *)a3;
+    s32 tri_dst, tri_beg, tri_cur, tri_cur2;
+    int n;
+
+    DIFFTEST_SHADOW_RET(triangle_route_do_unkn3, int,
+      triangle_route_do_unkn3_asm(a1, a2, a3, a4));
+
+    tri_dst = a1;
+    tri_beg = a2;
+
+    tag_current++;
+    heap[1] = -1;
+    heap_end = 0;
+    if (tag_current == 0)
+    {
+        memset(routeTags, 0, 8000);
+        tag_current = 1;
+    }
+
+    tree_val[tri_beg] = 1;
+    tree_dad[tri_beg] = tri_beg;
+    routeTags[tri_beg] = tag_current;
+    triangle_route_bak_heap_add(tri_beg);
+
+    while (1)
+    {
+        tri_cur = heap[1];
+        if (tri_cur == tri_dst || tri_cur == -1)
+            break;
+        triangle_route_bak_heap_pop();
+
+        tri_cur2 = heap[1];
+        if (tri_cur2 != -1)
+        {
+            if (tri_cur2 == tri_dst)
+                break;
+            triangle_route_bak_heap_pop();
+        }
+
+        triangle_route_unkn3_expand(tri_cur);
+        if (tri_cur2 != -1)
+            triangle_route_unkn3_expand(tri_cur2);
+    }
+
+    if (heap[1] == -1)
+        DIFFTEST_RETURN((int)-1);
+
+    tri_cur = tri_dst;
+    n = 0;
+    while (1)
+    {
+        *p_route = tri_cur;
+        if (tri_cur == tri_beg)
+            break;
+        p_route++;
+        n++;
+        tri_cur = tree_dad[tri_cur];
+    }
+    DIFFTEST_RETURN((int)n);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
