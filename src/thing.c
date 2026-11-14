@@ -2357,11 +2357,81 @@ void process_canister(struct SimpleThing *p_sthing)
         : : "a" (p_sthing));
 }
 
-void process_stasis_pod(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_stasis_pod_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_stasis_pod\n"
         : : "a" (p_sthing));
+}
+
+void find_and_stasis(struct SimpleThing *p_stasis, int radius);
+
+/** Calls the asm sound helper ASM_set_dist_volume (no C version yet).
+ * Preserves ecx, esi, edi, ebp; clobbers eax, edx, ebx.
+ */
+static void stasis_pod_set_dist_volume(struct SimpleThing *p_sthing,
+  int smptbl_id, ushort vol)
+{
+    int a1 = (int)p_sthing, a2 = smptbl_id, a3 = vol;
+
+    asm volatile ("call ASM_set_dist_volume\n"
+        : "+a" (a1), "+d" (a2), "+b" (a3) : : "memory", "cc");
+}
+
+void process_stasis_pod(struct SimpleThing *p_sthing)
+{
+    DIFFTEST_SHADOW(process_stasis_pod, process_stasis_pod_asm(p_sthing));
+    p_sthing->Timer1--;
+    switch ((ushort)p_sthing->State)
+    {
+    case 0:
+        p_sthing->Radius += 0x10;
+        if (!IsSamplePlaying(p_sthing->ThingOffset, 0x2c, NULL))
+            play_dist_ssample(p_sthing, 0x2c,
+              (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
+        else
+            stasis_pod_set_dist_volume(p_sthing, 0x2c,
+              (ushort)((0x32 - p_sthing->Timer1) * 2));
+        if (p_sthing->Timer1 < 0)
+        {
+            p_sthing->Timer1 = 100;
+            p_sthing->State++;
+        }
+        find_and_stasis(p_sthing, (ushort)p_sthing->Radius);
+        break;
+    case 1:
+        if (p_sthing->Timer1 < 0)
+        {
+            p_sthing->Timer1 = 0x17;
+            p_sthing->State++;
+        }
+        find_and_stasis(p_sthing, (ushort)p_sthing->Radius);
+        break;
+    case 2:
+        if (p_sthing->Timer1 > 0)
+        {
+            if (!IsSamplePlaying(p_sthing->ThingOffset, 0x2c, NULL))
+                play_dist_ssample(p_sthing, 0x2c,
+                  (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
+            else
+                stasis_pod_set_dist_volume(p_sthing, 0x2c,
+                  (ushort)(p_sthing->Timer1 << 2));
+        }
+        p_sthing->Radius -= 0x20;
+        if (p_sthing->Timer1 < 0)
+        {
+            p_sthing->Timer1 = 0x19;
+            p_sthing->State++;
+        }
+        break;
+    case 3:
+        stop_sample_using_heap(p_sthing->ThingOffset, 0x2c);
+        delete_snode(p_sthing);
+        remove_sthing(p_sthing->ThingOffset);
+        break;
+    default:
+        break;
+    }
 }
 
 void find_and_stasis(struct SimpleThing *p_stasis, int radius)
