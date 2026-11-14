@@ -1806,13 +1806,82 @@ void set_person_persuaded(struct Thing *p_person, struct Thing *p_attacker, usho
     }
 }
 
-void stop_being_persuaded(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void stop_being_persuaded_asm(struct Thing *p_person)
 {
-#if 1
     asm volatile ("call ASM_stop_being_persuaded\n"
         :  : "a" (p_person));
-    return;
-#endif
+}
+
+void stop_being_persuaded(struct Thing *p_person)
+{
+    struct Thing *p_owner;
+    struct MissionStatus *p_mistat;
+    s32 i, k;
+    ushort group;
+
+    DIFFTEST_SHADOW(stop_being_persuaded, stop_being_persuaded_asm(p_person));
+
+    for (i = 1; i < (s32)word_1531DA; i++)
+    {
+        if (word_17FA58[i] == p_person->ThingOffset)
+            break;
+    }
+    if (i < (s32)word_1531DA)
+    {
+        for (k = i; k < (s32)word_1531DA - 1; k++) {
+            word_17FA58[k] = word_17FA58[k+1];
+        }
+        word_1531DA--;
+    }
+
+    play_dist_sample(p_person, 0x13, 0x7f, 0x40, 100, 0, 3);
+
+    p_owner = &things[p_person->Owner];
+    p_owner->U.UPerson.PersuadePower -= peep_type_stats[p_person->SubType].PersuadeWorth;
+
+    p_person->U.UPerson.EffectiveGroup = p_person->U.UPerson.Group;
+    p_person->Flag &= ~(TngF_Persuaded | TngF_Unkn0040 | TngF_Unkn0004);
+    p_person->Flag |= TngF_Unkn0040 | TngF_Unkn0004;
+    p_person->State = PerSt_NONE;
+    group = p_person->U.UPerson.Group & 0x1f;
+    group_actions[group].Persuaded--;
+
+    if (in_network_game)
+        return;
+    if ((s32)p_owner->U.UPerson.EffectiveGroup != (s32)ingame.MyGroup)
+        return;
+
+    // Same as persuaded_person_remove_from_stats(), but the asm uses
+    // an explicit table per person type
+    p_mistat = &mission_status[open_brief];
+    switch (p_person->SubType)
+    {
+    case SubTT_PERS_AGENT:
+        p_mistat->AgentsGained--;
+        p_mistat->SP.EnemiesPersuaded--;
+        break;
+    case SubTT_PERS_ZEALOT:
+    case SubTT_PERS_PUNK_F:
+    case SubTT_PERS_PUNK_M:
+    case SubTT_PERS_HIGH_PRIEST:
+        p_mistat->SP.EnemiesPersuaded--;
+        break;
+    case SubTT_PERS_BRIEFCASE_M:
+    case SubTT_PERS_WHITE_BRUN_F:
+    case SubTT_PERS_SCIENTIST:
+    case SubTT_PERS_SHADY_M:
+    case SubTT_PERS_WHIT_BLOND_F:
+    case SubTT_PERS_LETH_JACKT_M:
+        p_mistat->SP.CivsPersuaded--;
+        break;
+    case SubTT_PERS_MERCENARY:
+    case SubTT_PERS_MECH_SPIDER:
+    case SubTT_PERS_POLICE:
+        p_mistat->SP.SecurityPersuaded--;
+        break;
+    default:
+        break;
+    }
 }
 
 void unpersuade_my_peeps(struct Thing *p_owntng)
