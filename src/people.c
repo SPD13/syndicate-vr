@@ -6116,15 +6116,46 @@ StateChRes person_init_protect_person(struct Thing *p_person, short targetng, Tb
         p_person->Owner = targetng;
     return StCh_ACCEPTED;
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void set_get_item(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void set_get_item_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_set_get_item\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Makes a person go pick up given item (simple thing).
+ * Arguments are raw registers: a1 = person, a2 = item index (short).
+ */
+void set_get_item(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    short item = (short)a2;
+    struct SimpleThing *p_sthing;
+
+    DIFFTEST_SHADOW(set_get_item, set_get_item_asm(a1, a2, a3, a4));
+    p_person->State = PerSt_GET_ITEM;
+    p_sthing = &sthings[item];
+    p_person->U.UPerson.GotoX = p_sthing->X >> 8;
+    p_person->U.UPerson.ComTimer = -1;
+    p_person->SubState = 0;
+    p_person->U.UPerson.ComRange = 0;
+    p_person->GotoThingIndex = item;
+    p_person->U.UPerson.GotoZ = p_sthing->Z >> 8;
+
+    if (p_person->U.UPerson.PathIndex != 0)
+        remove_path(p_person);
+
+    p_person->U.UPerson.PathIndex = 0;
+    p_person->Flag2 &= ~(TgF2_Unkn00020000 | TgF2_Unkn0040);
+    p_sthing = &sthings[item];
+    if (p_sthing->U.UWeapon.OnFace == 0)
+    {
+        build_navigate_path(p_person, p_person->U.UPerson.GotoX,
+          p_person->U.UPerson.GotoZ, 0);
+        return;
+    }
+    build_navigate_path_to_face_xz(p_person, -p_sthing->U.UWeapon.OnFace,
+      p_person->U.UPerson.GotoX, p_person->U.UPerson.GotoZ);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
