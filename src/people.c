@@ -6549,10 +6549,96 @@ next:
 }
 
 
+static DIFFTEST_REF_FUNC void person_init_get_item_fast_asm(struct Thing *p_person, short item, ushort plyr)
+{
+    int ra = (int)p_person, rd = item, rb = plyr;
+    asm volatile ("call ASM_person_init_get_item_fast\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
+}
+
+/** Makes a person pick up given item (simple thing), sending also other
+ * members of the group; weapons are only taken if the person can carry them.
+ */
 void person_init_get_item_fast(struct Thing *p_person, short item, ushort plyr)
 {
-    asm volatile ("call ASM_person_init_get_item_fast\n"
-        : : "a" (p_person), "d" (item), "b" (plyr));
+    struct SimpleThing *p_sthing;
+    ushort weapon;
+    ushort ncarried;
+    u32 wflags;
+    ubyte can_take;
+    int i;
+
+    DIFFTEST_SHADOW(person_init_get_item_fast, person_init_get_item_fast_asm(p_person, item, plyr));
+    p_sthing = &sthings[item];
+    person_unkn_start_get_item((int)p_person, item, plyr, item);
+    if ((ushort)send_another_player_peep((int)p_person, item, plyr, item) != 0)
+        return;
+    if ((p_person->Flag & (TngF_StationrSht | TngF_Destroyed)) != 0)
+        return;
+
+    weapon = p_sthing->U.UWeapon.WeaponType;
+    if (weapon != 0)
+    {
+        // Count carried weapons, not including the energy shield
+        wflags = p_person->U.UPerson.WeaponsCarried & ~(1u << (WEP_ENERGYSHLD - 1));
+        ncarried = 0;
+        for (i = 0; (wflags != 0) && (i < 32); i++)
+        {
+            if ((wflags & 1) != 0)
+                ncarried++;
+            wflags >>= 1;
+        }
+        if ((ncarried < 6)
+          && ((p_person->U.UPerson.WeaponsCarried & (1u << ((weapon - 1) & 0x1f))) == 0))
+            can_take = 1;
+        else
+            can_take = 0;
+
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+        {
+            // Consumable weapons can be taken if the four-pack is not full
+            ushort plagent;
+            short wepfp;
+
+            plagent = p_person->U.UPerson.ComCur & 3;
+            switch (weapon)
+            {
+            case WEP_NUCLGREN:
+                wepfp = WFRPK_NUCLGREN;
+                break;
+            case WEP_CRAZYGAS:
+                wepfp = WFRPK_CRAZYGAS;
+                break;
+            case WEP_KOGAS:
+                wepfp = WFRPK_KOGAS;
+                break;
+            case WEP_ELEMINE:
+                wepfp = WFRPK_ELEMINE;
+                break;
+            case WEP_EXPLMINE:
+                wepfp = WFRPK_EXPLMINE;
+                break;
+            default:
+                wepfp = -1;
+                break;
+            }
+            if ((wepfp >= 0) && (can_take == 0))
+            {
+                if (((p_person->U.UPerson.WeaponsCarried & (1u << (weapon - 1))) != 0)
+                  && (players[plyr].FourPacks[wepfp][plagent] != 4))
+                    can_take = 1;
+            }
+        }
+        if (can_take == 0)
+            return;
+    }
+
+    p_sthing = &sthings[item];
+    if (p_sthing->Type != SmTT_DROPPED_ITEM)
+        return;
+    set_get_item((int)p_person, item, plyr, 0);
+    if ((p_person->Flag2 & TgF2_Unkn0040) == 0)
+        set_person_animmode_run(p_person);
 }
 
 StateChRes person_init_cmd_get_item(struct Thing *p_person, short targetng)
