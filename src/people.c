@@ -10003,10 +10003,58 @@ void thing_shoot_at_point(struct Thing *p_thing, short x, short y, short z, uint
     }
 }
 
-void call_protect(struct Thing *p_thing, ushort plyr)
+static DIFFTEST_REF_FUNC void call_protect_asm(struct Thing *p_thing, ushort plyr)
 {
     asm volatile ("call ASM_call_protect\n"
         : : "a" (p_thing), "d" (plyr));
+}
+
+void call_protect(struct Thing *p_thing, ushort plyr)
+{
+    s32 best_dist;
+    ThingIdx best_thing;
+    short vehicle;
+    ushort i;
+
+    DIFFTEST_SHADOW(call_protect, call_protect_asm(p_thing, plyr));
+    best_dist = 0x7fffffff;
+    best_thing = 0;
+    vehicle = 0;
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+        vehicle = p_thing->U.UPerson.Vehicle;
+
+    for (i = 0; i < playable_agents; i++)
+    {
+        struct Thing *p_agent;
+        s32 dx, dy, dz, dist;
+
+        p_agent = players[plyr].MyAgent[i];
+        if ((vehicle != 0) && ((p_agent->Flag & TngF_InVehicle) != 0)
+          && (p_agent->U.UPerson.Vehicle != vehicle))
+            continue;
+        if (p_agent == p_thing)
+            continue;
+        if ((p_agent->Flag2 & TgF2_Unkn10000000) != 0)
+            continue;
+        if ((p_agent->Flag & TngF_Destroyed) != 0)
+            continue;
+        if ((p_agent->State == PerSt_PROTECT_PERSON) ||
+          (p_agent->State == PerSt_PERSON_BURNING) ||
+          (p_agent->State == PerSt_DIEING))
+            continue;
+        dx = (p_agent->X - p_thing->X) >> 8;
+        dy = (p_agent->Y - p_thing->Y) >> 8;
+        dz = (p_agent->Z - p_thing->Z) >> 8;
+        dist = (s32)((u32)(dx * dx) + (u32)(dy * dy) + (u32)(dz * dz));
+        if (dist < best_dist)
+        {
+            best_thing = p_agent->ThingOffset;
+            best_dist = dist;
+        }
+    }
+
+    if (best_thing != 0)
+        make_peep_protect_peep(&things[best_thing], p_thing);
 }
 
 void call_protect_specific(struct Thing *p_person_client, struct Thing *p_protector)
