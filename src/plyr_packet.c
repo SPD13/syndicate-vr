@@ -208,12 +208,45 @@ void thing_goto_point_on_face(struct Thing *p_thing, short x, short z, short fac
         : : "a" (p_thing), "d" (x), "b" (z), "c" (face));
 }
 
-ubyte select_new_weapon(ushort index, short dir)
+static DIFFTEST_REF_FUNC ubyte select_new_weapon_asm(ushort index, short dir)
 {
     ubyte ret;
     asm volatile ("call ASM_select_new_weapon\n"
-        : "=r" (ret) : "a" (index), "d" (dir));
+        : "=a" (ret) : "a" (index), "d" (dir));
     return ret;
+}
+
+ubyte select_new_weapon(ushort index, short dir)
+{
+    struct Thing *p_person;
+    u32 wepflags;
+    short wtype;
+    short count;
+
+    DIFFTEST_SHADOW_RET(select_new_weapon, ubyte, select_new_weapon_asm(index, dir));
+
+    p_person = &things[index];
+    count = 0;
+    if ((p_person->Flag2 & TgF2_Unkn0001) != 0)
+        finalise_razor_wire(p_person);
+
+    wtype = (short)(p_person->U.UPerson.CurrentWeapon + dir);
+    if (wtype < 0)
+        wtype = 32;
+    if ((wtype < 1) || (wtype > 32))
+        DIFFTEST_RETURN((ubyte)0);
+
+    wepflags = p_person->U.UPerson.WeaponsCarried & ~(1 << (WEP_ENERGYSHLD - 1));
+    while (((wepflags & (1u << (wtype - 1))) == 0) && (count < 32))
+    {
+        wtype += dir;
+        if ((wtype < 1) || (wtype > 32))
+            DIFFTEST_RETURN((ubyte)0);
+        count++;
+    }
+    if (count >= 32)
+        DIFFTEST_RETURN((ubyte)p_person->U.UPerson.CurrentWeapon);
+    DIFFTEST_RETURN((ubyte)wtype);
 }
 
 void unkn_player_group_add(sbyte a1, ubyte a2)
