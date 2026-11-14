@@ -276,6 +276,8 @@ extern short unkn01_thing_idx;
 void remove_path(struct Thing *p_thing);
 ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face);
 void set_person_animmode_walk(struct Thing *p_person);
+void set_person_animmode_run(struct Thing *p_person);
+int set_player_peeps_to_run(int a1, int a2, int a3, int a4);
 
 void load_peep_type_stats(void);
 

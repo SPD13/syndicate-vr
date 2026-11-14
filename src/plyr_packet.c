@@ -194,12 +194,30 @@ void thing_goto_point_rel(struct Thing *p_thing, short x, short y, short z)
     p_thing->Frame = nstart_ani[frame + p_thing->U.UPerson.Angle];
 }
 
+static DIFFTEST_REF_FUNC void thing_goto_point_rel_fast_asm(struct Thing *p_thing,
+  short x, short y, short z, int plyr)
+{
+    int stkargs[] = {plyr};
+    asm volatile (
+      "push 0(%4)\n"
+      "call ASM_thing_goto_point_rel_fast\n"
+        : : "a" (p_thing), "d" (x), "b" (y), "c" (z), "S" (stkargs)
+        : "cc", "memory");
+}
+
 void thing_goto_point_rel_fast(struct Thing *p_thing, short x, short y, short z, int plyr)
 {
-    asm volatile (
-      "push %4\n"
-      "call ASM_thing_goto_point_rel_fast\n"
-        : : "a" (p_thing), "d" (x), "b" (y), "c" (z), "g" (plyr));
+    DIFFTEST_SHADOW(thing_goto_point_rel_fast,
+      thing_goto_point_rel_fast_asm(p_thing, x, y, z, plyr));
+    if ((p_thing->Flag & (TngF_Unkn40000000 | TngF_Destroyed | TngF_Unkn0001)) != 0)
+        return;
+    p_thing->Flag2 &= ~(TgF2_Unkn00080000 | TgF2_Unkn00020000 | TgF2_Unkn0040);
+    p_thing->Flag2 |= TgF2_Unkn00080000;
+    thing_goto_point_rel(p_thing, x, y, z);
+    if ((p_thing->Flag2 & TgF2_Unkn0040) != 0)
+        return;
+    set_person_animmode_run(p_thing);
+    set_player_peeps_to_run((int)p_thing, (ushort)plyr, 0, (int)p_thing);
 }
 
 void thing_goto_point_fast(struct Thing *p_thing, short x, short y, short z, int plyr)
