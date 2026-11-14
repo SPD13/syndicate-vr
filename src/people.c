@@ -10364,12 +10364,36 @@ void make_peeps_scatter(struct Thing *p_person, int x, int z)
         : : "a" (p_person), "d" (x), "b" (z));
 }
 
-int limit_mood(struct Thing *p_thing, short mood)
+static DIFFTEST_REF_FUNC int limit_mood_asm(struct Thing *p_thing, short mood)
 {
     int ret;
     asm volatile ("call ASM_limit_mood\n"
-        : "=r" (ret) : "a" (p_thing), "d" (mood));
+        : "=a" (ret) : "a" (p_thing), "d" (mood));
     return ret;
+}
+
+int limit_mood(struct Thing *p_thing, short mood)
+{
+    s32 limit;
+    short ret;
+
+    DIFFTEST_SHADOW_RET(limit_mood, int, limit_mood_asm(p_thing, mood));
+    if ((ubyte *)p_thing < (ubyte *)things
+      || (ubyte *)p_thing > (ubyte *)&things[THINGS_LIMIT])
+        DIFFTEST_RETURN((int)0);
+    if (p_thing->U.UPerson.MaxStamina == 0)
+        DIFFTEST_RETURN((int)0);
+
+    ret = mood;
+    limit = (88 * (s32)p_thing->U.UPerson.Stamina) / p_thing->U.UPerson.MaxStamina;
+    if (ret > limit)
+        ret = (short)limit;
+
+    limit = (-88 * (s32)p_thing->U.UPerson.Stamina) / p_thing->U.UPerson.MaxStamina;
+    if (ret < limit)
+        ret = (short)limit;
+
+    DIFFTEST_RETURN((int)ret);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
