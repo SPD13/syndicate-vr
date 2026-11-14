@@ -11089,11 +11089,25 @@ int set_player_peeps_to_run(int a1, int a2, int a3, int a4)
 }
 
 
-void person_go_enter_vehicle_fast(struct Thing *p_person, struct Thing *p_vehicle, ushort plyr)
+static DIFFTEST_REF_FUNC void person_go_enter_vehicle_fast_asm(struct Thing *p_person, struct Thing *p_vehicle, ushort plyr)
 {
     asm volatile (
       "call ASM_person_go_enter_vehicle_fast\n"
         : : "a" (p_person), "d" (p_vehicle), "b" (plyr));
+}
+
+void person_go_enter_vehicle_fast(struct Thing *p_person, struct Thing *p_vehicle, ushort plyr)
+{
+    DIFFTEST_SHADOW(person_go_enter_vehicle_fast,
+      person_go_enter_vehicle_fast_asm(p_person, p_vehicle, plyr));
+    if ((p_person->Flag & TngF_Unkn0001) != 0)
+        return;
+    p_person->Flag2 &= ~(TgF2_Unkn00020000 | TgF2_Unkn0040);
+    person_go_enter_vehicle(p_person, p_vehicle);
+    if ((p_person->Flag2 & TgF2_Unkn0040) != 0)
+        return;
+    set_person_animmode_run(p_person);
+    set_player_peeps_to_run((int)p_person, plyr, 0, (int)p_person);
 }
 
 static DIFFTEST_REF_FUNC void person_go_enter_vehicle_asm(struct Thing *p_person, struct Thing *p_vehicle)
