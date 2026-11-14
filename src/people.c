@@ -12380,10 +12380,167 @@ void copy_owner_with_weapon(int a1, int a2, int a3, int a4)
 }
 
 
-void process_persuaded(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void process_persuaded_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_process_persuaded\n"
         : : "a" (p_person));
+}
+
+void person_pickup(struct Thing *p_person);
+void person_get_item(struct Thing *p_person);
+
+void process_persuaded(struct Thing *p_person)
+{
+    struct Thing *p_owner;
+    ulong flag;
+
+    DIFFTEST_SHADOW(process_persuaded, process_persuaded_asm(p_person));
+    if (p_person->U.UPerson.Target2 != 0)
+    {
+        if ((things[p_person->U.UPerson.Target2].Flag & TngF_Destroyed) != 0)
+            p_person->U.UPerson.Target2 = 0;
+    }
+
+    p_owner = &things[(ushort)p_person->Owner];
+    if (p_person->U.UPerson.Mood != p_owner->U.UPerson.Mood)
+    {
+        p_person->U.UPerson.Mood = p_owner->U.UPerson.Mood;
+        p_person->Speed = calc_person_speed(p_person);
+    }
+    if ((p_owner->Flag2 & TgF2_Unkn8000) != 0)
+    {
+        p_owner->Flag2 &= ~TgF2_Unkn8000;
+        remove_path(p_person);
+        p_person->U.UPerson.ComTimer = -1;
+    }
+    if ((p_owner->Flag & TngF_Destroyed) != 0)
+    {
+        stop_being_persuaded(p_person);
+        return;
+    }
+
+    if ((p_person->Flag2 & TgF2_Unkn08000000) != 0)
+    {
+        p_person->U.UPerson.ComRange = 0;
+        if ((ushort)p_person->State == PerSt_PICKUP_ITEM)
+        {
+            person_pickup(p_person);
+        }
+        else if (((ushort)p_person->State == PerSt_GET_ITEM)
+          && (p_person->U.UPerson.BumpCount == 0))
+        {
+            person_get_item(p_person);
+        }
+        else
+        {
+            p_person->U.UPerson.ComRange = 3;
+            p_person->Flag2 &= ~TgF2_Unkn08000000;
+        }
+        p_person->U.UPerson.ComRange = 8;
+        return;
+    }
+
+    copy_owner_with_weapon((int)p_person, (int)p_owner, (int)p_owner, 0);
+    if ((p_person->PTarget != NULL)
+      && (p_person->PTarget->U.UPerson.EffectiveGroup == p_person->U.UPerson.EffectiveGroup))
+        p_person->PTarget = NULL;
+    if ((p_owner->PTarget != NULL) && (p_owner->U.UPerson.WeaponTurn != 0))
+        p_person->PTarget = p_owner->PTarget;
+    else
+        p_person->PTarget = NULL;
+
+    flag = p_person->Flag;
+    if ((flag & TngF_InVehicle) != 0)
+    {
+        if ((p_owner->Flag & TngF_InVehicle) != 0)
+            return;
+        person_attempt_to_leave_vehicle(p_person);
+        return;
+    }
+
+    if (((ushort)p_person->State != PerSt_GOTO_VEHICLE)
+      && ((p_owner->Flag & TngF_InVehicle) != 0)
+      && ((flag & TngF_InVehicle) == 0))
+    {
+        p_person->State = PerSt_GOTO_VEHICLE;
+        p_person->U.UPerson.ComTimer = -1;
+        remove_path(p_person);
+    }
+
+    if ((ushort)p_person->State == PerSt_GOTO_VEHICLE)
+    {
+        if ((p_owner->Flag & TngF_InVehicle) == 0)
+        {
+            p_person->State = 0;
+        }
+        else
+        {
+            ThingIdx old_goto;
+
+            old_goto = p_person->GotoThingIndex;
+            p_person->GotoThingIndex = p_person->Owner;
+            p_person->U.UPerson.ComRange = 0;
+            person_goto_person_nav(p_person);
+            flag = p_person->Flag;
+            p_person->GotoThingIndex = old_goto;
+            if (((flag & TngF_StandOnVehicle) != 0)
+              && (p_person->U.UPerson.Vehicle == p_owner->U.UPerson.Vehicle))
+            {
+                person_enter_vehicle(p_person, &things[p_person->U.UPerson.Vehicle]);
+            }
+        }
+    }
+    else
+    {
+        TbBool go_to_owner;
+
+        go_to_owner = true;
+        if (p_person->PTarget != NULL)
+        {
+            try_and_kill_target(p_person);
+            if (p_person->PTarget != NULL)
+                go_to_owner = false;
+        }
+        if (go_to_owner)
+        {
+            s32 mood;
+
+            p_person->GotoThingIndex = p_person->Owner;
+            mood = p_owner->U.UPerson.Mood;
+            if (mood < 0)
+                mood = -mood;
+            p_person->U.UPerson.ComRange = (mood >> 3) + 2;
+            person_goto_person_nav(p_person);
+        }
+    }
+
+    if (((p_owner->Flag & (TngF_TriggerUse|TngF_WepCharging)) != 0)
+      && ((p_owner->Flag & TngF_ShootAtPos) != 0)
+      && (p_owner->PTarget == NULL)
+      && (p_person->U.UPerson.Target2 == 0))
+    {
+        p_person->Flag |= TngF_ShootAtPos|TngF_TriggerUse;
+    }
+
+    if (((p_owner->Flag & TngF_PlayerAgent) != 0)
+      && ((p_person->Flag & (TngF_ShootAtPos|TngF_TriggerUse)) == (TngF_ShootAtPos|TngF_TriggerUse)))
+    {
+        ushort plyr;
+        short full_angle;
+        s32 angle;
+
+        plyr = p_owner->U.UPerson.ComCur >> 2;
+        full_angle = angle_between_points(PRCCOORD_TO_MAPCOORD(p_person->X),
+          PRCCOORD_TO_MAPCOORD(p_person->Z),
+          players[plyr].SpecialItems[0], players[plyr].SpecialItems[2]);
+        angle = ((((s32)full_angle + 0x80) >> 8) + 8) & 7;
+        if ((ushort)angle != p_person->U.UPerson.Angle)
+        {
+            p_person->U.UPerson.Angle = angle;
+            p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+              + p_person->U.UPerson.Angle];
+        }
+    }
 }
 
 /** Looks around the person for threats to react to.
