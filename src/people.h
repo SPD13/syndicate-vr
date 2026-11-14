@@ -274,6 +274,7 @@ extern ushort head_my_path;
 extern short unkn01_thing_idx;
 
 void remove_path(struct Thing *p_thing);
+ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face);
 void set_person_animmode_walk(struct Thing *p_person);
 
 void load_peep_type_stats(void);

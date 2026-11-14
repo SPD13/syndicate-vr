@@ -246,11 +246,97 @@ void clear_player_protectors_paths(int a1, int a2, int a3, int a4)
 }
 
 
-void thing_goto_point(struct Thing *p_thing, short x, short y, short z)
+static DIFFTEST_REF_FUNC void thing_goto_point_asm(struct Thing *p_thing,
+  short x, short y, short z)
 {
     asm volatile (
       "call ASM_thing_goto_point\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z));
+}
+
+void thing_goto_point(struct Thing *p_thing, short x, short y, short z)
+{
+    ushort state;
+    ushort frame;
+
+    DIFFTEST_SHADOW(thing_goto_point, thing_goto_point_asm(p_thing, x, y, z));
+
+    if ((p_thing->Flag & (TngF_Unkn40000000 | TngF_Destroyed | TngF_StationrSht | TngF_Unkn0001)) != 0)
+        return;
+    p_thing->Flag2 &= ~(TgF2_Unkn00020000 | TgF2_Unkn0040);
+    if ((p_thing->Flag & TngF_Destroyed) != 0)
+        return;
+    if ((ushort)p_thing->State == PerSt_DEAD)
+        return;
+
+    if ((p_thing->Flag2 & TgF2_Unkn0001) != 0)
+        finalise_razor_wire(p_thing);
+
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+    {
+        if (start_goto_vehicle(&things[p_thing->U.UPerson.Vehicle], x, z) == 0)
+        {
+            p_thing->Flag2 |= TgF2_Unkn0040;
+            return;
+        }
+        p_thing->U.UPerson.GotoX = x;
+        p_thing->U.UPerson.GotoZ = z;
+        return;
+    }
+
+    if ((p_thing->Flag & TngF_SelectedAgent) != 0)
+        clear_player_protectors_paths((int)p_thing, 0, 0, 0);
+
+    if ((p_thing->Flag & TngF_PlayerAgent) != 0)
+        players[p_thing->U.UPerson.ComCur >> 2].GotoFace = 0;
+
+    p_thing->Flag2 &= ~TgF2_Unkn00020000;
+    state = p_thing->State & 0x7fff;
+    switch (state)
+    {
+    case PerSt_NONE:
+    case PerSt_GOTO_POINT:
+    case PerSt_WAIT:
+    case PerSt_GOTO_PERSON:
+    case PerSt_GET_ITEM:
+    case PerSt_USE_VEHICLE:
+        break;
+    case PerSt_DRIVING_VEHICLE:
+        start_goto_vehicle(&things[p_thing->U.UPerson.Vehicle], x, z);
+        return;
+    default:
+        return;
+    }
+
+    p_thing->U.UPerson.ComTimer = -1;
+    p_thing->Timer1 = 0x30;
+    p_thing->StartTimer1 = 0x30;
+    p_thing->SubState = 0;
+    p_thing->U.UPerson.Target2 = 0;
+    p_thing->U.UPerson.GotoX = x;
+    p_thing->U.UPerson.GotoZ = z;
+    p_thing->State = (p_thing->State & 0x8000) | PerSt_GOTO_POINT;
+    p_thing->U.UPerson.ComRange = 1;
+    if (p_thing->U.UPerson.PathIndex != 0)
+        remove_path(p_thing);
+    p_thing->U.UPerson.PathIndex = 0;
+    build_navigate_path(p_thing, x, z, 0);
+
+    if ((p_thing->Flag2 & TgF2_Unkn00080000) != 0)
+    {
+        if (p_thing->U.UPerson.AnimMode == 0x13)
+            return;
+        p_thing->U.UPerson.AnimMode = 0x13;
+    }
+    else
+    {
+        if (p_thing->U.UPerson.AnimMode != 0x13)
+            return;
+        p_thing->U.UPerson.AnimMode = gun_out_anim(p_thing, 0);
+    }
+    p_thing->StartFrame = people_frames[p_thing->SubType][p_thing->U.UPerson.AnimMode] - 1;
+    frame = people_frames[p_thing->SubType][p_thing->U.UPerson.AnimMode];
+    p_thing->Frame = nstart_ani[frame + p_thing->U.UPerson.Angle];
 }
 
 void thing_goto_point_on_face_fast(struct Thing *p_thing, short x, short z, short face, int plyr)
