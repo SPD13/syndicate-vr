@@ -6290,12 +6290,95 @@ void set_get_item(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int send_another_player_peep(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int send_another_player_peep_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_send_another_player_peep\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Sends the nearest other agent of the player to pick up given item.
+ * Arguments are raw registers: a1 = person, a2 = item index (short),
+ * a3 = player index (ushort).
+ * Returns 1 if an agent was sent, 0xffff if no agent qualified, 0 otherwise.
+ */
+int send_another_player_peep(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    short item = (short)a2;
+    ushort plyr = (ushort)a3;
+    struct SimpleThing *p_sthing;
+    struct Thing *p_thing;
+    s32 best_dist;
+    short best_thing;
+    ushort i;
+
+    DIFFTEST_SHADOW_RET(send_another_player_peep, int,
+      send_another_player_peep_asm(a1, a2, a3, a4));
+    best_dist = 0x7fffffff;
+    best_thing = 0;
+    p_sthing = &sthings[item];
+    if (p_sthing->U.UWeapon.WeaponType == 0)
+        DIFFTEST_RETURN((int)0);
+
+    // TODO: returns early when the person does NOT have the weapon; looks inverted
+    if (do_i_have_weapon((int)p_person, p_sthing->U.UWeapon.WeaponType) == 0)
+        DIFFTEST_RETURN((int)0);
+
+    for (i = 0; i < playable_agents; i++)
+    {
+        struct Thing *p_agent;
+        u32 wflags;
+        ushort nweapons;
+        ushort bit;
+        s32 dx, dy, dz, dist;
+
+        p_agent = players[plyr].MyAgent[i];
+        if (p_agent == p_person)
+            continue;
+        if ((p_agent->GotoThingIndex == item) && (p_agent->State == PerSt_GET_ITEM))
+            DIFFTEST_RETURN((int)0);
+        if ((p_agent->U.UPerson.StandOnThing == item) && (p_agent->State == PerSt_PICKUP_ITEM))
+            DIFFTEST_RETURN((int)0);
+
+        if ((p_agent->Flag & TngF_Destroyed) != 0)
+            continue;
+        if (p_agent->State != PerSt_PROTECT_PERSON)
+            continue;
+
+        nweapons = 0;
+        wflags = p_agent->U.UPerson.WeaponsCarried & ~0x00400000;
+        for (bit = 0; (wflags != 0) && (bit < 32); bit++)
+        {
+            if ((wflags & 1) != 0)
+                nweapons++;
+            wflags >>= 1;
+        }
+        if (nweapons >= 6)
+            continue;
+        if (do_i_have_weapon((int)p_agent, p_sthing->U.UWeapon.WeaponType) != 0)
+            continue;
+
+        dx = (s32)(p_agent->X - p_sthing->X) >> 8;
+        dy = (s32)(p_agent->Y - p_sthing->Y) >> 8;
+        dz = (s32)(p_agent->Z - p_sthing->Z) >> 8;
+        dist = dz * dz + (dy * dy + dx * dx);
+        if (dist < best_dist)
+        {
+            best_dist = dist;
+            best_thing = p_agent->ThingOffset;
+        }
+    }
+
+    if (best_thing == 0)
+        DIFFTEST_RETURN((int)0xffff);
+
+    p_thing = &things[best_thing];
+    set_person_animmode_run(p_thing);
+    set_get_item((int)p_thing, item, (int)p_thing, 0);
+    p_thing->Flag2 |= TgF2_Unkn10000000;
+    DIFFTEST_RETURN((int)1);
 }
 
 
