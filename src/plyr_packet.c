@@ -228,11 +228,45 @@ void unkn_player_group_prot(sbyte a1, ubyte a2)
         :  : "a" (a1), "d" (a2));
 }
 
-void peep_change_weapon(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void peep_change_weapon_asm(struct Thing *p_person)
 {
     asm volatile (
       "call ASM_peep_change_weapon\n"
         : : "a" (p_person));
+}
+
+void peep_change_weapon(struct Thing *p_person)
+{
+    ushort plagent;
+
+    DIFFTEST_SHADOW(peep_change_weapon, peep_change_weapon_asm(p_person));
+
+    if ((p_person->Flag & TngF_WepCharging) != 0)
+    {
+        stop_sample_using_heap((ushort)p_person->ThingOffset, 7);
+        stop_sample_using_heap((ushort)p_person->ThingOffset, 52);
+    }
+    if ((p_person->Flag2 & TgF2_Unkn0200) != 0)
+    {
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+            plagent = (ushort)p_person->U.UPerson.ComCur & 3;
+        else
+            plagent = 0;
+        ReleaseLoopedSample(p_person->ThingOffset, (short)(plagent + 80));
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+            plagent = (ushort)p_person->U.UPerson.ComCur & 3;
+        else
+            plagent = 0;
+        ReleaseLoopedSample(p_person->ThingOffset, (short)(plagent + 84));
+        ReleaseLoopedSample(p_person->ThingOffset, 14);
+        p_person->Flag2 &= ~TgF2_Unkn0200;
+    }
+    if (((p_person->Flag & TngF_PlayerAgent) != 0)
+      && (p_person->U.UPerson.CurrentWeapon != 0))
+    {
+        ushort comcur = (ushort)p_person->U.UPerson.ComCur;
+        players[comcur >> 2].PrevWeapon[comcur & 3] = p_person->U.UPerson.CurrentWeapon;
+    }
 }
 
 void player_agent_weapon_switch(PlayerIdx plyr, ThingIdx person, short shift)
