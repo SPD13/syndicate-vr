@@ -27,6 +27,8 @@
 #include "bfmemut.h"
 #include "bfmusic.h"
 #include "bfutility.h"
+#include "engintrns.h"
+#include "frame_sprani.h"
 #include "ssampply.h"
 
 #include "bigmap.h"
@@ -117,13 +119,79 @@ void packet_rel_position_3d_normalize(short *p_x, short *p_y, short *p_z)
     *p_z = (*p_z) * 256 / len;
 }
 
-void thing_goto_point_rel(struct Thing *p_thing, short x, short y, short z)
+static DIFFTEST_REF_FUNC void thing_goto_point_rel_asm(struct Thing *p_thing,
+  short x, short y, short z)
 {
-    // Make sure the normalization is kept when this function is remade
-    packet_rel_position_3d_normalize(&x, &y, &z);
     asm volatile (
       "call ASM_thing_goto_point_rel\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z));
+}
+
+void thing_goto_point_rel(struct Thing *p_thing, short x, short y, short z)
+{
+    ushort angle;
+    ushort frame;
+
+    // Make sure the normalization is kept when this function is remade
+    packet_rel_position_3d_normalize(&x, &y, &z);
+    DIFFTEST_SHADOW(thing_goto_point_rel, thing_goto_point_rel_asm(p_thing, x, y, z));
+
+    if ((p_thing->Flag & (TngF_Unkn40000000 | TngF_Destroyed | TngF_Unkn0001)) != 0)
+        return;
+    p_thing->Flag2 &= ~(TgF2_Unkn00020000 | TgF2_Unkn0040);
+    if ((p_thing->Flag2 & TgF2_KnockedOut) != 0)
+        return;
+    if ((p_thing->Flag & TngF_Destroyed) != 0)
+        return;
+
+    if ((p_thing->Flag & TngF_StationrSht) != 0)
+    {
+        angle = (((s32)angle_between_points(0, 0, x, z) + 0x80) >> 8) + 8;
+        angle &= 0x7;
+        if (angle == p_thing->U.UPerson.Angle)
+            return;
+        p_thing->U.UPerson.Angle = angle;
+        frame = people_frames[p_thing->SubType][p_thing->U.UPerson.AnimMode];
+        p_thing->Frame = nstart_ani[frame + (ubyte)angle];
+        return;
+    }
+
+    if (((p_thing->Flag2 & TgF2_Unkn0001) != 0) && ((p_thing->Flag & TngF_TriggerUse) == 0))
+        finalise_razor_wire(p_thing);
+
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+        return;
+
+    if ((p_thing->Flag & TngF_PlayerAgent) != 0)
+        players[p_thing->U.UPerson.ComCur >> 2].GotoFace = 0;
+
+    if (((p_thing->State & 0x7fff) != 1) && ((p_thing->State & 0x7fff) != 0x23)
+      && ((ushort)p_thing->State != 5))
+        return;
+
+    p_thing->StartTimer1 = 0x30;
+    p_thing->Flag2 &= ~TgF2_Unkn00020000;
+    p_thing->State = (p_thing->State & 0x8000) | 0x23;
+    p_thing->VX = x;
+    p_thing->VZ = z;
+    if (p_thing->U.UPerson.PathIndex != 0)
+        remove_path(p_thing);
+
+    if ((p_thing->Flag2 & TgF2_Unkn00080000) != 0)
+    {
+        if (p_thing->U.UPerson.AnimMode == 0x13)
+            return;
+        p_thing->U.UPerson.AnimMode = 0x13;
+    }
+    else
+    {
+        if (p_thing->U.UPerson.AnimMode != 0x13)
+            return;
+        p_thing->U.UPerson.AnimMode = gun_out_anim(p_thing, 0);
+    }
+    p_thing->StartFrame = people_frames[p_thing->SubType][p_thing->U.UPerson.AnimMode] - 1;
+    frame = people_frames[p_thing->SubType][p_thing->U.UPerson.AnimMode];
+    p_thing->Frame = nstart_ani[frame + p_thing->U.UPerson.Angle];
 }
 
 void thing_goto_point_rel_fast(struct Thing *p_thing, short x, short y, short z, int plyr)
