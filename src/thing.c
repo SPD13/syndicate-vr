@@ -3547,11 +3547,48 @@ void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
     }
 }
 
-void process_mushroom(struct SimpleThing *p_sthing, ThingIdx thing_item)
+static DIFFTEST_REF_FUNC void process_mushroom_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
     asm volatile (
       "call ASM_process_mushroom\n"
         : : "a" (p_sthing), "d" (thing_item));
+}
+
+void process_mushroom(struct SimpleThing *p_sthing, ThingIdx thing_item)
+{
+    s32 new_x, new_y, new_z;
+    s32 height, dt;
+
+    DIFFTEST_SHADOW(process_mushroom,
+      process_mushroom_asm(p_sthing, thing_item));
+    height = (p_sthing->Y >> 8) - p_sthing->U.UEffect.OY;
+    if (height < 80)
+    {
+        dt = height >> 1;
+        new_x = p_sthing->X - p_sthing->U.UEffect.VX * dt;
+        new_z = p_sthing->Z - p_sthing->U.UEffect.VZ * dt;
+    }
+    else
+    {
+        dt = (height - 80) >> 2;
+        new_x = p_sthing->X + p_sthing->U.UEffect.VX * dt;
+        new_z = p_sthing->Z + p_sthing->U.UEffect.VZ * dt;
+    }
+    p_sthing->U.UEffect.VY += (short)((80 - height) << 3);
+    if (p_sthing->U.UEffect.VY < -2000)
+        p_sthing->U.UEffect.VY = -2000;
+    new_y = p_sthing->Y + (p_sthing->U.UEffect.VY >> 1);
+    move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+    p_sthing->Object += 4;
+    if (p_sthing->Timer1 > 0)
+    {
+        p_sthing->Timer1--;
+        if (p_sthing->Timer1 == 0)
+        {
+            remove_sthing(thing_item);
+            delete_snode(p_sthing);
+        }
+    }
 }
 
 static DIFFTEST_REF_FUNC void process_special_drift_smoke_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
