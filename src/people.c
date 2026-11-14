@@ -6382,10 +6382,77 @@ int send_another_player_peep(int a1, int a2, int a3, int a4)
 }
 
 
-void person_init_get_item(struct Thing *p_person, short item, ushort plyr)
+static DIFFTEST_REF_FUNC void person_init_get_item_asm(struct Thing *p_person, short item, ushort plyr)
 {
     asm volatile ("call ASM_person_init_get_item\n"
         : : "a" (p_person), "d" (item), "b" (plyr));
+}
+
+/** Makes a person go pick up given item (simple thing), unless another
+ * agent of the player was sent, or the person cannot take the weapon.
+ */
+void person_init_get_item(struct Thing *p_person, short item, ushort plyr)
+{
+    struct SimpleThing *p_sthing;
+    ushort weapon;
+    ubyte can_take;
+
+    DIFFTEST_SHADOW(person_init_get_item, person_init_get_item_asm(p_person, item, plyr));
+    p_sthing = &sthings[item];
+    if ((ushort)send_another_player_peep((int)p_person, item, plyr, 0) != 0)
+        return;
+    if ((p_person->Flag & (TngF_StationrSht | TngF_Destroyed)) != 0)
+        return;
+
+    weapon = p_sthing->U.UWeapon.WeaponType;
+    if (weapon != 0)
+    {
+        can_take = 1;
+        if (do_i_have_weapon((int)p_person, weapon) != 0)
+            can_take = 0;
+
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+        {
+            // Consumable weapons can be taken if the four-pack is not full
+            ushort plagent;
+            short wepfp;
+
+            plagent = p_person->U.UPerson.ComCur & 3;
+            switch (weapon)
+            {
+            case WEP_NUCLGREN:
+                wepfp = WFRPK_NUCLGREN;
+                break;
+            case WEP_CRAZYGAS:
+                wepfp = WFRPK_CRAZYGAS;
+                break;
+            case WEP_KOGAS:
+                wepfp = WFRPK_KOGAS;
+                break;
+            case WEP_ELEMINE:
+                wepfp = WFRPK_ELEMINE;
+                break;
+            case WEP_EXPLMINE:
+                wepfp = WFRPK_EXPLMINE;
+                break;
+            default:
+                wepfp = -1;
+                break;
+            }
+            if ((wepfp >= 0) && (can_take == 0))
+            {
+                if (((p_person->U.UPerson.WeaponsCarried & (1 << (weapon - 1))) != 0)
+                  && (players[plyr].FourPacks[wepfp][plagent] != 4))
+                    can_take = 1;
+            }
+        }
+        if (can_take == 0)
+            return;
+    }
+
+    p_sthing = &sthings[item];
+    if (p_sthing->Type == SmTT_DROPPED_ITEM)
+        set_get_item((int)p_person, item, plyr, 0);
 }
 static DIFFTEST_REF_FUNC void person_unkn_start_get_item_asm(int a1, int a2, int a3, int a4)
 {
