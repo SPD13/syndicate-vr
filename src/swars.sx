@@ -30504,7 +30504,7 @@ GLOBAL_FUNC(ASM_create_temp_light)	/* 0x0571E4 */
 
 
 /*----------------------------------------------------------------*/
-set_player_peeps_to_run:	/* 0x057D30 */
+GLOBAL_FUNC(ASM_set_player_peeps_to_run)	/* 0x057D30 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -30522,7 +30522,7 @@ set_player_peeps_to_run:	/* 0x057D30 */
 		mov    EXPORT_SYMBOL(playable_agents),%al
 		mov    %bx,%dx
 		cmp    %eax,%edx
-		jge    jump_543c1
+		jge    jump_57dc6
 		xor    %eax,%eax
 		mov    %di,%ax
 		imul   $0x1aa,%eax,%eax
@@ -30558,6 +30558,12 @@ set_player_peeps_to_run:	/* 0x057D30 */
 		call   ac_set_person_animmode_run
 		orb    $0x80,0x47(%edx)
 		jmp    jump_57d3c
+	jump_57dc6:
+		pop    %edi
+		pop    %esi
+		pop    %ecx
+		pop    %ebx
+		ret
 
 
 /*----------------------------------------------------------------*/
@@ -30583,7 +30589,7 @@ GLOBAL_FUNC(ASM_thing_goto_point_rel_fast)	/* 0x057DCC */
 		call   ac_set_person_animmode_run
 		mov    0x8(%esp),%dx
 		mov    %esi,%eax
-		call   set_player_peeps_to_run
+		call   ac_set_player_peeps_to_run
 	jump_57e13:
 		pop    %esi
 		ret    $0x4
@@ -30796,7 +30802,7 @@ GLOBAL_FUNC(ASM_thing_goto_point_fast)	/* 0x058054 */
 		call   ac_set_person_animmode_run
 		mov    0x8(%esp),%dx
 		mov    %esi,%eax
-		call   set_player_peeps_to_run
+		call   ac_set_player_peeps_to_run
 	jump_5809b:
 		pop    %esi
 		ret    $0x4
@@ -31103,7 +31109,7 @@ GLOBAL_FUNC(ASM_thing_goto_point_on_face_fast)	/* 0x0583D8 */
 		call   ac_set_person_animmode_run
 		mov    0x8(%esp),%dx
 		mov    %esi,%eax
-		call   set_player_peeps_to_run
+		call   ac_set_player_peeps_to_run
 	jump_58418:
 		pop    %esi
 		ret    $0x4
@@ -32204,7 +32210,7 @@ GLOBAL_FUNC(ASM_person_go_enter_vehicle_fast)	/* 0x059088 */
 		call   ac_set_person_animmode_run
 		mov    %bx,%dx
 		mov    %ecx,%eax
-		call   set_player_peeps_to_run
+		call   ac_set_player_peeps_to_run
 	jump_590be:
 		pop    %esi
 		pop    %ecx
@@ -35221,7 +35227,7 @@ GLOBAL_FUNC(ASM_make_peeps_scatter)	/* 0x05AF6C */
 		mov    0x34(%esp),%edx
 		call   ac_set_person_animmode_run
 		mov    %esi,%eax
-		call   set_player_peeps_to_run
+		call   ac_set_player_peeps_to_run
 	jump_5b297:
 		xor    %ah,%ah
 		mov    0x99(%ebp),%al
@@ -38042,7 +38048,7 @@ GLOBAL_FUNC(ASM_dynamic_insert_vect)	/* 0x05D440 */
 
 
 /*----------------------------------------------------------------*/
-del_col_vect_from_mapwho:	/* 0x05D5B0 */
+GLOBAL_FUNC(ASM_del_col_vect_from_mapwho)	/* 0x05D5B0 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -38235,7 +38241,7 @@ GLOBAL_FUNC(ASM_delete_vect)	/* 0x05D694 */
 		mov    0x3c(%esp),%cx
 		sar    $0x10,%ebx
 		add    $0x100,%esi
-		call   del_col_vect_from_mapwho
+		call   ac_del_col_vect_from_mapwho
 		cmp    %ebp,%esi
 		je     jump_5d7c5
 		jmp    jump_5d7f3

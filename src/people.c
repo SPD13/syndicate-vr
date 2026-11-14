@@ -11076,6 +11076,18 @@ ubyte thing_deselect_weapon(struct Thing *p_person)
 
     return WepSel_HIDE;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int set_player_peeps_to_run(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_set_player_peeps_to_run\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void person_go_enter_vehicle_fast(struct Thing *p_person, struct Thing *p_vehicle, ushort plyr)
 {
@@ -14189,6 +14201,17 @@ short do_move_colide(struct Thing *p_person, int dx, int dz, struct MyMapElement
 
     return ret;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void del_col_vect_from_mapwho(int a1, int a2, int a3)
+{
+    int ra = a1, rd = a2, rb = a3;
+    asm volatile ("call ASM_del_col_vect_from_mapwho\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "cc", "memory");
+}
+
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
