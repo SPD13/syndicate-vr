@@ -11853,11 +11853,61 @@ void calc_lighting(struct Thing *p_person)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void copy_owner_with_weapon(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void copy_owner_with_weapon_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_copy_owner_with_weapon\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void peep_change_weapon(struct Thing *p_person);
+
+void copy_owner_with_weapon(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_owner = (struct Thing *)a2;
+    ubyte prsn_weapon, ownr_weapon;
+
+    DIFFTEST_SHADOW(copy_owner_with_weapon, copy_owner_with_weapon_asm(a1, a2, a3, a4));
+    prsn_weapon = p_person->U.UPerson.CurrentWeapon;
+    ownr_weapon = p_owner->U.UPerson.CurrentWeapon;
+    if (ownr_weapon == prsn_weapon)
+        return;
+
+    if (ownr_weapon != 0)
+    {
+        if (p_person->U.UPerson.CurrentWeapon != 0)
+            return;
+        if (p_person->U.UPerson.TempWeapon != 0)
+            p_person->U.UPerson.CurrentWeapon = (ubyte)p_person->U.UPerson.TempWeapon;
+        else if ((p_person->U.UPerson.WeaponsCarried &
+          (1u << ((p_owner->U.UPerson.CurrentWeapon - 1) & 0x1F))) != 0)
+            p_person->U.UPerson.CurrentWeapon = p_owner->U.UPerson.CurrentWeapon;
+        else
+            choose_best_weapon_for_range(p_person, 0x500);
+        if (p_person->U.UPerson.CurrentWeapon == 0)
+            return;
+        peep_change_weapon(p_person);
+        p_person->U.UPerson.TempWeapon = p_person->U.UPerson.CurrentWeapon;
+        p_person->Frame -= nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+        p_person->U.UPerson.AnimMode = gun_out_anim(p_person, 0);
+    }
+    else
+    {
+        if (prsn_weapon == 0)
+            return;
+        peep_change_weapon(p_person);
+        prsn_weapon = p_person->U.UPerson.CurrentWeapon;
+        p_person->U.UPerson.CurrentWeapon = ownr_weapon;
+        p_person->U.UPerson.TempWeapon = prsn_weapon;
+        p_person->Frame -= nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+        p_person->U.UPerson.AnimMode = 0;
+    }
+    p_person->Frame += nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+      + p_person->U.UPerson.Angle];
+    p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
 }
 
 
