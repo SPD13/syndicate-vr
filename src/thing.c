@@ -2492,11 +2492,83 @@ void process_time_pod(struct SimpleThing *p_sthing)
         : : "a" (p_sthing));
 }
 
-void process_soul(struct SimpleThing *p_sthing)
+int move_smapwho(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC void process_soul_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_soul\n"
         : : "a" (p_sthing));
+}
+
+void process_soul(struct SimpleThing *p_sthing)
+{
+    s32 new_x, new_y, new_z;
+
+    DIFFTEST_SHADOW(process_soul, process_soul_asm(p_sthing));
+    new_x = p_sthing->X;
+    new_z = p_sthing->Z;
+    new_y = p_sthing->Y;
+    if (p_sthing->State == 0)
+    {
+        u32 angle0, angle1;
+        short timer;
+
+        new_y += p_sthing->U.UEffect.VY;
+        angle0 = (u32)gameturn << 5;
+        angle1 = (angle0 + 0x780) & 0x7FF;
+        angle0 &= 0x7FF;
+        new_x += (lbSinTable[angle0] - lbSinTable[angle1]) >> 1;
+        new_z += (lbSinTable[angle0 + 512] - lbSinTable[angle1 + 512]) >> 1;
+        p_sthing->U.UEffect.VY = (short)(p_sthing->U.UEffect.VY + 0x200);
+        timer = p_sthing->Timer1;
+        p_sthing->Timer1 = timer - 1;
+        if (timer == 0)
+        {
+            p_sthing->Timer1 = 0;
+            p_sthing->State++;
+        }
+    }
+    else if (p_sthing->State == 1)
+    {
+        struct Thing *p_owner;
+        s32 dx, dy, dz;
+        s32 dist;
+        short vx, vy, vz;
+
+        p_owner = &things[(ushort)p_sthing->Owner2];
+        p_sthing->Timer1++;
+        dx = (p_owner->X - p_sthing->X) >> 8;
+        dy = (p_owner->Y - p_sthing->Y) >> 8;
+        dz = (p_owner->Z - p_sthing->Z) >> 8;
+        dist = LbSqrL((u32)dx * (u32)dx + (u32)dz * (u32)dz
+          + (u32)dy * (u32)dy);
+        if (dist == 0)
+            dist = 1;
+        vx = (s32)((u32)dx << 8) / dist;
+        vy = (s32)((u32)dy << 8) / dist;
+        vz = (s32)((u32)dz << 8) / dist;
+        p_sthing->U.UEffect.VY = vy;
+        p_sthing->U.UEffect.VX = vx;
+        p_sthing->U.UEffect.VZ = vz;
+        if (dist < 0x80)
+        {
+            if ((p_owner->Flag2 & TgF2_KnockedOut) == 0)
+                init_recoil(p_owner, vx, vy, vz, 1);
+            // Increments the high byte of Health
+            ((ubyte *)&p_owner->Health)[1]++;
+            if (p_owner->Health > 2 * (s32)p_owner->U.UPerson.MaxHealth)
+                p_owner->Health = 2 * p_owner->U.UPerson.MaxHealth;
+            play_dist_sample(p_owner, 0x37, 0x7F, 0x40, 100, 0, 1);
+            delete_snode(p_sthing);
+            remove_sthing(p_sthing->ThingOffset);
+            return;
+        }
+        new_x += p_sthing->U.UEffect.VX * p_sthing->Timer1 * 4;
+        new_y += p_sthing->U.UEffect.VY * p_sthing->Timer1 * 4;
+        new_z += p_sthing->U.UEffect.VZ * p_sthing->Timer1 * 4;
+    }
+    move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
