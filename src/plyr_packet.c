@@ -28,6 +28,7 @@
 #include "ssampply.h"
 
 #include "bigmap.h"
+#include "difftest.h"
 #include "display.h"
 #include "drawtext_wrp.h"
 #include "game_bstype.h"
@@ -141,11 +142,36 @@ void thing_goto_point_fast(struct Thing *p_thing, short x, short y, short z, int
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void clear_player_protectors_paths(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void clear_player_protectors_paths_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_clear_player_protectors_paths\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void clear_player_protectors_paths(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing = (struct Thing *)a1;
+    ushort plyr;
+    ushort i;
+
+    DIFFTEST_SHADOW(clear_player_protectors_paths,
+      clear_player_protectors_paths_asm(a1, a2, a3, a4));
+    plyr = p_thing->U.UPerson.ComCur >> 2;
+    for (i = 0; i < playable_agents; i++)
+    {
+        struct Thing *p_agent;
+
+        p_agent = players[plyr].MyAgent[i];
+        if (p_agent == NULL)
+            continue;
+        if ((ushort)p_agent->State != PerSt_PROTECT_PERSON)
+            continue;
+        if (p_agent->GotoThingIndex != (ushort)p_thing->ThingOffset)
+            continue;
+        remove_path(p_agent);
+        players[plyr].MyAgent[i]->U.UPerson.ComTimer = -1;
+    }
 }
 
 
