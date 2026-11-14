@@ -6304,15 +6304,98 @@ void person_init_get_item(struct Thing *p_person, short item, ushort plyr)
     asm volatile ("call ASM_person_init_get_item\n"
         : : "a" (p_person), "d" (item), "b" (plyr));
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void person_unkn_start_get_item(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void person_unkn_start_get_item_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_person_unkn_start_get_item\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Sends the nearest persuaded member of the person's group, which can
+ * still carry the item's weapon, to pick up given item (simple thing).
+ * Arguments are raw registers: a1 = person, a2 = item index (short).
+ */
+void person_unkn_start_get_item(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    short item = (short)a2;
+    struct SimpleThing *p_sthing;
+    struct Thing *p_thing;
+    ThingIdx thing;
+    ushort best_thing;
+    u32 best_dist;
+
+    DIFFTEST_SHADOW(person_unkn_start_get_item,
+      person_unkn_start_get_item_asm(a1, a2, a3, a4));
+    best_dist = 0xFFFFFFFF;
+    best_thing = 0;
+    p_sthing = &sthings[item];
+    if (p_sthing->U.UWeapon.WeaponType == 0)
+        return;
+
+    thing = same_type_head[256 + p_person->U.UPerson.Group];
+    while (thing != 0)
+    {
+        u32 dist;
+        s32 dx, dz;
+        u32 wflags;
+        ushort nweapons;
+        int i;
+
+        p_thing = &things[thing];
+        if ((p_thing->Flag & TngF_Persuaded) == 0)
+            goto next;
+        if ((p_thing->Flag & TngF_Destroyed) != 0)
+            goto next;
+
+        dx = abs(p_sthing->X - p_thing->X) >> 8;
+        dz = abs(p_sthing->Z - p_thing->Z) >> 8;
+        if (dx > dz)
+            dist = dx + (dz >> 1);
+        else
+            dist = dz + (dx >> 1);
+        if (dist >= best_dist)
+            goto next;
+
+        if ((p_thing->Flag & (TngF_InVehicle | TngF_Unkn02000000 | TngF_Unkn4000)) != 0)
+            goto next;
+
+        wflags = p_thing->U.UPerson.WeaponsCarried & ~0x00400000;
+        nweapons = 0;
+        for (i = 0; i < 32 && wflags != 0; i++)
+        {
+            if ((wflags & 1) != 0)
+                nweapons++;
+            wflags >>= 1;
+        }
+        if (nweapons >= 6)
+            goto next;
+
+        if ((p_thing->U.UPerson.WeaponsCarried &
+          (1u << ((p_sthing->U.UWeapon.WeaponType - 1) & 0x1F))) != 0)
+            goto next;
+
+        best_thing = thing;
+        best_dist = dist;
+next:
+        thing = p_thing->LinkSameGroup;
+    }
+
+    if (best_thing == 0)
+        return;
+
+    p_thing = &things[best_thing];
+    p_thing->Flag2 |= TgF2_Unkn08000000;
+    p_thing->State = PerSt_GET_ITEM;
+    p_thing->U.UPerson.GotoX = p_sthing->X >> 8;
+    p_thing->U.UPerson.ComTimer = -1;
+    p_thing->SubState = 0;
+    p_thing->U.UPerson.ComRange = 0;
+    p_thing->U.UPerson.GotoZ = p_sthing->Z >> 8;
+    p_thing->GotoThingIndex = item;
+    p_thing->U.UPerson.StandOnThing = item;
+    if (p_thing->U.UPerson.PathIndex != 0)
+        remove_path(p_thing);
 }
 
 
