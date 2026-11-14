@@ -10811,10 +10811,41 @@ void process_im_shoved(struct Thing *p_person)
     p_person->VZ = prev_vz;
 }
 
-void try_and_kill_target(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void try_and_kill_target_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_try_and_kill_target\n"
         : : "a" (p_person));
+}
+
+void try_and_kill_target(struct Thing *p_person)
+{
+    struct Thing *p_target;
+    s32 range;
+
+    DIFFTEST_SHADOW(try_and_kill_target, try_and_kill_target_asm(p_person));
+    if (p_person->U.UPerson.WeaponTurn != 0)
+        return;
+
+    p_target = p_person->PTarget;
+    if ((p_target->State == PerSt_DIEING) || (p_target->State == PerSt_PERSON_BURNING)
+      || ((p_target->Flag & TngF_Destroyed) != 0))
+    {
+        p_person->PTarget = NULL;
+        return;
+    }
+
+    range = get_weapon_range(p_person);
+    if (can_i_see_thing(p_person, p_person->PTarget, range * range, 1) > 0)
+    {
+        p_person->Flag &= ~(TngF_PersSupShld | TngF_TriggerUse | TngF_Unkn00200000);
+        p_person->Flag |= TngF_TriggerUse;
+        if ((p_person->Flag & TngF_InVehicle) != 0)
+            things[p_person->U.UPerson.Vehicle].Flag |= TngF_Unkn01000000;
+    }
+    else
+    {
+        p_person->Flag &= ~TngF_TriggerUse;
+    }
 }
 
 ubyte protect_person_simultaneous_fire(struct Thing *p_person, struct Thing *p_protng)
