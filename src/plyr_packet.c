@@ -20,6 +20,8 @@
 #include "plyr_packet.h"
 
 #include <assert.h>
+#include <ctype.h>
+#include <string.h>
 #include "bfkeybd.h"
 #include "bfscd.h"
 #include "bfmemut.h"
@@ -44,6 +46,7 @@
 #include "player.h"
 #include "plyr_net.h"
 #include "research.h"
+#include "scandraw.h"
 #include "sound.h"
 #include "thing.h"
 #include "swlog.h"
@@ -679,10 +682,69 @@ void net_unkn_check_1(void)
     }
 }
 
-void player_chat_message_add_key(ushort a1, int a2)
+extern char player_message_text[PLAYERS_LIMIT][128];
+extern ubyte player_message_timer[PLAYERS_LIMIT];
+
+static DIFFTEST_REF_FUNC void player_chat_message_add_key_asm(ushort a1, int a2)
 {
     asm volatile ("call ASM_player_chat_message_add_key\n"
         :  : "a" (a1), "d" (a2));
+}
+
+void player_chat_message_add_key(ushort a1, int a2)
+{
+    ushort plyr;
+    u32 key;
+    u32 shift;
+    s32 len;
+    int c;
+
+    DIFFTEST_SHADOW(player_chat_message_add_key,
+      player_chat_message_add_key_asm(a1, a2));
+    plyr = a1;
+    if (player_message_timer[plyr] != 0)
+    {
+        player_message_timer[plyr] = 0;
+        player_message_text[plyr][0] = '\0';
+    }
+    len = strlen(player_message_text[plyr]);
+    shift = (ushort)a2 & 0x100;
+    key = (ushort)a2 & 0xFEFF;
+
+    if (key == 0x0E) // backspace
+    {
+        if (len > 0)
+            player_message_text[plyr][len - 1] = '\0';
+        return;
+    }
+    if (key == 0x1C) // enter
+    {
+        if ((shift == 0) ||
+          (net_player_colours[plyr] == net_player_colours[(ubyte)local_player_no]))
+            player_message_timer[plyr] = 150;
+        if ((ubyte)local_player_no == plyr)
+            players[(ubyte)local_player_no].PanelState[mouser] = 0;
+        return;
+    }
+
+    if (shift != 0)
+        c = (ubyte)lbInkeyToAsciiShift[key];
+    else
+        c = (ubyte)lbInkeyToAscii[key];
+    c = toupper(c);
+
+    if (((c >= 'A') && (c <= 'Z')) || ((c >= '0') && (c <= '9')) ||
+      (c == '.') || (c == ',') || (c == '-') || (c == '=') ||
+      (c == '!') || (c == '"') || (c == '?') || (c == '(') ||
+      (c == ')') || (c == '*') || (c == '#') || (c == '~') ||
+      (c == '+') || (c == ':') || (c == ';') || (c == '\'') ||
+      (c == ' '))
+    {
+        if (len == 127)
+            len--;
+        player_message_text[plyr][len] = c;
+        player_message_text[plyr][len + 1] = '\0';
+    }
 }
 
 void plgroup_set_mood(PlayerIdx plyr, struct Thing *p_member, short mood)
