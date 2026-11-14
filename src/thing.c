@@ -1766,11 +1766,37 @@ void process_c_iff(struct Thing *p_mine)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void init_electricity_bomb(int a1, int a2, int a3, int a4)
+struct SimpleThing *create_growing_e_strand(int x, int y, int z,
+  struct Thing *p_thing, int health, int owner);
+
+static DIFFTEST_REF_FUNC void init_electricity_bomb_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_init_electricity_bomb\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void init_electricity_bomb(int a1, int a2, int a3, int a4)
+{
+    int x = a1, y = a2, z = a3;
+    ushort owner = (ushort)a4;
+    ThingIdx person;
+    int dist;
+    ushort i;
+
+    DIFFTEST_SHADOW(init_electricity_bomb, init_electricity_bomb_asm(a1, a2, a3, a4));
+    dist = 0;
+    for (i = 0; i < 4; i++)
+    {
+        // The previous distance found is given as minimal distance
+        person = find_nearest_person_min(x, y, z, dist, &dist, -1, -1);
+        if (dist >= 0x2fa000)
+            continue;
+        if (person == 0)
+            continue;
+        create_growing_e_strand(x, y, z, &things[(ushort)person], 4, owner);
+    }
+    do_shockwave(x, y, z, -700, 1, NULL);
 }
 
 
