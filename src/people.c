@@ -14230,7 +14230,7 @@ void del_col_vect_from_mapwho(int a1, int a2, int a3)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void delete_vect(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+static DIFFTEST_REF_FUNC void delete_vect_asm(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[4];
@@ -14241,6 +14241,69 @@ void delete_vect(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
     stkargs[3] = a8;
     asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_delete_vect\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+extern short link__MapColVectEmptyHead;
+
+void delete_vect(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+{
+    s32 x1, z1, x2, z2;
+    s32 dt_x, dt_z;
+    s32 step_x, step_z;
+    s32 pos_x, pos_z;
+    s32 count;
+    short colvect;
+    struct ColVect *p_colvect;
+
+    DIFFTEST_SHADOW(delete_vect, delete_vect_asm(a1, a2, a3, a4, a5, a6, a7, a8));
+    // a2, a5 and a8 are not used by the asm (a8 is passed in ecx to
+    // del_col_vect_from_mapwho(), which ignores it)
+    colvect = (short)a7;
+    if (colvect == 0)
+        return;
+    x1 = (short)a1;
+    if (x1 < 0 || x1 > 0x8000)
+        return;
+    x2 = (short)a4;
+    if (x2 < 0 || x2 > 0x8000)
+        return;
+    z1 = (short)a3;
+    if (z1 < 0 || z1 > 0x8000)
+        return;
+    z2 = (short)a6;
+    if (z2 < 0 || z2 > 0x8000)
+        return;
+
+    dt_x = x2 - x1;
+    dt_z = z2 - z1;
+    count = (u32)LbSqrL((u32)dt_z * (u32)dt_z + (u32)dt_x * (u32)dt_x) >> 8;
+    if (count == 0)
+        count = 1;
+    pos_x = x1 << 10;
+    pos_z = z1 << 10;
+    step_x = (dt_x << 10) / count;
+    step_z = (dt_z << 10) / count;
+
+    for (; count >= 0; count--)
+    {
+        s32 cx, cz, x, z;
+
+        cz = pos_z >> 10;
+        cx = pos_x >> 10;
+        for (x = cx - 0x100; x != cx + 0x200; x += 0x100)
+        {
+            for (z = cz - 0x100; z != cz + 0x200; z += 0x100)
+            {
+                del_col_vect_from_mapwho((short)x, (short)z, colvect);
+            }
+        }
+        pos_x += step_x;
+        pos_z += step_z;
+    }
+
+    p_colvect = &game_col_vects[colvect];
+    p_colvect->Face = link__MapColVectEmptyHead;
+    link__MapColVectEmptyHead = colvect;
 }
 
 
