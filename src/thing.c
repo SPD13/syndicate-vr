@@ -3844,11 +3844,47 @@ void process_flame1(struct SimpleThing *p_sthing)
     }
 }
 
-void process_splash(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_splash_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_splash\n"
         : : "a" (p_sthing));
+}
+
+void process_splash(struct SimpleThing *p_sthing)
+{
+    ushort nxframe;
+
+    DIFFTEST_SHADOW(process_splash, process_splash_asm(p_sthing));
+
+    p_sthing->Timer1--;
+    if ((p_sthing->Timer1 > 0) && ((p_sthing->Timer1 & 1) != 0))
+    {
+        struct SimpleThing *p_effect;
+        s32 x, z;
+        int alt;
+
+        x = (p_sthing->X >> 8) + ((ushort)LbRandomAnyShort() & 0xFF) - 0x80;
+        z = (p_sthing->Z >> 8) + ((ushort)LbRandomAnyShort() & 0xFF) - 0x80;
+        alt = alt_at_point((short)x, (short)z);
+        p_effect = create_scale_effect((ushort)x, alt >> 8, (ushort)z, 0x43F, 0);
+        if (p_effect != NULL)
+        {
+            p_effect->SubType = 60;
+            p_effect->Object = ((ushort)LbRandomAnyShort() & 0x7F) + 62;
+        }
+    }
+
+    nxframe = frame[(ushort)p_sthing->Frame].Next;
+    if ((frame[nxframe].Flags & 0x01) != 0)
+    {
+        remove_sthing(p_sthing->ThingOffset);
+        delete_snode(p_sthing);
+    }
+    else
+    {
+        p_sthing->Frame = nxframe;
+    }
 }
 
 void process_scale_effect(struct SimpleThing *p_sthing, ThingIdx thing_item)
