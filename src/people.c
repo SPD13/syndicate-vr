@@ -9119,10 +9119,57 @@ void person_goto_point(struct Thing *p_person)
         finalise_razor_wire(p_person);
 }
 
-void person_goto_point_rel(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_goto_point_rel_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_goto_point_rel\n"
         : : "a" (p_person));
+}
+
+void person_goto_point_rel(struct Thing *p_person)
+{
+    ushort angle;
+
+    DIFFTEST_SHADOW(person_goto_point_rel, person_goto_point_rel_asm(p_person));
+    if ((p_person->U.UPerson.AnimMode == 14) || (p_person->U.UPerson.AnimMode == 15))
+    {
+        p_person->U.UPerson.AnimMode = gun_out_anim(p_person, 0);
+        p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+        p_person->Frame = nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+    }
+
+    angle = (((ushort)arctan(p_person->VX, -p_person->VZ) + 0x80) & 0x7ff) >> 8;
+    if (angle != p_person->U.UPerson.Angle)
+    {
+        p_person->Frame -= nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+        p_person->U.UPerson.Angle = angle;
+        p_person->Frame += nstart_ani[people_frames[p_person->SubType][p_person->U.UPerson.AnimMode]
+          + p_person->U.UPerson.Angle];
+    }
+    p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+
+    if ((p_person->Flag & TngF_InVehicle) != 0)
+        return;
+    person_move(p_person);
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+
+    p_person->Timer1 -= fifties_per_gameturn;
+    if (p_person->Timer1 < 0)
+    {
+        p_person->Timer1 = p_person->StartTimer1;
+        p_person->Frame = frame[(ushort)p_person->Frame].Next;
+    }
+    if ((p_person->Flag & TngF_PlayerAgent) == 0)
+    {
+        p_person->U.UPerson.ComCur = game_commands[(ushort)p_person->U.UPerson.ComCur].Next;
+        person_init_command(p_person, 3);
+    }
+    else
+    {
+        p_person->State = 5;
+    }
 }
 
 void vehicle_passenger_list_add_first(struct Thing *p_vehicle, ThingIdx passngr)
