@@ -11437,10 +11437,30 @@ void process_danger(struct Thing *p_person)
     search_for_danger(p_person);
 }
 
-void peep_return_to_point(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void peep_return_to_point_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_peep_return_to_point\n"
         : : "a" (p_person));
+}
+
+void peep_return_to_point(struct Thing *p_person)
+{
+    DIFFTEST_SHADOW(peep_return_to_point, peep_return_to_point_asm(p_person));
+    p_person->Flag &= ~TngF_PersKeepPost;
+    if (p_person->U.UPerson.PathIndex != 0)
+        remove_path(p_person);
+    if ((p_person->Flag & TngF_PlayerAgent) != 0)
+        return;
+    p_person->State = PerSt_GOTO_POINT;
+    p_person->U.UPerson.ComTimer = -1;
+    p_person->SubState = 0;
+    p_person->U.UPerson.ComRange = 1;
+    p_person->Timer1 = 48;
+    p_person->StartTimer1 = 48;
+    p_person->Flag |= TngF_Unkn0040;
+    // The post position is stored packed in VY: X in high word, Z in low word
+    p_person->U.UPerson.GotoX = (short)(p_person->VY >> 16);
+    p_person->U.UPerson.GotoZ = (short)p_person->VY;
 }
 
 void person_kill_target2(struct Thing *p_person)
