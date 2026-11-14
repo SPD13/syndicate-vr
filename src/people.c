@@ -10416,11 +10416,74 @@ void person_go_enter_vehicle_fast(struct Thing *p_person, struct Thing *p_vehicl
         : : "a" (p_person), "d" (p_vehicle), "b" (plyr));
 }
 
-void person_go_enter_vehicle(struct Thing *p_person, struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void person_go_enter_vehicle_asm(struct Thing *p_person, struct Thing *p_vehicle)
 {
     asm volatile (
       "call ASM_person_go_enter_vehicle\n"
         : : "a" (p_person), "d" (p_vehicle));
+}
+
+void person_go_enter_vehicle(struct Thing *p_person, struct Thing *p_vehicle)
+{
+    DIFFTEST_SHADOW(person_go_enter_vehicle, person_go_enter_vehicle_asm(p_person, p_vehicle));
+
+    if ((p_person->Flag & TngF_Unkn0001) != 0)
+        return;
+    if ((p_person->Flag & (TngF_Destroyed|TngF_StationrSht)) != 0)
+        return;
+
+    if ((p_person->Flag2 & TgF2_Unkn0001) != 0)
+        finalise_razor_wire(p_person);
+
+    if ((p_person->Flag & TngF_InVehicle) != 0)
+    {
+        if (p_person->U.UPerson.Vehicle != (ushort)p_vehicle->ThingOffset)
+            return;
+        person_attempt_to_leave_vehicle(p_person);
+        return;
+    }
+
+    if ((p_vehicle->SubType == SubTT_VEH_SHIP) &&
+      (p_vehicle->U.UVehicle.LeisurePlace != 0) && (p_vehicle->Speed == 0))
+    {
+        s32 dx, dz, dist;
+
+        dx = (p_person->X - p_vehicle->X) >> 8;
+        dz = (p_person->Z - p_vehicle->Z) >> 8;
+        dx = abs(dx);
+        dz = abs(dz);
+        if (dx > dz)
+            dz >>= 1;
+        else
+            dx >>= 1;
+        dist = dz + dx;
+        if (dist < 0x190000)
+        {
+            person_enter_vehicle(p_person, p_vehicle);
+            p_person->State = PerSt_NONE;
+            p_person->U.UPerson.Vehicle = p_vehicle->ThingOffset;
+            return;
+        }
+    }
+
+    if (p_vehicle->SubType == SubTT_VEH_TRAIN)
+    {
+        if (p_person->U.UPerson.OnFace != 0)
+            p_person->U.UPerson.Flag3 |= PrsF3_Unkn20;
+        return;
+    }
+
+    p_person->State = PerSt_USE_VEHICLE;
+    p_person->U.UPerson.ComTimer = -1;
+    p_person->U.UPerson.ComRange = 1;
+    p_person->SubState = 0;
+    p_person->GotoThingIndex = p_vehicle->ThingOffset;
+    p_person->U.UPerson.GotoX = p_vehicle->X >> 8;
+    p_person->Timer1 = 48;
+    p_person->StartTimer1 = 48;
+    p_person->U.UPerson.GotoZ = p_vehicle->Z >> 8;
+    if (p_person->U.UPerson.PathIndex != 0)
+        remove_path(p_person);
 }
 
 TbBool person_has_supershield_active(ThingIdx person)
