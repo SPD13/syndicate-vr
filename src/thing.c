@@ -62,6 +62,7 @@
 #include "thing_fire.h"
 #include "thing_search.h"
 #include "tngcolisn.h"
+#include "tngobjdrw.h"
 #include "vehicle.h"
 #include "weapon.h"
 #include "game.h"
@@ -1749,11 +1750,65 @@ finish:
     delete_node(p_rocket);
 }
 
-void process_laser_guided(struct Thing *p_laser)
+static DIFFTEST_REF_FUNC void process_laser_guided_asm(struct Thing *p_laser)
 {
     asm volatile (
       "call ASM_process_laser_guided\n"
         : : "a" (p_laser));
+}
+
+void process_laser_guided(struct Thing *p_laser)
+{
+    struct Thing *p_target;
+    struct Thing *p_owner;
+    s32 dx, dz, dist;
+    s32 new_x, new_z;
+    s32 sn;
+    short angle, rate;
+    short glow_size;
+
+    DIFFTEST_SHADOW(process_laser_guided, process_laser_guided_asm(p_laser));
+
+    glow_size = 0x40;
+    p_target = p_laser->PTarget;
+    if (p_target == NULL)
+    {
+        remove_thing((ushort)(p_laser - things));
+        delete_node(p_laser);
+        return;
+    }
+
+    dx = (p_laser->X - p_target->X) >> 8;
+    dz = (p_laser->Z - p_target->Z) >> 8;
+    dist = dx * dx + dz * dz;
+    if (dist < 0x4000)
+    {
+        p_owner = &things[(ushort)p_laser->Owner];
+        angle = p_laser->U.UEffect.AngleY;
+        thing_hit_by_bullet(p_target, 1000,
+          (short)(lbSinTable[angle] >> 5), 0,
+          (short)(lbSinTable[angle + 512] >> 5), p_owner, 3);
+    }
+
+    p_laser->Timer1--;
+    if ((p_laser->Timer1 == 0) || (dist < 0x4000))
+    {
+        remove_thing((ushort)(p_laser - things));
+        delete_node(p_laser);
+        return;
+    }
+
+    p_target = p_laser->PTarget;
+    angle = arctan((p_target->X >> 8) - (p_laser->X >> 8),
+      -((p_target->Z >> 8) - (p_laser->Z >> 8)));
+    rate = calc_angle_rate(angle, p_laser->U.UEffect.AngleY, &glow_size);
+    p_laser->U.UEffect.AngleY = (p_laser->U.UEffect.AngleY + rate) & 0x7ff;
+
+    angle = p_laser->U.UEffect.AngleY;
+    sn = lbSinTable[angle];
+    new_x = p_laser->X + ((sn * glow_size) >> 8);
+    new_z = p_laser->Z + ((lbSinTable[angle + 512] * glow_size) >> 8);
+    move_mapwho(p_laser, new_x, p_laser->Y, new_z);
 }
 
 void process_c_iff(struct Thing *p_mine)
