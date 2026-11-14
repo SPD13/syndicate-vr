@@ -2541,10 +2541,39 @@ ubyte conditional_command_state_true(ushort cmd, struct Thing *p_me, ubyte from)
     return unmet;
 }
 
-void person_init_drop_special(struct Thing *p_person, ThingIdx item)
+static DIFFTEST_REF_FUNC void person_init_drop_special_asm(struct Thing *p_person, ThingIdx item)
 {
     asm volatile ("call ASM_person_init_drop_special\n"
         : : "a" (p_person), "d" (item));
+}
+
+void person_init_drop_special(struct Thing *p_person, ThingIdx item)
+{
+    struct SimpleThing *p_sthing;
+    ushort anim;
+
+    DIFFTEST_SHADOW(person_init_drop_special, person_init_drop_special_asm(p_person, item));
+    if ((p_person->Flag & (TngF_Unkn40000000 | TngF_WepRecoil | TngF_StationrSht | TngF_Destroyed)) != 0)
+        return;
+
+    p_sthing = &sthings[item];
+    if (p_sthing->U.UWeapon.Owner != p_person->ThingOffset)
+    {
+        p_person->State = PerSt_NONE;
+        return;
+    }
+
+    p_person->U.UPerson.TempWeapon = item;
+    p_person->Flag |= TngF_Unkn0001;
+    p_person->Flag2 |= TgF2_Unkn00010000;
+    anim = people_frames[p_person->SubType][ANIM_PERS_Unkn13];
+    p_person->Frame = nstart_ani[anim + p_person->U.UPerson.Angle];
+    anim = people_frames[p_person->SubType][ANIM_PERS_Unkn13];
+    p_person->State = PerSt_DROP_ITEM;
+    p_person->U.UPerson.Timer2 = 3;
+    p_person->StartFrame = anim - 1;
+    p_person->U.UPerson.OldAnimMode = p_person->U.UPerson.AnimMode;
+    p_person->U.UPerson.AnimMode = ANIM_PERS_Unkn13;
 }
 
 int build_tank_path(struct Thing *p_thing, int x, int z)
