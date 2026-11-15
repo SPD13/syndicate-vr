@@ -377,12 +377,31 @@ void thing_goto_point(struct Thing *p_thing, short x, short y, short z)
     p_thing->Frame = nstart_ani[frame + p_thing->U.UPerson.Angle];
 }
 
+void thing_goto_point_on_face(struct Thing *p_thing, short x, short z, short face);
+
+static DIFFTEST_REF_FUNC void thing_goto_point_on_face_fast_asm(struct Thing *p_thing,
+  short x, short z, short face, int plyr)
+{
+    int stkargs[] = {plyr};
+    asm volatile (
+      "push 0(%4)\n"
+      "call ASM_thing_goto_point_on_face_fast\n"
+        : : "a" (p_thing), "d" (x), "b" (z), "c" (face), "S" (stkargs)
+        : "cc", "memory");
+}
+
 void thing_goto_point_on_face_fast(struct Thing *p_thing, short x, short z, short face, int plyr)
 {
-    asm volatile (
-      "push %4\n"
-      "call ASM_thing_goto_point_on_face_fast\n"
-        : : "a" (p_thing), "d" (x), "b" (z), "c" (face), "g" (plyr));
+    DIFFTEST_SHADOW(thing_goto_point_on_face_fast,
+      thing_goto_point_on_face_fast_asm(p_thing, x, z, face, plyr));
+    if ((p_thing->Flag & (TngF_Unkn40000000 | TngF_Destroyed | TngF_Unkn0001)) != 0)
+        return;
+    p_thing->Flag2 |= TgF2_Unkn00080000;
+    thing_goto_point_on_face(p_thing, x, z, face);
+    if ((p_thing->Flag2 & TgF2_Unkn0040) != 0)
+        return;
+    set_person_animmode_run(p_thing);
+    set_player_peeps_to_run((int)p_thing, (ushort)plyr, 0, (int)p_thing);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
