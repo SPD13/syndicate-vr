@@ -118,10 +118,10 @@ Notes:
 
 ## Open items
 
-- Regression of the 249 functions remade before the bot was added was
-  not re-run on the bot scenarios. `SWARS_DIFFTEST_FN="*"` is too slow
-  (>10 min per mission); a faster option is to run `difftest_run.sh`
-  for the functions the bot scenarios reach, a few at a time.
+- Regression of the functions remade before the bot (247 in the ledger)
+  on the bot scenarios was done on 2026-11-14: 243 reach a bot scenario,
+  all pass after the `do_shockwave` fix (it negated its own argument
+  slot). The other 4 are not reached by any bot scenario.
 - When a function is blocked by an internal asm label, route the label
   (`tools/decomp-agent/route_labels.py`, or by hand), verify with
   `tools/decomp-agent/statetrace.sh` against the previous build (all
