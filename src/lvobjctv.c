@@ -839,14 +839,53 @@ TbBool thing_arrived_at_obj_square2(ThingIdx thing, int x1, int z1, int x2, int 
     return false;
 }
 
-ubyte all_group_arrived_square(ushort group, short x, short z, short x2, int z2)
+static DIFFTEST_REF_FUNC ubyte all_group_arrived_square_asm(ushort group,
+  short x, short z, short x2, int z2)
 {
     ubyte ret;
+    // Pushed through a register holding them: a "g" operand may be placed
+    // relative to the stack pointer, which each push moves.
+    int stkargs[1];
+
+    stkargs[0] = z2;
+
     asm volatile (
-      "push %5\n"
+      "push 0(%5)\n"
       "call ASM_all_group_arrived_square\n"
-        : "=r" (ret) : "a" (group), "d" (x), "b" (z), "c" (x2), "g" (z2));
+        : "=a" (ret)
+        : "a" (group), "d" (x), "b" (z), "c" (x2), "S" (stkargs)
+        : "cc", "memory");
     return ret;
+}
+
+/** Check whether all non-destroyed members of a group are inside
+ * the rectangle (x,z)-(x2,z2), bounds included, in map coordinates.
+ * Returns false if the group has no non-destroyed members.
+ */
+ubyte all_group_arrived_square(ushort group, short x, short z, short x2, int z2)
+{
+    struct Thing *p_thing;
+    ThingIdx thing;
+    s32 count;
+    short cor_x, cor_z;
+
+    DIFFTEST_SHADOW_RET(all_group_arrived_square, ubyte,
+      all_group_arrived_square_asm(group, x, z, x2, z2));
+    count = 0;
+    for (thing = same_type_head[256 + group]; thing > 0; thing = p_thing->LinkSameGroup)
+    {
+        p_thing = &things[thing];
+        cor_x = (short)(p_thing->X >> 8);
+        cor_z = (short)(p_thing->Z >> 8);
+        if ((p_thing->Flag & TngF_Destroyed) != 0)
+            continue;
+        count++;
+        if ((cor_x < x) || (cor_x > x2) || (cor_z < z) || (cor_z > (short)z2))
+            DIFFTEST_RETURN((ubyte)0);
+    }
+    if ((thing == 0) && (count != 0))
+        DIFFTEST_RETURN((ubyte)1);
+    DIFFTEST_RETURN((ubyte)0);
 }
 
 static DIFFTEST_REF_FUNC ubyte mem_group_arrived_square2_asm(struct Thing *p_person,
