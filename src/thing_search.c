@@ -1000,12 +1000,45 @@ ThingIdx search_things_for_type_farthest_from_xz(short X, short Z, short ttype, 
     return thing;
 }
 
-ThingIdx search_things_for_uniqueid(short uniqid, ubyte flag)
+static DIFFTEST_REF_FUNC ThingIdx search_things_for_uniqueid_asm(short uniqid, ubyte flag)
 {
     ThingIdx ret;
     asm volatile ("call ASM_search_things_for_uniqueid\n"
-        : "=r" (ret) : "a" (uniqid), "d" (flag));
+        : "=a" (ret) : "a" (uniqid), "d" (flag));
     return ret;
+}
+
+ThingIdx search_things_for_uniqueid(short uniqid, ubyte flag)
+{
+    ThingIdx thing;
+    ThingIdx found;
+
+    DIFFTEST_SHADOW_RET(search_things_for_uniqueid, ThingIdx,
+      search_things_for_uniqueid_asm(uniqid, flag));
+    if (flag)
+    {
+        for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
+        {
+            struct Thing *p_thing = &things[thing];
+
+            if (p_thing->Type == TT_BUILDING)
+                continue;
+            if ((s32)uniqid == (s32)p_thing->U.UPerson.UniqueID)
+                DIFFTEST_RETURN(thing);
+        }
+        DIFFTEST_RETURN((ThingIdx)0);
+    }
+    // TODO the asm returns an uninitialized register (edi) when no simple
+    // thing matches; we return 0 instead. It also keeps the last match.
+    found = 0;
+    for (thing = sthings_used_head; thing < 0; thing = sthings[thing].LinkChild)
+    {
+        struct SimpleThing *p_sthing = &sthings[thing];
+
+        if ((s32)uniqid == (s32)p_sthing->UniqueID)
+            found = thing;
+    }
+    DIFFTEST_RETURN(found);
 }
 
 static DIFFTEST_REF_FUNC ThingIdx find_nearest_object2_asm(short mx, short mz, ushort sub_type)
