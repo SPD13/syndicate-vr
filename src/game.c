@@ -2235,10 +2235,16 @@ void find_the_tall_buildings(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void nullsub_7(void)
+static DIFFTEST_REF_FUNC void nullsub_7_asm(void)
 {
     asm volatile ("call ASM_nullsub_7\n"
         :  : : "cc", "memory");
+}
+
+void nullsub_7(void)
+{
+    DIFFTEST_SHADOW(nullsub_7, nullsub_7_asm());
+    // The asm is a bare `ret`.
 }
 
 /** Routed asm (internal label). Arguments and return value are the
