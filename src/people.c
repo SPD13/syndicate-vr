@@ -14410,11 +14410,53 @@ short do_move_colide(struct Thing *p_person, int dx, int dz, struct MyMapElement
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void del_col_vect_from_mapwho(int a1, int a2, int a3)
+static DIFFTEST_REF_FUNC void del_col_vect_from_mapwho_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
     asm volatile ("call ASM_del_col_vect_from_mapwho\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "cc", "memory");
+}
+
+extern short link__MapColListEmptyHead;
+
+void del_col_vect_from_mapwho(int a1, int a2, int a3)
+{
+    struct MyMapElement *p_mapel;
+    struct ColVectList *p_list;
+    s32 tile_x, tile_z;
+    s32 colvect;
+    ushort cvlist, prev, next;
+
+    DIFFTEST_SHADOW(del_col_vect_from_mapwho, del_col_vect_from_mapwho_asm(a1, a2, a3));
+    p_list = game_col_vects_list;
+    tile_x = ((short)a1) >> 8;
+    if (tile_x < 0 || tile_x >= MAP_TILE_WIDTH)
+        return;
+    tile_z = ((short)a2) >> 8;
+    if (tile_z < 0 || tile_z >= MAP_TILE_HEIGHT)
+        return;
+    colvect = (short)a3;
+    p_mapel = &game_my_big_map[(tile_z << 7) + tile_x];
+
+    prev = 0;
+    cvlist = p_mapel->ColHead;
+    while (cvlist != 0)
+    {
+        next = p_list[cvlist].NextColList;
+        if ((s32)p_list[cvlist].Vect == colvect)
+        {
+            if (prev != 0)
+                p_list[prev].NextColList = next;
+            else
+                p_mapel->ColHead = next & 0x7FFF;
+            p_list[cvlist].NextColList = link__MapColListEmptyHead;
+            link__MapColListEmptyHead = cvlist;
+        }
+        // TODO the asm sets prev to the current entry even if it was just
+        // removed from the chain; kept as is
+        prev = cvlist;
+        cvlist = next & 0x7FFF;
+    }
 }
 
 /** Routed asm (internal label). Arguments and return value are the
