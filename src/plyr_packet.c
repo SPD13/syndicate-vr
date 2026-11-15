@@ -27,11 +27,13 @@
 #include "bfmemut.h"
 #include "bfmusic.h"
 #include "bfutility.h"
+#include "enginsngobjs.h"
 #include "engintrns.h"
 #include "frame_sprani.h"
 #include "ssampply.h"
 
 #include "bigmap.h"
+#include "building.h"
 #include "difftest.h"
 #include "display.h"
 #include "drawtext_wrp.h"
@@ -45,12 +47,14 @@
 #include "keyboard.h"
 #include "network.h"
 #include "packet.h"
+#include "people.h"
 #include "player.h"
 #include "plyr_net.h"
 #include "research.h"
 #include "scandraw.h"
 #include "sound.h"
 #include "thing.h"
+#include "weapon.h"
 #include "swlog.h"
 /******************************************************************************/
 struct ShortPacket shpackets[8];
@@ -415,11 +419,110 @@ void find_bezier_nav_point(int a1, int a2, int a3, int a4)
 }
 
 
-void thing_goto_point_on_face(struct Thing *p_thing, short x, short z, short face)
+static DIFFTEST_REF_FUNC void thing_goto_point_on_face_asm(struct Thing *p_thing,
+  short x, short z, short face)
 {
     asm volatile (
       "call ASM_thing_goto_point_on_face\n"
         : : "a" (p_thing), "d" (x), "b" (z), "c" (face));
+}
+
+void thing_goto_point_on_face(struct Thing *p_thing, short x, short z, short face)
+{
+    ushort frame;
+
+    DIFFTEST_SHADOW(thing_goto_point_on_face,
+      thing_goto_point_on_face_asm(p_thing, x, z, face));
+    if ((p_thing->Flag & (TngF_Unkn40000000 | TngF_Unkn0001)) != 0)
+        return;
+    if ((p_thing->Flag & (TngF_StationrSht | TngF_Destroyed)) != 0)
+        return;
+    if ((p_thing->Flag2 & TgF2_Unkn0001) != 0)
+        finalise_razor_wire(p_thing);
+
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+    {
+        struct Thing *p_vehicle;
+        s32 nav_x, nav_z;
+
+        p_vehicle = &things[p_thing->U.UPerson.Vehicle];
+        if (face < 0)
+        {
+            struct SingleObjectFace4 *p_face;
+            struct Thing *p_building;
+
+            p_face = &game_object_faces4[-face];
+            p_building = &things[(ushort)game_objects[(ushort)p_face->Object].ThingNo];
+            if (p_building->SubType == SubTT_BLD_BEZIER_ROAD)
+            {
+                nav_x = 0;
+                nav_z = 0;
+                find_bezier_nav_point(face, (int)p_vehicle, (int)&nav_x, (int)&nav_z);
+            }
+            else
+            {
+                nav_z = z;
+                nav_x = x;
+            }
+        }
+        else if (face == 0)
+        {
+            return;
+        }
+        else
+        {
+            nav_z = z;
+            nav_x = x;
+        }
+        p_vehicle->Flag &= ~TngF_PlayerAgent;
+        start_goto_vehicle(p_vehicle, (short)nav_x, (short)nav_z);
+        return;
+    }
+
+    p_thing->Flag2 &= ~TgF2_Unkn00020000;
+    switch (p_thing->State & 0x7fff)
+    {
+    case PerSt_NONE:
+    case PerSt_GOTO_POINT:
+    case PerSt_WAIT:
+    case PerSt_GOTO_PERSON:
+    case PerSt_GET_ITEM:
+    case PerSt_USE_VEHICLE:
+        break;
+    default:
+        return;
+    }
+
+    p_thing->State = PerSt_GOTO_POINT;
+    p_thing->U.UPerson.ComTimer = -1;
+    p_thing->Timer1 = 0x30;
+    p_thing->StartTimer1 = 0x30;
+    p_thing->SubState = 0;
+    p_thing->U.UPerson.ComRange = 1;
+    p_thing->U.UPerson.GotoX = x;
+    p_thing->U.UPerson.GotoZ = z;
+    if ((p_thing->Flag & TngF_PlayerAgent) != 0)
+        players[p_thing->U.UPerson.ComCur >> 2].GotoFace = face;
+    if (p_thing->U.UPerson.PathIndex != 0)
+        remove_path(p_thing);
+    p_thing->U.UPerson.PathIndex = 0;
+    build_navigate_path_to_face_xz(p_thing, -face, x, z);
+
+    if ((p_thing->Flag2 & TgF2_Unkn00080000) != 0)
+    {
+        if (p_thing->U.UPerson.AnimMode == 0x13)
+            return;
+        p_thing->U.UPerson.AnimMode = 0x13;
+    }
+    else
+    {
+        if (p_thing->U.UPerson.AnimMode != 0x13)
+            return;
+        p_thing->U.UPerson.AnimMode = gun_out_anim(p_thing, 0);
+    }
+    p_thing->StartFrame = people_frames[p_thing->SubType][p_thing->U.UPerson.AnimMode] - 1;
+    frame = people_frames[p_thing->SubType][p_thing->U.UPerson.AnimMode];
+    p_thing->Frame = nstart_ani[frame + p_thing->U.UPerson.Angle];
 }
 
 static DIFFTEST_REF_FUNC ubyte select_new_weapon_asm(ushort index, short dir)
