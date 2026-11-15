@@ -30,7 +30,7 @@ for SC in $SCENARIOS; do
     # "<campaign>,<mission>+bot": the mission with scripted player input
     BOT=""; case "$SC" in *+bot) BOT=1 ;; esac
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
-    SWARS_DIFFTEST_FN=none SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
+    SWARS_DIFFTEST_FN=none SWARS_SEED="${SWARS_SEED:-12345}" SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
     SWARS_DIFFTEST_MIN=0 SWARS_DIFFTEST_LOG="$OUT/difftest.log" \
     SWARS_COVERAGE="$OUT/cov_${SC/,/_}.txt" \
         timeout 900 env ${BOT:+SWARS_DIFFTEST_BOT=1} "$EXE" -q -W -m "${SC%+bot}" > /dev/null 2>&1 || echo "scenario $SC: rc=$?"

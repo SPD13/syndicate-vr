@@ -52,6 +52,9 @@ static TbBool bot_tried = false;
 static TbBool bot_on = false;
 static ulong bot_seed;
 static FILE *bot_log = NULL;
+/** Agent teleported next to a vehicle, and that vehicle. */
+static ThingIdx bot_tp_agent = 0;
+static ThingIdx bot_tp_vehicle = 0;
 
 static ulong bot_rand(ulong range)
 {
@@ -132,18 +135,41 @@ static ThingIdx bot_pick_thing(struct Thing *p_agent, ubyte ttype, TbBool no_own
 }
 
 /** Picks a vehicle anywhere on the map, or 0. Some (the mech in 1,102)
- * stand too far from the agents to reach them within a scenario.
+ * stand too far from the agents to reach them within a scenario. Picks a
+ * vehicle subtype first, so that a lone mech or ship is as likely as the
+ * many cars.
  */
 static ThingIdx bot_pick_far_vehicle(void)
 {
     ThingIdx thing, found[64];
-    int n;
+    ubyte subtypes[64];
+    int n, nsub, i;
+    ubyte subtype;
+
+    nsub = 0;
+    for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
+    {
+        struct Thing *p_thing = &things[thing];
+        if (p_thing->Type != TT_VEHICLE)
+            continue;
+        if ((p_thing->Flag & TngF_Destroyed) != 0)
+            continue;
+        for (i = 0; i < nsub; i++) {
+            if (subtypes[i] == p_thing->SubType)
+                break;
+        }
+        if ((i == nsub) && (nsub < 64))
+            subtypes[nsub++] = p_thing->SubType;
+    }
+    if (nsub == 0)
+        return 0;
+    subtype = subtypes[bot_rand(nsub)];
 
     n = 0;
     for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
     {
         struct Thing *p_thing = &things[thing];
-        if (p_thing->Type != TT_VEHICLE)
+        if (p_thing->Type != TT_VEHICLE || p_thing->SubType != subtype)
             continue;
         if ((p_thing->Flag & TngF_Destroyed) != 0)
             continue;
@@ -315,6 +341,24 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         }
         return;
     }
+    // Right after a teleport next to a vehicle, get into it
+    if ((agent == bot_tp_agent) && (bot_tp_vehicle != 0))
+    {
+        // Weapon away first (see case 7), keeping the plan
+        if (p_agent->U.UPerson.CurrentWeapon != WEP_NULL) {
+            build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent,
+              p_agent->U.UPerson.CurrentWeapon, WepSel_HIDE, 0);
+            return;
+        }
+        target = bot_tp_vehicle;
+        bot_tp_agent = 0;
+        bot_tp_vehicle = 0;
+        if ((things[target].Type == TT_VEHICLE) &&
+          ((things[target].Flag & TngF_Destroyed) == 0)) {
+            build_packet(p_pckt, PAct_GO_ENTER_VEHICLE, agent, target, 0, 0);
+            return;
+        }
+    }
     switch (bot_rand(26))
     {
     case 0:
@@ -361,15 +405,17 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
             break;
         }
         target = bot_pick_thing(p_agent, TT_VEHICLE, false);
-        if (target == 0) {
-            // None near: teleport next to one anywhere (cheat), so that
-            // a later action can enter it
+        if ((target == 0) || (bot_rand(4) == 0)) {
+            // None near, or now and then: teleport next to one anywhere
+            // (cheat); the agent's next action enters it
             target = bot_pick_far_vehicle();
             if (target == 0 || !bot_cheat_allowed())
                 break;
             build_packet(p_pckt, PAct_CHEAT_AGENT_TELEPORT, agent,
               PRCCOORD_TO_MAPCOORD(things[target].X) + 256, 0,
               PRCCOORD_TO_MAPCOORD(things[target].Z) + 256);
+            bot_tp_agent = agent;
+            bot_tp_vehicle = target;
             break;
         }
         if (bot_dist(p_agent, things[target].X, things[target].Z) < 512)

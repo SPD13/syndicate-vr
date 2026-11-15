@@ -81,7 +81,7 @@ for SC in $SCENARIOS; do
     [ "$VERDICT" = PASS ] || break
     LOG="$OUT/scenario_${SC/,/_}.log"
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
-    SWARS_DIFFTEST_FN="$FN" SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
+    SWARS_DIFFTEST_FN="$FN" SWARS_SEED="${SWARS_SEED:-12345}" SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
     SWARS_DIFFTEST_MIN=0 SWARS_DIFFTEST_LOG="$LOG" \
         timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} "$EXE" -q -W -m "${SC%+bot}" > "$OUT/scenario_${SC/,/_}.out" 2>&1
     RC=$?
