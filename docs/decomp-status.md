@@ -1,4 +1,4 @@
-# Decompilation status — 2026-11-14
+# Decompilation status — 2026-11-15
 
 Handoff note for resuming the asm-to-C work in a new session (for example
 after a reboot). How to remake a function is in `CLAUDE.md`; the overall
@@ -6,28 +6,23 @@ plan is in `docs/decompilation-agent-plan.md`.
 
 ## Where things stand
 
-- Branch `decomp/auto` (local only, **never push**), 332 commits on top of
+- Branch `decomp/auto` (local only, **never push**), 360 commits on top of
   `vr/main`.
-- `queue.py` stats: 693 asm functions, 292 shadowed (remade in C and
-  difftested), 127 routed labels still live, **0 queued**. The loop has
-  run out of work it can verify with the current scenarios.
-- Ledger (`tools/decomp-agent/ledger.jsonl`): 290 merged, 1 unverified
-  (`bul_hit_vector`, never reached by any scenario).
-- 2026-11-14 run: 38 queued targets, 33 merged on the first pass (about
-  $18 of agent budget). The other 5 were blocked by internal labels, which
-  `31a4febd` routed:
-  - `set_player_peeps_to_run` blocked `person_go_enter_vehicle_fast`,
-    `thing_goto_point_rel_fast`, `thing_goto_point_fast` and
-    `make_peeps_scatter`. Its loop exit jumped to `jump_543c1`, the shared
-    epilogue of another function (same pops), so it got its own copy
-    (`jump_57dc6`) and was then routed by `route_labels.py`.
-  - `del_col_vect_from_mapwho` blocked `delete_vect`; routed as is.
-  - State traces of all 21 scenarios identical to the base build.
-  After a ledger reset all 5 merged (`e818d313`..`82054c18`); about $20
-  in total for the day.
-- Remaining routed labels are all excluded from the queue: 95
-  low-coverage (no scenario reaches them often enough), 20 sound/network
-  subsystem, 12 changed recently upstream.
+- `queue.py` stats: 693 asm functions, 316 shadowed (remade in C and
+  difftested), 103 routed labels still live, **0 queued**.
+- 2026-11-14 run: 38 targets, all merged after routing
+  `set_player_peeps_to_run` (own epilogue `jump_57dc6`) and
+  `del_col_vect_from_mapwho` in `31a4febd`; about $20.
+- 2026-11-14/15 run, after the bot extension and 28 scenarios
+  (`0a7a883d`): 24 targets, 23 merged on the first pass (about $11).
+  `mech_unkn_func_20` was blocked: the asm takes its output vector in
+  `esi`. `efd1df5e` makes the asm caller pass it in `ecx` (saved around
+  the call) and the C wrapper take it as 4th argument; state traces of all
+  28 scenarios identical. After a ledger reset it merged (`964b26ab`).
+- Remaining routed labels are all excluded from the queue: 71
+  low-coverage, 20 sound/network subsystem, 12 changed recently upstream
+  (kept excluded by choice; the 30-day window lapses about 2026-12-01,
+  then `queue.py` queues them by itself).
 - Untracked: `tools/decomp-agent/loop.log` (the loop's log, keep it).
 
 ## Player bot scenarios (added this session)
@@ -42,9 +37,13 @@ with random but deterministic player commands:
 - Called from `game_process()` right after `load_packet()`; acts every 6
   turns, only in `DpM_ENGINEPLY` and only when the packet is empty.
 - Default scenarios (in `coverage.sh`, `difftest_run.sh`,
-  `statetrace.sh`): 13 plain + 8 bot =
+  `statetrace.sh`): 13 plain + 15 bot =
   `0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19 1,2+bot
-  1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot`.
+  1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot
+  1,102+bot 0,22+bot 1,100+bot 1,85+bot 1,71+bot 1,72+bot 0,49+bot`.
+- Bot actions (`0a7a883d`): goto/shoot/plant at walkable faces, select
+  next agent, persuade, earlier self-destruct. Persuasion still reaches
+  0 calls in coverage, so that path does not work yet.
 - All bot missions are deterministic over two runs (1,27+bot ends at turn
   594 because the mission ends; 1,27 plain ends at turn 23).
 
@@ -128,6 +127,8 @@ Notes:
   scenarios identical), then append `{"fn": X, "status": "reset"}` to
   the ledger so `queue.py` forgets earlier failures. Base traces made
   before `b69356d9` are invalid; regenerate them.
-- The queue is empty: the 95 low-coverage functions need new
-  scenarios (other missions or more bot actions) before they can be
-  difftested.
+- The queue is empty: the 71 low-coverage functions need new
+  scenarios, more bot actions (persuasion is not reached yet; the mech
+  only stands still, so `process_mech` has 0 calls) or fuzz cases.
+- Still asm: 22 functions called only from asm, and 16 game internal
+  labels (46 more in net/sound/radica).
