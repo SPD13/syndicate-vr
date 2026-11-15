@@ -460,6 +460,14 @@ static void fuzz_my_preprocess_text(ulong *p_seed)
     my_preprocess_text(text);
 }
 
+void nullsub_7(void);
+
+/** An empty function; the case only makes the difftest call it. */
+static void fuzz_nullsub_7(ulong *p_seed)
+{
+    nullsub_7();
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
@@ -477,6 +485,7 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"func_5cff0", fuzz_func_5cff0},
     {"line_intersect8", fuzz_line_intersect8},
     {"my_preprocess_text", fuzz_my_preprocess_text},
+    {"nullsub_7", fuzz_nullsub_7},
     {"save_crypto_make_hashtable", fuzz_save_crypto},
     {"save_crypto_transform1", fuzz_save_crypto},
     {"save_crypto_transform2", fuzz_save_crypto},
