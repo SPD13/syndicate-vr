@@ -52,9 +52,17 @@ static TbBool bot_tried = false;
 static TbBool bot_on = false;
 static ulong bot_seed;
 static FILE *bot_log = NULL;
+/** BAT billboard area (map tiles) and minigame state, asm data from bat.c */
+extern int bat_unknvalA_min;
+extern int bat_unknvalB_min;
+extern int bat_unknvalA_max;
+extern int bat_unknvalB_max;
+extern int BAT_state;
 /** Agent teleported next to a vehicle, and that vehicle. */
 static ThingIdx bot_tp_agent = 0;
 static ThingIdx bot_tp_vehicle = 0;
+/** Agent sent to the BAT billboard area. */
+static ThingIdx bot_bat_agent = 0;
 
 static ulong bot_rand(ulong range)
 {
@@ -375,6 +383,43 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         }
         return;
     }
+    // On a map with a BAT billboard area (map 30), now and then send one
+    // agent there to hold the Persuadertron: it starts the Breakout
+    // minigame on the billboard (BAT_unknsub_27()). That agent then
+    // teleports, selects the weapon and waits until the game starts.
+    // Other maps draw no extra random numbers.
+    if ((bat_unknvalA_max > 0) && (BAT_state == 0))
+    {
+        if ((bot_bat_agent == 0) &&
+          person_carries_weapon(p_agent, WEP_PERSUADRTRN) &&
+          (bot_rand(8) == 0))
+            bot_bat_agent = agent;
+        if (agent == bot_bat_agent)
+        {
+            int cx, cz;
+
+            cx = (bat_unknvalA_min + bat_unknvalA_max + 1) * 128;
+            cz = (bat_unknvalB_min + bat_unknvalB_max + 1) * 128;
+            if (bot_dist(p_agent, MAPCOORD_TO_PRCCOORD(cx, 0),
+              MAPCOORD_TO_PRCCOORD(cz, 0)) > 512) {
+                if (!bot_on_mapwho(p_agent) || !bot_cheat_allowed()) {
+                    bot_bat_agent = 0;
+                    return;
+                }
+                build_packet(p_pckt, PAct_CHEAT_AGENT_TELEPORT, agent,
+                  cx, 0, cz);
+                return;
+            }
+            if (p_agent->U.UPerson.CurrentWeapon != WEP_PERSUADRTRN)
+                build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent,
+                  WEP_PERSUADRTRN, WepSel_TOGGLE, 0);
+            return;
+        }
+    }
+    else if (BAT_state != 0)
+    {
+        bot_bat_agent = 0;
+    }
     // Right after a teleport next to a vehicle, get into it
     if ((agent == bot_tp_agent) && (bot_tp_vehicle != 0))
     {
@@ -469,8 +514,9 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
             build_packet(p_pckt, PAct_SELECT_GRP_SPEC_WEAPON, agent, wtype,
               WepSel_SELECT, 0);
         else
+            // As the UI: the handler rejects flags above WepSel_HIDE
             build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent, wtype,
-              WepSel_SELECT, 0);
+              WepSel_TOGGLE, 0);
         break;
     case 11:
         build_packet(p_pckt, bot_rand(2) ? PAct_SELECT_NEXT_WEAPON :
@@ -563,8 +609,9 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         else
             break;
         if (p_agent->U.UPerson.CurrentWeapon != wtype) {
+            // As the UI: the handler rejects flags above WepSel_HIDE
             build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent, wtype,
-              WepSel_SELECT, 0);
+              WepSel_TOGGLE, 0);
             break;
         }
         target = bot_pick_thing(p_agent, TT_PERSON, true);

@@ -470,8 +470,11 @@ void breakout_play_sub2(void)
 
 void BAT_bricks_load(int a1)
 {
+    // The level number goes in eax; the wrapper used to leave it to chance,
+    // which only worked while eax still held a1 (not in coverage builds)
+    int ra = a1;
     asm volatile ("call ASM_BAT_bricks_load\n"
-        :  :  : "eax" );
+        : "+a" (ra) : : "cc", "memory");
 }
 
 void BAT_play(void)
