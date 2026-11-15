@@ -5248,10 +5248,42 @@ void track_player(int thing)
         : : "a" (thing));
 }
 
-void track_angle(void)
+static DIFFTEST_REF_FUNC void track_angle_asm(void)
 {
     asm volatile ("call ASM_track_angle\n"
         :  :  : "eax" );
+}
+
+void track_angle(void)
+{
+    s32 dt_angle, dir;
+
+    DIFFTEST_SHADOW(track_angle, track_angle_asm());
+    dt_angle = (s32)(ushort)ingame.fld_unkCA6 - (engn_cam_yaw >> 5);
+    if (dt_angle == 0)
+        return;
+    if (dt_angle < -0x400)
+    {
+        dir = 1;
+    }
+    else if (dt_angle > 0x400)
+    {
+        dir = -1;
+    }
+    else
+    {
+        if (abs(dt_angle) < ((s32)(ushort)ingame.fld_unkCA8 >> 4))
+        {
+            engn_cam_yaw = (s32)(ushort)ingame.fld_unkCA6 << 5;
+            return;
+        }
+        if (dt_angle > 0)
+            dir = 1;
+        else
+            dir = -1;
+    }
+    engn_cam_yaw += (s32)(ushort)ingame.fld_unkCA8 * dir;
+    engn_cam_yaw &= 0xffe0;
 }
 
 void track_y(int y)
