@@ -1,4 +1,4 @@
-# Decompilation status — 2026-11-11
+# Decompilation status — 2026-11-14
 
 Handoff note for resuming the asm-to-C work in a new session (for example
 after a reboot). How to remake a function is in `CLAUDE.md`; the overall
@@ -6,24 +6,28 @@ plan is in `docs/decompilation-agent-plan.md`.
 
 ## Where things stand
 
-- Branch `decomp/auto` (local only, **never push**), head `d72519cc`,
-  291 commits on top of `vr/main`.
-- `queue.py` stats: 691 asm functions, 254 shadowed (remade in C and
-  difftested), 162 routed labels still live, **37 queued**.
-- Ledger (`tools/decomp-agent/ledger.jsonl`): 252 merged, 1 unverified
+- Branch `decomp/auto` (local only, **never push**), 332 commits on top of
+  `vr/main`.
+- `queue.py` stats: 693 asm functions, 292 shadowed (remade in C and
+  difftested), 127 routed labels still live, **0 queued**. The loop has
+  run out of work it can verify with the current scenarios.
+- Ledger (`tools/decomp-agent/ledger.jsonl`): 290 merged, 1 unverified
   (`bul_hit_vector`, never reached by any scenario).
-- Last commits:
-  - `b69356d9` difftest: Scripted player bot for mission scenarios
-  - `0aa74e00` person_init_follow_person
-  - `428f7824` make_peep_protect_peep
-  - `98f4957f` count_protect
-  - `9d52207f` get_soul
-  - `d72519cc` snap_razor_wire
-- The loop was stopped (Claude Code killed it for low memory) while it
-  was pre-building `clear_player_protectors_paths`. That leaves a stale
-  worktree `worktrees/clear_player_protectors_paths` and branch
-  `decomp/try/clear_player_protectors_paths`, both at `d72519cc` with no
-  changes. They must be removed before restarting.
+- 2026-11-14 run: 38 queued targets, 33 merged on the first pass (about
+  $18 of agent budget). The other 5 were blocked by internal labels, which
+  `31a4febd` routed:
+  - `set_player_peeps_to_run` blocked `person_go_enter_vehicle_fast`,
+    `thing_goto_point_rel_fast`, `thing_goto_point_fast` and
+    `make_peeps_scatter`. Its loop exit jumped to `jump_543c1`, the shared
+    epilogue of another function (same pops), so it got its own copy
+    (`jump_57dc6`) and was then routed by `route_labels.py`.
+  - `del_col_vect_from_mapwho` blocked `delete_vect`; routed as is.
+  - State traces of all 21 scenarios identical to the base build.
+  After a ledger reset all 5 merged (`e818d313`..`82054c18`); about $20
+  in total for the day.
+- Remaining routed labels are all excluded from the queue: 95
+  low-coverage (no scenario reaches them often enough), 20 sound/network
+  subsystem, 12 changed recently upstream.
 - Untracked: `tools/decomp-agent/loop.log` (the loop's log, keep it).
 
 ## Player bot scenarios (added this session)
@@ -60,26 +64,11 @@ Lessons learned, do not undo:
 - Debugging the 32-bit exe works with the mingw64 gdb,
   `C:/msys64/mingw64/bin/gdb.exe` (no mingw32 gdb package exists).
 
-## Remaining queue (37, in the order `queue.py` picks them)
+## Remaining queue
 
-clear_player_protectors_paths, person_init_drop_special,
-init_electricity_bomb, try_and_kill_target, set_get_item, limit_mood,
-call_unprotect, process_splash, peep_change_weapon, select_new_weapon,
-ma_triangle_route_5, process_mushroom, call_protect,
-person_go_enter_vehicle, process_stop_as_soon_as_you_can,
-stop_being_persuaded, process_laser_guided, process_stasis_pod,
-person_unkn_start_get_item, person_goto_point_rel,
-player_chat_message_add_key, copy_owner_with_weapon,
-send_another_player_peep, thing_goto_point_rel, person_init_get_item,
-process_soul, elec_hit_building, thing_goto_point,
-person_init_get_item_fast, triangle_route_do_unkn4,
-triangle_route_do_unkn3, then (after their callers are done)
-person_go_enter_vehicle_fast, thing_goto_point_rel_fast,
-thing_goto_point_fast, delete_vect, process_persuaded,
-make_peeps_scatter.
-
-Excluded from the queue: 92 low-coverage (no scenario reaches them
-often enough), 20 sound/network subsystem, 13 changed recently upstream.
+Empty. To get more targets, widen the scenarios (see Open items), rebuild
+`coverage.json` with `tools/decomp-agent/coverage.sh` and run
+`queue.py --print` again.
 
 ## How to resume
 
@@ -88,10 +77,11 @@ From a shell in the repo (Git Bash):
 ```sh
 cd /c/Users/sebbo/claude-workspace/syndicate-vr/syndicate-vr
 git checkout decomp/auto
-# 1. Remove the stale attempt
-git worktree remove --force worktrees/clear_player_protectors_paths
+# 1. If a run was interrupted, remove its stale attempt
+#    (git worktree list; then for the leftover <fn>:)
+git worktree remove --force worktrees/<fn>
 git worktree prune
-git branch -D decomp/try/clear_player_protectors_paths
+git branch -D decomp/try/<fn>
 # 2. Check the queue
 python tools/decomp-agent/queue.py --print 10
 # 3. Start the loop (runs for hours; run it in the background)
@@ -138,6 +128,6 @@ Notes:
   scenarios identical), then append `{"fn": X, "status": "reset"}` to
   the ledger so `queue.py` forgets earlier failures. Base traces made
   before `b69356d9` are invalid; regenerate them.
-- After the queue is empty: the 92 low-coverage functions need new
+- The queue is empty: the 95 low-coverage functions need new
   scenarios (other missions or more bot actions) before they can be
   difftested.
