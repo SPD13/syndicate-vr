@@ -11263,11 +11263,127 @@ TbBool person_update_thermal(ThingIdx person)
     return true;
 }
 
-void make_peeps_scatter(struct Thing *p_person, int x, int z)
+static DIFFTEST_REF_FUNC void make_peeps_scatter_asm(struct Thing *p_person, int x, int z)
 {
     asm volatile (
       "call ASM_make_peeps_scatter\n"
         : : "a" (p_person), "d" (x), "b" (z));
+}
+
+void thing_goto_point(struct Thing *p_thing, short x, short y, short z);
+
+/** Returns whether the agent selected by make_peeps_scatter() in given
+ * scatter direction belongs to the scattering group.
+ */
+static TbBool scatter_agent_in_group(struct Thing *p_person, struct Thing *p_agent)
+{
+    if ((p_agent->State == PerSt_PROTECT_PERSON) &&
+      (p_agent->GotoThingIndex == (ushort)p_person->ThingOffset))
+        return true;
+    return ((p_agent->Flag & TngF_SelectedAgent) != 0);
+}
+
+void make_peeps_scatter(struct Thing *p_person, int x, int z)
+{
+    s32 best_dist[4];
+    s32 best_agent[4];
+    s32 radius;
+    ushort plyr, i, dir;
+
+    DIFFTEST_SHADOW(make_peeps_scatter, make_peeps_scatter_asm(p_person, x, z));
+    radius = 0x100;
+    if ((x >> 8) < 0 || (x >> 8) >= 128)
+        return;
+    if ((z >> 8) < 0 || (z >> 8) >= 128)
+        return;
+
+    plyr = p_person->U.UPerson.ComCur >> 2;
+    memset(best_dist, 0x7f, sizeof(best_dist));
+    memset(best_agent, 0, sizeof(best_agent));
+
+    for (i = 0; i < playable_agents; i++)
+    {
+        struct Thing *p_agent;
+
+        p_agent = players[plyr].MyAgent[i];
+        if (scatter_agent_in_group(p_person, p_agent))
+            p_agent->U.UPerson.Flag3 &= ~PrsF3_Unkn04;
+    }
+
+    for (dir = 0; dir < 4; dir++)
+    {
+        struct Thing *p_agent;
+        s32 cor_x, cor_z, cor_y;
+        int n;
+
+        for (i = 0; i < playable_agents; i++)
+        {
+            s32 dx, dz, dist;
+
+            p_agent = players[plyr].MyAgent[i];
+            if ((p_agent->Flag & (TngF_Unkn40000000 | TngF_Destroyed)) != 0)
+                continue;
+            if (!scatter_agent_in_group(p_person, p_agent))
+                continue;
+            if ((p_agent->U.UPerson.Flag3 & PrsF3_Unkn04) != 0)
+                continue;
+            cor_x = ((lbSinTable[dir * 512 + 512] * radius) >> 16) + x;
+            dx = abs((p_agent->X >> 8) - cor_x);
+            cor_z = ((lbSinTable[dir * 512] * radius) >> 16) + z;
+            dz = abs((p_agent->Z >> 8) - cor_z);
+            if (dx <= dz)
+                dist = dz + (dx >> 1);
+            else
+                dist = dx + (dz >> 1);
+            if (dist < best_dist[dir])
+            {
+                best_dist[dir] = dist;
+                best_agent[dir] = i + 1;
+            }
+        }
+
+        n = best_agent[dir];
+        if (n == 0)
+            continue;
+
+        p_agent = players[plyr].MyAgent[n - 1];
+        p_agent->State = PerSt_WAIT;
+        p_agent->U.UPerson.ComRange = 0;
+        p_agent->U.UPerson.Flag3 |= PrsF3_Unkn04;
+        p_agent->U.UPerson.Mood = limit_mood(p_agent, 0x50);
+
+        cor_z = (short)(((lbSinTable[dir * 512] * radius) >> 16) + z);
+        cor_x = (short)(((lbSinTable[dir * 512 + 512] * radius) >> 16) + x);
+        cor_y = alt_at_point(cor_x, cor_z) >> 8;
+
+        if ((p_agent->Flag & (TngF_Unkn40000000 | TngF_Destroyed | TngF_Unkn0001)) == 0)
+        {
+            p_agent->Flag2 &= ~(TgF2_Unkn00080000 | TgF2_Unkn00020000 | TgF2_Unkn0040);
+            p_agent->Flag2 |= TgF2_Unkn00080000;
+            thing_goto_point(p_agent, cor_x, cor_y, cor_z);
+            if ((p_agent->Flag2 & TgF2_Unkn0040) == 0)
+            {
+                set_person_animmode_run(p_agent);
+                set_player_peeps_to_run((int)p_agent, plyr, (short)cor_y, cor_z);
+            }
+        }
+
+        switch (p_agent->U.UPerson.CurrentWeapon)
+        {
+        case WEP_MINIGUN:
+        case WEP_LASER:
+        case WEP_ELLASER:
+        case WEP_RAP:
+        case WEP_NUCLGREN:
+        case WEP_LONGRANGE:
+        case WEP_BEAM:
+        case WEP_QDEVASTATOR:
+            break;
+        default:
+            choose_best_weapon_for_range(p_agent, 0x500);
+            break;
+        }
+    }
 }
 
 static DIFFTEST_REF_FUNC int limit_mood_asm(struct Thing *p_thing, short mood)
