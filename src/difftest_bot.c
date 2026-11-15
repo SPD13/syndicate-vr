@@ -68,7 +68,10 @@ static TbBool bot_agent_usable(struct Thing *p_agent)
         return false;
     // While a mission script drives the agent, ComCur is a command index
     // and not the player slot, which packet handlers expect
-    return !person_is_executing_commands(p_agent->ThingOffset);
+    if (person_is_executing_commands(p_agent->ThingOffset))
+        return false;
+    // In some missions (0,84) ComCur is not the slot even without a script
+    return ((p_agent->U.UPerson.ComCur >> 2) == local_player_no);
 }
 
 /** Cheat packets act on all agents; agents driven by a mission script
@@ -123,6 +126,29 @@ static ThingIdx bot_pick_thing(struct Thing *p_agent, ubyte ttype, TbBool no_own
             continue;
         found[n++] = thing;
         if (n >= 32)
+            break;
+    }
+    return (n > 0) ? found[bot_rand(n)] : 0;
+}
+
+/** Picks a vehicle anywhere on the map, or 0. Some (the mech in 1,102)
+ * stand too far from the agents to reach them within a scenario.
+ */
+static ThingIdx bot_pick_far_vehicle(void)
+{
+    ThingIdx thing, found[64];
+    int n;
+
+    n = 0;
+    for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
+    {
+        struct Thing *p_thing = &things[thing];
+        if (p_thing->Type != TT_VEHICLE)
+            continue;
+        if ((p_thing->Flag & TngF_Destroyed) != 0)
+            continue;
+        found[n++] = thing;
+        if (n >= 64)
             break;
     }
     return (n > 0) ? found[bot_rand(n)] : 0;
@@ -327,9 +353,25 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         break;
     case 7:
     case 8:
-        target = bot_pick_thing(p_agent, TT_VEHICLE, false);
-        if (target == 0)
+        // Put the weapon away first; a shot still going on once the agent
+        // is inside starts from the vehicle and asserts
+        if (p_agent->U.UPerson.CurrentWeapon != WEP_NULL) {
+            build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent,
+              p_agent->U.UPerson.CurrentWeapon, WepSel_HIDE, 0);
             break;
+        }
+        target = bot_pick_thing(p_agent, TT_VEHICLE, false);
+        if (target == 0) {
+            // None near: teleport next to one anywhere (cheat), so that
+            // a later action can enter it
+            target = bot_pick_far_vehicle();
+            if (target == 0 || !bot_cheat_allowed())
+                break;
+            build_packet(p_pckt, PAct_CHEAT_AGENT_TELEPORT, agent,
+              PRCCOORD_TO_MAPCOORD(things[target].X) + 256, 0,
+              PRCCOORD_TO_MAPCOORD(things[target].Z) + 256);
+            break;
+        }
         if (bot_dist(p_agent, things[target].X, things[target].Z) < 512)
             build_packet(p_pckt, PAct_ENTER_VEHICLE, agent, target, 0, 0);
         else
