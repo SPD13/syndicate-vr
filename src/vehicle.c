@@ -2733,10 +2733,63 @@ int mech_unkn_func_08(int a1, int a2, int a3, int a4)
 
 
 
-void process_mech_unknown1(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_mech_unknown1_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_mech_unknown1\n"
         : : "a" (p_vehicle));
+}
+
+void process_mech_unknown1(struct Thing *p_vehicle)
+{
+    struct M33 *p_mat;
+    ubyte *p_tnode8;
+    u32 ret;
+
+    DIFFTEST_SHADOW(process_mech_unknown1, process_mech_unknown1_asm(p_vehicle));
+    mech_last_cor_x = p_vehicle->X >> 8;
+    mech_last_cor_y = p_vehicle->Y >> 8;
+    // TODO: Z is set from X, not from p_vehicle->Z; kept as in the original
+    mech_last_cor_z = mech_last_cor_x;
+    mech_unkn_tile_y2 = mech_last_cor_x;
+    mech_unkn_tile_x3 = mech_last_cor_y;
+    mech_unkn_tile_y3 = mech_unkn_tile_y2;
+
+    p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
+    matrix_transpose_cp((int)&unkn_mech_arr3[(ushort)p_vehicle->Owner].mech3_unkn_mat_C,
+      (int)p_mat, (int)p_vehicle);
+
+    // The asm modifies only the low byte of TNode
+    p_tnode8 = (ubyte *)&p_vehicle->U.UVehicle.TNode;
+    ret = mech_unkn_func_08((ushort)p_vehicle->Owner, (int)p_mat, (int)p_vehicle, (int)p_mat);
+    switch (ret)
+    {
+    case 0:
+        *p_tnode8 |= 0x04;
+        break;
+    case 6:
+        *p_tnode8 |= 0x02;
+        *p_tnode8 &= ~0x04;
+        break;
+    case 8:
+        *p_tnode8 |= 0x01;
+        *p_tnode8 &= ~0x04;
+        break;
+    case 14:
+        *p_tnode8 |= 0x08;
+        *p_tnode8 &= ~0x04;
+        break;
+    default:
+        break;
+    }
+
+    if (p_vehicle->State == VehSt_GOTO_LOC &&
+      (ushort)p_vehicle->U.UVehicle.ZebraOldHealth != (ushort)p_vehicle->Health)
+    {
+        remove_path(p_vehicle);
+        p_vehicle->U.UVehicle.PathIndex = 0;
+        p_vehicle->State = VehSt_UNKN_33;
+    }
+    p_vehicle->U.UVehicle.ZebraOldHealth = p_vehicle->Health;
 }
 
 static DIFFTEST_REF_FUNC int process_my_crashing_vehicle_asm(struct Thing *p_vehicle)
