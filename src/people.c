@@ -3359,11 +3359,41 @@ void VNAV_goto_and_unplace(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void VNAV_goto_and_unstop(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void VNAV_goto_and_unstop_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_VNAV_goto_and_unstop\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void VNAV_goto_and_unstop(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    s32 *p_target;
+    u32 *p_flags32;
+    ubyte *p_flags;
+    s32 x, z, speed;
+    u32 flags;
+
+    DIFFTEST_SHADOW(VNAV_goto_and_unstop, VNAV_goto_and_unstop_asm(a1, a2, a3, a4));
+    // Dummy5a/Dummy5b are accessed as one 32-bit value, Dummy4a as a byte
+    // and then as a 32-bit value.
+    p_target = (s32 *)&p_vehicle->U.UVehicle.Dummy5a;
+    p_flags32 = (u32 *)&p_vehicle->U.UVehicle.Dummy4a;
+    p_flags = (ubyte *)&p_vehicle->U.UVehicle.Dummy4a;
+    speed = (s32)((ushort)*p_target) * 10;
+    speed = 10 - speed / 17;
+    x = (short)a2;
+    z = (short)a3;
+    *p_target = x;
+    x = (s32)((u32)x << 16);
+    p_vehicle->State = 0x38;
+    *p_flags = *p_flags & 0xc0;
+    *p_target = x;
+    flags = *p_flags32;
+    // TODO: z is sign-extended before the OR, so a negative z overwrites x
+    *p_target = x | z;
+    *p_flags32 = flags | (u32)speed;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
