@@ -2701,10 +2701,187 @@ int find_next_ship_tnode(int a1, int a2, int a3, int a4)
 }
 
 
-void process_ship(struct Thing *p_vehicle)
+extern s32 data_1c84f4;
+extern s32 data_1c84f8[];
+
+static DIFFTEST_REF_FUNC void process_ship_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_ship\n"
         : : "a" (p_vehicle));
+}
+
+void process_ship(struct Thing *p_vehicle)
+{
+    struct TrafficNode *p_tnode;
+    struct TrafficNode *p_lnode;
+    struct M33 *p_mat;
+    s32 dx, dz;
+    s32 x, z;
+    s32 dist_sq;
+    int angle;
+    int i;
+    short tnode;
+    ubyte flags;
+
+    DIFFTEST_SHADOW(process_ship, process_ship_asm(p_vehicle));
+
+    p_tnode = &game_traffic_nodes[p_vehicle->U.UVehicle.TNode];
+    dx = p_tnode->X - (p_vehicle->X >> 8);
+    dz = p_tnode->Z - (p_vehicle->Z >> 8);
+    angle = (ushort)arctan(dx, dz) - p_vehicle->U.UVehicle.AngleY;
+    if (angle > 0x400)
+        angle -= 0x7FF;
+    if (angle < -0x400)
+        angle += 0x7FF;
+    if (angle > 160)
+        angle = 160;
+    if (angle < -160)
+        angle = -160;
+    if (abs(angle) > 40)
+        angle >>= 2;
+    if (p_vehicle->U.UVehicle.AngleDY > angle)
+        p_vehicle->U.UVehicle.AngleDY--;
+    if (p_vehicle->U.UVehicle.AngleDY < angle)
+        p_vehicle->U.UVehicle.AngleDY++;
+    p_vehicle->U.UVehicle.ReqdSpeed = 300 - 4 * abs(p_vehicle->U.UVehicle.AngleDY);
+
+    dist_sq = dx * dx + dz * dz;
+    if (dist_sq < 0x100000)
+    {
+        p_tnode = &game_traffic_nodes[p_vehicle->U.UVehicle.TNode];
+        flags = p_tnode->Flags & 0xFF;
+        if ((flags & 0x80) != 0)
+        {
+            if (dist_sq < 0x20000)
+            {
+                ushort rnd;
+
+                *(ubyte *)&p_tnode->Flags = flags & 0xBF;
+                rnd = LbRandomAnyShort();
+                p_vehicle->U.UVehicle.TNode = (short)data_1c84f8[(s32)rnd % data_1c84f4];
+                p_tnode = &game_traffic_nodes[p_vehicle->U.UVehicle.TNode];
+                x = p_tnode->X << 8;
+                z = p_tnode->Z << 8;
+                move_mapwho(p_vehicle, x, p_vehicle->Y, z);
+                tnode = p_vehicle->U.UVehicle.TNode;
+                for (i = 0; i < 4; i++)
+                {
+                    p_tnode = &game_traffic_nodes[tnode];
+                    if (p_tnode->UTraffic.Link[i] == 0)
+                        continue;
+                    if ((p_tnode->UTraffic.Flags[i] & 0xC0) != 0)
+                        continue;
+                    p_lnode = &game_traffic_nodes[-p_tnode->UTraffic.Link[i]];
+                    dx = (p_lnode->X << 8) - x;
+                    dz = (p_lnode->Z << 8) - z;
+                    break;
+                }
+                p_vehicle->U.UVehicle.AngleDY = 0;
+                p_vehicle->U.UVehicle.AngleY = arctan(dx, dz);
+            }
+        }
+        else if (p_vehicle->State == 0x3F)
+        {
+            short gate;
+
+            gate = p_tnode->GateLink;
+            if (gate != 0)
+            {
+                p_vehicle->U.UVehicle.TNode = gate;
+            }
+            else
+            {
+                p_vehicle->U.UVehicle.ReqdSpeed = 0;
+                if (p_vehicle->U.UVehicle.AngleDY > 0)
+                    p_vehicle->U.UVehicle.AngleDY -= 4;
+                if (p_vehicle->U.UVehicle.AngleDY < 0)
+                    p_vehicle->U.UVehicle.AngleDY += 4;
+            }
+        }
+        else if (p_vehicle->State == 0x40)
+        {
+            short next;
+
+            next = find_next_ship_tnode(p_vehicle->U.UVehicle.TNode, 0, 0, 0);
+            if (next == 0)
+            {
+                p_vehicle->U.UVehicle.ReqdSpeed = 0;
+            }
+            else if ((game_traffic_nodes[next].Flags & 0x40) != 0)
+            {
+                p_vehicle->U.UVehicle.ReqdSpeed = 0;
+                if (p_vehicle->U.UVehicle.AngleDY > 0)
+                    p_vehicle->U.UVehicle.AngleDY -= 4;
+                if (p_vehicle->U.UVehicle.AngleDY < 0)
+                    p_vehicle->U.UVehicle.AngleDY += 4;
+            }
+            else
+            {
+                *(ubyte *)&game_traffic_nodes[p_vehicle->U.UVehicle.TNode].Flags &= ~0x40;
+                p_vehicle->U.UVehicle.TNode = next;
+                *(ubyte *)&game_traffic_nodes[p_vehicle->U.UVehicle.TNode].Flags |= 0x40;
+                if ((game_traffic_nodes[p_vehicle->U.UVehicle.TNode].Flags & 0x810) != 0)
+                    p_vehicle->U.UVehicle.LeisurePlace = 200;
+            }
+        }
+    }
+
+    tnode = p_vehicle->U.UVehicle.TNode;
+    for (i = 0; i < 4; i++)
+    {
+        p_tnode = &game_traffic_nodes[tnode];
+        if ((p_tnode->UTraffic.Flags[i] & 0x40) == 0)
+            continue;
+        p_lnode = &game_traffic_nodes[-p_tnode->UTraffic.Link[i]];
+        if ((p_lnode->Flags & 0x40) == 0)
+            continue;
+        p_vehicle->U.UVehicle.ReqdSpeed = 0;
+        if (p_vehicle->U.UVehicle.AngleDY > 0)
+            p_vehicle->U.UVehicle.AngleDY -= 4;
+        if (p_vehicle->U.UVehicle.AngleDY < 0)
+            p_vehicle->U.UVehicle.AngleDY += 4;
+        break;
+    }
+
+    if (p_vehicle->U.UVehicle.LeisurePlace != 0)
+    {
+        p_vehicle->U.UVehicle.ReqdSpeed = 0;
+        if (p_vehicle->U.UVehicle.AngleDY > 0)
+            p_vehicle->U.UVehicle.AngleDY -= 4;
+        if (p_vehicle->U.UVehicle.AngleDY < 0)
+            p_vehicle->U.UVehicle.AngleDY += 4;
+        p_vehicle->U.UVehicle.LeisurePlace--;
+    }
+
+    if (((game_traffic_nodes[p_vehicle->U.UVehicle.TNode].Flags & 0x10) != 0)
+      && (p_vehicle->U.UVehicle.LeisurePlace != 0))
+    {
+        p_vehicle->U.UVehicle.ReqdSpeed = 0;
+        if (p_vehicle->U.UVehicle.AngleDY > 0)
+            p_vehicle->U.UVehicle.AngleDY -= 4;
+        if (p_vehicle->U.UVehicle.AngleDY < 0)
+            p_vehicle->U.UVehicle.AngleDY += 4;
+        p_vehicle->U.UVehicle.LeisurePlace--;
+        if ((p_vehicle->U.UVehicle.LeisurePlace == 0)
+          && (p_vehicle->U.UVehicle.PassengerHead == 0))
+            p_vehicle->U.UVehicle.LeisurePlace = 150;
+    }
+
+    if (p_vehicle->Speed < p_vehicle->U.UVehicle.ReqdSpeed)
+        p_vehicle->Speed++;
+    if (p_vehicle->Speed > p_vehicle->U.UVehicle.ReqdSpeed)
+        p_vehicle->Speed -= 10;
+
+    p_vehicle->U.UVehicle.AngleY += (p_vehicle->U.UVehicle.AngleDY >> 4);
+    p_vehicle->U.UVehicle.AngleY &= 0x7FF;
+
+    p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (int)p_mat);
+    p_vehicle->VX = (-p_mat->R[0][2] * p_vehicle->Speed) >> 10;
+    p_vehicle->VY = (-p_mat->R[1][2] * p_vehicle->Speed) >> 10;
+    p_vehicle->VZ = (-p_mat->R[2][2] * p_vehicle->Speed) >> 10;
+    move_mapwho(p_vehicle, p_vehicle->X + p_vehicle->VX,
+      p_vehicle->Y + p_vehicle->VY, p_vehicle->Z + p_vehicle->VZ);
 }
 
 static DIFFTEST_REF_FUNC void process_mech_stationary_asm(struct Thing *p_vehicle)
