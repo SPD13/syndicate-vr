@@ -451,11 +451,9 @@ TbBool vehicle_is_destroyed(ThingIdx thing)
     p_thing = &things[thing];
     return thing_is_destroyed(thing) || (p_thing->Type != TT_VEHICLE);
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int init_unkn1thing(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+extern ushort game_level_unique_id;
+
+static DIFFTEST_REF_FUNC int init_unkn1thing_asm(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[4];
@@ -467,6 +465,59 @@ int init_unkn1thing(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int 
     asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_init_unkn1thing\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
     return ra;
+}
+
+/** Routed asm (internal label). Arguments are the raw registers and stack
+ * args the asm takes: a1 = source matrix, a2/a3/a4 = X/Y/Z,
+ * a5/a6/a7 = unkn2_pos x/y/z, a8 = prim object offset.
+ * Returns the new thing index.
+ */
+int init_unkn1thing(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+{
+    struct M33 *p_src_mat = (struct M33 *)a1;
+    struct Thing *p_thing;
+    struct SingleObject *p_snobj;
+    short thing;
+    short matx;
+
+    DIFFTEST_SHADOW_RET(init_unkn1thing, int, init_unkn1thing_asm(a1, a2, a3, a4, a5, a6, a7, a8));
+    thing = get_new_thing();
+    p_thing = &things[(ushort)thing];
+    p_thing->VX = 0;
+    p_thing->VZ = 0;
+    p_thing->VY = 0;
+    p_thing->U.UVehicle.AngleX = 0;
+    p_thing->U.UVehicle.AngleY = 0;
+    p_thing->U.UVehicle.AngleZ = 0;
+    p_thing->Type = 0x23;
+    p_thing->Radius = 0x96;
+    p_thing->Parent = 0;
+    p_thing->Speed = 0;
+    p_thing->StartFrame = 0;
+    p_thing->State = 0;
+    p_thing->Flag = 0;
+    p_thing->X = a2;
+    p_thing->U.UVehicle.Object = next_object;
+    p_thing->U.UVehicle.MatrixIndex = next_local_mat;
+    p_thing->Z = a4;
+    p_thing->Y = a3;
+    matx = p_thing->U.UVehicle.MatrixIndex;
+    next_local_mat++;
+    matrix_identity_fill(&local_mats[matx]);
+    matx = p_thing->U.UVehicle.MatrixIndex;
+    memcpy(&local_mats[matx], p_src_mat, sizeof(struct M33));
+    p_thing->Flag |= 0x04000000;
+    p_thing->U.UVehicle.UniqueID = game_level_unique_id;
+    game_level_unique_id++;
+    unkn2_pos_x = a5;
+    unkn2_pos_y = a6;
+    unkn2_pos_z = a7;
+    copy_prim_obj_to_game_object((ushort)(a2 >> 8), (ushort)(a4 >> 8),
+      (short)(-prim_unknprop01 - a8), (ushort)(a3 >> 8));
+    unkn_object_shift_03((ushort)(next_object - 1));
+    p_snobj = &game_objects[next_object - 1];
+    p_snobj->ThingNo = thing;
+    DIFFTEST_RETURN((int)thing);
 }
 
 
