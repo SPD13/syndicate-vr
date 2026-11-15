@@ -2350,11 +2350,89 @@ void process_electric_strand(struct SimpleThing *p_sthing)
     }
 }
 
-void process_canister(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_canister_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_canister\n"
         : : "a" (p_sthing));
+}
+
+static void stasis_pod_set_dist_volume(struct SimpleThing *p_sthing,
+  int smptbl_id, ushort vol);
+
+void process_canister(struct SimpleThing *p_sthing)
+{
+    s32 x, y, z;
+    s32 step;
+    int smptbl_id;
+
+    DIFFTEST_SHADOW(process_canister, process_canister_asm(p_sthing));
+    x = p_sthing->X >> 8;
+    y = p_sthing->Y >> 8;
+    z = p_sthing->Z >> 8;
+    p_sthing->Radius = 0;
+    set_nuclear_shade_timer(p_sthing->Timer1);
+
+    for (step = 0; step != 0x800; step += 0x200)
+    {
+        struct SimpleThing *p_effect;
+        s32 angle, vx, vz, rnd_x, rnd_z;
+        short timer;
+
+        angle = ((p_sthing->Timer1 << 6) + step) & 0x7ff;
+        vx = (lbSinTable[angle + 512] >> 4) - (lbSinTable[angle + 512] >> 6);
+        vz = (lbSinTable[angle] >> 4) - (lbSinTable[angle] >> 6);
+        rnd_x = (s32)LbRandomAnyShort() % 800;
+        vx += rnd_x - 400;
+        rnd_z = (s32)LbRandomAnyShort() % 800;
+        timer = (LbRandomAnyShort() & 0xf) + 20;
+        vz += rnd_z - 400;
+
+        p_effect = create_scale_effect(x, y, z, 0x398, timer);
+        if (p_effect == NULL)
+            continue;
+
+        p_effect->SubType = 0x1e;
+        p_effect->Object = 0x20;
+        p_effect->StartFrame = 0xc;
+        p_effect->U.UEffect.VY = 8;
+        p_effect->U.UEffect.OY = 0;
+        p_effect->Frame = frame[frame[(ushort)p_effect->Frame].Next].Next;
+        p_effect->U.UEffect.VX = vx;
+        p_effect->U.UEffect.VZ = vz;
+        p_effect->U.UEffect.OX = (-vx) >> 5;
+        p_effect->U.UEffect.OZ = (-vz) >> 5;
+        p_effect->Owner2 = p_sthing->Owner2;
+        if (p_sthing->SubType == 4)
+        {
+            p_effect->Flag |= 0x10;
+        }
+        else if (p_sthing->SubType == 5)
+        {
+            p_effect->Flag |= 0x20;
+            p_effect->Frame = frame[frame[nstart_ani[908]].Next].Next;
+        }
+    }
+
+    p_sthing->Timer1++;
+    smptbl_id = (p_sthing->SubType == 4) ? 0x20 : 0x1f;
+    if (p_sthing->Timer1 < 10)
+    {
+        stasis_pod_set_dist_volume(p_sthing, smptbl_id,
+          (ushort)(p_sthing->Timer1 * 10));
+    }
+    if (p_sthing->Timer1 > 190)
+    {
+        stasis_pod_set_dist_volume(p_sthing, smptbl_id,
+          (ushort)((0x12d - p_sthing->Timer1) * 10));
+    }
+    if (p_sthing->Timer1 > 200)
+    {
+        stop_sample_using_heap(p_sthing->ThingOffset, smptbl_id);
+        remove_sthing(p_sthing->ThingOffset);
+        delete_snode(p_sthing);
+        *(u32 *)&nuclear_overexposure = 0;
+    }
 }
 
 static DIFFTEST_REF_FUNC void process_stasis_pod_asm(struct SimpleThing *p_sthing)
