@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "bigmap.h"
+#include "enginsngobjs.h"
 #include "game.h"
 #include "game_options.h"
 #include "game_speed.h"
@@ -37,6 +38,8 @@
 #include "thing.h"
 #include "weapon.h"
 /******************************************************************************/
+/* Not in a header; the agent cycling key uses it (plyr_usrinp.c) */
+short get_next_player_agent(ushort player);
 
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
 
@@ -162,6 +165,94 @@ static WeaponType bot_pick_weapon(struct Thing *p_agent)
     return (n > 0) ? wtypes[bot_rand(n)] : WEP_NULL;
 }
 
+/** Centre of a walkable face near the agent, in map coords; false if the
+ * face is not walkable or out of range.
+ */
+static TbBool bot_face_centre(short face, struct Thing *p_agent, short *p_x, short *p_y, short *p_z)
+{
+    struct SingleObject *p_sobj;
+    short pts[4];
+    int i, npts;
+    long x, y, z;
+
+    if (face < 0) {
+        struct SingleObjectFace4 *p_face4 = &game_object_faces4[-face];
+        if ((p_face4->GFlags & FGFlg_Unkn04) == 0)
+            return false;
+        p_sobj = &game_objects[p_face4->Object];
+        for (i = 0; i < 4; i++)
+            pts[i] = p_face4->PointNo[i];
+        npts = 4;
+    } else {
+        struct SingleObjectFace3 *p_face3 = &game_object_faces3[face];
+        if ((p_face3->GFlags & FGFlg_Unkn04) == 0)
+            return false;
+        p_sobj = &game_objects[p_face3->Object];
+        for (i = 0; i < 3; i++)
+            pts[i] = p_face3->PointNo[i];
+        npts = 3;
+    }
+    x = y = z = 0;
+    for (i = 0; i < npts; i++)
+    {
+        struct SinglePoint *p_pt = &game_object_points[(ushort)pts[i]];
+        x += p_pt->X;
+        y += p_pt->Y;
+        z += p_pt->Z;
+    }
+    x = p_sobj->MapX + x / npts;
+    z = p_sobj->MapZ + z / npts;
+    if (x < 256 || x > MAP_COORD_WIDTH - 256)
+        return false;
+    if (z < 256 || z > MAP_COORD_HEIGHT - 256)
+        return false;
+    if (abs(PRCCOORD_TO_MAPCOORD(p_agent->X) - x) +
+      abs(PRCCOORD_TO_MAPCOORD(p_agent->Z) - z) > BOT_RANGE)
+        return false;
+    *p_x = x;
+    *p_y = y / npts;
+    *p_z = z;
+    return true;
+}
+
+/** Picks a walkable object face (building roofs, walkways) near the
+ * agent, as the mouse would point at it. Returns the face index as the
+ * game stores it in Target/OnFace (negative for quads), or 0; sets the
+ * centre point of the face in map coords. Scans from a random face and
+ * picks among the first few found.
+ */
+static short bot_pick_face(struct Thing *p_agent, short *p_x, short *p_y, short *p_z)
+{
+    short found[16];
+    short fx[16], fy[16], fz[16];
+    int n, k, nfaces, start;
+
+    nfaces = (next_object_face3 - 1) + (next_object_face4 - 1);
+    if (nfaces <= 0)
+        return 0;
+    start = bot_rand(nfaces);
+    n = 0;
+    for (k = 0; k < nfaces && n < 16; k++)
+    {
+        int idx = (start + k) % nfaces;
+        short face;
+
+        if (idx < next_object_face3 - 1)
+            face = 1 + idx;
+        else
+            face = -(1 + idx - (next_object_face3 - 1));
+        if (bot_face_centre(face, p_agent, &fx[n], &fy[n], &fz[n]))
+            found[n++] = face;
+    }
+    if (n == 0)
+        return 0;
+    k = bot_rand(n);
+    *p_x = fx[k];
+    *p_y = fy[k];
+    *p_z = fz[k];
+    return found[k];
+}
+
 /** A ground point near the agent, in map coords. */
 static void bot_near_point(struct Thing *p_agent, short *p_x, short *p_y, short *p_z, int spread)
 {
@@ -183,6 +274,7 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
     ThingIdx agent, target;
     short x, y, z;
     WeaponType wtype;
+    short face;
 
     agent = p_agent->ThingOffset;
     // Within a vehicle only drive or leave; weapons fired from there take
@@ -197,7 +289,7 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         }
         return;
     }
-    switch (bot_rand(24))
+    switch (bot_rand(26))
     {
     case 0:
     case 1:
@@ -212,15 +304,12 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
           PAct_AGENT_GOTO_GND_PT_REL_FF, agent, x, 0, z);
         break;
     case 3:
-        // Walk onto the face another person stands on
-        target = bot_pick_thing(p_agent, TT_PERSON, false);
-        if (target == 0 || things[target].U.UPerson.OnFace == 0)
+        // Walk onto a roof or walkway face, as clicking on it does
+        face = bot_pick_face(p_agent, &x, &y, &z);
+        if (face == 0)
             break;
         build_packet(p_pckt, bot_rand(2) ? PAct_AGENT_GOTO_FACE_PT_ABS :
-          PAct_AGENT_GOTO_FACE_PT_ABS_FF, agent,
-          PRCCOORD_TO_MAPCOORD(things[target].X),
-          things[target].U.UPerson.OnFace,
-          PRCCOORD_TO_MAPCOORD(things[target].Z));
+          PAct_AGENT_GOTO_FACE_PT_ABS_FF, agent, x, face, z);
         break;
     case 4:
     case 5:
@@ -273,8 +362,19 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
           target, 0, 0);
         break;
     case 15:
-        bot_near_point(p_agent, &x, &y, &z, 1024);
         wtype = p_agent->U.UPerson.CurrentWeapon;
+        // Half the time aim at a face, as when the mouse is over a roof
+        if (bot_rand(2) && (face = bot_pick_face(p_agent, &x, &y, &z)) != 0)
+        {
+            if (weapon_is_for_planting(wtype))
+                build_packet(p_pckt, bot_rand(2) ? PAct_PLANT_MINE_AT_FACE_PT :
+                  PAct_PLANT_MINE_AT_FACE_PT_FF, agent, x, face, z);
+            else
+                build_packet(p_pckt, bot_rand(2) ? PAct_SHOOT_AT_FACE_POINT :
+                  PAct_SHOOT_AT_FACE_POINT_FF, agent, x, face, z);
+            break;
+        }
+        bot_near_point(p_agent, &x, &y, &z, 1024);
         if (weapon_is_for_planting(wtype))
             build_packet(p_pckt, bot_rand(2) ? PAct_PLANT_MINE_AT_GND_PT :
               PAct_PLANT_MINE_AT_GND_PT_FF, agent, x, y, z);
@@ -324,7 +424,29 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         build_packet(p_pckt, PAct_DROP_HELD_WEAPON_SECR, agent, wtype, 0, 0);
         break;
     case 22:
-        build_packet(p_pckt, PAct_SELECT_AGENT, agent, agent, 0, 0);
+        // Half the time the next agent, as the agent cycling key picks it
+        build_packet(p_pckt, PAct_SELECT_AGENT, agent, bot_rand(2) ?
+          get_next_player_agent(local_player_no) : agent, 0, 0);
+        break;
+    case 24:
+    case 25:
+        // Persuade a nearby person: first hold the Persuadertron, then
+        // target someone with it
+        if (person_carries_weapon(p_agent, WEP_PERSUADER2))
+            wtype = WEP_PERSUADER2;
+        else if (person_carries_weapon(p_agent, WEP_PERSUADRTRN))
+            wtype = WEP_PERSUADRTRN;
+        else
+            break;
+        if (p_agent->U.UPerson.CurrentWeapon != wtype) {
+            build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent, wtype,
+              WepSel_SELECT, 0);
+            break;
+        }
+        target = bot_pick_thing(p_agent, TT_PERSON, true);
+        if (target == 0)
+            break;
+        build_packet(p_pckt, PAct_SHOOT_AT_THING, agent, target, 0, 0);
         break;
     default:
         // Rearm and heal all agents now and then; the drop action and
@@ -365,8 +487,9 @@ static void bot_decide(struct Packet *p_pckt)
         if (n-- == 0)
             break;
     }
-    // Self destruct rarely and late, it ends the agent's part
-    if ((gameturn > 1000) && (bot_rand(200) == 0)) {
+    // Self destruct rarely and late, it ends the agent's part (until the
+    // next resurrect cheat)
+    if ((gameturn > 600) && (bot_rand(60) == 0)) {
         build_packet(p_pckt, PAct_AGENT_SELF_DESTRUCT, p_agent->ThingOffset, 0, 0, 0);
         return;
     }
