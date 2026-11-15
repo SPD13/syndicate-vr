@@ -61,6 +61,8 @@ static ulong bot_rand(ulong range)
     return difftest_fuzz_rand(&bot_seed) % range;
 }
 
+static TbBool bot_on_mapwho(struct Thing *p_thing);
+
 static TbBool bot_agent_usable(struct Thing *p_agent)
 {
     if (p_agent == NULL || p_agent->Type != TT_PERSON)
@@ -74,7 +76,15 @@ static TbBool bot_agent_usable(struct Thing *p_agent)
     if (person_is_executing_commands(p_agent->ThingOffset))
         return false;
     // In some missions (0,84) ComCur is not the slot even without a script
-    return ((p_agent->U.UPerson.ComCur >> 2) == local_player_no);
+    if ((p_agent->U.UPerson.ComCur >> 2) != local_player_no)
+        return false;
+    // Entering and leaving a shuttle pod in quick succession leaves the
+    // agent flagged in a vehicle (Vehicle 0) yet linked on the map, as in
+    // the asm; a self destruct then links it twice and scare_civs() loops
+    // forever (3,91+bot)
+    if (((p_agent->Flag & TngF_InVehicle) != 0) && bot_on_mapwho(p_agent))
+        return false;
+    return true;
 }
 
 /** Cheat packets act on all agents; agents driven by a mission script
@@ -132,6 +142,30 @@ static ThingIdx bot_pick_thing(struct Thing *p_agent, ubyte ttype, TbBool no_own
             break;
     }
     return (n > 0) ? found[bot_rand(n)] : 0;
+}
+
+/** Whether the thing is linked on the map tile of its position, as
+ * on_mapwho() checks (a copy, so that the bot adds no calls to the
+ * remade function). The teleport cheat relinks only such things; for
+ * others it would link the thing twice, making a cycle (hang in
+ * scare_civs() on 3,91+bot).
+ */
+static TbBool bot_on_mapwho(struct Thing *p_thing)
+{
+    short thing;
+
+    thing = game_my_big_map[(p_thing->Z >> 16) * MAP_TILE_WIDTH +
+      (p_thing->X >> 16)].Child;
+    while (thing != 0)
+    {
+        if (thing == p_thing->ThingOffset)
+            return true;
+        if (thing > 0)
+            thing = things[thing].Next;
+        else
+            thing = sthings[thing].Next;
+    }
+    return false;
 }
 
 /** Picks a vehicle anywhere on the map, or 0. Some (the mech in 1,102)
@@ -408,6 +442,8 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         if ((target == 0) || (bot_rand(4) == 0)) {
             // None near, or now and then: teleport next to one anywhere
             // (cheat); the agent's next action enters it
+            if (!bot_on_mapwho(p_agent))
+                break;
             target = bot_pick_far_vehicle();
             if (target == 0 || !bot_cheat_allowed())
                 break;
@@ -611,9 +647,9 @@ void difftest_bot_turn(void)
 
     bot_decide(p_pckt);
     if ((bot_log != NULL) && ((p_pckt->Action & ~PActF_All) != PAct_NONE)) {
-        fprintf(bot_log, "turn %lu: %s data=%d x=%d y=%d z=%d\n",
+        fprintf(bot_log, "turn %lu: %s (0x%02x) data=%d x=%d y=%d z=%d\n",
           (ulong)gameturn, get_packet_action_name(p_pckt->Action & ~PActF_All),
-          (int)p_pckt->Data, (int)p_pckt->X, (int)p_pckt->Y, (int)p_pckt->Z);
+          (uint)(p_pckt->Action & ~PActF_All), (int)p_pckt->Data, (int)p_pckt->X, (int)p_pckt->Y, (int)p_pckt->Z);
         fflush(bot_log);
     }
 }
