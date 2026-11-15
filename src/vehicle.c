@@ -2692,12 +2692,57 @@ void process_tank_turret(struct Thing *p_tank)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int find_next_ship_tnode(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int find_next_ship_tnode_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_find_next_ship_tnode\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+extern u32 rand_d;
+
+int find_next_ship_tnode(int a1, int a2, int a3, int a4)
+{
+    struct TrafficNode *p_tnode;
+    ubyte flags_match;
+    int i;
+
+    DIFFTEST_SHADOW_RET(find_next_ship_tnode, int,
+      find_next_ship_tnode_asm(a1, a2, a3, a4));
+    flags_match = (ubyte)a2;
+
+    for (i = 0; i < 12; i++)
+    {
+        u32 rnd;
+        short link;
+
+        rnd = rand_d;
+        rand_d = ((rnd >> 7) | (rnd << 25)) + 0x16365267;
+        rnd &= 3;
+        p_tnode = &game_traffic_nodes[(short)a1];
+        link = p_tnode->UTraffic.Link[rnd];
+        if (link == 0)
+            continue;
+        if ((p_tnode->UTraffic.Flags[rnd] & 0xC0) == flags_match)
+        {
+            // TODO the asm only loads the low 16 bits of the link into a
+            // register which held the game_traffic_nodes pointer, so the
+            // upper half of the result comes from that pointer
+            u32 val = ((u32)game_traffic_nodes & 0xFFFF0000) | (ushort)link;
+            DIFFTEST_RETURN(-(int)val);
+        }
+    }
+
+    for (i = 0; i < 4; i++)
+    {
+        p_tnode = &game_traffic_nodes[(short)a1];
+        if (p_tnode->UTraffic.Link[i] == 0)
+            continue;
+        if ((p_tnode->UTraffic.Flags[i] & 0xC0) == flags_match)
+            DIFFTEST_RETURN(-(int)(ushort)p_tnode->UTraffic.Link[i]);
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 
