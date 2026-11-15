@@ -594,7 +594,7 @@ void func_81db4(int a1, int a2, int a3, int a4, int a5, int a6)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10)
+static DIFFTEST_REF_FUNC void line_intersect8_asm(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[6];
@@ -609,7 +609,49 @@ void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
+/** Intersection point of the line through (a1,a2)-(a3,a4) with the line
+ * through (a5,a6)-(a7,a8), in 8-bit fixed point, stored to *a9 and *a10.
+ * For parallel lines, stores the first point instead.
+ */
+void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10)
+{
+    s32 x1, y1, x2, y2, x3, y3, x4, y4, tmp;
+    s32 dx12, dy12, dx34, dy34, num, den;
+    s32 *p_out_x = (s32 *)a9;
+    s32 *p_out_y = (s32 *)a10;
 
+    DIFFTEST_SHADOW(line_intersect8, line_intersect8_asm(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10));
+    x1 = a1; y1 = a2; x2 = a3; y2 = a4;
+    x3 = a5; y3 = a6; x4 = a7; y4 = a8;
+    if (x1 > x2) {
+        tmp = x1; x1 = x2; x2 = tmp;
+        tmp = y1; y1 = y2; y2 = tmp;
+    }
+    if (x3 > x4) {
+        tmp = x3; x3 = x4; x4 = tmp;
+        tmp = y3; y3 = y4; y4 = tmp;
+    }
+    // Make the second line relative to the first point
+    x3 = (s32)((u32)x3 - (u32)x1);
+    y3 = (s32)((u32)y3 - (u32)y1);
+    x4 = (s32)((u32)x4 - (u32)x1);
+    y4 = (s32)((u32)y4 - (u32)y1);
+    dx34 = (s32)((u32)x4 - (u32)x3);
+    dy34 = (s32)((u32)y4 - (u32)y3);
+    dx12 = (s32)((u32)x2 - (u32)x1);
+    dy12 = (s32)((u32)y2 - (u32)y1);
+    num = (s32)((u32)dx34 * (u32)y3 - (u32)x3 * (u32)dy34);
+    den = (s32)((u32)dx34 * (u32)dy12 - (u32)dy34 * (u32)dx12);
+    if (den == 0) {
+        *p_out_x = (s32)((u32)x1 << 8);
+        *p_out_y = (s32)((u32)y1 << 8);
+        return;
+    }
+    *p_out_x = (s32)(((u32)x1 << 8) +
+      (u32)((s64)(s32)((u32)dx12 << 8) * num / den));
+    *p_out_y = (s32)(((u32)y1 << 8) +
+      (u32)((s64)(s32)((u32)dy12 << 8) * num / den));
+}
 
 void make_clip_list(int x1, int y1, int x2, int y2)
 {
