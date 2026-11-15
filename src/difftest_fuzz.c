@@ -25,6 +25,7 @@
 #include "game.h"
 #include "game_save.h"
 #include "matrix.h"
+#include "mydraw.h"
 #include "pathtrig.h"
 /******************************************************************************/
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
@@ -435,6 +436,28 @@ static void fuzz_save_crypto(ulong *p_seed)
     }
 }
 
+/** Random text made of the characters my_preprocess_text() treats
+ * specially (backslash escapes, line ends, spaces), with a random login
+ * name, which the escapes insert.
+ */
+static void fuzz_my_preprocess_text(ulong *p_seed)
+{
+    static const char chars[] = "ab \hlncHLNC\r\n";
+    char text[1024];
+    int i, len;
+
+    len = difftest_fuzz_rand(p_seed) % 16;
+    for (i = 0; i < len; i++)
+        login_name[i] = 'A' + difftest_fuzz_rand(p_seed) % 26;
+    login_name[len] = '\0';
+    // Short text: insertions grow it by up to 15 chars per escape
+    len = difftest_fuzz_rand(p_seed) % 48;
+    for (i = 0; i < len; i++)
+        text[i] = chars[difftest_fuzz_rand(p_seed) % (sizeof(chars) - 1)];
+    memset(text + len, 0, sizeof(text) - len);
+    my_preprocess_text(text);
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
@@ -451,6 +474,7 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"mech_unkn_func_20", fuzz_mech_unkn_func_20},
     {"func_5cff0", fuzz_func_5cff0},
     {"line_intersect8", fuzz_line_intersect8},
+    {"my_preprocess_text", fuzz_my_preprocess_text},
     {"save_crypto_make_hashtable", fuzz_save_crypto},
     {"save_crypto_transform1", fuzz_save_crypto},
     {"save_crypto_transform2", fuzz_save_crypto},
