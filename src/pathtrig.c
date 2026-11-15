@@ -1294,16 +1294,48 @@ int unused_func_115(int X1, int Z1, int X2, int Z2)
         : "=r" (ret) : "a" (X1), "d" (Z1), "b" (X2), "c" (Z2));
     return ret;
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int func_5cff0(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int func_5cff0_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_func_5cff0\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Routed asm (internal label). Snaps the point (*a1,*a2) to one of two
+ * reference points if it lies closer than distance 32 to it. a3 points
+ * to shorts; the first point is (p[0],p[2]), the second (p[3],p[5]) -
+ * the asm reads most of them as high halves of unaligned 32-bit loads.
+ * Returns 1 if the point was snapped, 0 otherwise. Register a4 is not used.
+ */
+int func_5cff0(int a1, int a2, int a3, int a4)
+{
+    short *p_x = (short *)a1;
+    short *p_z = (short *)a2;
+    short *p = (short *)a3;
+    s32 x, z, dx, dz, dist2;
+
+    DIFFTEST_SHADOW_RET(func_5cff0, int, func_5cff0_asm(a1, a2, a3, a4));
+    x = *p_x;
+    z = *p_z;
+    // Products wrap at 32 bits like imul
+    dx = (s32)((u32)x - (u32)p[0]);
+    dz = (s32)((u32)z - (u32)p[2]);
+    dist2 = (s32)((u32)dx * (u32)dx + (u32)dz * (u32)dz);
+    if (dist2 < 0x400) {
+        *p_x -= (short)dx;
+        *p_z -= (short)dz;
+        DIFFTEST_RETURN((int)1);
+    }
+    dx = (s32)((u32)x - (u32)p[3]);
+    dz = (s32)((u32)z - (u32)p[5]);
+    dist2 = (s32)((u32)dx * (u32)dx + (u32)dz * (u32)dz);
+    if (dist2 < 0x400) {
+        *p_x -= (short)dx;
+        *p_z -= (short)dz;
+        DIFFTEST_RETURN((int)1);
+    }
+    DIFFTEST_RETURN((int)0);
 }
 
 
