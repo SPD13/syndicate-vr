@@ -338,13 +338,36 @@ struct Thing *effective_owner_of_thing(struct Thing *p_thing)
     return p_thing;
 }
 
-ubyte on_mapwho(struct Thing *p_thing)
+static DIFFTEST_REF_FUNC ubyte on_mapwho_asm(struct Thing *p_thing)
 {
     ubyte ret;
     asm volatile (
       "call ASM_on_mapwho\n"
-        : "=r" (ret) : "a" (p_thing));
+        : "=a" (ret) : "a" (p_thing));
     return ret;
+}
+
+ubyte on_mapwho(struct Thing *p_thing)
+{
+    s32 mapel_idx;
+    u32 tng_offs;
+    short thing;
+
+    DIFFTEST_SHADOW_RET(on_mapwho, ubyte, on_mapwho_asm(p_thing));
+    mapel_idx = (p_thing->Z >> 16) * 128 + (p_thing->X >> 16);
+    thing = game_my_big_map[mapel_idx].Child;
+    // The asm compares sign-extended index with zero-extended ThingOffset
+    tng_offs = (ushort)p_thing->ThingOffset;
+    while (thing != 0)
+    {
+        if ((s32)thing == (s32)tng_offs)
+            DIFFTEST_RETURN((ubyte)1);
+        if (thing > 0)
+            thing = things[thing].Next;
+        else
+            thing = sthings[thing].Next;
+    }
+    DIFFTEST_RETURN((ubyte)0);
 }
 
 static DIFFTEST_REF_FUNC void move_mapwho_asm(struct Thing *p_thing, int x, int y, int z)
