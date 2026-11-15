@@ -25,6 +25,7 @@
 #include "bfjoyst.h"
 
 #include "campaign.h"
+#include "difftest.h"
 #include "display.h"
 #include "engincam.h"
 #include "febrief.h"
@@ -56,10 +57,58 @@ short save_slot = -1;
 
 /******************************************************************************/
 
-void save_crypto_make_hashtable(ubyte simple_salt)
+extern u32 save_hashtbl_01[55];
+extern u32 data_176f1c;
+extern u32 save_hashtbl_02[57];
+extern u32 data_177004;
+extern u32 save_hashtbl_03[59];
+extern u32 save_hashtbl_verify_code;
+
+ulong save_crypto_transform1(ubyte a1);
+ulong save_crypto_transform2(ubyte a1);
+ulong save_crypto_transform3(ubyte a1);
+
+static DIFFTEST_REF_FUNC void save_crypto_make_hashtable_asm(ubyte simple_salt)
 {
     asm volatile ("call ASM_save_crypto_make_hashtable\n"
         :  : "a" (simple_salt));
+}
+
+static u32 save_crypto_hashtbl_next(u32 *p_seed)
+{
+    *p_seed *= 0xbb40e62d;
+    return (*p_seed >> 8) & 0xffff;
+}
+
+void save_crypto_make_hashtable(ubyte simple_salt)
+{
+    u32 seed;
+    int i;
+
+    DIFFTEST_SHADOW(save_crypto_make_hashtable, save_crypto_make_hashtable_asm(simple_salt));
+    if (simple_salt == 0)
+        seed = save_mortal_salt;
+    else
+        seed = 0x5e280a1d;
+
+    // The asm loops write one entry past each table, into the dword
+    // labels data_176f1c and data_177004.
+    for (i = 0; i < 55; i++)
+        save_hashtbl_01[i] = save_crypto_hashtbl_next(&seed);
+    data_176f1c = save_crypto_hashtbl_next(&seed);
+    for (i = 0; i < 57; i++)
+        save_hashtbl_02[i] = save_crypto_hashtbl_next(&seed);
+    data_177004 = save_crypto_hashtbl_next(&seed);
+    for (i = 0; i < 59; i++)
+        save_hashtbl_03[i] = save_crypto_hashtbl_next(&seed);
+
+    save_crypto_tables_state[2] = 0;
+    save_crypto_tables_state[1] = 0;
+    save_crypto_tables_state[0] = 0;
+    save_hashtbl_verify_code = seed;
+    save_crypto_transform1(1);
+    save_crypto_transform2(1);
+    save_crypto_transform3(1);
 }
 
 ulong save_crypto_transform1(ubyte a1)
