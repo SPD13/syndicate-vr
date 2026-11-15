@@ -905,12 +905,81 @@ int is_animating(int a1, int a2, int a3, int a4)
 }
 
 
+static DIFFTEST_REF_FUNC int map_things_unkn_func_04_asm(short subtype)
+{
+    int ret;
+    asm volatile ("call ASM_map_things_unkn_func_04\n"
+        : "=a" (ret) : "a" (subtype));
+    return ret;
+}
+
+/** Find the building of given subtype (any if 0) nearest to engine center,
+ * searching map tiles within 20 tiles around it.
+ */
 int map_things_unkn_func_04(short subtype)
 {
-    ubyte ret;
-    asm volatile ("call ASM_map_things_unkn_func_04\n"
-        : "=r" (ret) : "a" (subtype));
-    return ret;
+    s32 cx, cz;
+    s32 tl_x, tl_z;
+    s32 tl_x_beg, tl_x_end, tl_z_beg, tl_z_end;
+    u32 best_dist;
+    s32 best_thing;
+    ushort usubtype;
+
+    DIFFTEST_SHADOW_RET(map_things_unkn_func_04, int, map_things_unkn_func_04_asm(subtype));
+    usubtype = (ushort)subtype;
+    best_thing = 0;
+    best_dist = 0x7fffffff;
+    cx = engn_xc >> 8;
+    cz = engn_zc >> 8;
+    tl_x_beg = cx - 20;
+    tl_x_end = cx + 20;
+    tl_z_beg = cz - 20;
+    tl_z_end = cz + 20;
+
+    for (tl_x = tl_x_beg; tl_x < tl_x_end; tl_x++)
+    {
+        for (tl_z = tl_z_beg; tl_z < tl_z_end; tl_z++)
+        {
+            short thing;
+
+            if (tl_x >= MAP_TILE_WIDTH || tl_z >= MAP_TILE_HEIGHT)
+                continue;
+            if (tl_x <= 0 || tl_z <= 0)
+                continue;
+            thing = game_my_big_map[tl_z * MAP_TILE_WIDTH + tl_x].Child;
+            while (thing != 0)
+            {
+                if (thing > 0)
+                {
+                    struct Thing *p_thing;
+
+                    p_thing = &things[thing];
+                    if ((p_thing->Type == TT_BUILDING) &&
+                      ((usubtype == 0) || ((u32)p_thing->SubType == (u32)usubtype)))
+                    {
+                        s32 dx, dz;
+                        u32 dist;
+
+                        // TODO tile coords are compared with full engn_xc/engn_zc coords; original bug?
+                        dx = (p_thing->X >> 8) - engn_xc;
+                        dz = (p_thing->Z >> 8) - engn_zc;
+                        dist = (u32)(dx * dx) + (u32)(dz * dz);
+                        if (dist < best_dist)
+                        {
+                            best_dist = dist;
+                            best_thing = thing;
+                        }
+                    }
+                    thing = p_thing->Next;
+                }
+                else
+                {
+                    thing = sthings[thing].Next;
+                }
+            }
+        }
+    }
+    DIFFTEST_RETURN(best_thing);
 }
 
 TbResult level_misc_update_mgun(struct LevelMisc *p_lvmsc)
