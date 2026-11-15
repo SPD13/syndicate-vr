@@ -197,12 +197,47 @@ ulong save_crypto_transform2(ubyte a1)
     DIFFTEST_RETURN((ulong)val);
 }
 
-ulong save_crypto_transform3(ubyte a1)
+static DIFFTEST_REF_FUNC ulong save_crypto_transform3_asm(ubyte a1)
 {
     ulong ret;
     asm volatile ("call ASM_save_crypto_transform3\n"
-        : "=r" (ret) : "a" (a1));
+        : "=a" (ret) : "a" (a1));
     return ret;
+}
+
+ulong save_crypto_transform3(ubyte a1)
+{
+    ubyte state, base;
+    sbyte i, k;
+    u32 val;
+
+    DIFFTEST_SHADOW_RET(save_crypto_transform3, ulong, save_crypto_transform3_asm(a1));
+    state = save_crypto_tables_state[2];
+    if (a1 == 0)
+    {
+        val = save_hashtbl_03[state];
+        save_crypto_tables_state[2] = state;
+        DIFFTEST_RETURN((ulong)val);
+    }
+    save_crypto_data_state[2] = 0;
+    // TODO the lag indices are computed from save_crypto_tables_state[0]
+    // instead of [2], unlike in transform1/2; kept as in the original.
+    base = save_crypto_tables_state[0];
+    i = (sbyte)(base - 0x3a);
+    if (i < 0)
+        i = (sbyte)(i + 0x3b);
+    k = (sbyte)(base - 0x13);
+    if (k < 0)
+        k = (sbyte)(k + 0x3b);
+    save_hashtbl_03[state] = save_hashtbl_03[i] + save_hashtbl_03[k];
+    val = save_hashtbl_03[state];
+    state++;
+    if (state > 0x3a)
+        state = 0;
+    if (val < save_hashtbl_03[i])
+        save_crypto_data_state[2] = 1;
+    save_crypto_tables_state[2] = state;
+    DIFFTEST_RETURN((ulong)val);
 }
 
 u32 save_buffer_hash(ubyte *save_buf, u32 save_buf_len)
