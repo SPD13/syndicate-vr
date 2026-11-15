@@ -2984,13 +2984,49 @@ void matrix_transpose_cp(int a1, int a2, int a3)
  * wrapping grid, writing the result to p_out. The asm takes p_out in
  * esi; its asm caller passes it in ecx through ac_mech_unkn_func_20.
  */
-void mech_unkn_func_20(struct M31 *p_from, struct M31 *p_to, s32 div,
-  struct M31 *p_out)
+static DIFFTEST_REF_FUNC void mech_unkn_func_20_asm(struct M31 *p_from,
+  struct M31 *p_to, s32 div, struct M31 *p_out)
 {
     int ra = (int)p_from, rd = (int)p_to, rb = div;
     asm volatile ("call ASM_mech_unkn_func_20\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+S" (p_out)
         : : "ecx", "edi", "cc", "memory");
+}
+
+void mech_unkn_func_20(struct M31 *p_from, struct M31 *p_to, s32 div,
+  struct M31 *p_out)
+{
+    struct M31 res;
+    s32 dt, alt, sign, adt, aalt;
+    int i;
+
+    DIFFTEST_SHADOW(mech_unkn_func_20,
+      mech_unkn_func_20_asm(p_from, p_to, div, p_out));
+    for (i = 0; i < 3; i++)
+    {
+        dt = p_to->R[i] - p_from->R[i];
+        if (dt < 0)
+            sign = -1;
+        else
+            sign = (dt != 0);
+        adt = (dt < 0) ? -dt : dt;
+        alt = -(sign * (0x800 - adt));
+        aalt = (alt < 0) ? -alt : alt;
+        if (aalt < adt)
+            dt = alt;
+        res.R[i] = dt;
+    }
+    if (div != 0)
+    {
+        res.R[0] /= div;
+        res.R[1] /= div;
+        res.R[2] /= div;
+    }
+    // All three are computed before storing, as p_out may alias p_from
+    res.R[0] = (res.R[0] + p_from->R[0]) & 0x7FF;
+    res.R[1] = (res.R[1] + p_from->R[1]) & 0x7FF;
+    res.R[2] = (res.R[2] + p_from->R[2]) & 0x7FF;
+    *p_out = res;
 }
 
 /** Routed asm (internal label). Arguments and return value are the

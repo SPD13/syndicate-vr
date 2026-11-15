@@ -311,6 +311,36 @@ static void fuzz_matrix_transpose_cp(ulong *p_seed)
         matrix_transpose_cp((int)dst, (int)src, 0);
 }
 
+void mech_unkn_func_20(struct M31 *p_from, struct M31 *p_to, s32 div,
+  struct M31 *p_out);
+
+static void fuzz_mech_unkn_func_20(ulong *p_seed)
+{
+    struct M31 from, to, out;
+    s32 div;
+    int i;
+
+    // Keep values small so the deltas cannot overflow
+    for (i = 0; i < 3; i++) {
+        from.R[i] = (s32)(difftest_fuzz_rand(p_seed) % 0x2000) - 0x1000;
+        to.R[i] = (s32)(difftest_fuzz_rand(p_seed) % 0x2000) - 0x1000;
+        out.R[i] = fuzz_int(p_seed);
+    }
+    div = (s32)(difftest_fuzz_rand(p_seed) % 17) - 8;
+    switch (difftest_fuzz_rand(p_seed) % 8)
+    {
+    case 0:
+        mech_unkn_func_20(&from, &to, div, &from);
+        break;
+    case 1:
+        mech_unkn_func_20(&from, &to, div, &to);
+        break;
+    default:
+        mech_unkn_func_20(&from, &to, div, &out);
+        break;
+    }
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
@@ -324,6 +354,7 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"fov_region", fuzz_fov_region},
     {"VNAV_qwertyuiop", fuzz_VNAV_qwertyuiop},
     {"matrix_transpose_cp", fuzz_matrix_transpose_cp},
+    {"mech_unkn_func_20", fuzz_mech_unkn_func_20},
     {NULL, NULL},
 };
 
