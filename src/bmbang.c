@@ -485,16 +485,19 @@ static int shockwave_dist(int dx, int dz)
     return adx + adz;
 }
 
-void do_shockwave(int x, int y, int z, int radius, int intensity, struct Thing *p_owner)
+void do_shockwave(int x, int y, int z, int radius_arg, int intensity, struct Thing *p_owner)
 {
     char locstr[100];
     ubyte negative;
+    int radius;
     int range, tile_cx, tile_cz;
     int tile_x, tile_z;
 
     DIFFTEST_SHADOW(do_shockwave,
-      do_shockwave_asm(x, y, z, radius, intensity, p_owner));
+      do_shockwave_asm(x, y, z, radius_arg, intensity, p_owner));
 
+    // Work on a copy; the asm keeps the argument slot unchanged
+    radius = radius_arg;
     negative = 0;
     if (radius < 0)
     {
