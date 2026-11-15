@@ -6,10 +6,11 @@ plan is in `docs/decompilation-agent-plan.md`.
 
 ## Where things stand
 
-- Branch `decomp/auto` (local only, **never push**), 360 commits on top of
+- Branch `decomp/auto` (local only, **never push**), on top of
   `vr/main`.
-- `queue.py` stats: 693 asm functions, 318 shadowed (remade in C and
-  difftested), 101 routed labels still live, **0 queued**.
+- `queue.py` stats (after the 37-scenario coverage, `972c34bf`): 693 asm
+  functions, 332 shadowed (remade in C and difftested), 87 routed labels
+  still live, 7 queued (6 BAT functions and `nullsub_7`, loop running).
 - 2026-11-14 run: 38 targets, all merged after routing
   `set_player_peeps_to_run` (own epilogue `jump_57dc6`) and
   `del_col_vect_from_mapwho` in `31a4febd`; about $20.
@@ -24,10 +25,23 @@ plan is in `docs/decompilation-agent-plan.md`.
   (Hong Kong, zealot de-re-persuasion; `c973653d`) runs them; then
   `is_group_all_persuaded_by_me` and `person_becomes_persuaded` merged
   (`63acc138`, `25386b61`, about $0.87).
-- Remaining routed labels are all excluded from the queue: 69
-  low-coverage, 20 sound/network subsystem, 12 changed recently upstream
-  (kept excluded by choice; the 30-day window lapses about 2026-12-01,
-  then `queue.py` queues them by itself).
+- Fuzz route: pure functions no scenario reaches get a random-input case
+  in `src/difftest_fuzz.c`; `queue.py` no longer counts a function with a
+  fuzz case as low-coverage. Merged this way: `save_crypto_make_hashtable`,
+  `save_crypto_transform1/2/3`, `func_5cff0`, `line_intersect8`,
+  `my_preprocess_text`.
+- 2026-11-15 run on 8 targets after the 35 seeded scenarios: all merged
+  (about $4), incl. `process_mech`.
+- `my_preprocess_text` (`b1351b2f`) deliberately differs from the asm on
+  the `\l` escape (insert login name): the asm finds the name end by
+  reading `net_host_player_no+3+k`, which was `login_name[k]` in the
+  original binary layout; in the port they are separate variables, so the
+  asm inserts nothing. The C follows the original intent; the fuzz
+  alphabet omits `l`/`L`. Accepted after review.
+- Remaining routed labels excluded from the queue: low-coverage ones (see
+  `queue.py --print 100`), 20 sound/network subsystem, 12 changed
+  recently upstream (kept excluded by choice; the 30-day window lapses
+  about 2026-12-01, then `queue.py` queues them by itself).
 - Untracked: `tools/decomp-agent/loop.log` (the loop's log, keep it).
 
 ## Player bot scenarios (added this session)
@@ -42,13 +56,23 @@ with random but deterministic player commands:
 - Called from `game_process()` right after `load_packet()`; acts every 6
   turns, only in `DpM_ENGINEPLY` and only when the packet is empty.
 - Default scenarios (in `coverage.sh`, `difftest_run.sh`,
-  `statetrace.sh`): 13 plain + 16 bot =
-  `0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19 1,2+bot
-  1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot
-  1,102+bot 0,22+bot 1,100+bot 1,85+bot 1,71+bot 1,72+bot 0,49+bot
-  3,4+bot` (29; `3,4+bot` added in `c973653d`).
-- Bot actions (`0a7a883d`): goto/shoot/plant at walkable faces, select
-  next agent, persuade, earlier self-destruct.
+  `statetrace.sh`): 37, 13 plain + 24 bot; see the `SCENARIOS` line in
+  those scripts. Latest additions: `3,4+bot`, `0,92 3,91 3,38 3,61 1,51`
+  (+bot), `0,101+bot`, and `0,1+bot 0,8+bot` (BAT minigame).
+- Runs are seeded: all three scripts set `SWARS_SEED=12345` (before
+  `5b97696e` coverage and difftest seeded from the clock, so call counts
+  varied between runs).
+- Bot actions (`0a7a883d`, later extended): goto/shoot/plant at walkable
+  faces, select next agent, persuade, earlier self-destruct; teleport
+  cheat (`PAct_CHEAT_AGENT_TELEPORT`) next to a vehicle of a randomly
+  chosen subtype, then board it on the next turn (weapon put away first).
+- BAT easter egg: on map 30 (`maps/map030.b&b` area tiles) a player agent
+  standing in the area with the Persuadertron selected starts Breakout.
+  The bot teleports one agent there and selects it with `WepSel_TOGGLE`
+  (`PAct_SELECT_SPECIFIC_WEAPON` rejects `WepSel_SELECT`, so other bot
+  selects are no-ops; making them real broke 0,5+bot and 0,49+bot).
+  `60707f43` also fixed the `BAT_bricks_load` wrapper, which did not pass
+  the level in `eax`.
 - Probing with 3000 turns: `0,22+bot` crashes (rc=3) after turn 1500 and
   `2,75+bot` hangs; not investigated. `0,22` plain at 3000 turns reaches
   `find_next_ship_tnode`, `2,75` reaches `search_things_for_uniqueid`.
@@ -60,6 +84,12 @@ Lessons learned, do not undo:
 - Only command agents that are not running mission script commands
   (`person_is_executing_commands`). A scripted person's `ComCur` is a
   command index, not `plyr<<2|slot`, and packet handlers assert or crash.
+- Skip agents whose `ComCur>>2` is not the local player (0,84+bot) and
+  agents flagged `TngF_InVehicle` while still on the mapwho (shuttle pod
+  quirk; self-destruct then made a mapwho cycle and `scare_civs` hung in
+  3,91+bot).
+- Put the weapon away before boarding a vehicle, otherwise a running laser
+  shot asserts "Vehicle subtype with no shooting ability" (0,21+bot).
 - No cheats while any player agent is scripted (crashed in
   `give_all_weapons_to_all_agents`).
 - Never set `PActF_TriggerUse`: it keeps firing and asserts "Vehicle
@@ -73,9 +103,10 @@ Lessons learned, do not undo:
 
 ## Remaining queue
 
-Empty. To get more targets, widen the scenarios (see Open items), rebuild
-`coverage.json` with `tools/decomp-agent/coverage.sh` and run
-`queue.py --print` again.
+7 BAT/`nullsub_7` targets (loop started 2026-11-15). After that, more
+targets need new scenarios, bot actions or fuzz cases for the
+low-coverage list; rebuild `coverage.json` with
+`tools/decomp-agent/coverage.sh` and run `queue.py --print` again.
 
 ## How to resume
 
@@ -135,8 +166,11 @@ Notes:
   scenarios identical), then append `{"fn": X, "status": "reset"}` to
   the ledger so `queue.py` forgets earlier failures. Base traces made
   before `b69356d9` are invalid; regenerate them.
-- The queue is empty: the 69 low-coverage functions need new
-  scenarios, more bot actions (the mech
-  only stands still, so `process_mech` has 0 calls) or fuzz cases.
+- Low-coverage functions need new scenarios, bot actions or fuzz cases
+  (`queue.py --print 100` lists them with the `low-coverage` tag).
+- Statetrace is occasionally non-deterministic (one run of plain 0,1
+  diverged); rerun a differing trace before trusting it. Cause unknown.
+- `2,75+bot` hangs and `0,84+bot` asserts in `process_protect_person`;
+  not used as scenarios.
 - Still asm: 22 functions called only from asm, and 16 game internal
   labels (46 more in net/sound/radica).
