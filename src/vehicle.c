@@ -2723,12 +2723,56 @@ void mech_unkn_func_19(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int mech_unkn_func_08(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int mech_unkn_func_08_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_mech_unkn_func_08\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int mech_unkn_func_08(int a1, int a2, int a3, int a4)
+{
+    struct unkn_mech_struc3 *p_u3itm;
+    struct unkn_mech_struc1 *p_arr1;
+    struct unkn_mech_struc2 *p_u2itm;
+    s32 ret;
+    s32 cnt;
+    s32 idx;
+    int i;
+
+    DIFFTEST_SHADOW_RET(mech_unkn_func_08, int, mech_unkn_func_08_asm(a1, a2, a3, a4));
+    p_arr1 = unkn_mech_arr1;
+    ret = 0x7fffffff;
+    // The asm accesses each s32/ubyte field pair below as a 2-element array
+    for (i = 1; i >= 0; i--)
+    {
+        p_u3itm = &unkn_mech_arr3[a1];
+        if ((&p_u3itm->field_74)[i] == 0)
+            continue;
+        cnt = p_u3itm->mech3_unkn_fld_54[i];
+        if (cnt > 0)
+        {
+            p_u3itm->mech3_unkn_fld_54[i] = cnt - 1;
+            continue;
+        }
+        idx = p_arr1[(&p_u3itm->field_64)[i]].field_5;
+        p_u2itm = &unkn_mech_arr2[(&p_u3itm->field_6C)[i]];
+        if (idx == p_u2itm->field_0 && p_u2itm->field_4[4] == 0)
+        {
+            (&p_u3itm->field_74)[i] = 0;
+            p_u3itm->mech3_unkn_fld_54[i] = 0;
+            continue;
+        }
+        (&p_u3itm->field_64)[i] = idx;
+        p_u3itm->mech3_unkn_fld_54[i] = p_arr1[idx].field_D;
+        ret = p_arr1[(&p_u3itm->field_64)[i]].field_9;
+        (&p_u3itm->mech3_unkn_fld_54[2])[i] = ret;
+    }
+    // The asm stores back the value it loaded at entry
+    unkn_mech_arr1 = p_arr1;
+    mech_unkn_func_19(a1, 0, 0, 0);
+    DIFFTEST_RETURN((int)ret);
 }
 
 
