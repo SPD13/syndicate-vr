@@ -8012,14 +8012,75 @@ int do_fvect_colide(int a1, int a2, int a3, int a4, int a5)
 }
 
 
-int can_i_see_building(struct Thing *p_i, struct Thing *p_thing,
-        int max_dist, ushort flags)
+static DIFFTEST_REF_FUNC int can_i_see_building_asm(struct Thing *p_i,
+  struct Thing *p_thing, int max_dist, ushort flags)
 {
     int ret;
     asm volatile (
       "call ASM_can_i_see_building\n"
-        : "=r" (ret) : "a" (p_i), "d" (p_thing), "b" (max_dist), "c" (flags));
+        : "=a" (ret) : "a" (p_i), "d" (p_thing), "b" (max_dist), "c" (flags));
     return ret;
+}
+
+int can_i_see_building(struct Thing *p_i, struct Thing *p_thing,
+        int max_dist, ushort flags)
+{
+    struct MyMapElement *p_mapel;
+    int dx, dz, dist;
+    int step_x, step_z, x, z, tile_x, tile_z;
+    int steps, angdiff;
+    short angle, count, cvlist;
+
+    DIFFTEST_SHADOW_RET(can_i_see_building, int,
+      can_i_see_building_asm(p_i, p_thing, max_dist, flags));
+    dx = (p_thing->X - p_i->X) >> 8;
+    dz = (p_thing->Z - p_i->Z) >> 8;
+    dist = (int)((u32)dx * (u32)dx + (u32)dz * (u32)dz);
+    if (max_dist < dist)
+        DIFFTEST_RETURN((int)0);
+
+    angle = arctan(dx, -dz);
+    if ((flags & 0x01) != 0)
+    {
+        if ((angle >> 8) != p_i->U.UPerson.Angle)
+            change_person_angle(p_i, (ubyte)(angle >> 8));
+    }
+    else
+    {
+        angdiff = (((int)p_i->U.UPerson.Angle << 8) - angle + 0x800) & 0x7FF;
+        if (angdiff > 200 && angdiff < 0x737)
+            DIFFTEST_RETURN((int)0);
+    }
+
+    dist = LbSqrL(dist);
+    steps = dist >> 7;
+    if ((ushort)steps == 0)
+        steps = 1;
+    step_x = dx / (int)(ushort)steps;
+    step_z = dz / (int)(ushort)steps;
+    x = p_i->X >> 8;
+    z = p_i->Z >> 8;
+    for (count = (short)steps; count > 0; count--, x += step_x, z += step_z)
+    {
+        tile_x = x >> 8;
+        if (tile_x < 0 || tile_x >= 128)
+            continue;
+        tile_z = z >> 8;
+        if (tile_z < 0 || tile_z >= 128)
+            continue;
+        p_mapel = &game_my_big_map[tile_z * 128 + tile_x];
+        if (p_mapel->ColHead == 0)
+            continue;
+        cvlist = do_fvect_colide(x, z, x + step_x, z + step_z, (int)p_mapel);
+        if (cvlist == 0)
+            continue;
+        if (game_col_vects_list[cvlist].Object == (int)(ushort)p_thing->ThingOffset)
+            DIFFTEST_RETURN(dist);
+        DIFFTEST_RETURN((int)-1);
+    }
+    if (dist == 0)
+        dist = 1;
+    DIFFTEST_RETURN(dist);
 }
 
 void process_random_speech(struct Thing *p_person, ubyte a2)
