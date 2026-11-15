@@ -5999,15 +5999,59 @@ struct SimpleThing *create_sound_effect(int x, int y, int z, ushort sample, int 
     DIFFTEST_RETURN(p_sthing);
 }
 
+static DIFFTEST_REF_FUNC struct SimpleThing *create_stasis_pod_asm(MapCoord x,
+  MapCoord y, MapCoord z, ushort timer, struct Thing *p_owner)
+{
+    struct SimpleThing *ret;
+    // Pushed through a register holding them: a "g" operand may be placed
+    // relative to the stack pointer, which each push moves.
+    int stkargs[1];
+    int edx = y, ebx = z, ecx = timer;
+
+    stkargs[0] = (int)(intptr_t)p_owner;
+
+    asm volatile (
+      "push 0(%4)\n"
+      "call ASM_create_stasis_pod\n"
+        : "=a" (ret), "+d" (edx), "+b" (ebx), "+c" (ecx)
+        : "S" (stkargs), "0" ((int)x)
+        : "cc", "memory");
+    return ret;
+}
+
 struct SimpleThing *create_stasis_pod(MapCoord x, MapCoord y, MapCoord z,
   ushort timer, struct Thing *p_owner)
 {
-    struct SimpleThing *ret;
-    asm volatile (
-      "push %5\n"
-      "call ASM_create_stasis_pod\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z), "c" (timer), "g" (p_owner));
-    return ret;
+    struct SimpleThing *p_sthing;
+    short sthing;
+
+    DIFFTEST_SHADOW_RET(create_stasis_pod, struct SimpleThing *,
+      create_stasis_pod_asm(x, y, z, timer, p_owner));
+    if ((s32)sthings_used > 1495)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if (x < 0 || x > 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if (z < 0 || z > 0x8000)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    sthing = get_new_sthing();
+    if (sthing == 0)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+    if (sthing > -1 || sthing < -1500)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    p_sthing = &sthings[sthing];
+    p_sthing->Radius = 0;
+    p_sthing->StartFrame = 0;
+    p_sthing->Type = SmTT_STASIS_POD;
+    p_sthing->Z = (s32)z << 8;
+    p_sthing->State = 0;
+    p_sthing->X = (s32)x << 8;
+    p_sthing->Y = (s32)y << 8;
+    p_sthing->Timer1 = timer;
+    p_sthing->Owner2 = p_owner->ThingOffset;
+    add_node_sthing(sthing);
+    DIFFTEST_RETURN(p_sthing);
 }
 
 struct SimpleThing *create_time_pod(MapCoord x, MapCoord y, MapCoord z,
