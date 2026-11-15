@@ -23,6 +23,7 @@
 #include <string.h>
 #include "command.h"
 #include "game.h"
+#include "game_save.h"
 #include "matrix.h"
 #include "pathtrig.h"
 /******************************************************************************/
@@ -341,6 +342,99 @@ static void fuzz_mech_unkn_func_20(ulong *p_seed)
     }
 }
 
+int func_5cff0(int a1, int a2, int a3, int a4);
+
+static void fuzz_func_5cff0(ulong *p_seed)
+{
+    short x, z;
+    s32 pts[4];
+    int i;
+
+    // Points near (x, z) most of the time, so both distance checks matter
+    x = (short)difftest_fuzz_rand(p_seed);
+    z = (short)difftest_fuzz_rand(p_seed);
+    for (i = 0; i < 4; i++) {
+        if (difftest_fuzz_rand(p_seed) % 4 != 0)
+            pts[i] = ((s32)(((i & 1) ? z : x) +
+              (short)(difftest_fuzz_rand(p_seed) % 64) - 32) << 16) |
+              (difftest_fuzz_rand(p_seed) & 0xFFFF);
+        else
+            pts[i] = difftest_fuzz_rand(p_seed);
+    }
+    // The asm reads the first point's x as the low short of pts[0]
+    if (difftest_fuzz_rand(p_seed) % 2 == 0)
+        pts[0] = (pts[0] & 0xFFFF0000) | (ushort)(x +
+          (short)(difftest_fuzz_rand(p_seed) % 64) - 32);
+    func_5cff0((int)&x, (int)&z, (int)pts, difftest_fuzz_rand(p_seed));
+}
+
+void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
+  int a8, int a9, int a10);
+
+static void fuzz_line_intersect8(ulong *p_seed)
+{
+    int v[8];
+    s32 out_x, out_z;
+    int base_x, base_z, i;
+
+    // Deltas within +-32 keep the idiv quotients within 32 bits
+    base_x = (short)difftest_fuzz_rand(p_seed) % 4096;
+    base_z = (short)difftest_fuzz_rand(p_seed) % 4096;
+    for (i = 0; i < 8; i++)
+        v[i] = ((i & 1) ? base_z : base_x) +
+          (int)(difftest_fuzz_rand(p_seed) % 65) - 32;
+    // Sometimes parallel or shared-point lines
+    switch (difftest_fuzz_rand(p_seed) % 8)
+    {
+    case 0:
+        v[6] = v[4] + (v[2] - v[0]);
+        v[7] = v[5] + (v[3] - v[1]);
+        break;
+    case 1:
+        v[4] = v[0];
+        v[5] = v[1];
+        break;
+    default:
+        break;
+    }
+    out_x = fuzz_int(p_seed);
+    out_z = fuzz_int(p_seed);
+    line_intersect8(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
+      (int)&out_x, (int)&out_z);
+}
+
+void save_crypto_make_hashtable(ubyte simple_salt);
+ulong save_crypto_transform1(ubyte a1);
+ulong save_crypto_transform2(ubyte a1);
+ulong save_crypto_transform3(ubyte a1);
+
+/** Makes the save crypto tables from a random salt, then draws keys as
+ * save_crypto_docrypt() does. Covers all four save_crypto functions.
+ */
+static void fuzz_save_crypto(ulong *p_seed)
+{
+    int i;
+
+    save_mortal_salt = difftest_fuzz_rand(p_seed);
+    save_crypto_make_hashtable(difftest_fuzz_rand(p_seed) % 4 == 0);
+    for (i = 0; i < 64; i++)
+    {
+        ubyte a1 = difftest_fuzz_rand(p_seed) & 1;
+        switch (difftest_fuzz_rand(p_seed) % 3)
+        {
+        case 0:
+            save_crypto_transform1(a1);
+            break;
+        case 1:
+            save_crypto_transform2(a1);
+            break;
+        default:
+            save_crypto_transform3(a1);
+            break;
+        }
+    }
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
@@ -355,6 +449,12 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"VNAV_qwertyuiop", fuzz_VNAV_qwertyuiop},
     {"matrix_transpose_cp", fuzz_matrix_transpose_cp},
     {"mech_unkn_func_20", fuzz_mech_unkn_func_20},
+    {"func_5cff0", fuzz_func_5cff0},
+    {"line_intersect8", fuzz_line_intersect8},
+    {"save_crypto_make_hashtable", fuzz_save_crypto},
+    {"save_crypto_transform1", fuzz_save_crypto},
+    {"save_crypto_transform2", fuzz_save_crypto},
+    {"save_crypto_transform3", fuzz_save_crypto},
     {NULL, NULL},
 };
 

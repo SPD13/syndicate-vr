@@ -30,6 +30,16 @@ LABEL_RE = re.compile(r'^\s*GLOBAL_FUNC\s*\(\s*(\w+)\s*\)|^(\w+):')
 INSN_RE = re.compile(r'^\s+[a-z]')
 CALL_RE = re.compile(r'^\s+call\s+\*?(\w+)')
 ADDR_RE = re.compile(r'/\*\s*0x([0-9A-Fa-f]+)\s*\*/')
+FUZZ_CASE_RE = re.compile(r'^\s*\{"(\w+)",\s*fuzz_\w+\}', re.M)
+
+
+def fuzz_cases():
+    """Names with a random-input case in src/difftest_fuzz.c; difftest_run.sh
+    verifies them without scenario coverage."""
+    path = os.path.join(REPO, 'src', 'difftest_fuzz.c')
+    if not os.path.exists(path):
+        return set()
+    return set(FUZZ_CASE_RE.findall(open(path, errors='replace').read()))
 
 
 def parse_asm():
@@ -151,6 +161,7 @@ def main():
     recent = recent_upstream_names()
     ledger = ledger_state()
     coverage = json.load(open(COVERAGE)) if os.path.exists(COVERAGE) else None
+    fuzzed = fuzz_cases()
     targets = []
     for name, info in live.items():
         a = asm.get('ASM_' + name)
@@ -165,7 +176,8 @@ def main():
         elif name in recent:
             excluded = 'upstream-recent'
         cov_calls = coverage.get(name, {}).get('calls', 0) if coverage is not None else None
-        if excluded is None and cov_calls is not None and cov_calls < MIN_COVERAGE_CALLS:
+        if (excluded is None and cov_calls is not None and cov_calls < MIN_COVERAGE_CALLS
+                and name not in fuzzed):
             excluded = 'low-coverage'
         attempts = ledger.get(name, [])
         if any(e.get('status') == 'merged' for e in attempts):
