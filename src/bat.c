@@ -468,13 +468,35 @@ void breakout_play_sub2(void)
         :  :  : "eax" );
 }
 
-void BAT_bricks_load(int a1)
+static DIFFTEST_REF_FUNC void BAT_bricks_load_asm(int a1)
 {
-    // The level number goes in eax; the wrapper used to leave it to chance,
-    // which only worked while eax still held a1 (not in coverage builds)
     int ra = a1;
     asm volatile ("call ASM_BAT_bricks_load\n"
         : "+a" (ra) : : "cc", "memory");
+}
+
+void BAT_bricks_load(int a1)
+{
+    struct BreakoutLevel *p_level;
+    int remain;
+    int r, c;
+
+    DIFFTEST_SHADOW(BAT_bricks_load, BAT_bricks_load_asm(a1));
+    p_level = &BAT_levels[a1 - 1];
+    remain = 0;
+    for (r = 0; r < BAT_BRICK_ROWS; r++)
+    {
+        for (c = 0; c < BAT_BRICK_COLUMNS; c++)
+        {
+            ubyte brick;
+
+            brick = p_level->bricks[BAT_BRICK_COLUMNS * r + c];
+            BAT_bricks[BAT_BRICK_COLUMNS * r + c] = brick;
+            if ((brick & 0x80) == 0 && brick != 0x35)
+                remain++;
+        }
+    }
+    BAT_bricks_remain = remain;
 }
 
 void BAT_play(void)
