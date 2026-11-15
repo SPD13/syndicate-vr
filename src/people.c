@@ -11855,10 +11855,23 @@ next:
 }
 
 
-void person_intel(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_intel_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_intel\n"
         : : "a" (p_person));
+}
+
+void person_intel(struct Thing *p_person)
+{
+    DIFFTEST_SHADOW(person_intel, person_intel_asm(p_person));
+
+    if (p_person->U.UPerson.Target2 != 0)
+        return;
+    if ((p_person->Flag & (TngF_ShootAtPos|TngF_PlayerAgent)) != (TngF_ShootAtPos|TngF_PlayerAgent))
+        p_person->Flag &= ~TngF_TriggerUse;
+    if (p_person->U.UPerson.WeaponTurn != 0)
+        return;
+    find_target_from_group((int)p_person, 0, 0, 0);
 }
 
 short person_move(struct Thing *p_person);
