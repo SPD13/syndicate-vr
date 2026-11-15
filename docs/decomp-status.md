@@ -8,8 +8,8 @@ plan is in `docs/decompilation-agent-plan.md`.
 
 - Branch `decomp/auto` (local only, **never push**), 360 commits on top of
   `vr/main`.
-- `queue.py` stats: 693 asm functions, 316 shadowed (remade in C and
-  difftested), 103 routed labels still live, **0 queued**.
+- `queue.py` stats: 693 asm functions, 318 shadowed (remade in C and
+  difftested), 101 routed labels still live, **0 queued**.
 - 2026-11-14 run: 38 targets, all merged after routing
   `set_player_peeps_to_run` (own epilogue `jump_57dc6`) and
   `del_col_vect_from_mapwho` in `31a4febd`; about $20.
@@ -19,7 +19,12 @@ plan is in `docs/decompilation-agent-plan.md`.
   `esi`. `efd1df5e` makes the asm caller pass it in `ecx` (saved around
   the call) and the C wrapper take it as 4th argument; state traces of all
   28 scenarios identical. After a ledger reset it merged (`964b26ab`).
-- Remaining routed labels are all excluded from the queue: 71
+- Persuasion: group persuasion is only reached by mission script commands
+  (`PCmd_PERSUADE_*`), never by player packets. Scenario `3,4+bot`
+  (Hong Kong, zealot de-re-persuasion; `c973653d`) runs them; then
+  `is_group_all_persuaded_by_me` and `person_becomes_persuaded` merged
+  (`63acc138`, `25386b61`, about $0.87).
+- Remaining routed labels are all excluded from the queue: 69
   low-coverage, 20 sound/network subsystem, 12 changed recently upstream
   (kept excluded by choice; the 30-day window lapses about 2026-12-01,
   then `queue.py` queues them by itself).
@@ -37,13 +42,16 @@ with random but deterministic player commands:
 - Called from `game_process()` right after `load_packet()`; acts every 6
   turns, only in `DpM_ENGINEPLY` and only when the packet is empty.
 - Default scenarios (in `coverage.sh`, `difftest_run.sh`,
-  `statetrace.sh`): 13 plain + 15 bot =
+  `statetrace.sh`): 13 plain + 16 bot =
   `0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19 1,2+bot
   1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot
-  1,102+bot 0,22+bot 1,100+bot 1,85+bot 1,71+bot 1,72+bot 0,49+bot`.
+  1,102+bot 0,22+bot 1,100+bot 1,85+bot 1,71+bot 1,72+bot 0,49+bot
+  3,4+bot` (29; `3,4+bot` added in `c973653d`).
 - Bot actions (`0a7a883d`): goto/shoot/plant at walkable faces, select
-  next agent, persuade, earlier self-destruct. Persuasion still reaches
-  0 calls in coverage, so that path does not work yet.
+  next agent, persuade, earlier self-destruct.
+- Probing with 3000 turns: `0,22+bot` crashes (rc=3) after turn 1500 and
+  `2,75+bot` hangs; not investigated. `0,22` plain at 3000 turns reaches
+  `find_next_ship_tnode`, `2,75` reaches `search_things_for_uniqueid`.
 - All bot missions are deterministic over two runs (1,27+bot ends at turn
   594 because the mission ends; 1,27 plain ends at turn 23).
 
@@ -127,8 +135,8 @@ Notes:
   scenarios identical), then append `{"fn": X, "status": "reset"}` to
   the ledger so `queue.py` forgets earlier failures. Base traces made
   before `b69356d9` are invalid; regenerate them.
-- The queue is empty: the 71 low-coverage functions need new
-  scenarios, more bot actions (persuasion is not reached yet; the mech
+- The queue is empty: the 69 low-coverage functions need new
+  scenarios, more bot actions (the mech
   only stands still, so `process_mech` has 0 calls) or fuzz cases.
 - Still asm: 22 functions called only from asm, and 16 game internal
   labels (46 more in net/sound/radica).
