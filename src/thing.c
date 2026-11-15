@@ -2485,11 +2485,59 @@ void find_and_time_travel(struct SimpleThing *p_sthing)
     }
 }
 
-void process_time_pod(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void process_time_pod_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_process_time_pod\n"
         : : "a" (p_sthing));
+}
+
+void process_time_pod(struct SimpleThing *p_sthing)
+{
+    DIFFTEST_SHADOW(process_time_pod, process_time_pod_asm(p_sthing));
+    p_sthing->Timer1--;
+    switch ((ushort)p_sthing->State)
+    {
+    case 0:
+        p_sthing->Radius += 0x10;
+        if (!IsSamplePlaying(p_sthing->ThingOffset, 0x38, NULL))
+            play_dist_ssample(p_sthing, 0x38,
+              (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
+        else
+            stasis_pod_set_dist_volume(p_sthing, 0x38,
+              (ushort)((0x32 - p_sthing->Timer1) * 2));
+        if (p_sthing->Timer1 < 0)
+        {
+            p_sthing->Timer1 = 0x17;
+            p_sthing->State++;
+        }
+        find_and_time_travel(p_sthing);
+        break;
+    case 1:
+        p_sthing->Radius -= 0x20;
+        if (p_sthing->Timer1 > 0)
+        {
+            if (!IsSamplePlaying(p_sthing->ThingOffset, 0x38, NULL))
+                play_dist_ssample(p_sthing, 0x38,
+                  (ushort)(p_sthing->Timer1 << 2), 0x40, 100, -1, 1);
+            else
+                stasis_pod_set_dist_volume(p_sthing, 0x38,
+                  (ushort)(p_sthing->Timer1 << 2));
+        }
+        if (p_sthing->Timer1 < 0)
+        {
+            p_sthing->Timer1 = 0x19;
+            p_sthing->State++;
+        }
+        break;
+    case 2:
+        stop_sample_using_heap(p_sthing->ThingOffset, 0x38);
+        delete_snode(p_sthing);
+        remove_sthing(p_sthing->ThingOffset);
+        break;
+    default:
+        break;
+    }
 }
 
 int move_smapwho(int a1, int a2, int a3, int a4);
