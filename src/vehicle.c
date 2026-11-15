@@ -2818,11 +2818,94 @@ void mech_unkn_func_20(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void mech_unkn_func_19(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void mech_unkn_func_19_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_mech_unkn_func_19\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Calls mech_unkn_func_20() with the output vector pointer in esi.
+ * The asm callee takes a hidden 5th argument in esi, which the C wrapper
+ * cannot pass; the asm caller reaches it through ac_mech_unkn_func_20,
+ * which leaves esi untouched.
+ */
+static void mech_unkn_func_20_out(struct M31 *p_from, s32 *p_to, s32 a3,
+  s32 a4, struct M31 *p_out)
+{
+    int ra = (int)p_from, rd = (int)p_to, rb = a3, rc = a4;
+    asm volatile ("call ASM_mech_unkn_func_20\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_out)
+        : : "edi", "cc", "memory");
+}
+
+void mech_unkn_func_19(int a1, int a2, int a3, int a4)
+{
+    // The asm keeps these in a 0xCC byte stack buffer, so up to 17 entries
+    struct M31 angles[17];
+    struct M31 vec;
+    struct M31 dlt;
+    struct unkn_mech_struc3 *p_u3itm;
+    struct unkn_mech_struc4 *p_u4itm;
+    struct unkn_mech_struc5 *p_u5itm;
+    s32 *p_pos;
+    ushort idx;
+    s32 div;
+    u32 i;
+
+    DIFFTEST_SHADOW(mech_unkn_func_19, mech_unkn_func_19_asm(a1, a2, a3, a4));
+    for (i = 0; i < (u32)unkn_mech_arr3[a1].mech3_unkn_fld_8; i++)
+    {
+        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[a1].mech3_unkn_arr4_idx + i];
+        angles[i].R[0] = p_u4itm->angle_49;
+        angles[i].R[1] = p_u4itm->angle_4D;
+        angles[i].R[2] = p_u4itm->angle_51;
+    }
+
+    for (i = 0; i < (u32)unkn_mech_arr3[a1].mech3_unkn_fld_8; i++)
+    {
+        p_u3itm = &unkn_mech_arr3[a1];
+        p_u4itm = &unkn_mech_arr4[p_u3itm->mech3_unkn_arr4_idx + i];
+        p_u5itm = &unkn_mech_arr5[p_u3itm->mech3_unkn_fld_54[2]];
+        idx = p_u4itm->field_23;
+        if (p_u5itm->field_18C[12 + idx] == 0)
+            continue;
+        // The asm passes the triple at 0xC + idx * 0x18 in unkn_mech_struc5
+        p_pos = (s32 *)((ubyte *)p_u5itm + 0xC + idx * 0x18);
+        mech_unkn_func_20_out((struct M31 *)&p_u4itm->angle_49, p_pos,
+          p_u3itm->mech3_unkn_fld_54[0], 0, &vec);
+        angles[i] = vec;
+
+        p_u3itm = &unkn_mech_arr3[a1];
+        p_u4itm = &unkn_mech_arr4[p_u3itm->mech3_unkn_arr4_idx + i];
+        p_u5itm = &unkn_mech_arr5[p_u3itm->mech3_unkn_fld_54[2]];
+        idx = p_u4itm->field_23;
+        // The asm reads the triple at idx * 0x18 in unkn_mech_struc5
+        p_pos = (s32 *)((ubyte *)p_u5itm + idx * 0x18);
+        div = p_u3itm->mech3_unkn_fld_54[0];
+        dlt.R[0] = p_pos[0] - p_u4itm->field_6D.R[0];
+        dlt.R[1] = p_pos[1] - p_u4itm->field_6D.R[1];
+        dlt.R[2] = p_pos[2] - p_u4itm->field_6D.R[2];
+        if (div != 0)
+        {
+            dlt.R[0] /= div;
+            dlt.R[1] /= div;
+            dlt.R[2] /= div;
+        }
+        dlt.R[0] += p_u4itm->field_6D.R[0];
+        dlt.R[1] += p_u4itm->field_6D.R[1];
+        dlt.R[2] += p_u4itm->field_6D.R[2];
+        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[a1].mech3_unkn_arr4_idx + i];
+        p_u4itm->field_6D = dlt;
+    }
+
+    for (i = 0; i < (u32)unkn_mech_arr3[a1].mech3_unkn_fld_8; i++)
+    {
+        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[a1].mech3_unkn_arr4_idx + i];
+        p_u4itm->angle_49 = angles[i].R[0];
+        p_u4itm->angle_4D = angles[i].R[1];
+        p_u4itm->angle_51 = angles[i].R[2];
+    }
 }
 
 /** Routed asm (internal label). Arguments and return value are the
