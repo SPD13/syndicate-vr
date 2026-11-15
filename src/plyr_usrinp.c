@@ -27,6 +27,7 @@
 #include "engincam.h"
 #include "engintrns.h"
 
+#include "difftest.h"
 #include "game.h"
 #include "game_options.h"
 #include "game_speed.h"
@@ -349,12 +350,44 @@ void update_agent_move_direction_deltas(struct SpecialUserInput *p_usrinp)
     }
 }
 
-short get_next_player_agent(ushort player)
+static DIFFTEST_REF_FUNC short get_next_player_agent_asm(ushort player)
 {
     short ret;
     asm volatile ("call ASM_get_next_player_agent\n"
-        : "=r" (ret) : "a" (player));
+        : "=a" (ret) : "a" (player));
     return ret;
+}
+
+short get_next_player_agent(ushort player)
+{
+    PlayerInfo *p_player;
+    struct Thing *p_agent;
+    ushort plagent, n;
+
+    DIFFTEST_SHADOW_RET(get_next_player_agent, short, get_next_player_agent_asm(player));
+    p_player = &players[player];
+    // Find the slot of the currently controlled agent
+    for (plagent = 0; plagent < 4; plagent++)
+    {
+        short thing;
+        thing = ((s32)p_player->MyAgent[plagent] - (s32)things) / (s32)sizeof(struct Thing);
+        if ((s32)thing == (s32)p_player->DirectControl[0])
+            break;
+    }
+    // Find the next agent which is neither destroyed nor knocked out
+    plagent = (plagent + 1) % 4;
+    for (n = 0; n < 4; n++, plagent++)
+    {
+        p_agent = p_player->MyAgent[plagent % 4];
+        if ((p_agent->Flag & TngF_Destroyed) != 0)
+            continue;
+        if ((p_agent->Flag2 & TgF2_KnockedOut) != 0)
+            continue;
+        break;
+    }
+    // If none found, the slot reached after all checks is used
+    p_agent = p_player->MyAgent[plagent % 4];
+    DIFFTEST_RETURN((short)(((s32)p_agent - (s32)things) / (s32)sizeof(struct Thing)));
 }
 
 ubyte input_user_control_agent(ushort plyr, short dmuser)
