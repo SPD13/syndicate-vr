@@ -2707,10 +2707,65 @@ void process_ship(struct Thing *p_vehicle)
         : : "a" (p_vehicle));
 }
 
-void process_mech_stationary(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_mech_stationary_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_mech_stationary\n"
         : : "a" (p_vehicle));
+}
+
+void process_mech_stationary(struct Thing *p_vehicle)
+{
+    struct Thing *p_target;
+    struct M33 *p_mat;
+    s32 dx, dz;
+    s32 angle;
+
+    DIFFTEST_SHADOW(process_mech_stationary, process_mech_stationary_asm(p_vehicle));
+    p_target = p_vehicle->PTarget;
+    if (p_target != NULL)
+    {
+        dx = (p_target->X >> 8) - (p_vehicle->X >> 8);
+        dz = (p_target->Z >> 8) - (p_vehicle->Z >> 8);
+        angle = (ushort)arctan(dx, dz) - p_vehicle->U.UVehicle.AngleY;
+        p_vehicle->OldTarget = abs(angle);
+        if (angle > 0x400)
+            angle -= 0x7ff;
+        if (angle < -0x400)
+            angle += 0x7ff;
+        if (angle > 390)
+            angle = 390;
+        if (angle < -390)
+            angle = -390;
+        p_vehicle->U.UVehicle.AngleDY = angle;
+    }
+    else if ((p_vehicle->Flag & TngF_ShootAtPos) != 0)
+    {
+        dx = p_vehicle->U.UVehicle.TargetDX - (p_vehicle->X >> 8);
+        dz = p_vehicle->U.UVehicle.TargetDZ - (p_vehicle->Z >> 8);
+        angle = (ushort)arctan(dx, dz) - p_vehicle->U.UVehicle.AngleY;
+        p_vehicle->OldTarget = abs(angle);
+        if (angle > 0x400)
+            angle -= 0x7ff;
+        if (angle < -0x400)
+            angle += 0x7ff;
+        if (angle > 390)
+            angle = 390;
+        if (angle < -390)
+            angle = -390;
+        p_vehicle->U.UVehicle.AngleDY = angle;
+    }
+    else
+    {
+        angle = p_vehicle->U.UVehicle.AngleDY;
+        p_vehicle->U.UVehicle.AngleDY = angle - (angle >> 4);
+        if (abs(p_vehicle->U.UVehicle.AngleDY) < 16)
+            p_vehicle->U.UVehicle.AngleDY = 0;
+    }
+    p_vehicle->U.UVehicle.AngleY += (p_vehicle->U.UVehicle.AngleDY >> 2);
+    // The asm masks only the high byte of AngleY
+    p_vehicle->U.UVehicle.AngleY &= 0x7ff;
+    p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (int)p_mat);
 }
 
 void process_mech(struct Thing *p_vehicle)
