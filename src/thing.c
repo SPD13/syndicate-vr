@@ -3597,15 +3597,33 @@ ubyte napalm_person(struct Thing *p_person, ushort multi)
         : "=r" (ret) : "a" (p_person), "d" (multi));
     return ret;
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void person_go_insane(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void person_go_insane_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_person_go_insane\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments are the raw registers the asm
+ * takes (eax, edx, ebx, ecx); only eax (the person) is used.
+ */
+void person_go_insane(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+
+    DIFFTEST_SHADOW(person_go_insane, person_go_insane_asm(a1, a2, a3, a4));
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        return;
+    if ((p_person->Flag2 & TgF2_Unkn0008) != 0)
+        return;
+    p_person->Flag2 |= TgF2_Unkn0008;
+    p_person->U.UPerson.EffectiveGroup += 0x80;
+    choose_best_weapon_for_range(p_person, 3);
+    p_person->Speed = 0x400;
+    p_person->U.UPerson.Timer2 = 5;
+    p_person->U.UPerson.Target2 = 0;
+    p_person->U.UPerson.StartTimer2 = 5;
+    p_person->U.UPerson.BumpCount = 150;
 }
 
 
