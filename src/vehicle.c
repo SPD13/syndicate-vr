@@ -3109,6 +3109,30 @@ void mech_unkn_func_19(int a1, int a2, int a3, int a4)
     }
 }
 
+static DIFFTEST_REF_FUNC void mech_unkn_func_05_asm(int owntng, int a2, int a3)
+{
+    asm volatile ("call ASM_mech_unkn_func_05\n"
+        : : "a" (owntng), "d" (a2), "b" (a3));
+}
+
+void mech_unkn_func_05(int owntng, int a2, int a3)
+{
+    struct unkn_mech_struc3 *p_u3itm;
+    struct unkn_mech_struc1 *p_u1itm;
+    s32 idx;
+
+    DIFFTEST_SHADOW(mech_unkn_func_05, mech_unkn_func_05_asm(owntng, a2, a3));
+    idx = unkn_mech_arr2[a3].field_0;
+    p_u3itm = &unkn_mech_arr3[owntng];
+    // The asm accesses each s32/ubyte field pair below as a 2-element array
+    (&p_u3itm->field_6C)[a2] = a3;
+    p_u1itm = &unkn_mech_arr1[idx];
+    p_u3itm->mech3_unkn_fld_54[a2] = p_u1itm->field_D;
+    (&p_u3itm->mech3_unkn_fld_54[2])[a2] = p_u1itm->field_9;
+    (&p_u3itm->field_64)[a2] = idx;
+    (&p_u3itm->field_74)[a2] = 1;
+}
+
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
