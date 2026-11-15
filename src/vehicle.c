@@ -2990,10 +2990,120 @@ void process_mech_stationary(struct Thing *p_vehicle)
     rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (int)p_mat);
 }
 
-void process_mech(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_mech_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_mech\n"
         : : "a" (p_vehicle));
+}
+
+void process_mech(struct Thing *p_vehicle)
+{
+    struct M33 *p_mat;
+    s32 tgt_x, tgt_z;
+    s32 dt_x, dt_z, dist_sq;
+    s32 angle;
+    s32 new_x, new_y, new_z;
+
+    DIFFTEST_SHADOW(process_mech, process_mech_asm(p_vehicle));
+    if (((gameturn + (ushort)p_vehicle->ThingOffset) & 0x7f) == 0)
+        play_dist_sample(p_vehicle, 99, 127, 64, 100, 0, 3);
+
+    if ((game_my_big_map[((p_vehicle->Z >> 16) << 7) + (p_vehicle->X >> 16)].Flags2 & MEF2_Unkn08) == 0)
+    {
+        s32 alt;
+
+        alt = alt_at_point((short)(p_vehicle->X >> 8), (short)(p_vehicle->Z >> 8));
+        alt += 0xdac;
+        if (alt > p_vehicle->Y)
+            p_vehicle->Y = p_vehicle->Y + ((alt - p_vehicle->Y) >> 4) + 0x40;
+        if (alt < p_vehicle->Y)
+            p_vehicle->Y = p_vehicle->Y - (((p_vehicle->Y - alt) >> 4) + 0x40);
+    }
+
+    tgt_x = 0;
+    tgt_z = 0;
+    if (((ushort)p_vehicle->State == 0x33) &&
+      ((p_vehicle->PTarget != NULL) || ((p_vehicle->Flag & TngF_ShootAtPos) != 0)))
+    {
+        if (p_vehicle->PTarget != NULL)
+        {
+            tgt_x = p_vehicle->PTarget->X >> 8;
+            tgt_z = p_vehicle->PTarget->Z >> 8;
+        }
+        else if ((p_vehicle->Flag & TngF_ShootAtPos) != 0)
+        {
+            tgt_x = p_vehicle->U.UVehicle.TargetDX;
+            tgt_z = p_vehicle->U.UVehicle.TargetDZ;
+        }
+        // TODO the asm leaves the target uninitialised if neither is set;
+        // unreachable because of the enclosing condition
+    }
+    else
+    {
+        tgt_x = p_vehicle->U.UVehicle.GotoX;
+        tgt_z = p_vehicle->U.UVehicle.GotoZ;
+    }
+
+    dt_x = tgt_x - (p_vehicle->X >> 8);
+    dt_z = tgt_z - (p_vehicle->Z >> 8);
+    angle = (ushort)arctan(dt_x, dt_z) - p_vehicle->U.UVehicle.AngleY;
+    if (angle > 0x400)
+        angle -= 0x7ff;
+    if (angle < -0x400)
+        angle += 0x7ff;
+    if (angle > 390)
+        angle = 390;
+    if (angle < -390)
+        angle = -390;
+    p_vehicle->U.UVehicle.AngleDY = angle;
+
+    dist_sq = dt_x * dt_x + dt_z * dt_z;
+    p_vehicle->U.UVehicle.ReqdSpeed = 900 - 2 * abs(p_vehicle->U.UVehicle.AngleDY);
+    if ((ushort)p_vehicle->State == 0x33)
+    {
+        p_vehicle->U.UVehicle.ReqdSpeed = 0;
+        if (abs(p_vehicle->Speed) < 50)
+        {
+            p_vehicle->State = 0x21;
+            p_vehicle->Speed = 0;
+        }
+    }
+    else if (dist_sq < 0x30000)
+    {
+        if ((ubyte)do_next_navigate_index((int)p_vehicle, 0, 0, 0))
+        {
+            p_vehicle->U.UVehicle.PathIndex = 0;
+            p_vehicle->State = 0x33;
+        }
+        else
+        {
+            struct MyPath *p_path;
+            ubyte pt;
+
+            p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+            pt = p_vehicle->PathOffset & 3;
+            p_vehicle->U.UVehicle.GotoX = p_path->X[pt];
+            p_vehicle->U.UVehicle.GotoZ = p_path->Z[pt];
+        }
+    }
+
+    if (p_vehicle->Speed < p_vehicle->U.UVehicle.ReqdSpeed)
+        p_vehicle->Speed += 0x30;
+    if (p_vehicle->Speed > p_vehicle->U.UVehicle.ReqdSpeed)
+        p_vehicle->Speed -= 0x30;
+
+    p_vehicle->U.UVehicle.AngleY = ((p_vehicle->U.UVehicle.AngleDY >> 3)
+      + p_vehicle->U.UVehicle.AngleY) & 0x7ff;
+    p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (int)p_mat);
+
+    p_vehicle->VX = (-p_mat->R[0][2] * p_vehicle->Speed) >> 10;
+    p_vehicle->VY = (-p_mat->R[1][2] * p_vehicle->Speed) >> 10;
+    p_vehicle->VZ = (-p_mat->R[2][2] * p_vehicle->Speed) >> 10;
+    new_x = p_vehicle->X + p_vehicle->VX;
+    new_y = p_vehicle->Y + p_vehicle->VY;
+    new_z = p_vehicle->Z + p_vehicle->VZ;
+    move_mapwho(p_vehicle, new_x, new_y, new_z);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
