@@ -14025,10 +14025,45 @@ void person_run_away(struct Thing *p_person)
     }
 }
 
-void person_becomes_persuaded(struct Thing *p_person, ushort energy)
+static DIFFTEST_REF_FUNC void person_becomes_persuaded_asm(struct Thing *p_person, ushort energy)
 {
     asm volatile ("call ASM_person_becomes_persuaded\n"
         : : "a" (p_person), "d" (energy));
+}
+
+void person_becomes_persuaded(struct Thing *p_person, ushort energy)
+{
+    struct Thing *p_target;
+
+    DIFFTEST_SHADOW(person_becomes_persuaded, person_becomes_persuaded_asm(p_person, energy));
+    p_target = p_person->PTarget;
+    if (p_target == NULL)
+        return;
+    if ((p_target->Flag & TngF_PlayerAgent) != 0)
+        return;
+    if ((ushort)p_target->State == PerSt_DEAD)
+        return;
+
+    play_dist_sample(p_person, 20, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3);
+    remove_path(p_person->PTarget);
+    set_person_animmode_walk(p_person);
+    p_person->U.UPerson.Energy -= energy;
+    if (p_person->U.UPerson.Energy < 0)
+        p_person->U.UPerson.Energy = 0;
+
+    p_person->PTarget->PTarget = NULL;
+    p_person->PTarget->State = PerSt_NONE;
+    p_person->PTarget->Owner = p_person->ThingOffset;
+    p_person->PTarget->Flag |= TngF_Persuaded;
+    p_person->PTarget->State = PerSt_NONE;
+    p_person->PTarget->U.UPerson.ComTimer = -1;
+    p_person->PTarget->U.UPerson.ComRange = 3;
+    p_person->PTarget->U.UPerson.Timer2 = 5;
+    p_person->PTarget->U.UPerson.StartTimer2 = 5;
+    p_person->PTarget->SubState = 0;
+    p_person->PTarget->U.UPerson.EffectiveGroup = p_person->U.UPerson.EffectiveGroup;
+    p_person->U.UPerson.PersuadePower += peep_type_stats[p_person->PTarget->SubType].PersuadeWorth;
+    group_actions[p_person->PTarget->U.UPerson.Group].Persuaded++;
 }
 
 void person_persuade_person(struct Thing *p_person)
