@@ -7848,14 +7848,49 @@ void assign_next_target_from_group(struct Thing *p_person, ushort group, ubyte f
     p_person->U.UPerson.ComRange = range >> 6;
 }
 
-short is_group_all_persuaded_by_me(ushort group, struct Thing *p_me, short count)
+static DIFFTEST_REF_FUNC short is_group_all_persuaded_by_me_asm(ushort group,
+  struct Thing *p_me, short count)
 {
-    // looks like a variation on group_has_no_less_members_persuaded_by_person(); reuse?
     short ret;
     asm volatile (
       "call ASM_is_group_all_persuaded_by_me\n"
-        : "=r" (ret) : "a" (group), "d" (p_me), "b" (count));
+        : "=a" (ret) : "a" (group), "d" (p_me), "b" (count));
     return ret;
+}
+
+short is_group_all_persuaded_by_me(ushort group, struct Thing *p_me, short count)
+{
+    // looks like a variation on group_has_no_less_members_persuaded_by_person(); reuse?
+    ThingIdx thing;
+    ushort n_persuaded;
+
+    DIFFTEST_SHADOW_RET(is_group_all_persuaded_by_me, short,
+      is_group_all_persuaded_by_me_asm(group, p_me, count));
+    n_persuaded = 0;
+    thing = same_type_head[256 + group];
+    while (thing != 0)
+    {
+        struct Thing *p_thing;
+
+        p_thing = &things[thing];
+        if ((p_thing->Flag & TngF_Persuaded) && (p_thing->Owner == p_me->ThingOffset))
+        {
+            n_persuaded++;
+        }
+        else if ((p_thing->Flag & TngF_Destroyed) == 0)
+        {
+            if (count == -1)
+                DIFFTEST_RETURN((short)0);
+        }
+        if (count >= 0 && (s32)n_persuaded >= count)
+            DIFFTEST_RETURN((short)1);
+        thing = p_thing->LinkSameGroup;
+    }
+    if (count == -1)
+        DIFFTEST_RETURN((short)1);
+    if ((s32)n_persuaded < count)
+        DIFFTEST_RETURN((short)0);
+    DIFFTEST_RETURN((short)1);
 }
 
 ubyte is_command_completed(struct Thing *p_person)
