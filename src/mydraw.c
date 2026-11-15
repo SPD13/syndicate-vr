@@ -22,9 +22,13 @@
 #include "bfsprite.h"
 #include "bftext.h"
 
+#include <string.h>
+
+#include "difftest.h"
 #include "display.h"
 #include "game.h"
 #include "game_data.h"
+#include "game_save.h"
 #include "game_sprts.h"
 #include "swlog.h"
 #include "util.h"
@@ -576,10 +580,102 @@ ushort my_draw_text(short x, short y, const char *text, ushort startline)
     return cur_line;
 }
 
-void my_preprocess_text(char *text)
+static DIFFTEST_REF_FUNC void my_preprocess_text_asm(char *text)
 {
     asm volatile ("call ASM_my_preprocess_text\n"
         :  : "a" (text));
+}
+
+void my_preprocess_text(char *text)
+{
+    s32 len, i, k, name_len;
+    ubyte c;
+
+    DIFFTEST_SHADOW(my_preprocess_text, my_preprocess_text_asm(text));
+    if (text == NULL)
+        return;
+    len = strlen(text);
+    i = 0;
+    while (1)
+    {
+        c = (ubyte)text[i];
+        if (c == 0)
+            break;
+        if ((c == '\n') || (c == '\r'))
+        {
+            if ((i != 0) && ((sbyte)text[i - 1] > ' ')) {
+                text[i] = ' ';
+                i++;
+            } else {
+                text[i] = 0x1f;
+                i++;
+            }
+        }
+        else if (c == '\\')
+        {
+            switch ((ubyte)text[i + 1])
+            {
+            case '\\':
+                i++;
+                text[i] = 0x1f;
+                i++;
+                break;
+            case 'n':
+            case 'N':
+                text[i] = 0xa;
+                i++;
+                text[i] = 0x1f;
+                i++;
+                break;
+            case 'h':
+            case 'H':
+                text[i] = 0xc;
+                i++;
+                text[i] = 0x1f;
+                i++;
+                break;
+            case 'c':
+            case 'C':
+                text[i] = 0xe;
+                text[i + 1] = text[i + 2] - '0';
+                text[i + 2] = 0x1f;
+                i += 3;
+                break;
+            case 'l':
+            case 'L':
+                name_len = strlen(login_name);
+                // TODO len is not updated after the insertion, so further
+                // name insertions move a too short tail
+                memmove(text + i + name_len, text + i + 2, len - i - 1);
+                // The asm tests the name end at net_host_player_no+3+k, which
+                // was login_name[k] in the original binary layout; in this
+                // port the variables are separate, so the asm stops at once
+                for (k = 0; login_name[k] != '\0'; k++)
+                {
+                    text[i] = login_name[k];
+                    i++;
+                }
+                // TODO the character following the name is skipped
+                i++;
+                break;
+            default:
+                text[i] = 0x1f;
+                i++;
+                text[i] = 0x1f;
+                i++;
+                break;
+            }
+        }
+        else if (c >= 0x20)
+        {
+            i++;
+        }
+        else
+        {
+            text[i] = 0x1f;
+            i++;
+        }
+    }
 }
 
 /******************************************************************************/

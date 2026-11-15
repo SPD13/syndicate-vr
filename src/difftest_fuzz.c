@@ -442,7 +442,9 @@ static void fuzz_save_crypto(ulong *p_seed)
  */
 static void fuzz_my_preprocess_text(ulong *p_seed)
 {
-    static const char chars[] = "ab \hlncHLNC\r\n";
+    // No 'l'/'L': the asm finds the login name end through the address of
+    // net_host_player_no, which no longer precedes login_name in the port
+    static const char chars[] = "ab \\hncHNC\r\n";
     char text[1024];
     int i, len;
 
