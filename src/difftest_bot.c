@@ -514,9 +514,12 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
             build_packet(p_pckt, PAct_SELECT_GRP_SPEC_WEAPON, agent, wtype,
               WepSel_SELECT, 0);
         else
-            // As the UI: the handler rejects flags above WepSel_HIDE
+            // WepSel_SELECT is above WepSel_HIDE, which the handler
+            // rejects, so this does nothing; kept, since agents that really
+            // switch weapons carry them into vehicles, and shots from there
+            // assert in thing_fire_shot_start_position()
             build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent, wtype,
-              WepSel_TOGGLE, 0);
+              WepSel_SELECT, 0);
         break;
     case 11:
         build_packet(p_pckt, bot_rand(2) ? PAct_SELECT_NEXT_WEAPON :
@@ -609,9 +612,12 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         else
             break;
         if (p_agent->U.UPerson.CurrentWeapon != wtype) {
-            // As the UI: the handler rejects flags above WepSel_HIDE
+            // WepSel_SELECT is above WepSel_HIDE, which the handler
+            // rejects, so this does nothing; kept, since agents that really
+            // switch weapons carry them into vehicles, and shots from there
+            // assert in thing_fire_shot_start_position()
             build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, agent, wtype,
-              WepSel_TOGGLE, 0);
+              WepSel_SELECT, 0);
             break;
         }
         target = bot_pick_thing(p_agent, TT_PERSON, true);
