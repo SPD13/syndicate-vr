@@ -11110,12 +11110,44 @@ ubyte thing_deselect_weapon(struct Thing *p_person)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int set_player_peeps_to_run(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int set_player_peeps_to_run_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_set_player_peeps_to_run\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int set_player_peeps_to_run(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    ushort plyr = (ushort)a2;
+    ushort i;
+
+    DIFFTEST_SHADOW_RET(set_player_peeps_to_run, int,
+      set_player_peeps_to_run_asm(a1, a2, a3, a4));
+    for (i = 0; i < playable_agents; i++)
+    {
+        struct Thing *p_agent;
+
+        p_agent = players[plyr].MyAgent[i];
+        if (p_agent == p_person)
+            continue;
+        if ((p_agent->Flag & TngF_Destroyed) != 0)
+            continue;
+        if ((ushort)p_agent->State != PerSt_PROTECT_PERSON)
+            continue;
+        if ((s32)p_agent->GotoThingIndex != (s32)(ushort)p_person->ThingOffset)
+            continue;
+        if (p_agent->U.UPerson.Stamina <= (p_agent->U.UPerson.MaxStamina >> 2) + 64)
+            continue;
+        p_agent->U.UPerson.Target2 = 0;
+        p_agent->Flag &= ~TngF_TriggerUse;
+        p_agent->PTarget = NULL;
+        set_person_animmode_run(p_agent);
+        p_agent->Flag2 |= TgF2_IgnoreEnemies;
+    }
+    DIFFTEST_RETURN((int)playable_agents);
 }
 
 
