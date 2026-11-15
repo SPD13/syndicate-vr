@@ -96606,7 +96606,10 @@ GLOBAL_FUNC(ASM_mech_unkn_func_19)	/* 0x0BE884 */
 		lea    0xc(%eax),%edx
 		lea    0xd8(%esp),%esi
 		lea    0x49(%edi),%eax
+		push   %ecx
+		mov    %esi,%ecx
 		call   ac_mech_unkn_func_20
+		pop    %ecx
 		mov    0xf4(%esp),%edi
 		mov    0xf8(%esp),%edx
 		mov    EXPORT_SYMBOL(unkn_mech_arr3),%eax

@@ -2980,15 +2980,17 @@ void matrix_transpose_cp(int a1, int a2, int a3)
     p_dst[7] = p_src[5];
     p_dst[8] = p_src[8];
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
+/** Moves p_from towards p_to by 1/div of the shortest delta on the 0x800
+ * wrapping grid, writing the result to p_out. The asm takes p_out in
+ * esi; its asm caller passes it in ecx through ac_mech_unkn_func_20.
  */
-void mech_unkn_func_20(int a1, int a2, int a3, int a4)
+void mech_unkn_func_20(struct M31 *p_from, struct M31 *p_to, s32 div,
+  struct M31 *p_out)
 {
-    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int ra = (int)p_from, rd = (int)p_to, rb = div;
     asm volatile ("call ASM_mech_unkn_func_20\n"
-        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "cc", "memory");
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+S" (p_out)
+        : : "ecx", "edi", "cc", "memory");
 }
 
 /** Routed asm (internal label). Arguments and return value are the
@@ -3000,20 +3002,6 @@ static DIFFTEST_REF_FUNC void mech_unkn_func_19_asm(int a1, int a2, int a3, int 
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_mech_unkn_func_19\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
-}
-
-/** Calls mech_unkn_func_20() with the output vector pointer in esi.
- * The asm callee takes a hidden 5th argument in esi, which the C wrapper
- * cannot pass; the asm caller reaches it through ac_mech_unkn_func_20,
- * which leaves esi untouched.
- */
-static void mech_unkn_func_20_out(struct M31 *p_from, s32 *p_to, s32 a3,
-  s32 a4, struct M31 *p_out)
-{
-    int ra = (int)p_from, rd = (int)p_to, rb = a3, rc = a4;
-    asm volatile ("call ASM_mech_unkn_func_20\n"
-        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_out)
-        : : "edi", "cc", "memory");
 }
 
 void mech_unkn_func_19(int a1, int a2, int a3, int a4)
@@ -3049,8 +3037,8 @@ void mech_unkn_func_19(int a1, int a2, int a3, int a4)
             continue;
         // The asm passes the triple at 0xC + idx * 0x18 in unkn_mech_struc5
         p_pos = (s32 *)((ubyte *)p_u5itm + 0xC + idx * 0x18);
-        mech_unkn_func_20_out((struct M31 *)&p_u4itm->angle_49, p_pos,
-          p_u3itm->mech3_unkn_fld_54[0], 0, &vec);
+        mech_unkn_func_20((struct M31 *)&p_u4itm->angle_49,
+          (struct M31 *)p_pos, p_u3itm->mech3_unkn_fld_54[0], &vec);
         angles[i] = vec;
 
         p_u3itm = &unkn_mech_arr3[a1];
