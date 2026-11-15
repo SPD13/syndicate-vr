@@ -2065,11 +2065,39 @@ void init_vehicle_explode(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void flatten_vehicle(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void flatten_vehicle_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_flatten_vehicle\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void flatten_vehicle(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_thing = (struct Thing *)a1;
+    struct SingleObject *p_sobj;
+    s32 pt;
+
+    DIFFTEST_SHADOW(flatten_vehicle, flatten_vehicle_asm(a1, a2, a3, a4));
+
+    if (p_thing->SubType != SubTT_VEH_GROUND)
+        return;
+    if ((p_thing->State != VehSt_PARKED_PARAL) &&
+      (p_thing->State != VehSt_PARKED_PERPN))
+        return;
+
+    p_sobj = &game_objects[p_thing->U.UVehicle.Object];
+    for (pt = p_sobj->StartPoint; pt <= (s32)p_sobj->EndPoint; pt++)
+    {
+        struct SinglePoint *p_point;
+        s32 y;
+
+        p_point = &game_object_points[pt];
+        y = p_point->Y;
+        p_point->Y = y - (y >> 4);
+    }
+    if (p_thing->Y > 0)
+        p_thing->Y -= p_thing->Y >> 4;
 }
 
 /** Routed asm (internal label). Arguments and return value are the
