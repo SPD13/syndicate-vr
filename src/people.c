@@ -14362,12 +14362,60 @@ void person_catch_train(struct Thing *p_person)
         : : "a" (p_person));
 }
 
-void set_angle_to_avoid_group(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void set_angle_to_avoid_group_asm(struct Thing *p_person)
 {
-#if 1
     asm volatile ("call ASM_set_angle_to_avoid_group\n"
         : : "a" (p_person));
-#endif
+}
+
+void set_angle_to_avoid_group(struct Thing *p_person)
+{
+    struct Thing *p_near;
+    ThingIdx near;
+    s32 dx, dz, dist;
+    short angle;
+
+    DIFFTEST_SHADOW(set_angle_to_avoid_group, set_angle_to_avoid_group_asm(p_person));
+    // TODO the asm reads an uninitialised stack slot as angle when the
+    // nearest group member is far; we use 0 there
+    angle = 0;
+    near = find_nearest_from_group(p_person,
+      game_commands[p_person->U.UPerson.ComCur].OtherThing, 0);
+    p_near = &things[near];
+
+    dx = abs(p_near->X - p_person->X) >> 8;
+    dz = abs(p_near->Z - p_person->Z) >> 8;
+    if (dx > dz)
+        dist = dx + (dz >> 1);
+    else
+        dist = dz + (dx >> 1);
+
+    if (dist < 0x1E00)
+    {
+        angle = angle_between_points(PRCCOORD_TO_MAPCOORD(p_near->X),
+          PRCCOORD_TO_MAPCOORD(p_near->Z), PRCCOORD_TO_MAPCOORD(p_person->X),
+          PRCCOORD_TO_MAPCOORD(p_person->Z));
+        angle = ((s32)angle + 0x80) >> 8;
+        if (dist < 0xC00)
+            set_person_animmode_run(p_person);
+    }
+    else
+    {
+        switch ((p_person->ThingOffset + gameturn) & 3)
+        {
+        case 0:
+            p_person->U.UPerson.Angle--;
+            break;
+        case 3:
+            p_person->U.UPerson.Angle++;
+            break;
+        default:
+            break;
+        }
+        p_person->U.UPerson.Timer2 = ((LbRandomAnyShort() & 0xF) >> 1) + 50;
+    }
+    p_person->U.UPerson.Angle = ((ubyte)angle + 8) & 7;
+    p_person->Frame = nstart_ani[p_person->StartFrame + 1 + p_person->U.UPerson.Angle];
 }
 
 static DIFFTEST_REF_FUNC ubyte check_person_within_asm(struct Command *p_cmd, int x, int z)
