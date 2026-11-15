@@ -2643,11 +2643,31 @@ void process_mech(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void matrix_transpose_cp(int a1, int a2, int a3)
+static DIFFTEST_REF_FUNC void matrix_transpose_cp_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
     asm volatile ("call ASM_matrix_transpose_cp\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "esi", "edi", "cc", "memory");
+}
+
+/** Copies the transpose of the 3x3 matrix at a2 into the matrix at a1.
+ * The order of stores is kept from the asm, as the matrices may alias.
+ */
+void matrix_transpose_cp(int a1, int a2, int a3)
+{
+    s32 *p_dst = (s32 *)a1;
+    s32 *p_src = (s32 *)a2;
+
+    DIFFTEST_SHADOW(matrix_transpose_cp, matrix_transpose_cp_asm(a1, a2, a3));
+    p_dst[0] = p_src[0];
+    p_dst[1] = p_src[3];
+    p_dst[2] = p_src[6];
+    p_dst[3] = p_src[1];
+    p_dst[4] = p_src[4];
+    p_dst[5] = p_src[7];
+    p_dst[6] = p_src[2];
+    p_dst[7] = p_src[5];
+    p_dst[8] = p_src[8];
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when

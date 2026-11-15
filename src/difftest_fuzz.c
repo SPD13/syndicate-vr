@@ -293,6 +293,24 @@ static void fuzz_VNAV_qwertyuiop(ulong *p_seed)
     VNAV_qwertyuiop((int)&dist, (int)&frac, v[0], v[1], v[2], v[3], v[4], v[5]);
 }
 
+void matrix_transpose_cp(int a1, int a2, int a3);
+
+static void fuzz_matrix_transpose_cp(ulong *p_seed)
+{
+    s32 dst[9], src[9];
+    int i;
+
+    for (i = 0; i < 9; i++) {
+        dst[i] = fuzz_int(p_seed);
+        src[i] = fuzz_int(p_seed);
+    }
+    // Sometimes check in-place transpose
+    if (difftest_fuzz_rand(p_seed) % 8 == 0)
+        matrix_transpose_cp((int)src, (int)src, 0);
+    else
+        matrix_transpose_cp((int)dst, (int)src, 0);
+}
+
 /******************************************************************************/
 
 const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
@@ -305,6 +323,7 @@ const struct DiffTestFuzzCase difftest_fuzz_cases[] = {
     {"two4_line_intersection", fuzz_two4_line_intersection},
     {"fov_region", fuzz_fov_region},
     {"VNAV_qwertyuiop", fuzz_VNAV_qwertyuiop},
+    {"matrix_transpose_cp", fuzz_matrix_transpose_cp},
     {NULL, NULL},
 };
 
