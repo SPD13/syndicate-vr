@@ -11491,11 +11491,75 @@ void yank_from_vehicle(int a1, int a2, int a3, int a4)
 }
 
 
-void person_self_destruct(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_self_destruct_asm(struct Thing *p_person)
 {
     asm volatile (
       "call ASM_person_self_destruct\n"
         : : "a" (p_person));
+}
+
+struct SimpleThing *init_nuclear_bomb(MapCoord x, MapCoord y, MapCoord z);
+
+void person_self_destruct(struct Thing *p_person)
+{
+    struct SimpleThing *p_bomb;
+    ubyte chest;
+
+    DIFFTEST_SHADOW(person_self_destruct, person_self_destruct_asm(p_person));
+    if ((p_person->Flag & (TngF_Unkn4000 | TngF_Destroyed)) != 0)
+        return;
+    chest = cybmod_chest_level(&p_person->U.UPerson.UMod);
+    if (in_network_game && chest < 3)
+        return;
+    if (chest < 1)
+        return;
+
+    if (in_network_game && (p_person->Flag & TngF_PlayerAgent) != 0)
+    {
+        ushort plyr;
+
+        // TODO no range check on the player index, same as the original
+        plyr = p_person->U.UPerson.ComCur >> 2;
+        mission_status[plyr].MP.AgentsKilled[plyr] += 3;
+    }
+
+    if ((p_person->Flag & TngF_InVehicle) != 0)
+    {
+        struct Thing *p_vehicle;
+        ThingIdx vehicle;
+
+        vehicle = p_person->U.UPerson.Vehicle;
+        yank_from_vehicle((int)p_person, 0, 0, 0);
+        if ((p_person->Flag & TngF_Destroyed) == 0
+          && (ushort)p_person->State != PerSt_DEAD)
+            set_person_dead(p_person, 12);
+        p_vehicle = &things[vehicle];
+        p_person->Flag |= TngF_Unkn02000000;
+        if ((ushort)p_vehicle->State == VehSt_UNKN_D)
+            return;
+        p_vehicle->OldTarget = p_person->ThingOffset;
+        start_crashing(p_vehicle);
+    }
+    else
+    {
+        s32 x, y, z;
+
+        x = p_person->X >> 8;
+        y = (p_person->Y >> 8) + 10;
+        z = p_person->Z >> 8;
+        if (chest == 2)
+            bang_new4(x << 8, y << 8, z << 8, 20);
+        else if (chest == 3)
+            bang_new4(x << 8, y << 8, z << 8, 10);
+        p_bomb = init_nuclear_bomb(x, y, z);
+        if (p_bomb == NULL)
+            return;
+        play_dist_ssample(p_bomb, 0x25, 0x7F, 0x40, 100, 0, 3);
+        p_bomb->Timer1 = 19;
+        p_bomb->Owner2 = p_person->Owner;
+        p_bomb->Radius = -5;
+        set_person_dead(p_person, 18);
+    }
 }
 
 void person_scare_person(struct Thing *p_person)
