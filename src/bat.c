@@ -529,10 +529,103 @@ int BAT_unknsub_27(void)
     return 0;
 }
 
-void BAT_unknsub_21(void)
+static DIFFTEST_REF_FUNC void BAT_unknsub_21_asm(void)
 {
     asm volatile ("call ASM_BAT_unknsub_21\n"
         :  :  : "eax" );
+}
+
+void BAT_unknsub_21(void)
+{
+    ubyte *p_brick_colours;
+    ubyte *o;
+    ubyte *p_row;
+    int row, i, end_i, x, y;
+    int k, n;
+    u32 shade;
+    ubyte brick, colour, light, dark, mid;
+    struct BATBall *p_ball;
+    TbPixel bcol, bdark;
+
+    DIFFTEST_SHADOW(BAT_unknsub_21, BAT_unknsub_21_asm());
+    // The brick colours table (data_1e2710) is not exported from the asm;
+    // it directly follows the 4-byte BAT_bricks_remain.
+    p_brick_colours = (ubyte *)&BAT_bricks_remain + 4;
+
+    // Draw the bricks
+    y = 7;
+    end_i = BAT_BRICK_COLUMNS;
+    for (row = 0; row < BAT_BRICK_ROWS; row++)
+    {
+        x = 0;
+        for (i = BAT_BRICK_COLUMNS * row; i != end_i; i++, x += 8)
+        {
+            brick = BAT_bricks[i];
+            if ((brick & 0x80) != 0)
+                continue;
+            shade = ((u32)brick >> 4) & 3;
+            colour = p_brick_colours[brick & 0x0F];
+            if ((brick & 0x40) != 0)
+            {
+                colour = colour_lookup[1];
+                BAT_bricks[i] = brick & 0xBF;
+            }
+            if (shade >= 1 && shade <= 3)
+            {
+                light = pixmap.ghost_table[colour];
+                dark = pixmap.fade_table[24 * PALETTE_8b_COLORS + colour];
+                p_row = BAT_screen + x + (y << 8);
+                mid = light;
+                for (k = 0; k < 3; k++)
+                {
+                    p_row[0] = light;
+                    for (n = 1; n < 6; n++)
+                        p_row[n] = mid;
+                    mid = colour;
+                    p_row[6] = dark;
+                    p_row += BAT_SCREEN_LINE_WIDTH;
+                }
+            }
+            else
+            {
+                p_row = BAT_screen + x + (y << 8);
+                for (k = 0; k < 3; k++)
+                {
+                    for (n = 0; n < 7; n++)
+                        p_row[n] = colour;
+                    p_row += BAT_SCREEN_LINE_WIDTH;
+                }
+            }
+        }
+        end_i += BAT_BRICK_COLUMNS;
+        y += 4;
+    }
+
+    // Draw the balls
+    for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_ball->ListNext)
+    {
+        o = BAT_screen + (p_ball->X >> 8) + ((p_ball->Y >> 8) << 8);
+        bcol = BAT_ball_colour;
+        bdark = pixmap.fade_table[20 * PALETTE_8b_COLORS + bcol];
+        o[-0x101] = bdark;
+        o[-0x100] = bcol;
+        o[-0xFF] = bdark;
+        o[-0x1] = bcol;
+        o[0] = bcol;
+        o[0x1] = bcol;
+        o[0xFF] = bdark;
+        o[0x100] = bcol;
+        o[0x101] = bdark;
+    }
+
+    // Draw the paddle
+    o = BAT_screen + BAT_paddle_x - BAT_data_1e2798 + 0x3D00;
+    bcol = BAT_lives_colour;
+    bdark = pixmap.fade_table[20 * PALETTE_8b_COLORS + bcol];
+    for (k = 0; k < 2 * BAT_data_1e2798; k++)
+        o[k] = bcol;
+    for (k = 0; k < 2 * BAT_data_1e2798; k++)
+        o[BAT_SCREEN_LINE_WIDTH + k] = bdark;
 }
 
 void breakout_play_sub1(void)
