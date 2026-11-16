@@ -376,10 +376,233 @@ void BAT_unknsub_28(int a1, int a2)
         : "+a" (ra), "+d" (rd) : : "cc", "memory");
 }
 
-void BAT_unknsub_22(void)
+static DIFFTEST_REF_FUNC void BAT_unknsub_22_asm(void)
 {
     asm volatile ("call ASM_BAT_unknsub_22\n"
         :  :  : "eax" );
+}
+
+/** Speed change on brick hit; copy of asm data at data_155794.
+ */
+static const int BAT_ball_brick_speed_chg[4] = {-2, 0, 0, 2};
+
+/** Approximate length of a vector, from absolute values of its components.
+ */
+static int BAT_approx_dist(int abs_a, int abs_b)
+{
+    int mx, mn;
+
+    if (abs_b < abs_a) {
+        mx = abs_a;
+        mn = abs_b;
+    } else {
+        mx = abs_b;
+        mn = abs_a;
+    }
+    return mx - (mx >> 5) - (mx >> 7) + (mn >> 2) + (mn >> 3) + (mn >> 6) + (mn >> 7);
+}
+
+static int BAT_ball_speed_limit(void)
+{
+    return (BAT_levelno * 6 + 30) << 10;
+}
+
+void BAT_unknsub_22(void)
+{
+    struct BATBall *p_ball;
+    struct BATBall *p_next;
+    int dist;
+
+    DIFFTEST_SHADOW(BAT_unknsub_22, BAT_unknsub_22_asm());
+
+    // Slow down horizontally, speed up vertically if too slow
+    for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_ball->ListNext)
+    {
+        int dw7;
+
+        p_ball->UnkDw6 = p_ball->UnkDw6 - (p_ball->UnkDw6 >> 9);
+        dw7 = p_ball->UnkDw7;
+        if (dw7 < 0) {
+            p_ball->UnkDw7 = dw7 + (BAT_levelno * 32 + 0xbc);
+            continue;
+        }
+        dist = BAT_approx_dist(abs(dw7), abs(p_ball->UnkDw6));
+        if (dist < BAT_ball_speed_limit())
+            p_ball->UnkDw7 += BAT_levelno * 32 + 0xbc;
+    }
+
+    for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_ball->ListNext)
+    {
+        p_ball->UnkDw2 = p_ball->X;
+        p_ball->UnkDw3 = p_ball->Y;
+        p_ball->NextX = p_ball->X + (p_ball->UnkDw6 >> 8);
+        p_ball->NextY = p_ball->Y + (p_ball->UnkDw7 >> 8);
+    }
+
+    // Collisions with bricks
+    for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_ball->ListNext)
+    {
+        int col, row, idx, hits;
+        int left, right, top, bottom;
+
+        col = p_ball->NextX / 2048;
+        row = (p_ball->NextY - 0x700) / 1024;
+        if (col < 0 || col >= BAT_BRICK_COLUMNS)
+            continue;
+        if (row < 0 || row >= BAT_BRICK_ROWS)
+            continue;
+        idx = BAT_BRICK_COLUMNS * row + col;
+        if ((BAT_bricks[idx] & 0x80) != 0)
+            continue;
+        top = (row << 10) + 0x700;
+        bottom = (row << 10) + 0xb00;
+        left = col << 11;
+        right = left + 0x800;
+        if (left > p_ball->NextX || p_ball->NextX > right)
+            continue;
+        if (p_ball->NextY < top || p_ball->NextY > bottom)
+            continue;
+
+        BAT_score += 10;
+        hits = (BAT_bricks[idx] >> 4) & 3;
+        BAT_bricks[idx] |= 0x40;
+        p_ball->UnkDw6 += BAT_ball_brick_speed_chg[rand() & 3] << 8;
+
+        if (p_ball->UnkDw3 <= top)
+        {
+            p_ball->UnkDw7 = -p_ball->UnkDw7;
+            if ((BAT_bricks[idx] & 7) == 5 && hits > 1)
+            {
+                int range;
+
+                range = 2 * abs(p_ball->UnkDw7);
+                if (range < 0xfff)
+                    range = 0xfff;
+                p_ball->UnkDw6 += ((rand() << 8) % range) - (range >> 1);
+                dist = BAT_approx_dist(abs(p_ball->UnkDw7), abs(p_ball->UnkDw6));
+                if (dist < BAT_ball_speed_limit())
+                {
+                    p_ball->UnkDw6 = p_ball->UnkDw6 + (p_ball->UnkDw6 >> 1);
+                    p_ball->UnkDw7 = p_ball->UnkDw7 + (p_ball->UnkDw7 >> 1);
+                }
+            }
+            else
+            {
+                p_ball->UnkDw6 = p_ball->UnkDw6 - (p_ball->UnkDw6 >> 3);
+                p_ball->UnkDw7 = p_ball->UnkDw7 - (p_ball->UnkDw7 >> 3);
+            }
+        }
+        if (bottom <= p_ball->UnkDw3)
+        {
+            p_ball->UnkDw7 = -p_ball->UnkDw7;
+            p_ball->UnkDw6 = p_ball->UnkDw6 - (p_ball->UnkDw6 >> 2);
+            p_ball->UnkDw7 = p_ball->UnkDw7 - (p_ball->UnkDw7 >> 2);
+        }
+        if (left >= p_ball->UnkDw2 || p_ball->UnkDw2 >= right)
+        {
+            p_ball->UnkDw6 = -p_ball->UnkDw6;
+            p_ball->UnkDw6 = p_ball->UnkDw6 - (p_ball->UnkDw6 >> 2);
+            p_ball->UnkDw7 = p_ball->UnkDw7 - (p_ball->UnkDw7 >> 2);
+        }
+
+        if (hits != 0)
+        {
+            if ((BAT_bricks[idx] & 7) == 5)
+            {
+                BAT_score -= 10;
+                play_sample_using_heap(0, 0x4a, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3u);
+            }
+            else
+            {
+                ubyte brick;
+
+                hits--;
+                brick = BAT_bricks[idx] & 0xcf;
+                BAT_bricks[idx] = brick;
+                BAT_bricks[idx] = brick | (ubyte)(hits << 4);
+                play_sample_using_heap(0, 0x48, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3u);
+            }
+        }
+        else
+        {
+            BAT_bricks[idx] |= 0x80;
+            BAT_bricks_remain--;
+            BAT_score += 20;
+            play_sample_using_heap(0, 0x4b, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3u);
+            BAT_unknsub_28((left + right) >> 1, (top + bottom) >> 1);
+        }
+    }
+
+    // Collisions with screen edges; remove balls which fell out
+    for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_next)
+    {
+        p_next = p_ball->ListNext;
+        if (p_ball->NextX < 0x100)
+            p_ball->UnkDw6 = abs(p_ball->UnkDw6);
+        if (p_ball->NextX > 0x5f00) {
+            p_ball->UnkDw6 = abs(p_ball->UnkDw6);
+            p_ball->UnkDw6 = -p_ball->UnkDw6;
+        }
+        if (p_ball->NextY < 0x100)
+            p_ball->UnkDw7 = abs(p_ball->UnkDw7);
+        if (p_ball->NextY <= 0x3e00)
+            continue;
+
+        *p_ball->ListPvNxPtr = p_ball->ListNext;
+        if (p_ball->ListNext != NULL)
+            p_ball->ListNext->ListPvNxPtr = p_ball->ListPvNxPtr;
+        if (BAT_free_balls != NULL)
+        {
+            p_ball->ListNext = BAT_free_balls;
+            BAT_free_balls->ListPvNxPtr = &p_ball->ListNext;
+            BAT_free_balls = p_ball;
+            p_ball->ListPvNxPtr = &BAT_free_balls;
+        }
+        else
+        {
+            // TODO BAT_free_balls is not updated here, so the ball is lost
+            p_ball->ListPvNxPtr = &BAT_free_balls;
+            p_ball->ListNext = NULL;
+        }
+    }
+
+    // Collisions with the paddle
+    for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_ball->ListNext)
+    {
+        int dist_lim, div;
+
+        if (p_ball->NextY < 0x3c00)
+            continue;
+        if (((BAT_paddle_x - BAT_data_1e2798) << 8) - 0x100 > p_ball->NextX)
+            continue;
+        if (((BAT_paddle_x + BAT_data_1e2798) << 8) + 0x100 < p_ball->NextX)
+            continue;
+
+        dist = BAT_approx_dist(abs(p_ball->UnkDw7), abs(p_ball->UnkDw6));
+        p_ball->UnkDw7 = abs(p_ball->UnkDw7);
+        p_ball->UnkDw7 = -p_ball->UnkDw7;
+        p_ball->UnkDw6 = ((p_ball->NextX - (BAT_paddle_x << 8)) * (-p_ball->UnkDw7))
+          / (BAT_data_1e2798 << 8);
+        p_ball->UnkDw6 = p_ball->UnkDw6 + ((rand() & 0xff) - 0x7f);
+
+        dist_lim = dist + (dist >> 3);
+        if (dist_lim > BAT_ball_speed_limit())
+            dist_lim = BAT_ball_speed_limit();
+        div = dist >> 6;
+        dist_lim >>= 6;
+        if (div == 0)
+            div = 1;
+        p_ball->UnkDw6 = (p_ball->UnkDw6 * dist_lim) / div;
+        p_ball->UnkDw7 = (p_ball->UnkDw7 * dist_lim) / div;
+        play_sample_using_heap(0, 0x4c, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3u);
+        p_ball->NextY = 0x3c00;
+    }
+
+    for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_ball->ListNext)
+    {
+        p_ball->X = p_ball->NextX;
+        p_ball->Y = p_ball->NextY;
+    }
 }
 
 static void BAT_ball_colour_fade(void)
