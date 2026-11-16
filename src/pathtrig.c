@@ -1458,12 +1458,66 @@ void path_init8_unkn3(struct Path *p_path, int ax8, int ay8, int bx8, int by8, i
     }
 }
 
-int unused_func_115(int X1, int Z1, int X2, int Z2)
+static DIFFTEST_REF_FUNC int unused_func_115_asm(int X1, int Z1, int X2, int Z2)
 {
     int ret;
     asm volatile ("call ASM_unused_func_115\n"
-        : "=r" (ret) : "a" (X1), "d" (Z1), "b" (X2), "c" (Z2));
+        : "=a" (ret) : "a" (X1), "d" (Z1), "b" (X2), "c" (Z2));
     return ret;
+}
+
+/** Checks whether the line from (X1,Z1) to (X2,Z2) leaves the tiles marked
+ * with MEF2_Unkn01 or MEF2_Unkn04. Returns 1 if any sampled tile (including
+ * both ends) lacks these flags, or on map 11; 0 if all samples have them.
+ */
+int unused_func_115(int X1, int Z1, int X2, int Z2)
+{
+    struct MyMapElement *p_mapel;
+    s32 dx, dz, adx, adz, dist, steps, step_x, step_z, x, z;
+
+    DIFFTEST_SHADOW_RET(unused_func_115, int, unused_func_115_asm(X1, Z1, X2, Z2));
+    if (current_map == 11)
+        DIFFTEST_RETURN((int)1);
+
+    p_mapel = &game_my_big_map[((Z1 >> 8) << 7) + (X1 >> 8)];
+    if ((p_mapel->Flags2 & (MEF2_Unkn01|MEF2_Unkn04)) == 0)
+        DIFFTEST_RETURN((int)1);
+    p_mapel = &game_my_big_map[((Z2 >> 8) << 7) + (X2 >> 8)];
+    if ((p_mapel->Flags2 & (MEF2_Unkn01|MEF2_Unkn04)) == 0)
+        DIFFTEST_RETURN((int)1);
+
+    dx = X2 - X1;
+    dz = Z2 - Z1;
+    if ((dx | dz) == 0)
+        DIFFTEST_RETURN((int)0);
+
+    // Approximate length of the vector
+    adz = abs(dz);
+    adx = abs(dx);
+    if (adx < adz)
+        dist = adz - (adz >> 5) - (adz >> 7)
+          + (adx >> 2) + (adx >> 3) + (adx >> 6) + (adx >> 7);
+    else
+        dist = adx - (adx >> 5) - (adx >> 7)
+          + (adz >> 2) + (adz >> 3) + (adz >> 6) + (adz >> 7);
+
+    steps = dist >> 4;
+    if (steps == 0)
+        DIFFTEST_RETURN((int)0);
+    step_x = dx / steps;
+    step_z = dz / steps;
+
+    x = X1;
+    z = Z1;
+    for (; steps >= 0; steps--)
+    {
+        p_mapel = &game_my_big_map[((z >> 8) << 7) + (x >> 8)];
+        if ((p_mapel->Flags2 & (MEF2_Unkn01|MEF2_Unkn04)) == 0)
+            DIFFTEST_RETURN((int)1);
+        x += step_x;
+        z += step_z;
+    }
+    DIFFTEST_RETURN((int)0);
 }
 static DIFFTEST_REF_FUNC int func_5cff0_asm(int a1, int a2, int a3, int a4)
 {
