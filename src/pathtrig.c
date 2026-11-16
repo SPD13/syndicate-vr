@@ -84,6 +84,8 @@ enum ThinWallType {
 
 extern const int MOD3[];
 
+TbBool point_find(TrCoord pt_x, TrCoord pt_y, int *r_tri, int *r_cor);
+
 void unkn_path_func_001(struct Thing *p_thing, ubyte a2)
 {
     int cor_beg_x, cor_beg_z;
@@ -461,7 +463,7 @@ void make_edge(int x1, int y1, int x2, int y2)
         : : "a" (x1), "d" (y1), "b" (x2), "c" (y2));
 }
 
-int edge_find(int x1, int y1, int x2, int y2, int *ntri1, int *ncor1)
+static DIFFTEST_REF_FUNC int edge_find_asm(int x1, int y1, int x2, int y2, int *ntri1, int *ncor1)
 {
     int ret;
     // Pushed through a register holding them: a "g" operand may be placed
@@ -475,10 +477,73 @@ int edge_find(int x1, int y1, int x2, int y2, int *ntri1, int *ncor1)
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_edge_find\n"
-        : "=r" (ret)
+        : "=a" (ret)
         : "a" (x1), "d" (y1), "b" (x2), "c" (y2), "S" (stkargs)
         : "cc", "memory");
     return ret;
+}
+
+static int edge_find_sign(s32 val)
+{
+    if (val < 0)
+        return -1;
+    return (val != 0);
+}
+
+int edge_find(int x1, int y1, int x2, int y2, int *ntri1, int *ncor1)
+{
+    struct TrTriangle *p_tri;
+    struct TrPoint *p_pt;
+    int tri_start, cor_start;
+    int tri, cor;
+    int lnk_tri, lnk_cor;
+    s32 dx, dy;
+    s32 pt_x, pt_y;
+
+    DIFFTEST_SHADOW_RET(edge_find, int,
+      edge_find_asm(x1, y1, x2, y2, ntri1, ncor1));
+    if (!point_find(x1, y1, &tri_start, &cor_start))
+        DIFFTEST_RETURN((int)0);
+
+    dy = y2 - y1;
+    dx = x2 - x1;
+    tri = tri_start;
+    cor = cor_start;
+    do
+    {
+        p_tri = &triangulation[0].Triangles[tri];
+        p_pt = &triangulation[0].Points[(ushort)p_tri->point[MOD3[cor+1]]];
+        pt_x = p_pt->x;
+        pt_y = p_pt->y;
+
+        if ((path_compare_multiplications(pt_x - x1, y2 - pt_y,
+          pt_y - y1, x2 - pt_x) == 0) &&
+          (edge_find_sign(pt_x - x1) == edge_find_sign(dx)) &&
+          (edge_find_sign(pt_y - y1) == edge_find_sign(dy)))
+        {
+            *ntri1 = tri;
+            *ncor1 = cor;
+            DIFFTEST_RETURN((int)1);
+        }
+
+        lnk_tri = p_tri->tri[cor];
+        if (lnk_tri == -1)
+            DIFFTEST_RETURN((int)0);
+        p_tri = &triangulation[0].Triangles[lnk_tri];
+        if (p_tri->tri[0] == tri)
+            lnk_cor = 0;
+        else if (p_tri->tri[1] == tri)
+            lnk_cor = 1;
+        else if (p_tri->tri[2] == tri)
+            lnk_cor = 2;
+        else
+            lnk_cor = -1;
+        cor = (lnk_cor + 1) % 3;
+        tri = lnk_tri;
+    }
+    while (tri != tri_start);
+
+    DIFFTEST_RETURN((int)0);
 }
 
 static DIFFTEST_REF_FUNC TbBool two4_line_intersection_asm(int x1, int y1,
