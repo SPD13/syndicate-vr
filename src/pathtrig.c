@@ -687,12 +687,98 @@ TbBool point_find(TrCoord pt_x, TrCoord pt_y, int *r_tri, int *r_cor)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int point_quad_status(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int point_quad_status_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_point_quad_status\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/**
+ * Locates a point within the quad formed by triangle `tri` and its
+ * neighbour across edge `cor`.
+ * @return 0..3 if the point equals a quad corner, 4..7 if it lies on
+ *  a quad edge line, -2 if outside, -1 if strictly inside.
+ */
+int point_quad_status(int a1, int a2, int a3, int a4)
+{
+    TrTriangId tri = a1;
+    TrTipId cor = a2;
+    s32 x = a3;
+    s32 y = a4;
+    struct TrTriangle *p_tri;
+    struct TrTriangle *p_lnk;
+    struct TrPoint *p_pt;
+    TrTriangId lnk_tri;
+    int lnk_cor;
+    s32 ptA_x, ptA_y, ptB_x, ptB_y, ptC_x, ptC_y, ptD_x, ptD_y;
+    sbyte cmp;
+
+    DIFFTEST_SHADOW_RET(point_quad_status, int, point_quad_status_asm(a1, a2, a3, a4));
+    p_tri = &triangulation[0].Triangles[tri];
+    lnk_tri = p_tri->tri[cor];
+    p_lnk = &triangulation[0].Triangles[lnk_tri];
+    if (p_lnk->tri[0] == tri)
+        lnk_cor = 0;
+    else if (p_lnk->tri[1] == tri)
+        lnk_cor = 1;
+    else if (p_lnk->tri[2] == tri)
+        lnk_cor = 2;
+    else
+        lnk_cor = -1;
+
+    p_pt = &triangulation[0].Points[(ushort)p_tri->point[MOD3[cor+2]]];
+    ptA_x = p_pt->x;
+    ptA_y = p_pt->y;
+    p_pt = &triangulation[0].Points[(ushort)p_tri->point[MOD3[cor]]];
+    ptB_x = p_pt->x;
+    ptB_y = p_pt->y;
+    p_pt = &triangulation[0].Points[(ushort)p_lnk->point[MOD3[lnk_cor+2]]];
+    ptC_x = p_pt->x;
+    ptC_y = p_pt->y;
+    p_pt = &triangulation[0].Points[(ushort)p_tri->point[MOD3[cor+1]]];
+    ptD_x = p_pt->x;
+    ptD_y = p_pt->y;
+
+    if (x == ptA_x && y == ptA_y)
+        DIFFTEST_RETURN((int)0);
+    if (x == ptB_x && y == ptB_y)
+        DIFFTEST_RETURN((int)1);
+    if (x == ptC_x && y == ptC_y)
+        DIFFTEST_RETURN((int)3);
+    if (x == ptD_x && y == ptD_y)
+        DIFFTEST_RETURN((int)2);
+
+    cmp = path_compare_multiplications(ptB_x - ptA_x, y - ptB_y,
+      ptB_y - ptA_y, x - ptB_x);
+    if (cmp > 0)
+        DIFFTEST_RETURN((int)-2);
+    if (cmp == 0)
+        DIFFTEST_RETURN((int)4);
+
+    cmp = path_compare_multiplications(ptC_x - ptB_x, y - ptC_y,
+      ptC_y - ptB_y, x - ptC_x);
+    if (cmp > 0)
+        DIFFTEST_RETURN((int)-2);
+    if (cmp == 0)
+        DIFFTEST_RETURN((int)6);
+
+    cmp = path_compare_multiplications(ptD_x - ptC_x, y - ptD_y,
+      ptD_y - ptC_y, x - ptD_x);
+    if (cmp > 0)
+        DIFFTEST_RETURN((int)-2);
+    if (cmp == 0)
+        DIFFTEST_RETURN((int)7);
+
+    cmp = path_compare_multiplications(ptA_x - ptD_x, y - ptA_y,
+      ptA_y - ptD_y, x - ptA_x);
+    if (cmp > 0)
+        DIFFTEST_RETURN((int)-2);
+    if (cmp == 0)
+        DIFFTEST_RETURN((int)5);
+
+    DIFFTEST_RETURN((int)-1);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
