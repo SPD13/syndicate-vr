@@ -541,10 +541,38 @@ void breakout_play_sub1(void)
         :  :  : "eax" );
 }
 
-void breakout_play_sub2(void)
+static DIFFTEST_REF_FUNC void breakout_play_sub2_asm(void)
 {
     asm volatile ("call ASM_breakout_play_sub2\n"
         :  :  : "eax" );
+}
+
+/** Draws the falling bonuses; X is the bonus kind.
+ */
+void breakout_play_sub2(void)
+{
+    static const char bonus_chr[] = {'W', 'T', 'S', 'D', 'Q', 'X', 'N'};
+    static const ubyte bonus_col[] = {4, 4, 3, 5, 5, 2, 1};
+    struct BATBonus *p_bonus;
+
+    DIFFTEST_SHADOW(breakout_play_sub2, breakout_play_sub2_asm());
+    for (p_bonus = BAT_bonuses_head; p_bonus != NULL;
+      p_bonus = p_bonus->ListNext)
+    {
+        u32 kind;
+        ubyte colour;
+        int rnd;
+
+        kind = p_bonus->X;
+        if (kind > 6)
+            continue;
+        rnd = rand() & 0x3f;
+        colour = pixmap.fade_table[(rnd << 8) + colour_lookup[bonus_col[kind]]];
+        BAT_draw_char((p_bonus->Y - 0x100) >> 8, (p_bonus->UnkDw2 - 0x200) >> 8,
+          bonus_chr[kind], colour);
+        if (kind == 5)
+            play_sample_using_heap(0, 71, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3u);
+    }
 }
 
 static DIFFTEST_REF_FUNC void BAT_bricks_load_asm(int a1)
