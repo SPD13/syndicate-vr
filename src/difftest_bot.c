@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include "bigmap.h"
 #include "bmcrater.h"
+#include "building.h"
 #include "delaunay.h"
 #include "enginsngobjs.h"
 #include "game.h"
@@ -42,6 +43,7 @@
 #include "thing.h"
 #include "triangls.h"
 #include "trstate.h"
+#include "vehicle.h"
 #include "weapon.h"
 /******************************************************************************/
 /* Not in a header; the agent cycling key uses it (plyr_usrinp.c) */
@@ -790,6 +792,80 @@ static void difftest_crater_turn(void)
       MAPCOORD_TO_TILE(PRCCOORD_TO_MAPCOORD(p_agent->Z)) + (n % 3) - 1, 1 + (n % 4));
 }
 
+static TbBool wreck_target_ok(struct Thing *p_thing)
+{
+    if ((p_thing->Flag & TngF_Destroyed) != 0)
+        return false;
+    if (p_thing->Type == TT_VEHICLE)
+    {
+        ThingIdx passngr;
+        int i;
+
+        // Not with player agents inside: once their vehicle is wrecked,
+        // a dying agent's ComCur can be no player slot (set_person_dead)
+        passngr = p_thing->U.UVehicle.PassengerHead;
+        for (i = 0; (passngr > 0) && (i < 32); i++)
+        {
+            if ((things[passngr].Flag & TngF_PlayerAgent) != 0)
+                return false;
+            passngr = things[passngr].U.UPerson.LinkPassenger;
+        }
+        return true;
+    }
+    return (p_thing->Type == TT_BUILDING) && (p_thing->SubType == SubTT_BLD_MGUN);
+}
+
+/** With env SWARS_DIFFTEST_WRECK set, every 32 turns a vehicle or mounted
+ * gun takes a heavy hit (as from a rocket of the first player agent), the
+ * same one until it is destroyed. The bot's weapons rarely destroy mechs
+ * and mounted guns, so their explosions (init_mech_explode,
+ * init_mgun_explode) never run otherwise.
+ */
+static void difftest_wreck_turn(void)
+{
+    static int wreck_on = -1;
+    static ThingIdx wreck_thing = 0;
+    PlayerInfo *p_locplayer;
+    struct Thing *p_agent;
+    ThingIdx thing;
+
+    if (wreck_on < 0)
+        wreck_on = (getenv("SWARS_DIFFTEST_WRECK") != NULL);
+    if (!wreck_on)
+        return;
+    if (ingame.DisplayMode != DpM_ENGINEPLY)
+        return;
+    if ((gameturn % 32) != 16)
+        return;
+    if ((wreck_thing == 0) || !wreck_target_ok(&things[wreck_thing]))
+    {
+        // Next target after the previous one, mechs and guns first
+        ThingIdx start = wreck_thing;
+        wreck_thing = 0;
+        for (thing = 1; thing < THINGS_LIMIT; thing++)
+        {
+            ThingIdx t = (start + thing) % THINGS_LIMIT;
+            struct Thing *p_thing = &things[t];
+            if (t == 0 || !wreck_target_ok(p_thing))
+                continue;
+            if ((p_thing->Type == TT_BUILDING) || (p_thing->SubType == SubTT_VEH_MECH)) {
+                wreck_thing = t;
+                break;
+            }
+            if (wreck_thing == 0)
+                wreck_thing = t;
+        }
+        if (wreck_thing == 0)
+            return;
+    }
+    p_locplayer = &players[local_player_no];
+    p_agent = p_locplayer->MyAgent[0];
+    // Mechs take an eighth of it
+    thing_hit_by_bullet(&things[wreck_thing],
+      (things[wreck_thing].SubType == SubTT_VEH_MECH) ? 30000 : 2000,
+      0, 0, 0, p_agent, DMG_RAP);
+}
+
 void difftest_bot_turn(void)
 {
     struct Packet *p_pckt;
@@ -797,6 +873,7 @@ void difftest_bot_turn(void)
     difftest_retri_turn();
     difftest_kbd_turn();
     difftest_crater_turn();
+    difftest_wreck_turn();
     if (!bot_tried) {
         const char *s = getenv("SWARS_DIFFTEST_BOT");
         bot_tried = true;

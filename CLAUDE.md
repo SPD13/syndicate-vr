@@ -19,7 +19,8 @@ Always use the scripts; they enter MSYS2 by themselves when needed.
   "1,2+bot" plays the mission with scripted player commands
   (`src/difftest_bot.c`), reaching code that needs a player; "0,1+tri"
   first rebuilds the map triangulations (pathtrig asm); "+kbd" uses
-  keyboard control, "+crater" starts a crater every 64 turns.
+  keyboard control, "+crater" starts a crater every 64 turns, "+wreck"
+  hits a vehicle or mounted gun hard every 32 turns.
 - `python tools/decomp-agent/show_fn.py <fn>` — asm body, wrapper conf
   line, current C, callers.
 - `tools/decomp-agent/offsets.sh <header.h> <Struct> [field...]` — sizeof

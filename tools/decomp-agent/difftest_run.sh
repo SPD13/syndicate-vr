@@ -12,7 +12,7 @@ if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
 fi
 set -u
 FN="$1"; shift
-SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19 1,2+bot 1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot 1,102+bot 0,22+bot 1,100+bot 1,85+bot 1,71+bot 1,72+bot 0,49+bot 3,4+bot 0,92+bot 3,91+bot 3,38+bot 3,61+bot 1,51+bot 0,101+bot 0,1+bot 0,8+bot 0,1+tri 2,1+tri 1,2+tri 1,2+kbd+bot 0,5+kbd+bot 1,2+crater+bot 0,23+crater+bot}"
+SCENARIOS="${*:-0,1 0,5 0,20 1,2 1,40 2,1 0,21 1,27 1,45 0,23 1,16 2,3 1,19 1,2+bot 1,16+bot 1,40+bot 0,23+bot 0,21+bot 0,20+bot 0,5+bot 1,19+bot 1,102+bot 0,22+bot 1,100+bot 1,85+bot+wreck 1,71+bot 1,72+bot+wreck 0,49+bot 3,4+bot 0,92+bot 3,91+bot 3,38+bot 3,61+bot 1,51+bot 0,101+bot 0,1+bot 0,8+bot 0,1+tri 2,1+tri 1,2+tri 1,2+kbd+bot 0,5+kbd+bot 1,2+crater+bot 0,23+crater+bot}"
 TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -78,17 +78,19 @@ esac
 for SC in $SCENARIOS; do
     # "<campaign>,<mission>+bot": the mission with scripted player input;
     # "+tri": the map triangulations are rebuilt at the start (pathtrig asm);
-    # "+kbd": keyboard control mode; "+crater": a crater every 64 turns
+    # "+kbd": keyboard control mode; "+crater": a crater every 64 turns;
+    # "+wreck": a vehicle or mounted gun is hit hard every 32 turns
     BOT=""; case "$SC" in *+bot*) BOT=1 ;; esac
     TRI=""; case "$SC" in *+tri*) TRI=1 ;; esac
     KBD=""; case "$SC" in *+kbd*) KBD=1 ;; esac
     CRA=""; case "$SC" in *+crater*) CRA=1 ;; esac
+    WRK=""; case "$SC" in *+wreck*) WRK=1 ;; esac
     [ "$VERDICT" = PASS ] || break
     LOG="$OUT/scenario_${SC/,/_}.log"
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
     SWARS_DIFFTEST_FN="$FN" SWARS_SEED="${SWARS_SEED:-12345}" SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
     SWARS_DIFFTEST_MIN=0 SWARS_DIFFTEST_LOG="$LOG" \
-        timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} "$EXE" -q -W -m "${SC%%+*}" > "$OUT/scenario_${SC/,/_}.out" 2>&1
+        timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} "$EXE" -q -W -m "${SC%%+*}" > "$OUT/scenario_${SC/,/_}.out" 2>&1
     RC=$?
     cp -f error.log "$OUT/scenario_${SC/,/_}.error.log" 2>/dev/null
     case $RC in
