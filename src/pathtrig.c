@@ -2496,11 +2496,33 @@ void triangulation_init_edges(void)
 #endif
 }
 
-void triangulation_allocate(int tgnNo, int maxTrigs)
+static DIFFTEST_REF_FUNC void triangulation_allocate_asm(int tgnNo, int maxTrigs)
 {
     asm volatile (
       "call ASM_triangulation_allocate\n"
         : : "a" (tgnNo), "d" (maxTrigs));
+}
+
+void triangulation_allocate(int tgnNo, int maxTrigs)
+{
+    struct Triangulation *p_trgl;
+    int max_pts;
+
+    DIFFTEST_SHADOW(triangulation_allocate, triangulation_allocate_asm(tgnNo, maxTrigs));
+    if (!triangulation_initied)
+        triangulation_initialize();
+
+    p_trgl = &triangulation[tgnNo];
+    max_pts = maxTrigs / 2;
+    p_trgl->tri_allocated = 1;
+    p_trgl->max_Triangles = maxTrigs;
+    p_trgl->triangle_top = maxTrigs;
+    p_trgl->max_Points = max_pts;
+    p_trgl->point_top = max_pts;
+    p_trgl->Triangles = LbMemoryAlloc(maxTrigs << 4);
+    p_trgl->Points = LbMemoryAlloc(max_pts << 3);
+    memset(p_trgl->Triangles, 0, maxTrigs << 4);
+    memset(p_trgl->Points, 0, max_pts << 3);
 }
 
 void triangulate_area(ubyte *p_map, int x1, int y1, int x2, int y2)
