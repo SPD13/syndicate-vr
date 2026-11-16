@@ -1,4 +1,4 @@
-# Decompilation status — 2026-11-15
+# Decompilation status — 2026-11-16
 
 Handoff note for resuming the asm-to-C work in a new session (for example
 after a reboot). How to remake a function is in `CLAUDE.md`; the overall
@@ -8,9 +8,14 @@ plan is in `docs/decompilation-agent-plan.md`.
 
 - Branch `decomp/auto` (local only, **never push**), on top of
   `vr/main`.
-- `queue.py` stats (after the 40-scenario coverage, `595ca445`): 694 asm
-  functions, 353 shadowed (remade in C and difftested), 67 routed labels
+- `queue.py` stats (after the 45-scenario coverage, `33a7d18b`): 694 asm
+  functions, 360 shadowed (remade in C and difftested), 62 routed labels
   still live, 0 queued.
+- 2026-11-16: suffixes `+kbd`, `+crater`, `+wreck` and a bezier-road bot
+  action (see below) reached 7 more; all merged on the first pass
+  (about $3.7): `check_unlock_target`, `track_player`,
+  `get_target_priority`, `find_a_target`, `process_map_crater`,
+  `init_mgun_explode`, `find_bezier_nav_point`.
 - 2026-11-15 evening: 6 BAT targets and `nullsub_7` merged;
   `BAT_unknsub_22` was blocked by the internal label `BAT_unknsub_28`,
   routed in `f2edc6f7` (state traces of 37 scenarios identical), then
@@ -65,8 +70,9 @@ with random but deterministic player commands:
 - Called from `game_process()` right after `load_packet()`; acts every 6
   turns, only in `DpM_ENGINEPLY` and only when the packet is empty.
 - Default scenarios (in `coverage.sh`, `difftest_run.sh`,
-  `statetrace.sh`): 40, 13 plain + 24 bot + 3 tri; see the `SCENARIOS`
-  line in those scripts. Latest additions: `3,4+bot`, `0,92 3,91 3,38
+  `statetrace.sh`): 45, 13 plain + 25 bot + 3 tri + 2 kbd + 2 crater
+  (wreck runs combine with bot); see the `SCENARIOS` line in those
+  scripts. Suffixes combine, e.g. `1,2+kbd+bot`. Latest additions: `3,4+bot`, `0,92 3,91 3,38
   3,61 1,51` (+bot), `0,101+bot`, `0,1+bot 0,8+bot` (BAT minigame),
   `0,1+tri 2,1+tri 1,2+tri`.
 - Suffix `+tri` (env `SWARS_DIFFTEST_RETRI`): on the first engine turn
@@ -75,6 +81,22 @@ with random but deterministic player commands:
   without the collision steps, which overflow the columns loaded from
   the file). The port loads triangulations from the level files, so the
   pathtrig builder never ran otherwise.
+- Suffix `+kbd` (`SWARS_DIFFTEST_KBD`): switches the local player to
+  keyboard control on the first engine turn; that path runs the
+  auto-targeting (`find_a_target`, `get_target_priority`,
+  `check_unlock_target`, `track_player`).
+- Suffix `+crater` (`SWARS_DIFFTEST_CRATER`): calls `create_crater` near
+  a player agent every 64 turns. The port uses `quick_crater` for
+  explosions, so `process_map_crater` ran only through this hook.
+- Suffix `+wreck` (`SWARS_DIFFTEST_WRECK`): every 32 turns hits one
+  vehicle (no player agent aboard) or mounted gun building with
+  `thing_hit_by_bullet` until it is destroyed (`init_mgun_explode`).
+  `1,100+bot+wreck` crashes in `set_person_dead`; not used.
+- Bezier roads (`SubTT_BLD_BEZIER_ROAD`, only maps 2, 4 and 45): on
+  every second bot step a driving agent is sent to the nearest walkable
+  quad of such a road with `PAct_AGENT_GOTO_FACE_PT_ABS`, reaching
+  `find_bezier_nav_point` (scenario `2,1+bot`). No extra `bot_rand`
+  draws.
 - The bot sends `PAct_AGENT_UNKGROUP_ADD` on turn 150 and `_PROT` on turn
   294 of every 300 (fixed turns keep the random sequence of the other
   actions), only when no agent is scripted.
@@ -122,14 +144,19 @@ Lessons learned, do not undo:
 
 ## Remaining queue
 
-Empty. 34 routed functions remain low-coverage (`queue.py --print 100`,
+Empty. 28 routed functions remain low-coverage (`queue.py --print 100`,
 tag `low-coverage`), 20 are sound/network, 12 upstream-recent. Checked
 and found unreachable in scenarios: the flying vehicle goto
 (`process_vehicle_goto_point_fly/land`; nothing sets vehicle state 0x27),
 `add_agent`/`remove_agent` (campaign bookkeeping after the mission),
 `user_read_value` (front end), `process_tasered_person` (flag never set).
 `BAT_unknsub_28` (bonus spawn) is never hit: the ball hits no brick in the
-BAT scenarios.
+BAT scenarios. Also unreachable or nearly so: trains (`person_catch_train`,
+`person_clear_route_and_teleport_to_vehicle`, `set_xz_for_unkn3`), support
+persons (no mission uses them), `group_not_seen` (not reached even in
+5000 turns), ships (`send_ship_to`, 2 calls) and mech explode
+(`init_mech_explode`, `mech_unkn_func_09`, 1-2 calls, only 3 mech
+missions). Pushing these to 5 calls would need artificial hooks.
 
 ## How to resume
 
