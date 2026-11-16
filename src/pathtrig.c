@@ -456,11 +456,102 @@ void fill_concave(int a1, int a2, int a3, int a4)
 }
 
 
-void make_edge(int x1, int y1, int x2, int y2)
+static DIFFTEST_REF_FUNC void make_edge_asm(int x1, int y1, int x2, int y2)
 {
     asm volatile (
       "call ASM_make_edge\n"
         : : "a" (x1), "d" (y1), "b" (x2), "c" (y2));
+}
+
+/** Forces an edge from (x1,y1) to (x2,y2) into the triangulation, walking
+ * the triangles crossed by the segment and rotating edges out of the way.
+ * If the segment passes exactly through a point, splits it there.
+ */
+void make_edge(int x1, int y1, int x2, int y2)
+{
+    struct TrPoint *p_pt;
+    int tri, cor;
+    int tri2, cor2;
+    s32 dx, dy;
+    s32 tri_cur, cor_cur;
+    s32 tri_nb, cor_nb;
+    s32 tri_nt, cor_nt;
+    s32 tri_nt2, cor_nt2;
+    s32 pt_x, pt_y;
+    s32 ptA_x, ptA_y;
+    s32 ptB_x, ptB_y;
+    s32 ptC_x, ptC_y;
+
+    DIFFTEST_SHADOW(make_edge, make_edge_asm(x1, y1, x2, y2));
+    if (x1 == x2 && y1 == y2)
+        return;
+
+    dy = y2 - y1;
+    dx = x2 - x1;
+    while (1)
+    {
+        if (!point_find(x1, y1, &tri, &cor))
+            return;
+        if (!point_find(x2, y2, &tri2, &cor2))
+            return;
+        cor_cur = pointed_at8(x2 << 8, y2 << 8, &tri, &cor);
+        tri_cur = tri;
+
+        p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri_cur].point[MOD3[cor+1]]];
+        if (p_pt->x == x2 && p_pt->y == y2)
+            return;
+        p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri].point[MOD3[cor+2]]];
+        if (p_pt->x == x2 && p_pt->y == y2)
+            return;
+
+        tri_nb = triangulation[0].Triangles[tri].tri[cor];
+        cor_nb = fill_concave_tip_to(tri_nb, tri);
+        p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri_nb].point[cor_nb]];
+        pt_x = p_pt->x;
+        pt_y = p_pt->y;
+        if (path_compare_multiplications(dx, pt_y - y2, dy, pt_x - x2) == 0)
+        {
+            // The segment passes through a point; split the edge there
+            make_edge(x1, y1, pt_x, pt_y);
+            make_edge(x2, y2, pt_x, pt_y);
+            return;
+        }
+
+        do
+        {
+            tri_nt = triangulation[0].Triangles[tri_cur].tri[cor_cur];
+            cor_nt = fill_concave_tip_to(tri_nt, tri_cur);
+            p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri_nt].point[MOD3[cor_nt+2]]];
+            pt_x = p_pt->x;
+            pt_y = p_pt->y;
+            cor_cur = MOD3[cor_nt+1];
+            tri_cur = tri_nt;
+            if (path_compare_multiplications(dx, pt_y - y2, dy, pt_x - x2) >= 0)
+            {
+                tri_nt2 = triangulation[0].Triangles[tri_nt].tri[cor_cur];
+                cor_nt2 = fill_concave_tip_to(tri_nt2, tri_nt);
+                p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri_nt2].point[cor_nt2]];
+                ptA_x = p_pt->x;
+                ptA_y = p_pt->y;
+                p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri_nb].point[cor_nb]];
+                ptB_x = p_pt->x;
+                ptB_y = p_pt->y;
+                p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri_nb].point[MOD3[cor_nb+1]]];
+                ptC_x = p_pt->x;
+                ptC_y = p_pt->y;
+                if (path_compare_multiplications(ptB_x - ptC_x, ptA_y - ptB_y,
+                  ptB_y - ptC_y, ptA_x - ptB_x) < 0)
+                {
+                    fill_concave(tri_nb, cor_nb, tri_nt2, 0);
+                    break;
+                }
+                tri_nb = tri_nt2;
+                cor_nb = cor_nt2;
+                cor_cur = MOD3[cor_nt+2];
+            }
+        }
+        while (pt_x != x2 || pt_y != y2);
+    }
 }
 
 static DIFFTEST_REF_FUNC int edge_find_asm(int x1, int y1, int x2, int y2, int *ntri1, int *ncor1)
