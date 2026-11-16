@@ -8,9 +8,18 @@ plan is in `docs/decompilation-agent-plan.md`.
 
 - Branch `decomp/auto` (local only, **never push**), on top of
   `vr/main`.
-- `queue.py` stats (after the 37-scenario coverage, `972c34bf`): 693 asm
-  functions, 332 shadowed (remade in C and difftested), 87 routed labels
-  still live, 7 queued (6 BAT functions and `nullsub_7`, loop running).
+- `queue.py` stats (after the 40-scenario coverage, `595ca445`): 694 asm
+  functions, 353 shadowed (remade in C and difftested), 67 routed labels
+  still live, 0 queued.
+- 2026-11-15 evening: 6 BAT targets and `nullsub_7` merged;
+  `BAT_unknsub_22` was blocked by the internal label `BAT_unknsub_28`,
+  routed in `f2edc6f7` (state traces of 37 scenarios identical), then
+  merged. With the `+tri` scenarios and the bot's group save/restore,
+  15 more merged: 10 pathtrig functions (`make_edge`, `edge_find`,
+  `make_clip_list`, `make_clipped_edges`, `fill_concave`,
+  `point_quad_status`, `func_81db4`, `collide_coords`, `unused_func_115`,
+  `triangulation_allocate`), `unkn_player_group_add/prot`,
+  `call_protect_specific`, `yank_from_vehicle` (about $8.5 in all).
 - 2026-11-14 run: 38 targets, all merged after routing
   `set_player_peeps_to_run` (own epilogue `jump_57dc6`) and
   `del_col_vect_from_mapwho` in `31a4febd`; about $20.
@@ -56,9 +65,19 @@ with random but deterministic player commands:
 - Called from `game_process()` right after `load_packet()`; acts every 6
   turns, only in `DpM_ENGINEPLY` and only when the packet is empty.
 - Default scenarios (in `coverage.sh`, `difftest_run.sh`,
-  `statetrace.sh`): 37, 13 plain + 24 bot; see the `SCENARIOS` line in
-  those scripts. Latest additions: `3,4+bot`, `0,92 3,91 3,38 3,61 1,51`
-  (+bot), `0,101+bot`, and `0,1+bot 0,8+bot` (BAT minigame).
+  `statetrace.sh`): 40, 13 plain + 24 bot + 3 tri; see the `SCENARIOS`
+  line in those scripts. Latest additions: `3,4+bot`, `0,92 3,91 3,38
+  3,61 1,51` (+bot), `0,101+bot`, `0,1+bot 0,8+bot` (BAT minigame),
+  `0,1+tri 2,1+tri 1,2+tri`.
+- Suffix `+tri` (env `SWARS_DIFFTEST_RETRI`): on the first engine turn
+  the map triangulations are rebuilt (fresh `triangulation_allocate`
+  storage, then the triangulation steps of `generate_map_triangulation`
+  without the collision steps, which overflow the columns loaded from
+  the file). The port loads triangulations from the level files, so the
+  pathtrig builder never ran otherwise.
+- The bot sends `PAct_AGENT_UNKGROUP_ADD` on turn 150 and `_PROT` on turn
+  294 of every 300 (fixed turns keep the random sequence of the other
+  actions), only when no agent is scripted.
 - Runs are seeded: all three scripts set `SWARS_SEED=12345` (before
   `5b97696e` coverage and difftest seeded from the clock, so call counts
   varied between runs).
@@ -103,10 +122,14 @@ Lessons learned, do not undo:
 
 ## Remaining queue
 
-7 BAT/`nullsub_7` targets (loop started 2026-11-15). After that, more
-targets need new scenarios, bot actions or fuzz cases for the
-low-coverage list; rebuild `coverage.json` with
-`tools/decomp-agent/coverage.sh` and run `queue.py --print` again.
+Empty. 34 routed functions remain low-coverage (`queue.py --print 100`,
+tag `low-coverage`), 20 are sound/network, 12 upstream-recent. Checked
+and found unreachable in scenarios: the flying vehicle goto
+(`process_vehicle_goto_point_fly/land`; nothing sets vehicle state 0x27),
+`add_agent`/`remove_agent` (campaign bookkeeping after the mission),
+`user_read_value` (front end), `process_tasered_person` (flag never set).
+`BAT_unknsub_28` (bonus spawn) is never hit: the ball hits no brick in the
+BAT scenarios.
 
 ## How to resume
 
