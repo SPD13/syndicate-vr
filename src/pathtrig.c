@@ -580,7 +580,7 @@ int point_quad_status(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void func_81db4(int a1, int a2, int a3, int a4, int a5, int a6)
+static DIFFTEST_REF_FUNC void func_81db4_asm(int a1, int a2, int a3, int a4, int a5, int a6)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[2];
@@ -589,6 +589,47 @@ void func_81db4(int a1, int a2, int a3, int a4, int a5, int a6)
     stkargs[1] = a6;
     asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_func_81db4\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+void func_81db4(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    TrTriangId tri = a1;
+    TrTipId cor = a2;
+    s32 *p_x = (s32 *)a5;
+    s32 *p_y = (s32 *)a6;
+    s32 pt_x, pt_y, y;
+    struct TrTriangle *p_tri;
+    struct TrPoint *p_pt1;
+    struct TrPoint *p_pt2;
+    s32 dist1, dist2;
+
+    DIFFTEST_SHADOW(func_81db4, func_81db4_asm(a1, a2, a3, a4, a5, a6));
+    pt_x = a3 >> 8;
+    y = a4 >> 8;
+    *p_x = pt_x;
+    *p_y = y;
+    if (point_quad_status(tri, cor, *p_x, y) == -1)
+    {
+        edge_split(tri, cor, *p_x, *p_y);
+        return;
+    }
+    pt_x = *p_x;
+    pt_y = *p_y;
+    p_tri = &triangulation[0].Triangles[tri];
+    p_pt1 = &triangulation[0].Points[(ushort)p_tri->point[cor]];
+    p_pt2 = &triangulation[0].Points[(ushort)p_tri->point[MOD3[cor+1]]];
+    dist2 = (p_pt2->x - pt_x) * (p_pt2->x - pt_x)
+      + (p_pt2->y - pt_y) * (p_pt2->y - pt_y);
+    dist1 = (p_pt1->x - pt_x) * (p_pt1->x - pt_x)
+      + (p_pt1->y - pt_y) * (p_pt1->y - pt_y);
+    if (dist1 > dist2)
+    {
+        *p_x = p_pt2->x;
+        *p_y = p_pt2->y;
+        return;
+    }
+    *p_x = p_pt1->x;
+    *p_y = p_pt1->y;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
