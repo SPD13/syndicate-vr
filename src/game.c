@@ -5248,10 +5248,37 @@ void move_camera(int x, int y, int z)
     }
 }
 
-void track_player(int thing)
+static DIFFTEST_REF_FUNC void track_player_asm(int thing)
 {
     asm volatile ("call ASM_track_player\n"
         : : "a" (thing));
+}
+
+void track_player(int thing)
+{
+    struct Thing *p_thing;
+    struct Thing *p_vehicle;
+
+    DIFFTEST_SHADOW(track_player, track_player_asm(thing));
+    if (pktrec_mode == 2)
+    {
+        ingame.TrackX = engn_xc;
+        ingame.TrackZ = engn_zc;
+        ingame.TrackThing = 0;
+    }
+    p_thing = &things[(ushort)thing];
+    if (((p_thing->Flag & TngF_Unkn4000) != 0) ||
+      ((p_thing->Flag & TngF_InVehicle) != 0))
+    {
+        p_vehicle = &things[p_thing->U.UPerson.Vehicle];
+        ingame.TrackX = p_vehicle->X >> 8;
+        ingame.TrackZ = p_vehicle->Z >> 8;
+        move_camera(ingame.TrackX, p_vehicle->Y >> 11, ingame.TrackZ);
+        return;
+    }
+    ingame.TrackX = p_thing->X >> 8;
+    ingame.TrackZ = p_thing->Z >> 8;
+    move_camera(ingame.TrackX, p_thing->Y >> 8, ingame.TrackZ);
 }
 
 static DIFFTEST_REF_FUNC void track_angle_asm(void)
