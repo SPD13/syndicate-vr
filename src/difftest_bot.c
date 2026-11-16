@@ -355,6 +355,44 @@ static short bot_pick_face(struct Thing *p_agent, short *p_x, short *p_y, short 
     return found[k];
 }
 
+/** The walkable quad face of a bezier road (raised curvy road) nearest to
+ * the agent within bot range, or 0. Draws no random numbers.
+ */
+static short bot_bezier_face(struct Thing *p_agent, short *p_x, short *p_y, short *p_z)
+{
+    short best;
+    long best_dist;
+    int i;
+
+    best = 0;
+    best_dist = 0;
+    for (i = 1; i < next_object_face4; i++)
+    {
+        struct SingleObjectFace4 *p_face4;
+        struct Thing *p_building;
+        short x, y, z;
+        long dist;
+
+        p_face4 = &game_object_faces4[i];
+        p_building = &things[(ushort)game_objects[p_face4->Object].ThingNo];
+        if ((p_building->Type != TT_BUILDING) ||
+          (p_building->SubType != SubTT_BLD_BEZIER_ROAD))
+            continue;
+        if (!bot_face_centre(-i, p_agent, &x, &y, &z))
+            continue;
+        dist = abs(PRCCOORD_TO_MAPCOORD(p_agent->X) - x) +
+          abs(PRCCOORD_TO_MAPCOORD(p_agent->Z) - z);
+        if ((best == 0) || (dist < best_dist)) {
+            best = -i;
+            best_dist = dist;
+            *p_x = x;
+            *p_y = y;
+            *p_z = z;
+        }
+    }
+    return best;
+}
+
 /** A ground point near the agent, in map coords. */
 static void bot_near_point(struct Thing *p_agent, short *p_x, short *p_y, short *p_z, int spread)
 {
@@ -387,7 +425,15 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
             build_packet(p_pckt, PAct_LEAVE_VEHICLE, agent, 0, 0, 0);
         } else {
             bot_near_point(p_agent, &x, &y, &z, 4096);
-            build_packet(p_pckt, PAct_AGENT_GOTO_GND_PT_ABS, agent, x, y, z);
+            // Every other drive turn onto a bezier road nearby, if any, as
+            // clicking on it does (find_bezier_nav_point); no random draw
+            face = 0;
+            if (((gameturn / BOT_TURN_INTERVAL) % 2) == 0)
+                face = bot_bezier_face(p_agent, &x, &y, &z);
+            if (face != 0)
+                build_packet(p_pckt, PAct_AGENT_GOTO_FACE_PT_ABS, agent, x, face, z);
+            else
+                build_packet(p_pckt, PAct_AGENT_GOTO_GND_PT_ABS, agent, x, y, z);
         }
         return;
     }
