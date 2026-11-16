@@ -566,10 +566,40 @@ ubyte select_new_weapon(ushort index, short dir)
     DIFFTEST_RETURN((ubyte)wtype);
 }
 
-void unkn_player_group_add(sbyte a1, ubyte a2)
+extern struct UnkPlayerGroup unkn_player_groups[8][5];
+
+static DIFFTEST_REF_FUNC void unkn_player_group_add_asm(sbyte a1, ubyte a2)
 {
     asm volatile ("call ASM_unkn_player_group_add\n"
         :  : "a" (a1), "d" (a2));
+}
+
+void unkn_player_group_add(sbyte a1, ubyte a2)
+{
+    struct UnkPlayerGroup *p_group;
+    PlayerInfo *p_player;
+    ubyte grp;
+    u32 i;
+
+    DIFFTEST_SHADOW(unkn_player_group_add, unkn_player_group_add_asm(a1, a2));
+
+    // Flat index into the [8][5] array, computed in 8 bits like the asm
+    grp = (ubyte)((ubyte)a1 + (ubyte)(a2 * 5));
+    p_group = &unkn_player_groups[0][0] + grp;
+    p_group->GroupActive = 1;
+    p_player = &players[a2];
+    for (i = 0; i < playable_agents; i++)
+    {
+        struct Thing *p_agent;
+
+        p_agent = p_player->MyAgent[i];
+        p_group->AgentWeapons[i] = p_agent->U.UPerson.CurrentWeapon;
+        p_group->AgentMoods[i] = p_agent->U.UPerson.Mood;
+        if ((ushort)p_agent->State == PerSt_PROTECT_PERSON)
+            p_group->AgentOwners[i] = p_agent->Owner;
+        else
+            p_group->AgentOwners[i] = 0;
+    }
 }
 
 void unkn_player_group_prot(sbyte a1, ubyte a2)
