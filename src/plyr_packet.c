@@ -411,11 +411,54 @@ void thing_goto_point_on_face_fast(struct Thing *p_thing, short x, short z, shor
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void find_bezier_nav_point(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void find_bezier_nav_point_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_find_bezier_nav_point\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+void find_bezier_nav_point(int a1, int a2, int a3, int a4)
+{
+    short face = (short)a1;
+    struct Thing *p_vehicle = (struct Thing *)a2;
+    short *p_nav_x = (short *)a3;
+    short *p_nav_z = (short *)a4;
+    struct Thing *p_first;
+    struct Thing *p_last;
+    ushort obj;
+    s32 dx, dz, dist_first, dist_last;
+
+    DIFFTEST_SHADOW(find_bezier_nav_point, find_bezier_nav_point_asm(a1, a2, a3, a4));
+    if (face > 0)
+        obj = game_object_faces3[face].Object;
+    else
+        obj = game_object_faces4[-face].Object;
+
+    p_last = &things[(ushort)game_objects[obj].ThingNo];
+    p_first = p_last;
+    while (p_first->U.UObject.PrevThing > 0)
+        p_first = &things[p_first->U.UObject.PrevThing];
+    while (p_last->U.UObject.NextThing > 0)
+        p_last = &things[p_last->U.UObject.NextThing];
+
+    dx = (p_vehicle->X - p_first->X) >> 9;
+    dz = (p_vehicle->Z - p_first->Z) >> 9;
+    dist_first = dx * dx + dz * dz;
+    dx = (p_vehicle->X - p_last->X) >> 9;
+    dz = (p_vehicle->Z - p_last->Z) >> 9;
+    dist_last = dx * dx + dz * dz;
+
+    if (dist_first < dist_last)
+    {
+        *p_nav_x = p_last->X >> 8;
+        *p_nav_z = p_last->Z >> 8;
+    }
+    else
+    {
+        *p_nav_x = p_first->X >> 8;
+        *p_nav_z = p_first->Z >> 8;
+    }
 }
 
 
