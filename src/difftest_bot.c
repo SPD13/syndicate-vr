@@ -659,6 +659,19 @@ static void bot_decide(struct Packet *p_pckt)
               PCheatAA_RESURRECT_AND_WEPAPN, 0, 0, 0);
         return;
     }
+    // Save and restore agent groups (moods, weapons, protect targets) on
+    // fixed turns, so the random sequence of the other actions stays. The
+    // restore commands every agent, so not while any is scripted.
+    if (bot_cheat_allowed()) {
+        if ((gameturn % 300) == 150) {
+            build_packet(p_pckt, PAct_AGENT_UNKGROUP_ADD, (gameturn / 300) % 5, 0, 0, 0);
+            return;
+        }
+        if ((gameturn % 300) == 294) {
+            build_packet(p_pckt, PAct_AGENT_UNKGROUP_PROT, (gameturn / 300) % 5, 0, 0, 0);
+            return;
+        }
+    }
     n = bot_rand(n);
     for (i = 0; i < playable_agents; i++)
     {
