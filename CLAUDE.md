@@ -15,7 +15,7 @@ Always use the scripts; they enter MSYS2 by themselves when needed.
   into `build/difftest/`. Add `--check` to also run `make check`; omit
   `--difftest` for the plain build in `build/release/`.
 - `tools/decomp-agent/difftest_run.sh <fn>` — verdict for one function:
-  random-input cases (if any) + 39 mission scenarios, ~8 min. A scenario
+  random-input cases (if any) + 40 mission scenarios, ~8 min. A scenario
   "1,2+bot" plays the mission with scripted player commands
   (`src/difftest_bot.c`), reaching code that needs a player; "0,1+tri"
   first rebuilds the map triangulations (pathtrig asm).
