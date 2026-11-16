@@ -990,11 +990,126 @@ void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int
       (u32)((s64)(s32)((u32)dy12 << 8) * num / den));
 }
 
-void make_clip_list(int x1, int y1, int x2, int y2)
+static DIFFTEST_REF_FUNC void make_clip_list_asm(int x1, int y1, int x2, int y2)
 {
     asm volatile (
       "call ASM_make_clip_list\n"
         : : "a" (x1), "d" (y1), "b" (x2), "c" (y2));
+}
+
+/** Walks the triangulation along the segment (x1,y1)-(x2,y2), and stores
+ * in Ex[]/Ey[] the list of points where the segment should be split:
+ * the start, every point at which it crosses a blocking triangle edge
+ * (snapped to an existing point or inserted into the edge), and the end.
+ */
+void make_clip_list(int x1, int y1, int x2, int y2)
+{
+    struct TrTriangle *p_tri;
+    struct TrTriangle *p_old;
+    struct TrPoint *p_pt;
+    struct TrPoint *p_ptC;
+    struct TrPoint *p_ptD;
+    int tri, cor;
+    s32 pt_x, pt_y;
+    s32 out_x, out_y;
+    s32 dx, dy;
+    s32 tri_old, cor_cur, lnk_cor;
+    int blocked;
+    sbyte cmp;
+
+    DIFFTEST_SHADOW(make_clip_list, make_clip_list_asm(x1, y1, x2, y2));
+    pt_x = x1;
+    pt_y = y1;
+    point_find(x1, y1, &tri, &cor);
+    dy = y2 - y1;
+    dx = x2 - x1;
+    while (1)
+    {
+        Ex[ixE] = pt_x;
+        Ey[ixE] = pt_y;
+        ixE++;
+        if (pt_x == x2 && pt_y == y2)
+            return;
+
+        cor_cur = pointed_at8(x2 << 8, y2 << 8, &tri, &cor);
+        cor = cor_cur;
+        p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri].point[cor_cur]];
+        pt_x = p_pt->x;
+        pt_y = p_pt->y;
+        if (path_compare_multiplications(dx, pt_y - y2, dy, pt_x - x2) == 0)
+            continue;
+
+        cor = MOD3[cor_cur+1];
+        p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri].point[cor]];
+        pt_x = p_pt->x;
+        pt_y = p_pt->y;
+        if (path_compare_multiplications(dx, pt_y - y2, dy, pt_x - x2) == 0)
+            continue;
+
+        while (1)
+        {
+            tri_old = tri;
+            p_old = &triangulation[0].Triangles[tri_old];
+            tri = p_old->tri[cor_cur];
+            p_tri = &triangulation[0].Triangles[tri];
+            if (p_tri->tri[0] == tri_old)
+                lnk_cor = 0;
+            else if (p_tri->tri[1] == tri_old)
+                lnk_cor = 1;
+            else if (p_tri->tri[2] == tri_old)
+                lnk_cor = 2;
+            else
+                lnk_cor = -1;
+            cor = MOD3[lnk_cor+2];
+            p_pt = &triangulation[0].Points[(ushort)p_tri->point[cor]];
+            pt_x = p_pt->x;
+            pt_y = p_pt->y;
+
+            blocked = 1;
+            if (p_old->solid == p_tri->solid &&
+              (p_old->enter & (1 << (cor_cur & 0x1F))) != 0 &&
+              (p_tri->enter & (1 << (lnk_cor & 0x1F))) != 0)
+                blocked = 0;
+            if (blocked)
+                break;
+
+            cmp = path_compare_multiplications(dx, pt_y - y2, dy, pt_x - x2);
+            if (cmp > 0)
+                cor_cur = MOD3[lnk_cor+2];
+            else if (cmp < 0)
+                cor_cur = MOD3[lnk_cor+1];
+            else
+                break;
+        }
+        if (!blocked)
+            continue;
+
+        // The segment crosses a blocking edge of the previous triangle
+        p_old = &triangulation[0].Triangles[tri_old];
+        p_ptC = &triangulation[0].Points[(ushort)p_old->point[cor_cur]];
+        p_ptD = &triangulation[0].Points[(ushort)p_old->point[MOD3[cor_cur+1]]];
+        line_intersect8(x1, y1, x2, y2, p_ptC->x, p_ptC->y, p_ptD->x, p_ptD->y,
+          (int)(intptr_t)&out_x, (int)(intptr_t)&out_y);
+        pt_x = (out_x + 0x80) >> 8;
+        pt_y = (out_y + 0x80) >> 8;
+
+        p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri_old].point[cor_cur]];
+        if (pt_x == p_pt->x && pt_y == p_pt->y)
+        {
+            tri = tri_old;
+            cor = cor_cur;
+            continue;
+        }
+        p_pt = &triangulation[0].Points[(ushort)triangulation[0].Triangles[tri].point[lnk_cor]];
+        if (pt_x == p_pt->x && pt_y == p_pt->y)
+        {
+            cor = lnk_cor;
+            continue;
+        }
+        func_81db4(tri_old, cor_cur, out_x, out_y,
+          (int)(intptr_t)&pt_x, (int)(intptr_t)&pt_y);
+        point_find(pt_x, pt_y, &tri, &cor);
+    }
 }
 
 static DIFFTEST_REF_FUNC void make_clipped_edges_asm(int en1, int en2)
