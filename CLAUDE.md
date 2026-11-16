@@ -15,10 +15,11 @@ Always use the scripts; they enter MSYS2 by themselves when needed.
   into `build/difftest/`. Add `--check` to also run `make check`; omit
   `--difftest` for the plain build in `build/release/`.
 - `tools/decomp-agent/difftest_run.sh <fn>` — verdict for one function:
-  random-input cases (if any) + 40 mission scenarios, ~8 min. A scenario
+  random-input cases (if any) + 44 mission scenarios, ~8 min. A scenario
   "1,2+bot" plays the mission with scripted player commands
   (`src/difftest_bot.c`), reaching code that needs a player; "0,1+tri"
-  first rebuilds the map triangulations (pathtrig asm).
+  first rebuilds the map triangulations (pathtrig asm); "+kbd" uses
+  keyboard control, "+crater" starts a crater every 64 turns.
 - `python tools/decomp-agent/show_fn.py <fn>` — asm body, wrapper conf
   line, current C, callers.
 - `tools/decomp-agent/offsets.sh <header.h> <Struct> [field...]` — sizeof
@@ -110,5 +111,8 @@ lack clobber lists and break under optimisation.
   looks like an original bug — add a `// TODO` comment instead.
 - If the asm calls an internal label that is not a C function (no `ac_`
   prefix), the function is blocked: report it rather than routing more.
+  Exception: a label that is only a thunk to a C function (its body just
+  saves registers and calls `ac_x`, e.g. `is_that_a_fluid_texture` ->
+  `floor_texture_is_fluid()`) is not a blocker; call the C function.
 - If the asm jumps to labels outside its own body (shared tails), report
   blocked unless the shared code is trivial to replicate.

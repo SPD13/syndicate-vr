@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "bigmap.h"
+#include "bmcrater.h"
 #include "delaunay.h"
 #include "enginsngobjs.h"
 #include "game.h"
@@ -37,6 +38,7 @@
 #include "pathtrig.h"
 #include "people.h"
 #include "player.h"
+#include "plyr_usrinp.h"
 #include "thing.h"
 #include "triangls.h"
 #include "trstate.h"
@@ -740,11 +742,61 @@ static void difftest_retri_turn(void)
     retri_rebuild(1);
 }
 
+/** With env SWARS_DIFFTEST_KBD set, the local player uses keyboard control
+ * from the first engine turn. Target finding for directly controlled agents
+ * (find_a_target) and the camera tracking (track_player) only run when the
+ * control mode is not mouse.
+ */
+static void difftest_kbd_turn(void)
+{
+    static TbBool kbd_tried = false;
+
+    if (kbd_tried)
+        return;
+    if (ingame.DisplayMode != DpM_ENGINEPLY)
+        return;
+    kbd_tried = true;
+    if (getenv("SWARS_DIFFTEST_KBD") == NULL)
+        return;
+    user_input_control_mode_set(local_player_no, 0, UInpCtr_Keyboard);
+}
+
+/** With env SWARS_DIFFTEST_CRATER set, a crater is started every 64 turns
+ * near a player agent. The port's explosions stamp craters at once
+ * (quick_crater()), so the animated craters (process_map_crater) never
+ * run otherwise.
+ */
+static void difftest_crater_turn(void)
+{
+    static int crater_on = -1;
+    PlayerInfo *p_locplayer;
+    struct Thing *p_agent;
+    int n;
+
+    if (crater_on < 0)
+        crater_on = (getenv("SWARS_DIFFTEST_CRATER") != NULL);
+    if (!crater_on)
+        return;
+    if (ingame.DisplayMode != DpM_ENGINEPLY)
+        return;
+    if ((gameturn % 64) != 32)
+        return;
+    n = gameturn / 64;
+    p_locplayer = &players[local_player_no];
+    p_agent = p_locplayer->MyAgent[n % playable_agents];
+    if (p_agent == NULL || p_agent->Type != TT_PERSON)
+        return;
+    create_crater(MAPCOORD_TO_TILE(PRCCOORD_TO_MAPCOORD(p_agent->X)) + (n % 5) - 2,
+      MAPCOORD_TO_TILE(PRCCOORD_TO_MAPCOORD(p_agent->Z)) + (n % 3) - 1, 1 + (n % 4));
+}
+
 void difftest_bot_turn(void)
 {
     struct Packet *p_pckt;
 
     difftest_retri_turn();
+    difftest_kbd_turn();
+    difftest_crater_turn();
     if (!bot_tried) {
         const char *s = getenv("SWARS_DIFFTEST_BOT");
         bot_tried = true;
