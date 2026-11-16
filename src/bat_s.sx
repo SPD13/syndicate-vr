@@ -728,7 +728,7 @@ func_dd81d:
 
 
 /*----------------------------------------------------------------*/
-BAT_unknsub_28:	/* 0x0DD878 */
+GLOBAL_FUNC(ASM_BAT_unknsub_28)	/* 0x0DD878 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -1619,7 +1619,7 @@ GLOBAL_FUNC(ASM_BAT_unknsub_22)	/* 0x0DDF38 */
 		add    %ebp,%eax
 		sar    %edx
 		sar    %eax
-		call   BAT_unknsub_28
+		call   ac_BAT_unknsub_28
 		jmp    jump_de064
 	jump_de3d0:
 		mov    EXPORT_SYMBOL(BAT_balls_head),%ebx

@@ -365,6 +365,17 @@ static void BAT_bricks_clear(void)
     BAT_bricks_set_rect(0, 0, BAT_BRICK_COLUMNS, BAT_BRICK_ROWS, 0x80);
 }
 
+/** Routed asm (internal label). Arguments are the raw registers the asm
+ * takes (eax, edx); it maybe spawns a bonus at that position. It saves
+ * ebx, ecx, esi, edi itself; eax and edx are clobbered.
+ */
+void BAT_unknsub_28(int a1, int a2)
+{
+    int ra = a1, rd = a2;
+    asm volatile ("call ASM_BAT_unknsub_28\n"
+        : "+a" (ra), "+d" (rd) : : "cc", "memory");
+}
+
 void BAT_unknsub_22(void)
 {
     asm volatile ("call ASM_BAT_unknsub_22\n"
