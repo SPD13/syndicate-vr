@@ -1058,12 +1058,38 @@ void collapse_building_station(struct Thing *p_building)
     }
 }
 
-void init_mgun_explode(struct Thing *p_thing)
+static DIFFTEST_REF_FUNC void init_mgun_explode_asm(struct Thing *p_thing)
 {
     asm volatile (
       "call ASM_init_mgun_explode\n"
         :  : "a" (p_thing));
     return;
+}
+
+void init_mgun_explode(struct Thing *p_thing)
+{
+    s32 cor_x, cor_z;
+
+    DIFFTEST_SHADOW(init_mgun_explode, init_mgun_explode_asm(p_thing));
+    if ((p_thing->Flag & TngF_Destroyed) != 0)
+        return;
+
+    p_thing->Flag |= TngF_Destroyed;
+    play_dist_sample(p_thing, 0x25, 0x7F, 0x40, 100, 0, 3);
+    p_thing->State = 13;
+
+    cor_x = p_thing->X;
+    if (cor_x < 0 || (cor_x >> 8) >= 0x8000)
+        return;
+    cor_z = p_thing->Z >> 8;
+    if (cor_z < 0 || cor_z >= 0x8000)
+        return;
+
+    bang_new4(p_thing->X, p_thing->Y, p_thing->Z, 15);
+    delete_node(p_thing);
+    remove_thing(p_thing->ThingOffset);
+    do_shockwave(p_thing->X >> 8, p_thing->Y >> 8, p_thing->Z >> 8,
+      ((ushort)p_thing->Radius) << 2, 5000, NULL);
 }
 
 void collapse_building(short x, short y, short z, struct Thing *p_building)
