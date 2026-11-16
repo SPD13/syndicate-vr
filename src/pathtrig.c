@@ -701,11 +701,45 @@ void make_clip_list(int x1, int y1, int x2, int y2)
         : : "a" (x1), "d" (y1), "b" (x2), "c" (y2));
 }
 
-void make_clipped_edges(int en1, int en2)
+static DIFFTEST_REF_FUNC void make_clipped_edges_asm(int en1, int en2)
 {
     asm volatile (
       "call ASM_make_clipped_edges\n"
         : : "a" (en1), "d" (en2));
+}
+
+void make_clipped_edges(int en1, int en2)
+{
+    s32 i;
+
+    DIFFTEST_SHADOW(make_clipped_edges, make_clipped_edges_asm(en1, en2));
+    for (i = 0; i < ixE - 1; i++)
+    {
+        struct TrTriangle *p_tri;
+        struct TrTriangle *p_tri2;
+        int tri, cor;
+        s32 tri2, cor2;
+
+        make_edge(Ex[i], Ey[i], Ex[i+1], Ey[i+1]);
+        edge_find(Ex[i], Ey[i], Ex[i+1], Ey[i+1], &tri, &cor);
+        p_tri = &triangulation[0].Triangles[tri];
+        tri2 = p_tri->tri[cor];
+        p_tri2 = &triangulation[0].Triangles[tri2];
+        if (p_tri2->tri[0] == tri)
+            cor2 = 0;
+        else if (p_tri2->tri[1] == tri)
+            cor2 = 1;
+        else if (p_tri2->tri[2] == tri)
+            cor2 = 2;
+        else
+            cor2 = -1;
+        // Shift counts are masked to 5 bits as by x86 8-bit shifts;
+        // with cor2 == -1 the second update leaves the flags as they were.
+        p_tri->enter = (ubyte)((p_tri->enter & (ubyte)~(ubyte)(1u << (cor & 0x1F)))
+          | (ubyte)((u32)en1 << (cor & 0x1F)));
+        p_tri2->enter = (ubyte)((p_tri2->enter & (ubyte)~(ubyte)(1u << (cor2 & 0x1F)))
+          | (ubyte)((u32)en2 << (cor2 & 0x1F)));
+    }
 }
 
 void thin_wall(int x1, int y1, int x2, int y2, ubyte en1, ubyte en2)
