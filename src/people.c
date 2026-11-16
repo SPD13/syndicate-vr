@@ -15839,12 +15839,54 @@ void check_unlock_target(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int get_target_priority(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int get_target_priority_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_get_target_priority\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+int get_target_priority(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_target = (struct Thing *)a1;
+    struct Thing *p_person = (struct Thing *)a2;
+    ubyte tgt_group, per_group;
+    u32 per_bit;
+
+    DIFFTEST_SHADOW_RET(get_target_priority, int,
+      get_target_priority_asm(a1, a2, a3, a4));
+
+    tgt_group = p_target->U.UPerson.EffectiveGroup & 0x1F;
+    per_group = p_person->U.UPerson.EffectiveGroup & 0x1F;
+    if (tgt_group == per_group)
+        DIFFTEST_RETURN(0);
+    per_bit = 1u << per_group;
+    if ((war_flags[tgt_group].Truce & per_bit) != 0)
+        DIFFTEST_RETURN(0);
+
+    if (p_person->PTarget == p_target)
+        DIFFTEST_RETURN(5);
+
+    if (((p_target->Flag & TngF_PlayerAgent) != 0) &&
+      (p_target->U.UPerson.Mood < -50))
+        DIFFTEST_RETURN(4);
+
+    if ((war_flags[tgt_group].KillOnSight & per_bit) != 0)
+        DIFFTEST_RETURN(4);
+
+    if (((war_flags[tgt_group].KillIfArmed & per_bit) != 0) &&
+      ((p_person->U.UPerson.WeaponsCarried & 0x1FBFFFFF) != 0))
+        DIFFTEST_RETURN(3);
+
+    if (((war_flags[tgt_group].KillIfWeaponOut & per_bit) != 0) &&
+      (p_person->U.UPerson.CurrentWeapon != 0))
+        DIFFTEST_RETURN(2);
+
+    if ((p_target->Flag & TngF_PlayerAgent) != 0)
+        DIFFTEST_RETURN(1);
+
+    DIFFTEST_RETURN(0);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
