@@ -628,10 +628,140 @@ void BAT_unknsub_21(void)
         o[BAT_SCREEN_LINE_WIDTH + k] = bdark;
 }
 
-void breakout_play_sub1(void)
+static DIFFTEST_REF_FUNC void breakout_play_sub1_asm(void)
 {
     asm volatile ("call ASM_breakout_play_sub1\n"
         :  :  : "eax" );
+}
+
+/** Moves a bonus from the active list to the free list.
+ */
+static void BAT_bonus_free(struct BATBonus *p_bonus)
+{
+    struct BATBonus *p_next;
+    struct BATBonus *p_free;
+
+    p_next = p_bonus->ListNext;
+    *p_bonus->ListPvNxPtr = p_next;
+    if (p_next != NULL)
+        p_next->ListPvNxPtr = p_bonus->ListPvNxPtr;
+    p_free = BAT_free_bonuses;
+    if (p_free != NULL)
+    {
+        p_bonus->ListNext = p_free;
+        p_free->ListPvNxPtr = &p_bonus->ListNext;
+        BAT_free_bonuses = p_bonus;
+        p_bonus->ListPvNxPtr = &BAT_free_bonuses;
+    }
+    else
+    {
+        // TODO the original does not set BAT_free_bonuses here, so the bonus is lost
+        p_bonus->ListPvNxPtr = &BAT_free_bonuses;
+        p_bonus->ListNext = p_free;
+    }
+}
+
+/** Duplicates every existing ball, with randomized speed.
+ */
+static void BAT_balls_duplicate(void)
+{
+    struct BATBall *p_ball;
+    struct BATBall *p_nball;
+
+    for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_ball->ListNext)
+    {
+        p_nball = new_ball();
+        if (p_nball == NULL)
+            break;
+        p_nball->X = p_ball->X;
+        p_nball->Y = p_ball->Y;
+        p_nball->UnkDw6 = (rand() & 0xFFFF) + p_ball->UnkDw6 - 0x7FFF;
+        p_nball->UnkDw7 = (rand() & 0xFFFF) + p_ball->UnkDw7 - 0x7FFF;
+    }
+}
+
+/** Moves the falling bonuses, applies the ones caught by the paddle,
+ * and updates the paddle half-width.
+ */
+void breakout_play_sub1(void)
+{
+    // Three asm-local dwords (data_1e2cac, data_1e2cb0, data_1e2cb4)
+    // directly follow the 4-byte BAT_ball_colour.
+    s32 *p_paddle_timer = (s32 *)((ubyte *)&BAT_ball_colour + 4);
+    s32 *p_paddle_width = (s32 *)((ubyte *)&BAT_ball_colour + 8);
+    s32 *p_paddle_target = (s32 *)((ubyte *)&BAT_ball_colour + 12);
+    struct BATBonus *p_bonus;
+    struct BATBonus *p_next;
+    struct BATBall *p_ball;
+    s32 w, d;
+
+    DIFFTEST_SHADOW(breakout_play_sub1, breakout_play_sub1_asm());
+    for (p_bonus = BAT_bonuses_head; p_bonus != NULL; p_bonus = p_next)
+    {
+        s32 y;
+
+        y = p_bonus->UnkDw2 + p_bonus->UnkDw3;
+        p_next = p_bonus->ListNext;
+        p_bonus->UnkDw2 = y;
+        if (y < 0x3B00)
+            continue;
+        if ((((BAT_paddle_x - BAT_data_1e2798) << 8) - 0x300 <= p_bonus->Y) &&
+          (((BAT_paddle_x + BAT_data_1e2798) << 8) + 0x300 >= p_bonus->Y))
+        {
+            switch ((u32)p_bonus->X)
+            {
+            case 0:
+                *p_paddle_target = 0xB00;
+                *p_paddle_timer = 0xA4;
+                break;
+            case 1:
+                *p_paddle_target = 0x400;
+                *p_paddle_timer = 0xA4;
+                break;
+            case 2:
+                for (p_ball = BAT_balls_head; p_ball != NULL; p_ball = p_ball->ListNext)
+                {
+                    p_ball->UnkDw6 >>= 2;
+                    p_ball->UnkDw7 >>= 2;
+                }
+                break;
+            case 3:
+                BAT_balls_duplicate();
+                break;
+            case 4:
+                BAT_balls_duplicate();
+                BAT_balls_duplicate();
+                break;
+            case 5:
+                BAT_num_lives++;
+                break;
+            case 6:
+                BAT_bricks_remain = 0;
+                break;
+            default:
+                break;
+            }
+            BAT_bonus_free(p_bonus);
+            continue;
+        }
+        if (p_bonus->UnkDw2 < 0x3E00)
+            continue;
+        BAT_bonus_free(p_bonus);
+    }
+
+    if (*p_paddle_timer == 0)
+        *p_paddle_target = 0x600;
+    else
+        *p_paddle_timer = *p_paddle_timer - 1;
+
+    w = *p_paddle_width + ((*p_paddle_target - *p_paddle_width) >> 3);
+    *p_paddle_width = w;
+    d = w - *p_paddle_target;
+    if (d < 0)
+        d = -d;
+    if (d < 8)
+        *p_paddle_width = *p_paddle_target;
+    BAT_data_1e2798 = *p_paddle_width >> 8;
 }
 
 static DIFFTEST_REF_FUNC void breakout_play_sub2_asm(void)
