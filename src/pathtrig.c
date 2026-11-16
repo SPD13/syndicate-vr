@@ -1629,12 +1629,139 @@ int func_5cff0(int a1, int a2, int a3, int a4)
 }
 
 
+static DIFFTEST_REF_FUNC short collide_coords_asm(short *p_X, short *p_Y, short *p_Z)
+{
+    int ra = (int)p_X, rd = (int)p_Y, rb = (int)p_Z;
+    asm volatile ("call ASM_collide_coords\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
+    return (short)ra;
+}
+
+/** Walks a collision vector chain starting at *p_ax, snapping the point
+ * with func_5cff0() to vector ends. Returns true on the first snap.
+ * Leaves in *p_ax the low word of eax the asm loop ends with.
+ */
+static TbBool collide_coords_col_list(short *p_X, short *p_Z, ushort *p_ax)
+{
+    ushort cvlist;
+    ushort n;
+    int ret;
+
+    cvlist = *p_ax;
+    if (cvlist == 0)
+        return false;
+    for (n = 0; n < 200; n++)
+    {
+        struct ColVect *p_colvect;
+
+        p_colvect = &game_col_vects[game_col_vects_list[cvlist].Vect];
+        ret = func_5cff0((int)p_X, (int)p_Z, (int)p_colvect, (int)p_Z);
+        if ((short)ret != 0) {
+            *p_ax = (ushort)ret;
+            return true;
+        }
+        cvlist = game_col_vects_list[cvlist].NextColList & 0x7FFF;
+        *p_ax = cvlist;
+        if (cvlist == 0)
+            break;
+    }
+    return false;
+}
+
+/** Gets the map element at index idx with the asm bounds check.
+ * Returns NULL if out of bounds, and then sets *p_ax to the low word the
+ * asm leaves in eax: the map base (or end) if base_in_ax, else the
+ * element address.
+ */
+static struct MyMapElement *collide_coords_mapel(s32 idx, TbBool base_in_ax, ushort *p_ax)
+{
+    u32 base, addr;
+
+    base = (u32)game_my_big_map;
+    addr = base + (u32)idx * sizeof(struct MyMapElement);
+    if (addr <= base) {
+        *p_ax = base_in_ax ? (ushort)base : (ushort)addr;
+        return NULL;
+    }
+    base += 0x48000;
+    if (addr >= base) {
+        *p_ax = base_in_ax ? (ushort)base : (ushort)addr;
+        return NULL;
+    }
+    return (struct MyMapElement *)addr;
+}
+
+/** Snaps the point (*p_X,*p_Z) to near collision vector ends in its map
+ * tile and in the neighbouring tiles it lies close to. p_Y is not used.
+ * The return value is the low word of eax at asm exit; only non-zero
+ * after a snap is meaningful (callers ignore it).
+ */
 short collide_coords(short *p_X, short *p_Y, short *p_Z)
 {
-    short ret;
-    asm volatile ("call ASM_collide_coords\n"
-        : "=r" (ret) : "a" (p_X), "d" (p_Y), "b" (p_Z));
-    return ret;
+    struct MyMapElement *p_mapel;
+    s32 dx, dz;
+    s32 tile_x, tile_z;
+    ushort ax;
+
+    DIFFTEST_SHADOW_RET(collide_coords, short, collide_coords_asm(p_X, p_Y, p_Z));
+    dx = 0;
+    dz = 0;
+    ax = *p_X & 0xFF;
+    if ((short)ax < 0x40)
+        dx = -1;
+    else if ((short)ax > 0xC0)
+        dx = 1;
+    ax = *p_Z & 0xFF;
+    if ((short)ax < 0x40)
+        dz = -1;
+    else if ((short)ax > 0xC0)
+        dz = 1;
+
+    tile_x = *p_X >> 8;
+    if (tile_x >= 0 && tile_x < 128)
+    {
+        tile_z = *p_Z >> 8;
+        ax = (ushort)tile_z;
+        if (tile_z >= 0 && tile_z < 128)
+        {
+            p_mapel = &game_my_big_map[(tile_z << 7) + tile_x];
+            ax = p_mapel->ColHead;
+            if (collide_coords_col_list(p_X, p_Z, &ax))
+                DIFFTEST_RETURN((short)ax);
+        }
+    }
+
+    if (dx != 0)
+    {
+        p_mapel = collide_coords_mapel(dx + (*p_X >> 8) + ((*p_Z >> 8) << 7), true, &ax);
+        if (p_mapel != NULL)
+        {
+            ax = p_mapel->ColHead;
+            if (collide_coords_col_list(p_X, p_Z, &ax))
+                DIFFTEST_RETURN((short)ax);
+        }
+    }
+
+    if (dz != 0)
+    {
+        p_mapel = collide_coords_mapel((((*p_Z >> 8) + dz) << 7) + (*p_X >> 8), true, &ax);
+        if (p_mapel != NULL)
+        {
+            ax = p_mapel->ColHead;
+            if (collide_coords_col_list(p_X, p_Z, &ax))
+                DIFFTEST_RETURN((short)ax);
+        }
+    }
+
+    if (dz == 0 || dx == 0)
+        DIFFTEST_RETURN((short)ax);
+    p_mapel = collide_coords_mapel((((*p_Z >> 8) + dz) << 7) + (*p_X >> 8) + dx, false, &ax);
+    if (p_mapel != NULL)
+    {
+        ax = p_mapel->ColHead;
+        collide_coords_col_list(p_X, p_Z, &ax);
+    }
+    DIFFTEST_RETURN((short)ax);
 }
 
 void thin_wall_at_line(int X1, int Y1, int Z1, int X2, int Y2, int Z2, short face, ushort colt, ubyte pass)
