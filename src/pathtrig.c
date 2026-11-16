@@ -392,11 +392,65 @@ int triangle_findSE8(int x, int y)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void fill_concave(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void fill_concave_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_fill_concave\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Find the tip of triangle `tri` whose neighbour is `tri_nb`, or -1.
+ */
+static s32 fill_concave_tip_to(s32 tri, s32 tri_nb)
+{
+    struct TrTriangle *p_tri;
+
+    p_tri = &triangulation[0].Triangles[tri];
+    if (p_tri->tri[0] == tri_nb)
+        return 0;
+    if (p_tri->tri[1] == tri_nb)
+        return 1;
+    if (p_tri->tri[2] == tri_nb)
+        return 2;
+    return -1;
+}
+
+/** Rotates edges around the far point of edge `cor` of triangle `tri`,
+ * walking the fan from the neighbour across that edge until triangle
+ * `tri_stop` is reached, repeating while any rotation succeeded.
+ * The asm returns 0/1 in eax, but the wrapper is void.
+ */
+void fill_concave(int a1, int a2, int a3, int a4)
+{
+    s32 tri_base = a1;
+    s32 cor_base = a2;
+    s32 tri_stop = a3;
+    s32 tri, cor, tri_nxt;
+    s32 steps, rotated;
+
+    DIFFTEST_SHADOW(fill_concave, fill_concave_asm(a1, a2, a3, a4));
+    do
+    {
+        tri = triangulation[0].Triangles[tri_base].tri[cor_base];
+        if (tri == -1)
+            return;
+        cor = (fill_concave_tip_to(tri, tri_base) + 1) % 3;
+        steps = 0;
+        rotated = 0;
+        while (triangulation[0].Triangles[tri].tri[cor] != tri_stop)
+        {
+            if (edge_rotateAC(tri, cor)) {
+                rotated++;
+                continue;
+            }
+            tri_nxt = triangulation[0].Triangles[tri].tri[cor];
+            if (tri_nxt == -1 || tri_nxt == tri_base)
+                return;
+            cor = (fill_concave_tip_to(tri_nxt, tri) + 1) % 3;
+            steps++;
+            tri = tri_nxt;
+        }
+    } while (steps != 0 && rotated != 0);
 }
 
 
