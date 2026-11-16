@@ -11606,15 +11606,51 @@ int limit_mood(struct Thing *p_thing, short mood)
 
     DIFFTEST_RETURN((int)ret);
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void yank_from_vehicle(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void yank_from_vehicle_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_yank_from_vehicle\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments are the raw registers the asm
+ * takes (eax, edx, ebx, ecx); only eax (the person) is used.
+ */
+void yank_from_vehicle(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_vehicle;
+    short passngr, prev_passngr;
+    short coord;
+
+    DIFFTEST_SHADOW(yank_from_vehicle, yank_from_vehicle_asm(a1, a2, a3, a4));
+    p_vehicle = &things[p_person->U.UPerson.Vehicle];
+    if (p_vehicle->U.UVehicle.PassengerHead == p_person->ThingOffset)
+    {
+        p_vehicle->U.UVehicle.PassengerHead = p_person->U.UPerson.LinkPassenger;
+    }
+    else
+    {
+        passngr = p_vehicle->U.UVehicle.PassengerHead;
+        prev_passngr = 0;
+        while (passngr != 0)
+        {
+            if ((s32)passngr == (s32)(ushort)p_person->ThingOffset)
+            {
+                things[prev_passngr].U.UPerson.LinkPassenger =
+                  p_person->U.UPerson.LinkPassenger;
+                break;
+            }
+            prev_passngr = passngr;
+            passngr = things[passngr].U.UPerson.LinkPassenger;
+        }
+    }
+    p_person->Flag &= ~TngF_InVehicle;
+    p_person->U.UPerson.Vehicle = 0;
+    // TODO the original passes X as both coordinates; Z was likely intended
+    coord = (short)(p_person->X >> 8);
+    p_person->Y = alt_at_point(coord, coord);
+    add_node_thing((ushort)p_person->ThingOffset);
 }
 
 
