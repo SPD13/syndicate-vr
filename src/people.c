@@ -10851,10 +10851,41 @@ void call_protect(struct Thing *p_thing, ushort plyr)
         make_peep_protect_peep(&things[best_thing], p_thing);
 }
 
-void call_protect_specific(struct Thing *p_person_client, struct Thing *p_protector)
+static DIFFTEST_REF_FUNC void call_protect_specific_asm(struct Thing *p_person_client, struct Thing *p_protector)
 {
     asm volatile ("call ASM_call_protect_specific\n"
         : : "a" (p_person_client), "d" (p_protector));
+}
+
+void call_protect_specific(struct Thing *p_person_client, struct Thing *p_protector)
+{
+    ThingIdx clnttng;
+    ubyte dist;
+
+    DIFFTEST_SHADOW(call_protect_specific, call_protect_specific_asm(p_person_client, p_protector));
+    if (((p_person_client->Flag & TngF_InVehicle) != 0)
+      && ((p_protector->Flag & TngF_InVehicle) != 0)
+      && (p_protector->U.UPerson.Vehicle != p_person_client->U.UPerson.Vehicle))
+        return;
+    if ((p_protector->Flag & TngF_Destroyed) != 0)
+        return;
+    if ((p_protector->State == PerSt_PERSON_BURNING) ||
+      (p_protector->State == PerSt_DIEING))
+        return;
+
+    p_protector->State = PerSt_PROTECT_PERSON;
+    p_protector->U.UPerson.ComTimer = -1;
+    clnttng = p_person_client->ThingOffset;
+    p_protector->GotoThingIndex = clnttng;
+    p_protector->Owner = clnttng;
+    dist = follow_dist[p_person_client->U.UPerson.ComCur & 3][p_protector->U.UPerson.ComCur & 3];
+    p_protector->U.UPerson.Timer2 = 50;
+    p_protector->U.UPerson.StartTimer2 = 50;
+    p_protector->Timer1 = 48;
+    p_protector->StartTimer1 = 48;
+    p_protector->U.UPerson.ComRange = dist;
+    p_protector->SubState = 0;
+    remove_path(p_protector);
 }
 
 static DIFFTEST_REF_FUNC ushort count_protect_asm(struct Thing *p_thing, ushort plyr)
