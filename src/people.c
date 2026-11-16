@@ -15784,15 +15784,56 @@ void person_find_next_state(struct Thing *p_person)
 
     person_init_command(p_person, PCmd_USE_WEAPON);
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void check_unlock_target(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void check_unlock_target_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_check_unlock_target\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Drops the target of a person if it is no longer in front of the
+ * person, out of weapon range, or flagged.
+ *
+ * Routed asm (internal label): a1 is the person (eax), others unused.
+ */
+void check_unlock_target(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_target;
+    s32 dx, dz, range;
+    short angle;
+
+    DIFFTEST_SHADOW(check_unlock_target, check_unlock_target_asm(a1, a2, a3, a4));
+
+    p_target = p_person->PTarget;
+    if (p_target == NULL)
+        return;
+    if ((p_target->Flag & TngF_Destroyed) != 0)
+    {
+        p_person->Flag2 &= ~TgF2_Unkn00200000;
+        return;
+    }
+    dx = (p_person->X - p_target->X) >> 8;
+    dz = (p_person->Z - p_target->Z) >> 8;
+    angle = (((s32)p_person->U.UPerson.Angle << 8) - (s32)arctan(dx, -dz) + 0x800) & 0x7ff;
+    if ((angle > 0x737) || (angle < 0xc8))
+    {
+        p_person->PTarget = NULL;
+        p_person->Flag2 &= ~TgF2_Unkn00200000;
+        return;
+    }
+    range = get_weapon_range(p_person);
+    if (dx * dx + dz * dz > range * range)
+    {
+        p_person->PTarget = NULL;
+        p_person->Flag2 &= ~TgF2_Unkn00200000;
+        return;
+    }
+    if ((p_person->PTarget->Flag2 & TgF2_Unkn0002) != 0)
+    {
+        p_person->PTarget = NULL;
+        p_person->Flag2 &= ~TgF2_Unkn00200000;
+    }
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
