@@ -28,14 +28,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "bigmap.h"
+#include "delaunay.h"
 #include "enginsngobjs.h"
 #include "game.h"
 #include "game_options.h"
 #include "game_speed.h"
 #include "packet.h"
+#include "pathtrig.h"
 #include "people.h"
 #include "player.h"
 #include "thing.h"
+#include "triangls.h"
+#include "trstate.h"
 #include "weapon.h"
 /******************************************************************************/
 /* Not in a header; the agent cycling key uses it (plyr_usrinp.c) */
@@ -673,10 +677,61 @@ static void bot_decide(struct Packet *p_pckt)
     bot_build(p_agent, p_pckt);
 }
 
+// Triangulation builder steps of pathtrig.c, not declared in a header
+void generate_thin_walls(void);
+void generate_thin_paths_entrance(void);
+void generate_thin_paths(void);
+
+/** Rebuild the selected triangulation as generate_map_triangulation() does,
+ * minus the collision steps: those add to the collision columns and vects
+ * loaded from the level file and overflow them.
+ */
+static void retri_rebuild(int tgnNo)
+{
+    triangulation_select(tgnNo);
+    triangulation_clear();
+    generate_ground_map();
+    generate_thin_walls();
+    generate_thin_paths_entrance();
+    if (tgnNo == 1)
+        triangulation_clear_enter_into_solid_gnd();
+    else
+        triangulation_clear_enter_into_solid_air();
+    delaunay_step();
+    generate_thin_paths();
+}
+
+/** With env SWARS_DIFFTEST_RETRI set, rebuild the map triangulations once
+ * at the start of the mission, as the original game did on map load. The
+ * port loads them from the level files, so the triangulation builder
+ * (pathtrig asm) never runs otherwise.
+ */
+static void difftest_retri_turn(void)
+{
+    static TbBool retri_tried = false;
+
+    if (retri_tried)
+        return;
+    if (ingame.DisplayMode != DpM_ENGINEPLY)
+        return;
+    retri_tried = true;
+    if (getenv("SWARS_DIFFTEST_RETRI") == NULL)
+        return;
+    // New storage as prepare_map_dat_to_play() does: the arrays loaded from
+    // the level file are too small to rebuild in. With no slot selected,
+    // the working copy is not written back over the new arrays.
+    selected_triangulation_no = -1;
+    triangulation_allocate(1, 9000);
+    triangulation_allocate(2, 9000);
+    retri_rebuild(2);
+    retri_rebuild(1);
+}
+
 void difftest_bot_turn(void)
 {
     struct Packet *p_pckt;
 
+    difftest_retri_turn();
     if (!bot_tried) {
         const char *s = getenv("SWARS_DIFFTEST_BOT");
         bot_tried = true;
