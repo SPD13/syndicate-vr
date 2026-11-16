@@ -15893,12 +15893,89 @@ int get_target_priority(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int find_a_target(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int find_a_target_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_find_a_target\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+extern s32 dword_1AA67C;
+
+/** Checks one candidate of find_a_target(), updating the best one found.
+ */
+static void find_a_target_check(struct Thing *p_person, ushort thing,
+  s32 max_dist, s32 *p_best_dist, ushort *p_best, ubyte *p_found_hunter)
+{
+    struct Thing *p_thing;
+    s32 dist;
+
+    p_thing = &things[thing];
+    if ((p_thing->Flag & TngF_Destroyed) != 0)
+        return;
+    if ((short)get_target_priority((int)p_person, (int)p_thing, 0, 0) == 0)
+        return;
+    dist = can_i_see_thing(p_person, p_thing, max_dist, 0);
+    if (dist == 0)
+        return;
+    if (dist >= *p_best_dist)
+        return;
+    if (*p_found_hunter)
+    {
+        if (p_thing->PTarget != p_person)
+            return;
+        *p_best_dist = dist;
+        *p_best = thing;
+    }
+    else
+    {
+        *p_best_dist = dist;
+        *p_best = thing;
+        if (p_thing->PTarget == p_person)
+            *p_found_hunter = 1;
+    }
+}
+
+/** Finds the closest visible enemy person or vehicle for a person,
+ * preferring the ones targeting that person. Returns its index or 0,
+ * and leaves the distance in dword_1AA67C.
+ */
+int find_a_target(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    u32 range;
+    s32 max_dist, best_dist;
+    ushort thing, best;
+    ubyte found_hunter;
+
+    // Only the low 16 bits of the asm return value are defined
+    DIFFTEST_SHADOW_RET(find_a_target, ushort,
+      (ushort)find_a_target_asm(a1, a2, a3, a4));
+
+    found_hunter = 0;
+    best_dist = 0x7FFFFFFF;
+    best = 0;
+    range = ((u32)weapon_defs[p_person->U.UPerson.CurrentWeapon].RangeBlocks << 8) + 0x100;
+    max_dist = (s32)(range * range);
+
+    for (thing = same_type_head[1]; thing != 0; thing = things[thing].LinkSame)
+    {
+        if (&things[thing] == p_person)
+            continue;
+        find_a_target_check(p_person, thing, max_dist, &best_dist, &best, &found_hunter);
+    }
+    for (thing = same_type_head[6]; thing != 0; thing = things[thing].LinkSame)
+    {
+        find_a_target_check(p_person, thing, max_dist, &best_dist, &best, &found_hunter);
+    }
+    for (thing = same_type_head[7]; thing != 0; thing = things[thing].LinkSame)
+    {
+        find_a_target_check(p_person, thing, max_dist, &best_dist, &best, &found_hunter);
+    }
+
+    dword_1AA67C = best_dist;
+    DIFFTEST_RETURN(best);
 }
 
 
