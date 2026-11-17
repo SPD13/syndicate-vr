@@ -8,9 +8,20 @@ plan is in `docs/decompilation-agent-plan.md`.
 
 - Branch `decomp/auto` (local only, **never push**), on top of
   `vr/main`.
-- `queue.py` stats (after the 45-scenario coverage, `33a7d18b`): 694 asm
-  functions, 360 shadowed (remade in C and difftested), 62 routed labels
-  still live, 0 queued.
+- **State at the handoff of 2026-11-16 evening** (`decomp/auto` at
+  `e1a2e8ac`): 694 asm functions, 361 shadowed (remade in C and
+  difftested), 27 queued, all reached only through the new hook
+  scenarios (see "Hook scenarios" below). `coverage.json` is current
+  (51 scenarios, built at `d9f32963`); no need to rebuild it before
+  resuming.
+- The loop on the 28 hooked functions was stopped by Claude Code for low
+  memory. `person_clear_route_and_teleport_to_vehicle` merged
+  (`e1a2e8ac`); `process_vehicle_goto_point_land` was interrupted while
+  its agent ran. Its worktree `worktrees/process_vehicle_goto_point_land`
+  and branch `decomp/try/process_vehicle_goto_point_land` are left over;
+  remove them before restarting (see "How to resume").
+- Before that: after the 45-scenario coverage (`33a7d18b`) there were 360
+  shadowed, 62 routed labels still live, 0 queued.
 - 2026-11-16: suffixes `+kbd`, `+crater`, `+wreck` and a bezier-road bot
   action (see below) reached 7 more; all merged on the first pass
   (about $3.7): `check_unlock_target`, `track_player`,
@@ -142,11 +153,82 @@ Lessons learned, do not undo:
 - Debugging the 32-bit exe works with the mingw64 gdb,
   `C:/msys64/mingw64/bin/gdb.exe` (no mingw32 gdb package exists).
 
+## Hook scenarios (2026-11-16)
+
+The 28 functions no mission reached are now reached by hooks, one file
+per group, all called every turn from `difftest_bot_turn()`:
+
+- `380c622e`: the scripts pass the whole scenario suffix (e.g.
+  `+bot+t_train`) in `SWARS_DIFFTEST_SUFFIX`; `difftest_suffix_has(name)`
+  tests for a whole token. A hook acts only when its token is present,
+  so scenarios without it are unchanged.
+- `src/difftest_hook_transport.c` (tokens `t_*`, `28e2b108`):
+  - `t_train`: CATCH_TRAIN commands (as level loading builds them) given
+    to wandering civilians near stations every 24 turns, 40 in all; the
+    game's command code runs them (`person_catch_train`,
+    `person_clear_route_and_teleport_to_vehicle`, `set_xz_for_unkn3`).
+    `person_catch_train` compares OnFace with a positive face index, so
+    people on quad faces re-path until a train comes (original
+    behaviour; explains its 40000 calls).
+  - `t_ship`: ships without player agents get `start_goto_vehicle()` to
+    ship traffic nodes every 60 turns (`send_ship_to`).
+  - `t_fly`: parked flying vehicles get state 0x27 (nothing in the game
+    sets it) or a goto then flying wander
+    (`process_vehicle_goto_point_fly/land`, `scan_max_height_ahead`,
+    `continue_flying_wander`).
+  - `t_traffic`: the credits flyby camera `traffic_unkn_func_01` every
+    turn with the game camera saved and restored; every 40 turns a
+    traffic node cloned as a SimpleThing and removed again
+    (`new_thing_traffic_clone`).
+- `src/difftest_hook_people.c` (tokens `p_*`, `71c29ca7`):
+  - `p_people`: tasered flag and timer set on idle civilians every 64
+    turns (`process_tasered_person`); `person_init_support_person` on a
+    group member (`process_support_person`); an agent sent to a face via
+    `build_navigate_path_to_face`; direct calls of `group_not_seen` and
+    `find_nearest_player` on real groups/persons.
+  - `p_net`: the network-game cleanups `process_things_bang`,
+    `process_things_mines_explode`, `process_things_unkn_sub2` called
+    directly with cycling arguments.
+  - `p_mech`: the mech is wrecked with `thing_hit_by_bullet`, then placed
+    again 48 turns later with the vehicle steps of
+    `load_level_pc_handle` (`init_mech_explode`, `mech_unkn_func_09`),
+    up to 7 times (local matrices run out). The game reuses the prim
+    tables after level load, so the hook reads `qdata/primveh.obj` again
+    into private buffers and swaps them in only while placing.
+    `0,109+bot+p_mech` crashed on an early build; use `0,101`.
+- `src/difftest_hook_misc.c` (tokens `m_*`, `15dc9649`):
+  - `m_fissure`: crater "walkers" of the unused crater helpers: every 64
+    turns `unused_func_025` starts one, every turn `unused_func_026`
+    advances each, which sometimes splits through `unused_func_192`.
+  - `m_bat`: during Breakout, `BAT_unknsub_28` (bonus spawn) at the
+    centre of a standing brick every turn.
+  - `m_cryo`: `add_agent` then `remove_agent` every 16 turns, with
+    roster, list box, weapons and mission-agent bits saved and restored.
+  - `m_typing`: a fixed key sequence fed into the key buffer for
+    `user_read_value`.
+- `ca56031c`: the static helper `stasis_pod_set_dist_volume()` in
+  `src/thing.c` renamed `set_dist_volume`, so coverage counts the calls
+  of `ASM_set_dist_volume`.
+- Default scenarios (`d9f32963`), 51 now; the six new ones:
+  `0,23+t_train+t_traffic 3,61+t_ship+t_fly
+  1,2+m_fissure+m_cryo+m_typing 0,1+bot+m_bat 1,2+bot+p_people+p_net
+  0,101+bot+p_mech`. Each was run twice by statetrace with identical
+  traces. Old scenarios were not re-traced against a build without the
+  hooks (only `1,2` and `0,1+bot` were; identical).
+- Weak spots: tasered, network cleanups, `group_not_seen` and the crater
+  helpers are reached only by direct calls or state the game never sets;
+  thin counts: train passenger functions 6-9 calls, mech explosion 7,
+  `new_thing_traffic_clone` 30 (hook-built SimpleThing).
+- Wrapper issues to fix when remade: `unused_func_026` and
+  `user_read_value` return via `"=r"` instead of `"=a"`;
+  `unused_func_025/026` declare no clobbers.
+
 ## Remaining queue
 
-Empty. 28 routed functions remain low-coverage (`queue.py --print 100`,
-tag `low-coverage`), 20 are sound/network, 12 upstream-recent. Checked
-and found unreachable in scenarios: the flying vehicle goto
+27 queued (the hooked functions minus the merged
+`person_clear_route_and_teleport_to_vehicle`); then only the 20
+sound/network and 12 upstream-recent remain. History before the hooks:
+checked and found unreachable in normal scenarios: the flying vehicle goto
 (`process_vehicle_goto_point_fly/land`; nothing sets vehicle state 0x27),
 `add_agent`/`remove_agent` (campaign bookkeeping after the mission),
 `user_read_value` (front end), `process_tasered_person` (flag never set).
@@ -156,9 +238,13 @@ BAT scenarios. Also unreachable or nearly so: trains (`person_catch_train`,
 persons (no mission uses them), `group_not_seen` (not reached even in
 5000 turns), ships (`send_ship_to`, 2 calls) and mech explode
 (`init_mech_explode`, `mech_unkn_func_09`, 1-2 calls, only 3 mech
-missions). Pushing these to 5 calls would need artificial hooks.
+missions). Hence the hooks.
 
 ## How to resume
+
+After the restart of 2026-11-16 the leftover is
+`process_vehicle_goto_point_land`; first check that no stray game runs
+are left (`tasklist | grep -i syndwarsfx`).
 
 From a shell in the repo (Git Bash):
 
@@ -216,8 +302,12 @@ Notes:
   scenarios identical), then append `{"fn": X, "status": "reset"}` to
   the ledger so `queue.py` forgets earlier failures. Base traces made
   before `b69356d9` are invalid; regenerate them.
-- Low-coverage functions need new scenarios, bot actions or fuzz cases
+- Low-coverage functions need new scenarios, bot actions, hooks
+  (`src/difftest_hook_*.c`, token in the suffix) or fuzz cases
   (`queue.py --print 100` lists them with the `low-coverage` tag).
+- If a hooked function fails its difftest because of the hook (not the
+  remake), fix the hook, re-run its scenario twice with statetrace, then
+  ledger-reset the function.
 - Statetrace is occasionally non-deterministic (one run of plain 0,1
   diverged); rerun a differing trace before trusting it. Cause unknown.
 - `2,75+bot` hangs and `0,84+bot` asserts in `process_protect_person`;
