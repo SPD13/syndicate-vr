@@ -56,6 +56,9 @@ syndwarsfx_SOURCES = \
 	difftest.h \
 	difftest_bot.c \
 	difftest_fuzz.c \
+	difftest_hook_misc.c \
+	difftest_hook_people.c \
+	difftest_hook_transport.c \
 	dos.c \
 	dos.h \
 	drawtext_wrp.c \

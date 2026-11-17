@@ -79,18 +79,21 @@ for SC in $SCENARIOS; do
     # "<campaign>,<mission>+bot": the mission with scripted player input;
     # "+tri": the map triangulations are rebuilt at the start (pathtrig asm);
     # "+kbd": keyboard control mode; "+crater": a crater every 64 turns;
-    # "+wreck": a vehicle or mounted gun is hit hard every 32 turns
+    # "+wreck": a vehicle or mounted gun is hit hard every 32 turns;
+    # the whole suffix goes to SWARS_DIFFTEST_SUFFIX for the hooks in
+    # src/difftest_hook_*.c (difftest_suffix_has())
     BOT=""; case "$SC" in *+bot*) BOT=1 ;; esac
     TRI=""; case "$SC" in *+tri*) TRI=1 ;; esac
     KBD=""; case "$SC" in *+kbd*) KBD=1 ;; esac
     CRA=""; case "$SC" in *+crater*) CRA=1 ;; esac
     WRK=""; case "$SC" in *+wreck*) WRK=1 ;; esac
+    SUF=""; case "$SC" in *+*) SUF="+${SC#*+}" ;; esac
     [ "$VERDICT" = PASS ] || break
     LOG="$OUT/scenario_${SC/,/_}.log"
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
     SWARS_DIFFTEST_FN="$FN" SWARS_SEED="${SWARS_SEED:-12345}" SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
     SWARS_DIFFTEST_MIN=0 SWARS_DIFFTEST_LOG="$LOG" \
-        timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} "$EXE" -q -W -m "${SC%%+*}" > "$OUT/scenario_${SC/,/_}.out" 2>&1
+        timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} ${SUF:+SWARS_DIFFTEST_SUFFIX=$SUF} "$EXE" -q -W -m "${SC%%+*}" > "$OUT/scenario_${SC/,/_}.out" 2>&1
     RC=$?
     cp -f error.log "$OUT/scenario_${SC/,/_}.error.log" 2>/dev/null
     case $RC in

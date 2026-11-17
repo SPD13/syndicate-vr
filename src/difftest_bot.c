@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "bigmap.h"
 #include "bmcrater.h"
 #include "building.h"
@@ -912,6 +913,29 @@ static void difftest_wreck_turn(void)
       0, 0, 0, p_agent, DMG_RAP);
 }
 
+TbBool difftest_suffix_has(const char *name)
+{
+    static const char *suffix = NULL;
+    static TbBool tried = false;
+    const char *s;
+    size_t len;
+
+    if (!tried) {
+        suffix = getenv("SWARS_DIFFTEST_SUFFIX");
+        tried = true;
+    }
+    if (suffix == NULL)
+        return false;
+    len = strlen(name);
+    for (s = strchr(suffix, '+'); s != NULL; s = strchr(s + 1, '+'))
+    {
+        if ((strncmp(s + 1, name, len) == 0) &&
+          ((s[1 + len] == '+') || (s[1 + len] == '\0')))
+            return true;
+    }
+    return false;
+}
+
 void difftest_bot_turn(void)
 {
     struct Packet *p_pckt;
@@ -920,6 +944,9 @@ void difftest_bot_turn(void)
     difftest_kbd_turn();
     difftest_crater_turn();
     difftest_wreck_turn();
+    difftest_hook_misc_turn();
+    difftest_hook_people_turn();
+    difftest_hook_transport_turn();
     if (!bot_tried) {
         const char *s = getenv("SWARS_DIFFTEST_BOT");
         bot_tried = true;
@@ -954,6 +981,11 @@ void difftest_bot_turn(void)
 
 void difftest_bot_turn(void)
 {
+}
+
+TbBool difftest_suffix_has(const char *name)
+{
+    return false;
 }
 
 #endif

@@ -136,6 +136,18 @@ TbBool difftest_skip_turn_wait(void);
  */
 void difftest_bot_turn(void);
 
+/** Returns true if the scenario suffix ($SWARS_DIFFTEST_SUFFIX, e.g.
+ * "+bot+train") contains the token "+name" as a whole token.
+ */
+TbBool difftest_suffix_has(const char *name);
+
+/** Hook groups called every turn from difftest_bot_turn(); each acts only
+ * in scenarios whose suffix names one of its hooks.
+ */
+void difftest_hook_misc_turn(void);
+void difftest_hook_people_turn(void);
+void difftest_hook_transport_turn(void);
+
 /** Runs random-input tests of pure functions, then exits.
  */
 void difftest_run_fuzz(void);
