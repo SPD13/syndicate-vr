@@ -3944,11 +3944,32 @@ void move_vehicle(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void person_clear_route_and_teleport_to_vehicle(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void person_clear_route_and_teleport_to_vehicle_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_person_clear_route_and_teleport_to_vehicle\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
+}
+
+void person_clear_route_and_teleport_to_vehicle(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    struct Thing *p_person = (struct Thing *)a2;
+    short prev_head;
+
+    DIFFTEST_SHADOW(person_clear_route_and_teleport_to_vehicle,
+      person_clear_route_and_teleport_to_vehicle_asm(a1, a2, a3, a4));
+    prev_head = p_vehicle->U.UVehicle.PassengerHead;
+    p_vehicle->U.UVehicle.PassengerHead = p_person->ThingOffset;
+    p_person->U.UPerson.OnFace = 0;
+    p_person->U.UPerson.LinkPassenger = prev_head;
+    p_person->U.UPerson.Flag3 &= ~PrsF3_Unkn20;
+    p_person->Flag |= TngF_Unkn02000000 | TngF_InVehicle;
+    delete_node(p_person);
+    p_person->U.UPerson.Vehicle = p_vehicle->ThingOffset;
+    p_person->X = p_vehicle->X;
+    p_person->Y = p_vehicle->Y >> 3;
+    p_person->Z = p_vehicle->Z;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
