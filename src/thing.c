@@ -2380,7 +2380,7 @@ static DIFFTEST_REF_FUNC void process_canister_asm(struct SimpleThing *p_sthing)
         : : "a" (p_sthing));
 }
 
-static void stasis_pod_set_dist_volume(struct SimpleThing *p_sthing,
+void set_dist_volume(struct SimpleThing *p_sthing,
   int smptbl_id, ushort vol);
 
 void process_canister(struct SimpleThing *p_sthing)
@@ -2441,12 +2441,12 @@ void process_canister(struct SimpleThing *p_sthing)
     smptbl_id = (p_sthing->SubType == 4) ? 0x20 : 0x1f;
     if (p_sthing->Timer1 < 10)
     {
-        stasis_pod_set_dist_volume(p_sthing, smptbl_id,
+        set_dist_volume(p_sthing, smptbl_id,
           (ushort)(p_sthing->Timer1 * 10));
     }
     if (p_sthing->Timer1 > 190)
     {
-        stasis_pod_set_dist_volume(p_sthing, smptbl_id,
+        set_dist_volume(p_sthing, smptbl_id,
           (ushort)((0x12d - p_sthing->Timer1) * 10));
     }
     if (p_sthing->Timer1 > 200)
@@ -2470,7 +2470,7 @@ void find_and_stasis(struct SimpleThing *p_stasis, int radius);
 /** Calls the asm sound helper ASM_set_dist_volume (no C version yet).
  * Preserves ecx, esi, edi, ebp; clobbers eax, edx, ebx.
  */
-static void stasis_pod_set_dist_volume(struct SimpleThing *p_sthing,
+void set_dist_volume(struct SimpleThing *p_sthing,
   int smptbl_id, ushort vol)
 {
     int a1 = (int)p_sthing, a2 = smptbl_id, a3 = vol;
@@ -2491,7 +2491,7 @@ void process_stasis_pod(struct SimpleThing *p_sthing)
             play_dist_ssample(p_sthing, 0x2c,
               (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
         else
-            stasis_pod_set_dist_volume(p_sthing, 0x2c,
+            set_dist_volume(p_sthing, 0x2c,
               (ushort)((0x32 - p_sthing->Timer1) * 2));
         if (p_sthing->Timer1 < 0)
         {
@@ -2515,7 +2515,7 @@ void process_stasis_pod(struct SimpleThing *p_sthing)
                 play_dist_ssample(p_sthing, 0x2c,
                   (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
             else
-                stasis_pod_set_dist_volume(p_sthing, 0x2c,
+                set_dist_volume(p_sthing, 0x2c,
                   (ushort)(p_sthing->Timer1 << 2));
         }
         p_sthing->Radius -= 0x20;
@@ -2605,7 +2605,7 @@ void process_time_pod(struct SimpleThing *p_sthing)
             play_dist_ssample(p_sthing, 0x38,
               (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
         else
-            stasis_pod_set_dist_volume(p_sthing, 0x38,
+            set_dist_volume(p_sthing, 0x38,
               (ushort)((0x32 - p_sthing->Timer1) * 2));
         if (p_sthing->Timer1 < 0)
         {
@@ -2622,7 +2622,7 @@ void process_time_pod(struct SimpleThing *p_sthing)
                 play_dist_ssample(p_sthing, 0x38,
                   (ushort)(p_sthing->Timer1 << 2), 0x40, 100, -1, 1);
             else
-                stasis_pod_set_dist_volume(p_sthing, 0x38,
+                set_dist_volume(p_sthing, 0x38,
                   (ushort)(p_sthing->Timer1 << 2));
         }
         if (p_sthing->Timer1 < 0)
