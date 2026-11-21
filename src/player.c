@@ -24,9 +24,11 @@
 
 #include "bigmap.h"
 #include "campaign.h"
+#include "difftest.h"
 #include "display.h"
 #include "game.h"
 #include "game_options.h"
+#include "guiboxes.h"
 #include "guitext.h"
 #include "hud_panel.h"
 #include "people.h"
@@ -496,10 +498,55 @@ const char *get_cryo_agent_name(short cryo_no)
     return gui_strings[strid];
 }
 
-void remove_agent(ubyte cryo_no)
+extern struct ScreenTextBox cryo_agent_list_box;
+
+static DIFFTEST_REF_FUNC void remove_agent_asm(ubyte cryo_no)
 {
     asm volatile ("call ASM_remove_agent\n"
         : : "a" (cryo_no));
+}
+
+void remove_agent(ubyte cryo_no)
+{
+    PlayerIdx plyr;
+    u32 n;
+    char rndname;
+
+    DIFFTEST_SHADOW(remove_agent, remove_agent_asm(cryo_no));
+    plyr = local_player_no;
+
+    // Shift all further agents down by one slot
+    for (n = cryo_no + 1; n < cryo_agents.NumAgents; n++)
+    {
+        u32 sexbit;
+        ushort k;
+
+        cryo_agents.Weapons[n - 1] = cryo_agents.Weapons[n];
+        cryo_agents.Mods[n - 1] = cryo_agents.Mods[n];
+        sexbit = cryo_agents.Sex & (1u << (n & 0x1F));
+        cryo_agents.Sex &= ~(1u << ((n - 1) & 0x1F));
+        // TODO the bit of agent n is not moved to n-1, only kept in place; original bug?
+        cryo_agents.Sex |= sexbit;
+        for (k = 0; k < WFRPK_COUNT; k++)
+            cryo_agents.FourPacks[n - 1].Amount[k] = cryo_agents.FourPacks[n].Amount[k];
+    }
+
+    // Rotate the names, so that the removed name goes to the end
+    rndname = cryo_agents.RandomName[cryo_no];
+    for (n = cryo_no + 1; n < CRYO_PODS_MAX_COUNT; n++)
+    {
+        cryo_agents.RandomName[n - 1] = cryo_agents.RandomName[n];
+    }
+    cryo_agents.RandomName[CRYO_PODS_MAX_COUNT - 1] = rndname;
+    cryo_agents.NumAgents--;
+    cryo_agent_list_box.Lines = cryo_agents.NumAgents;
+
+    for (n = 0; n < 4; n++)
+    {
+        if (n >= cryo_agents.NumAgents)
+            players[plyr].MissionAgents &= ~(1 << n);
+    }
+    local_player_no = plyr;
 }
 
 void add_agent(ulong weapons, ushort mods)
