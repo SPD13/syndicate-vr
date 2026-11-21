@@ -6,7 +6,8 @@ plan is in `docs/decompilation-agent-plan.md`.
 
 ## Where things stand
 
-- Branch `decomp/auto` (local only, **never push**), on top of
+- Branch `decomp/auto` (pushed to `origin` = SPD13/syndicate-vr since
+  2026-11-21, user request; **never** to `upstream`), on top of
   `vr/main`.
 - **State at the handoff of 2026-11-16 evening** (`decomp/auto` at
   `e1a2e8ac`): 694 asm functions, 361 shadowed (remade in C and
@@ -267,6 +268,12 @@ when `run.py` ends):
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/decomp-agent/keepawake.ps1
+```
+
+Also push every merge to the fork (exits when `run.py` ends):
+
+```sh
+tools/decomp-agent/autopush.sh
 ```
 
 Follow progress with `tail -f tools/decomp-agent/loop.log`; each target

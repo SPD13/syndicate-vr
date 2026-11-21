@@ -2,7 +2,7 @@
 
 Source port of Syndicate Wars. Much game logic is still 32-bit x86 asm
 (`src/swars.sx` and other `*.sx`), called from C through generated wrappers.
-Our work (branch `decomp/auto`, local only, never pushed upstream) converts
+Our work (branch `decomp/auto`, pushed to `origin` = SPD13 fork, never to `upstream`) converts
 asm functions to C, verified by differential testing. Plan:
 `docs/decompilation-agent-plan.md`. Current state and how to resume the
 loop: `docs/decomp-status.md`.
