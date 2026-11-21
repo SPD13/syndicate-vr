@@ -365,15 +365,73 @@ static void BAT_bricks_clear(void)
     BAT_bricks_set_rect(0, 0, BAT_BRICK_COLUMNS, BAT_BRICK_ROWS, 0x80);
 }
 
-/** Routed asm (internal label). Arguments are the raw registers the asm
- * takes (eax, edx); it maybe spawns a bonus at that position. It saves
- * ebx, ecx, esi, edi itself; eax and edx are clobbered.
- */
-void BAT_unknsub_28(int a1, int a2)
+static DIFFTEST_REF_FUNC void BAT_unknsub_28_asm(int a1, int a2)
 {
     int ra = a1, rd = a2;
     asm volatile ("call ASM_BAT_unknsub_28\n"
         : "+a" (ra), "+d" (rd) : : "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments are the raw registers the asm
+ * takes (eax, edx); it maybe spawns a bonus at that position.
+ */
+void BAT_unknsub_28(int a1, int a2)
+{
+    struct BATBonus *p_bonus;
+    struct BATBonus *p_next;
+    int kind;
+    int rnd;
+
+    DIFFTEST_SHADOW(BAT_unknsub_28, BAT_unknsub_28_asm(a1, a2));
+    if ((rand() & 0xff) > 0x2a)
+        return;
+    rnd = rand() % 32;
+    if (rnd < 7) {
+        kind = 0;
+    } else if ((rnd -= 7) < 7) {
+        kind = 1;
+    } else if ((rnd -= 7) < 6) {
+        kind = 3;
+    } else if ((rnd -= 6) < 5) {
+        kind = 2;
+    } else if ((rnd -= 5) < 4) {
+        kind = 4;
+    } else if ((rnd -= 4) < 2) {
+        kind = 5;
+    } else if ((rnd -= 2) < 1) {
+        kind = 6;
+    } else {
+        return;
+    }
+
+    p_bonus = BAT_free_bonuses;
+    if (p_bonus != NULL)
+    {
+        p_next = p_bonus->ListNext;
+        BAT_free_bonuses = p_next;
+        if (p_next != NULL)
+            p_next->ListPvNxPtr = &BAT_free_bonuses;
+        p_next = BAT_bonuses_head;
+        if (p_next != NULL)
+        {
+            p_bonus->ListNext = p_next;
+            p_next->ListPvNxPtr = &p_bonus->ListNext;
+            BAT_bonuses_head = p_bonus;
+            p_bonus->ListPvNxPtr = &BAT_bonuses_head;
+        }
+        else
+        {
+            p_bonus->ListPvNxPtr = &BAT_bonuses_head;
+            p_bonus->ListNext = p_next;
+            BAT_bonuses_head = p_bonus;
+        }
+    }
+    if (p_bonus == NULL)
+        return;
+    p_bonus->Y = a1;
+    p_bonus->UnkDw2 = a2;
+    p_bonus->X = kind;
+    p_bonus->UnkDw3 = (rand() & 0x3f) + 0x5f;
 }
 
 static DIFFTEST_REF_FUNC void BAT_unknsub_22_asm(void)
