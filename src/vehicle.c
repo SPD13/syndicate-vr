@@ -4928,15 +4928,67 @@ void process_vehicle_goto_point_land(struct Thing *p_vehicle)
     else if (angle_x < -20)
         p_vehicle->U.UVehicle.AngleX += 20;
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void scan_max_height_ahead(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void scan_max_height_ahead_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_scan_max_height_ahead\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Pitch a flying vehicle (AngleX) towards the highest ground point
+ * among 5 samples ahead along its velocity.
+ * Raw register arguments kept for the wrapper conf; only eax is used.
+ * The asm also leaves the max altitude in eax, unused by callers.
+ */
+void scan_max_height_ahead(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    s32 vx, vz, len, step_x, step_z, cor_x, cor_z;
+    s32 alt, max_alt, dh;
+    u32 i, best_i;
+    ushort bi;
+    short angle;
+
+    DIFFTEST_SHADOW(scan_max_height_ahead, scan_max_height_ahead_asm(a1, a2, a3, a4));
+    vx = p_vehicle->VX;
+    vz = p_vehicle->VZ;
+    max_alt = -100000;
+    len = LbSqrL((u32)vx * (u32)vx + (u32)vz * (u32)vz);
+    if (len == 0)
+        return;
+    step_x = (s32)((u32)vx << 8) / len;
+    step_z = (s32)((u32)vz << 8) / len;
+    cor_x = p_vehicle->X >> 8;
+    cor_z = p_vehicle->Z >> 8;
+    // TODO the asm leaves best_i uninitialised if no sample reaches max_alt
+    best_i = 0;
+    for (i = 0; (ushort)i < 5; i++)
+    {
+        alt = alt_at_point((short)cor_x, (short)cor_z);
+        if (alt >= max_alt)
+        {
+            max_alt = alt;
+            best_i = i;
+        }
+        cor_x += step_x;
+        cor_z += step_z;
+    }
+    dh = (s32)((u32)max_alt * 8 + 0x19000 - (u32)p_vehicle->Y) >> 3;
+    bi = (ushort)best_i;
+    angle = (short)(arctan((s32)((u32)dh * (u32)dh),
+      (s32)(((u32)bi * (u32)bi) << 16)) - 0x400);
+    if (angle > 160)
+        angle = 160;
+    else if (angle < -160)
+        angle = -160;
+    if (dh < 0)
+        p_vehicle->U.UVehicle.AngleX = p_vehicle->U.UVehicle.AngleX - (angle >> 1);
+    else
+        p_vehicle->U.UVehicle.AngleX = p_vehicle->U.UVehicle.AngleX + (angle >> 1);
+    if (p_vehicle->U.UVehicle.AngleX > 140)
+        p_vehicle->U.UVehicle.AngleX = 140;
+    else if (p_vehicle->U.UVehicle.AngleX < -140)
+        p_vehicle->U.UVehicle.AngleX = -140;
 }
 
 
