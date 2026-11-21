@@ -368,15 +368,53 @@ void bang_new4(int x, int y, int z, int type)
 {
     new_bang(x, y, z, type, 0, 0);
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
+/* Crater walker list: 10-byte entries starting at map_cratunkn2
+ * (X, Y, DX, DY as shorts, then Next and Prev bytes).
  */
-void unused_func_192(int a1, int a2, int a3, int a4)
+extern short map_cratunkn2[];
+extern ubyte map_crater_last;
+extern short data_1c476c;
+
+static DIFFTEST_REF_FUNC void unused_func_192_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_unused_func_192\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments are the raw registers the
+ * asm takes (eax, edx, ebx, ecx); only eax (X) and edx (Y) are used.
+ *
+ * Adds a crater walker at index map_crater_last, at the given position,
+ * moving diagonally with a step of data_1c476c / 10 (at least 1) in
+ * random directions, then advances map_crater_last.
+ */
+void unused_func_192(int a1, int a2, int a3, int a4)
+{
+    s32 idx;
+    ubyte step;
+
+    DIFFTEST_SHADOW(unused_func_192, unused_func_192_asm(a1, a2, a3, a4));
+    step = (ubyte)(data_1c476c / 10);
+    if (step == 0)
+        step = 1;
+    idx = (sbyte)map_crater_last * 5;
+    map_cratunkn2[idx + 0] = (short)a1;
+    map_cratunkn2[idx + 1] = (short)a2;
+    map_cratunkn2[idx + 2] = step;
+    map_cratunkn2[idx + 3] = step;
+    if (LbRandomAnyShort() % 9 > 4) {
+        idx = (sbyte)map_crater_last * 5;
+        map_cratunkn2[idx + 2] = -(short)step;
+    }
+    if (LbRandomAnyShort() % 9 > 4) {
+        idx = (sbyte)map_crater_last * 5;
+        map_cratunkn2[idx + 3] = -(short)step;
+    }
+    map_crater_last++;
+    idx = (sbyte)map_crater_last * 10;
+    ((ubyte *)map_cratunkn2)[idx + 9] = 0;
+    ((ubyte *)map_cratunkn2)[idx + 8] = 0;
 }
 
 
