@@ -26,6 +26,7 @@
 #include "bfmath.h"
 #include "bfutility.h"
 #include "bigmap.h"
+#include "bmcrater.h"
 #include "building.h"
 #include "cybmod.h"
 #include "difftest.h"
@@ -418,16 +419,85 @@ void unused_func_192(int a1, int a2, int a3, int a4)
 }
 
 
-ubyte unused_func_026(ubyte a1)
+extern ubyte data_1c476b;
+
+static DIFFTEST_REF_FUNC ubyte unused_func_026_asm(ubyte a1)
 {
     ubyte ret;
     asm volatile (
       "call ASM_unused_func_026\n"
-        : "=r" (ret) : "a" (a1));
+        : "=a" (ret) : "a" (a1) : "cc", "memory");
     return ret;
 }
 
-extern ubyte data_1c476b;
+/** Advances crater walker a1 one step.
+ * If the walker is off the 128x128 tile area, it is unlinked from the
+ * list and 0 is returned. Otherwise, rarely (1 in 67, while fewer than 9
+ * walkers exist) a new walker is linked after it and started at its
+ * position (return 2); then a crater is made at its position, and it
+ * moves by a random part of its step (return 1 or 2).
+ */
+ubyte unused_func_026(ubyte a1)
+{
+    ubyte *p_bytes;
+    s32 idx, last;
+    s32 x, y, step;
+    ubyte next, ret;
+
+    DIFFTEST_SHADOW_RET(unused_func_026, ubyte, unused_func_026_asm(a1));
+    p_bytes = (ubyte *)map_cratunkn2;
+    idx = a1 * 5;
+    ret = 1;
+    x = map_cratunkn2[idx + 0];
+    y = map_cratunkn2[idx + 1];
+    if (x >= 128 || y >= 128 || x < 0 || y < 0)
+    {
+        if ((s32)a1 == (sbyte)data_1c476b)
+        {
+            data_1c476b = p_bytes[a1 * 10 + 8];
+        }
+        else
+        {
+            next = p_bytes[a1 * 10 + 8];
+            p_bytes[p_bytes[a1 * 10 + 9] * 10 + 8] = next;
+            if (next != 0)
+                p_bytes[next * 10 + 9] = p_bytes[a1 * 10 + 9];
+        }
+        DIFFTEST_RETURN((ubyte)0);
+    }
+
+    if ((s32)LbRandomAnyShort() % 67 == 17 && (sbyte)map_crater_last < 9)
+    {
+        next = p_bytes[a1 * 10 + 8];
+        if (next != 0)
+        {
+            last = (sbyte)map_crater_last;
+            p_bytes[last * 10 + 8] = next;
+            p_bytes[next * 10 + 9] = map_crater_last;
+        }
+        last = (sbyte)map_crater_last;
+        p_bytes[last * 10 + 9] = a1;
+        p_bytes[a1 * 10 + 8] = map_crater_last;
+        unused_func_192(map_cratunkn2[idx + 0], map_cratunkn2[idx + 1],
+          next, 0x200 | a1);
+        ret = 2;
+    }
+
+    create_crater(map_cratunkn2[idx + 0], map_cratunkn2[idx + 1], data_1c476c);
+    // TODO a zero step divides by zero, as in the original
+    step = map_cratunkn2[idx + 2];
+    if (step > 0)
+        map_cratunkn2[idx + 0] = map_cratunkn2[idx + 0] + (s32)LbRandomAnyShort() % step;
+    else
+        map_cratunkn2[idx + 0] = map_cratunkn2[idx + 0] - (s32)LbRandomAnyShort() % step;
+    step = map_cratunkn2[idx + 3];
+    if (step > 0)
+        map_cratunkn2[idx + 1] = map_cratunkn2[idx + 1] + (s32)LbRandomAnyShort() % step;
+    else
+        map_cratunkn2[idx + 1] = map_cratunkn2[idx + 1] - (s32)LbRandomAnyShort() % step;
+    DIFFTEST_RETURN(ret);
+}
+
 extern ubyte data_1c476e;
 extern short data_1c4770;
 
