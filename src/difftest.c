@@ -149,6 +149,61 @@ static void dt_parse_ignores(const char *str)
     }
 }
 
+/** The C library rand() state, here instead of in msvcrt.dll.
+ *
+ * msvcrt keeps the rand() state in per-thread data that is not part of our
+ * image, so the snapshots missed it: the C run continued the sequence after
+ * the asm run's draws. In difftest builds rand() and srand() are defined
+ * here, with the msvcrt algorithm and initial state, so the state lives in
+ * our .data and is saved, restored and compared like other game state.
+ * The asm reaches rand() through ac_rand, which calls this one too.
+ */
+static ulong dt_holdrand = 1;
+
+void srand(unsigned int seed) __attribute__((no_instrument_function));
+int rand(void) __attribute__((no_instrument_function));
+
+void srand(unsigned int seed)
+{
+    dt_holdrand = seed;
+}
+
+int rand(void)
+{
+    dt_holdrand = dt_holdrand * 214013UL + 2531011UL;
+    return (int)((dt_holdrand >> 16) & 0x7FFF);
+}
+
+/** Checks that rand() gives the same sequence as msvcrt's own. */
+static void dt_check_rand(void)
+{
+#if defined(WIN32) || defined(_WIN32)
+    HMODULE crt = GetModuleHandle("msvcrt.dll");
+    void (*crt_srand)(unsigned int);
+    int (*crt_rand)(void);
+    ulong saved;
+    int i, bad;
+
+    if (crt == NULL)
+        return;
+    crt_srand = (void (*)(unsigned int))GetProcAddress(crt, "srand");
+    crt_rand = (int (*)(void))GetProcAddress(crt, "rand");
+    if ((crt_srand == NULL) || (crt_rand == NULL) || (crt_rand == rand))
+        return;
+    saved = dt_holdrand;
+    crt_srand(12345);
+    srand(12345);
+    bad = 0;
+    for (i = 0; i < 64; i++) {
+        if (crt_rand() != rand())
+            bad++;
+    }
+    dt_holdrand = saved;
+    if (bad != 0)
+        dt_log("difftest: WARNING rand() differs from msvcrt in %d of 64 draws\n", bad);
+#endif
+}
+
 static void dt_init(void)
 {
     const char *s;
@@ -179,6 +234,8 @@ static void dt_init(void)
         dt_log("difftest: start fn=%s max=%lu min=%lu turns=%lu ignores=%d\n",
           dt.fn_name, dt.max_compares, dt.min_compares, dt.turn_limit,
           dt.ignores_num);
+    if (dt.enabled)
+        dt_check_rand();
 }
 
 static TbBool dt_name_matches(const char *name)
