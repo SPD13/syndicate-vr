@@ -11864,10 +11864,34 @@ void process_knocked_out(struct Thing *p_person)
     }
 }
 
-void process_tasered_person(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void process_tasered_person_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_process_tasered_person\n"
         : : "a" (p_person));
+}
+
+void process_tasered_person(struct Thing *p_person)
+{
+    ushort anim;
+
+    DIFFTEST_SHADOW(process_tasered_person, process_tasered_person_asm(p_person));
+    p_person->U.UPerson.RecoilTimer--;
+    if (p_person->U.UPerson.RecoilTimer == 0)
+    {
+        p_person->Flag2 &= ~(TgF2_Unkn00010000 | TgF2_Unkn00100000);
+        p_person->U.UPerson.AnimMode = p_person->U.UPerson.OldAnimMode;
+        p_person->U.UPerson.RecoilTimer = 0;
+        anim = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+        p_person->Frame = nstart_ani[anim + p_person->U.UPerson.Angle];
+        p_person->StartFrame = anim - 1;
+        return;
+    }
+    if ((p_person->U.UPerson.RecoilTimer & 0x01) != 0)
+        anim = people_frames[p_person->SubType][16];
+    else
+        anim = people_frames[p_person->SubType][0];
+    p_person->Frame = nstart_ani[anim + p_person->U.UPerson.Angle];
+    p_person->StartFrame = anim - 1;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
