@@ -427,11 +427,51 @@ ubyte unused_func_026(ubyte a1)
     return ret;
 }
 
-void unused_func_025(short a1, short a2, short a3)
+extern ubyte data_1c476b;
+extern ubyte data_1c476e;
+extern short data_1c4770;
+
+static DIFFTEST_REF_FUNC void unused_func_025_asm(short a1, short a2, short a3)
 {
     asm volatile (
       "call ASM_unused_func_025\n"
-        : : "a" (a1), "d" (a2), "b" (a3));
+        : : "a" (a1), "d" (a2), "b" (a3) : "cc", "memory");
+}
+
+/** Starts a crater walker list: walker 1 at (a1, a2), moving diagonally
+ * with a step of a3 / 10 (at least 1) in random directions; a3 is kept
+ * in data_1c476c. The list head and next free index are set up after it.
+ */
+void unused_func_025(short a1, short a2, short a3)
+{
+    s32 idx;
+    ubyte step;
+
+    DIFFTEST_SHADOW(unused_func_025, unused_func_025_asm(a1, a2, a3));
+    step = (ubyte)(a3 / 10);
+    if (step == 0)
+        step = 1;
+    map_cratunkn2[5 + 0] = a1;
+    map_cratunkn2[5 + 1] = a2;
+    data_1c476e = 1;
+    data_1c476b = 1;
+    map_crater_last = 1;
+    map_cratunkn2[5 + 2] = step;
+    map_cratunkn2[5 + 3] = step;
+    if (LbRandomAnyShort() % 9 > 4) {
+        idx = (sbyte)map_crater_last * 5;
+        map_cratunkn2[idx + 2] = -(short)step;
+    }
+    if (LbRandomAnyShort() % 9 > 4) {
+        idx = (sbyte)map_crater_last * 5;
+        map_cratunkn2[idx + 3] = -(short)step;
+    }
+    idx = (sbyte)map_crater_last * 10;
+    data_1c476c = a3;
+    ((ubyte *)map_cratunkn2)[idx + 9] = 0;
+    ((ubyte *)map_cratunkn2)[idx + 8] = 0;
+    data_1c4770 = 0;
+    map_crater_last = 2;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
