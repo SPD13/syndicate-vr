@@ -4940,10 +4940,57 @@ void scan_max_height_ahead(int a1, int a2, int a3, int a4)
 }
 
 
-void process_vehicle_goto_point_fly(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_vehicle_goto_point_fly_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_vehicle_goto_point_fly\n"
         : : "a" (p_vehicle));
+}
+
+void process_vehicle_goto_point_fly(struct Thing *p_vehicle)
+{
+    s32 dx, dz, dist_sq;
+    short angle;
+
+    DIFFTEST_SHADOW(process_vehicle_goto_point_fly, process_vehicle_goto_point_fly_asm(p_vehicle));
+    scan_max_height_ahead((int)p_vehicle, 0, 0, 0);
+    set_passengers_location(p_vehicle);
+    dx = p_vehicle->U.UVehicle.GotoX - (p_vehicle->X >> 8);
+    dz = p_vehicle->U.UVehicle.GotoZ - (p_vehicle->Z >> 8);
+    dist_sq = dx * dx + dz * dz;
+    if (dist_sq < 0x8000)
+        p_vehicle->SubState = 7;
+    angle = p_vehicle->U.UVehicle.AngleY - arctan(dx, dz);
+    if (angle < -0x400)
+        angle += 0x800;
+    else if (angle > 0x400)
+        angle -= 0x800;
+
+    if (dist_sq > 0x400000)
+        p_vehicle->U.UVehicle.ReqdSpeed = 0x5e8;
+    else if (dist_sq > 0x100000)
+        p_vehicle->U.UVehicle.ReqdSpeed = 0x400;
+    else
+        p_vehicle->U.UVehicle.ReqdSpeed = 0x200;
+
+    if (angle < 0)
+    {
+        if (angle > -50)
+            p_vehicle->U.UVehicle.AngleDY = -angle * 2;
+        else
+            p_vehicle->U.UVehicle.AngleDY = 0x200;
+    }
+    else if (angle > 0)
+    {
+        if (angle < 50)
+        {
+            p_vehicle->U.UVehicle.AngleDY = angle * 2;
+            p_vehicle->U.UVehicle.AngleDY = -angle * 2;
+        }
+        else
+        {
+            p_vehicle->U.UVehicle.AngleDY = -0x200;
+        }
+    }
 }
 
 static DIFFTEST_REF_FUNC void process_parked_flyer_asm(struct Thing *p_vehicle)
