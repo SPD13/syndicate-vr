@@ -3505,15 +3505,40 @@ int process_my_crashing_vehicle(struct Thing *p_vehicle)
     p_vehicle->Y <<= 3;
     DIFFTEST_RETURN((int)0);
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void set_xz_for_unkn3(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void set_xz_for_unkn3_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_set_xz_for_unkn3\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Pick a random point on a face quad, within the triangle of its first
+ * three points; returns map coords in *a2 (x) and *a3 (z).
+ */
+void set_xz_for_unkn3(int a1, int a2, int a3, int a4)
+{
+    struct SingleObjectFace4 *p_face = (struct SingleObjectFace4 *)a1;
+    int *p_pos_x = (int *)a2;
+    int *p_pos_z = (int *)a3;
+    struct SingleObject *p_sobj;
+    struct SinglePoint *p_pt0, *p_pt1, *p_pt2;
+    ushort rnd_x, rnd_z;
+    short dt_x, dt_z;
+
+    DIFFTEST_SHADOW(set_xz_for_unkn3, set_xz_for_unkn3_asm(a1, a2, a3, a4));
+    rnd_x = LbRandomAnyShort() & 0xF;
+    rnd_z = LbRandomAnyShort() & 0xF;
+    p_sobj = &game_objects[p_face->Object];
+    p_pt0 = &game_object_points[(ushort)p_face->PointNo[0]];
+    p_pt1 = &game_object_points[(ushort)p_face->PointNo[1]];
+    p_pt2 = &game_object_points[(ushort)p_face->PointNo[2]];
+
+    dt_x = (short)((short)(p_pt1->X - p_pt0->X) * rnd_x
+      + (short)(p_pt2->X - p_pt0->X) * (16 - rnd_x));
+    dt_z = (short)((short)(p_pt1->Z - p_pt0->Z) * rnd_z
+      + (short)(p_pt2->Z - p_pt0->Z) * (16 - rnd_z));
+    *p_pos_x = (short)((dt_x >> 4) + p_pt0->X + p_sobj->MapX);
+    *p_pos_z = (short)((dt_z >> 4) + p_pt0->Z + p_sobj->MapZ);
 }
 
 
