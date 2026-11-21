@@ -25,6 +25,7 @@
 #include "difftest.h"
 #include "enginsngobjs.h"
 #include "game.h"
+#include "game_options.h"
 #include "people.h"
 #include "pepgroup.h"
 #include "swlog.h"
@@ -828,15 +829,65 @@ ThingIdx find_person_which_can_be_persuaded_now(short X, short Z, ushort R,
 
     return thing;
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void find_nearest_player(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int find_nearest_player_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_find_nearest_player\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+/** Routed asm (internal label). Arguments are the raw registers the asm
+ * takes (eax, edx, ebx, ecx); only eax (the person) is used.
+ * Returns, in eax, the nearest thing among the groups of all players in
+ * the net game, or 0. The conf line says void, but the wrapper passes
+ * eax through and the asm caller uses it, so we return it.
+ */
+int find_nearest_player(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_person = (struct Thing *)a1;
+    struct Thing *p_thing;
+    u32 best_dist, dist;
+    s32 nearest, dx, dz;
+    ushort plyr;
+    ThingIdx thing;
+
+    DIFFTEST_SHADOW_RET(find_nearest_player, int,
+      find_nearest_player_asm(a1, a2, a3, a4));
+
+    best_dist = 0xFFFFFFFF;
+    nearest = 0;
+    for (plyr = 0; plyr < 8; plyr++)
+    {
+        if ((ingame.InNetGame_UNSURE & (1 << plyr)) == 0)
+            continue;
+        for (thing = same_type_head[256 + level_def.PlayableGroups[plyr]];
+          thing != 0; thing = p_thing->LinkSameGroup)
+        {
+            p_thing = &things[thing];
+            if ((p_thing->Flag & TngF_Destroyed) != 0)
+                continue;
+            dx = p_person->X - p_thing->X;
+            if (dx < 0)
+                dx = -dx;
+            dx >>= 8;
+            dz = p_person->Z - p_thing->Z;
+            if (dz < 0)
+                dz = -dz;
+            dz >>= 8;
+            if (dx <= dz)
+                dx >>= 1;
+            else
+                dz >>= 1;
+            dist = dz + dx;
+            if (dist < best_dist)
+            {
+                best_dist = dist;
+                nearest = (ushort)thing;
+            }
+        }
+    }
+    DIFFTEST_RETURN(nearest);
 }
 
 
@@ -881,9 +932,7 @@ short find_nearest_from_group(struct Thing *p_person, ushort group, ubyte no_per
     if (in_network_game && (group == 0))
     {
         short ret;
-        // TODO: call find_nearest_player() directly once it returns its value
-        asm volatile ("call ASM_find_nearest_player\n"
-            : "=a" (ret) : "a" (p_person) : "cc", "memory");
+        ret = find_nearest_player((int)p_person, 0, 0, 0);
         DIFFTEST_RETURN(ret);
     }
 
