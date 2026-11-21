@@ -14484,10 +14484,37 @@ void person_destroy_building(struct Thing *p_person)
     }
 }
 
-void person_catch_train(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void person_catch_train_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_person_catch_train\n"
         : : "a" (p_person));
+}
+
+void person_catch_train(struct Thing *p_person)
+{
+    struct Command *p_cmd;
+
+    DIFFTEST_SHADOW(person_catch_train, person_catch_train_asm(p_person));
+    person_goto_point(p_person);
+    if (p_person->State != PerSt_NONE)
+        return;
+
+    p_cmd = &game_commands[p_person->U.UPerson.ComCur];
+    if (p_person->U.UPerson.OnFace == p_cmd->OtherThing)
+    {
+        p_person->SubState = 0;
+        p_person->State = PerSt_WAIT_TRAIN;
+        return;
+    }
+
+    p_person->U.UPerson.ComTimer = -1;
+    if (p_person->U.UPerson.PathIndex != 0)
+        remove_path(p_person);
+    // The face to reach is stored in the command's OtherThing field
+    p_cmd = &game_commands[p_person->U.UPerson.ComCur];
+    build_navigate_path_to_face(p_person, p_cmd->OtherThing);
+    p_person->U.UPerson.ComRange = 0;
+    p_person->State = PerSt_CATCH_TRAIN;
 }
 
 static DIFFTEST_REF_FUNC void set_angle_to_avoid_group_asm(struct Thing *p_person)
