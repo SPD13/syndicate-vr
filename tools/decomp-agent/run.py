@@ -200,8 +200,9 @@ def attempt(t, args):
              'minutes': round((time.time() - t0) / 60, 1),
              'notes': result.get('notes', '')[:1000]}
     if ok:
-        m = re.search(r'compared=(\d+)', details)
-        compared = m.group(1) if m else '?'
+        # The verdict line (last) holds the total; earlier lines are per scenario
+        m = re.findall(r'compared=(\d+)', details)
+        compared = m[-1] if m else '?'
         git('checkout', '-q', '--', *[f for f in git('ls-files', cwd=wt).stdout.split()
                                        if f.endswith('pkg.m4')], cwd=wt, check=False)
         git('add', '-A', 'src', cwd=wt)
