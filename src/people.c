@@ -5096,10 +5096,112 @@ ushort build_navigate_path_to_person(struct Thing *p_thing, struct Thing *p_thin
     DIFFTEST_RETURN((ushort)1);
 }
 
-void build_navigate_path_to_face(struct Thing *p_thing, short face)
+static DIFFTEST_REF_FUNC void build_navigate_path_to_face_asm(struct Thing *p_thing, short face)
 {
     asm volatile ("call ASM_build_navigate_path_to_face\n"
         : : "a" (p_thing), "d" (face));
+}
+
+void build_navigate_path_to_face(struct Thing *p_thing, short face)
+{
+    struct SingleObjectFace3 *p_face3;
+    struct SingleObjectFace4 *p_face4;
+    int x0, z0, x1, z1;
+    short on_face;
+    short face0, face1;
+
+    DIFFTEST_SHADOW(build_navigate_path_to_face,
+      build_navigate_path_to_face_asm(p_thing, face));
+
+    face0 = -1;
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+        return;
+    if ((p_thing->Flag & TngF_PlayerAgent) == 0 && (p_thing->Flag2 & TgF2_Unkn00020000) != 0)
+    {
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        return;
+    }
+
+    p_thing->U.UPerson.LastDist = 0x7d00;
+    if ((p_thing->Flag2 & TgF2_Unkn0008) == 0)
+        p_thing->U.UPerson.BumpCount = 0;
+
+    if ((p_thing->X >> 8) < 0 || (p_thing->X >> 8) >= 0x8000 ||
+      (p_thing->Z >> 8) < 0 || (p_thing->Z >> 8) >= 0x8000)
+    {
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        return;
+    }
+
+    x0 = p_thing->X;
+    z0 = p_thing->Z;
+    on_face = (short)p_thing->U.UPerson.OnFace;
+    if (on_face != 0)
+    {
+        if (on_face > 0)
+        {
+            p_face3 = &game_object_faces3[on_face];
+            face0 = p_face3->UnknTringl;
+            // TODO unlike the quad cases, the coords are not shifted by 8 here;
+            // looks like an original bug, kept as is.
+            set_xz_for_tri(p_face3, &x0, &z0);
+        }
+        else
+        {
+            p_face4 = &game_object_faces4[-on_face];
+            if ((p_thing->Flag & TngF_Unkn0020) != 0)
+            {
+                face0 = p_face4->UnknTringl2;
+                set_xz_for_quad210((int)(intptr_t)p_face4, (int)(intptr_t)&x0,
+                  (int)(intptr_t)&z0, 0);
+            }
+            else
+            {
+                face0 = p_face4->UnknTringl1;
+                set_xz_for_quad_unkn03((int)(intptr_t)p_face4, (int)(intptr_t)&x0,
+                  (int)(intptr_t)&z0, 0);
+            }
+            x0 <<= 8;
+            z0 <<= 8;
+        }
+    }
+
+    if (face < 0)
+    {
+        p_face3 = &game_object_faces3[-face];
+        face1 = p_face3->UnknTringl;
+        set_xz_for_tri(p_face3, &x1, &z1);
+    }
+    else
+    {
+        p_face4 = &game_object_faces4[face];
+        face1 = p_face4->UnknTringl1;
+        set_xz_for_quad_unkn03((int)(intptr_t)p_face4, (int)(intptr_t)&x1,
+          (int)(intptr_t)&z1, 0);
+    }
+    x1 <<= 8;
+    z1 <<= 8;
+
+    nav_stats__ThisTurn++;
+    tri_path_init8(face0, face1, (int)(intptr_t)&g_nav_data, x0, z0, x1, z1, -2);
+
+    if (g_nav_data.PathLength == 0)
+    {
+        g_fat_data.ax8 = x0;
+        g_fat_data.ay8 = z0;
+        g_fat_data.bx8 = x1;
+        g_fat_data.by8 = z1;
+        g_fat_data.WayPoints[0].x8 = x1;
+        g_fat_data.WayPoints[0].y8 = z1;
+        g_fat_data.PathLength = 1;
+        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        count_fnavs(0);
+        p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
+        return;
+    }
+
+    fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data, 0x80, 0);
+    use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
 }
 static DIFFTEST_REF_FUNC void fatter_than_nothing_asm(int a1, int a2, int a3, int a4)
 {
