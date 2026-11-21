@@ -25,13 +25,19 @@
 #include "bfmemut.h"
 #include "bfkeybd.h"
 #include "bfjoyst.h"
+#include "bfsprite.h"
+#include "bftext.h"
 #include <stdio.h>
+#include <string.h>
 
+#include "difftest.h"
 #include "display.h"
+#include "femain.h"
 #include "game.h"
 #include "game_data.h"
 #include "game_speed.h"
 #include "guitext.h"
+#include "sound.h"
 #include "swlog.h"
 
 /******************************************************************************/
@@ -427,13 +433,79 @@ void init_buffered_keys(void)
     LbKeyboardCustomHandler(KEventBufferedKeysUpdate);
 }
 
-TbBool user_read_value(char *buf, ubyte len, ubyte type)
+static DIFFTEST_REF_FUNC TbBool user_read_value_asm(char *buf, ubyte len, ubyte type)
 {
     TbBool ret;
     asm volatile (
       "call ASM_user_read_value\n"
-        : "=r" (ret) : "a" (buf), "d" (len), "b" (type));
+        : "=a" (ret) : "a" (buf), "d" (len), "b" (type));
     return ret;
+}
+
+TbBool user_read_value(char *buf, ubyte len, ubyte type)
+{
+    ulong key;
+    ubyte slen;
+    ubyte c, ch;
+
+    DIFFTEST_SHADOW_RET(user_read_value, TbBool, user_read_value_asm(buf, len, type));
+    slen = (ubyte)strlen(buf);
+    if (show_alert)
+        DIFFTEST_RETURN((TbBool)false);
+
+    key = next_buffered_key();
+    if ((key != 0) && (key < 0x80))
+    {
+        if ((lbKeyOn[KC_BACK] != 0) && (slen > 0))
+        {
+            lbKeyOn[KC_BACK] = 0;
+            buf[slen - 1] = '\0';
+            play_sample_using_heap(0, 0x75, 0x7f, 0x40, 0x64, 0, 1);
+        }
+        c = lbInkeyToAscii[key];
+        if ((c >= 0x20) && (c <= 0x7e) && (slen < len))
+        {
+            // TODO the asm leaves the character uninitialized for type > 3
+            ch = 0;
+            if (type == 3)
+            {
+                if (((c >= '0') && (c <= '9')) || ((c >= 'a') && (c <= 'f')))
+                    ch = c;
+                else
+                    ch = 0;
+            }
+            else if (type == 2)
+            {
+                if ((c >= '0') && (c <= '9'))
+                    ch = c;
+                else
+                    ch = 0;
+            }
+            else if (type == 1)
+            {
+                if (((c >= 'a') && (c <= 'z')) || ((lbShift & 0x01) != 0))
+                    ch = lbInkeyToAsciiShift[key];
+                else
+                    ch = c;
+            }
+            else if (type == 0)
+            {
+                if ((lbShift & 0x01) != 0)
+                    ch = lbInkeyToAsciiShift[key];
+                else
+                    ch = c;
+            }
+            // TODO for ch == 0 this reads the sprite before the font start
+            if ((lbFontPtr[(int)ch - 31].SWidth > 1) && ((slen != 0) || (ch != ' ')))
+            {
+                buf[slen] = ch;
+                buf[slen + 1] = '\0';
+                play_sample_using_heap(0, 0x74, 0x7f, 0x40, 0x64, 0, 1);
+            }
+            key = 0;
+        }
+    }
+    DIFFTEST_RETURN((TbBool)(key == KC_RETURN));
 }
 
 void input(void)
