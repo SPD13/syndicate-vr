@@ -1114,12 +1114,52 @@ void process_things_unkn_sub2(int tech_lv, int got_many)
         : : "a" (tech_lv), "d" (got_many));
 }
 
-int process_things_bang(int affected_max)
+static DIFFTEST_REF_FUNC int process_things_bang_asm(int affected_max)
 {
     int ret;
     asm volatile ("call ASM_process_things_bang\n"
-        : "=r" (ret) : "a" (affected_max));
+        : "=a" (ret) : "a" (affected_max));
     return ret;
+}
+
+int process_things_bang(int affected_max)
+{
+    struct Thing *p_thing;
+    s32 thing;
+    s32 remain;
+    int affected_left;
+
+    DIFFTEST_SHADOW_RET(process_things_bang, int, process_things_bang_asm(affected_max));
+    affected_left = affected_max;
+    remain = (ushort)things_used;
+    thing = (ushort)things_used_head;
+    if (thing <= 0)
+        DIFFTEST_RETURN(0);
+    do
+    {
+        remain--;
+        if (remain == -1)
+            break;
+        p_thing = &things[thing];
+        thing = p_thing->LinkChild;
+        if ((p_thing->Flag & TngF_Destroyed) == 0)
+            continue;
+        if ((LbRandomAnyShort() & 0x3) != 0)
+            continue;
+        if (!((p_thing->Type == TT_PERSON)
+            && ((p_thing->Flag & TngF_PlayerAgent) == 0)
+            && ((ushort)p_thing->State == PerSt_DEAD))
+          && !((p_thing->Type == TT_MINE) && (p_thing->SubType == 0x30)))
+            continue;
+        bang_new4(p_thing->X, p_thing->Y, p_thing->Z, 0x37);
+        delete_node(p_thing);
+        affected_left--;
+        remove_thing((ushort)p_thing->ThingOffset);
+        if (affected_left <= 0)
+            DIFFTEST_RETURN(1);
+    }
+    while (thing > 0);
+    DIFFTEST_RETURN(0);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
