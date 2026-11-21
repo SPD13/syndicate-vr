@@ -4366,15 +4366,111 @@ int ariadne_initialise_route(int a1, int a2, int a3, int a4)
     use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
     DIFFTEST_RETURN((int)1);
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-void send_ship_to(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void send_ship_to_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_send_ship_to\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Routed asm (internal label). Arguments are the raw registers the asm
+ * takes: eax = vehicle thing, dx = target x, bx = target z.
+ *
+ * Breadth-first search over the traffic nodes reachable from the ship's
+ * current node, through links to nodes with Flags 0x0200 (GateLink used
+ * as parent marker, -1 = unvisited). The reached node closest to (x,z)
+ * becomes the goal, and the parent chain from it is reversed so that
+ * GateLink points forward along the route.
+ */
+void send_ship_to(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    short x = (short)a2;
+    short z = (short)a3;
+    struct TrafficNode *p_tnode;
+    struct TrafficNode *p_lnode;
+    short queue[32];
+    s32 best_dist;
+    short best_node = 0;
+    short start, cur, prev, next;
+    int head, tail;
+    int i, k;
+
+    DIFFTEST_SHADOW(send_ship_to, send_ship_to_asm(a1, a2, a3, a4));
+
+    best_dist = 0x0fffffff;
+    head = 0;
+    tail = 0;
+    for (i = 1; i < next_traffic_node; i++)
+    {
+        p_tnode = &game_traffic_nodes[i];
+        if ((p_tnode->Flags & 0x0200) != 0)
+            p_tnode->GateLink = -1;
+    }
+
+    start = p_vehicle->U.UVehicle.TNode;
+    game_traffic_nodes[start].GateLink = 0;
+    p_tnode = &game_traffic_nodes[start];
+    for (k = 0; k < 4; k++)
+    {
+        short link = p_tnode->UTraffic.Link[k];
+        if (link == 0)
+            continue;
+        if ((p_tnode->UTraffic.Flags[k] & 0xC0) != 0)
+            continue;
+        p_lnode = &game_traffic_nodes[-link];
+        if (p_lnode->GateLink != -1)
+            continue;
+        queue[tail] = -link;
+        tail = (tail + 1) & 0x1f;
+        p_lnode->GateLink = start;
+    }
+
+    while (head != tail)
+    {
+        s32 dx, dz, dist;
+
+        cur = queue[head];
+        p_tnode = &game_traffic_nodes[cur];
+        dx = x - p_tnode->X;
+        dz = z - p_tnode->Z;
+        dist = (s32)((u32)dx * (u32)dx + (u32)dz * (u32)dz);
+        head = (head + 1) & 0x1f;
+        if (dist < best_dist)
+        {
+            best_dist = dist;
+            best_node = cur;
+        }
+        for (k = 0; k < 4; k++)
+        {
+            short link = p_tnode->UTraffic.Link[k];
+            if (link == 0)
+                continue;
+            if ((p_tnode->UTraffic.Flags[k] & 0xC0) != 0)
+                continue;
+            p_lnode = &game_traffic_nodes[-link];
+            if (p_lnode->GateLink != -1)
+                continue;
+            queue[tail] = -link;
+            tail = (tail + 1) & 0x1f;
+            p_lnode->GateLink = cur;
+        }
+    }
+
+    if (best_dist < 0x200000)
+    {
+        cur = best_node;
+        prev = 0;
+        do
+        {
+            p_tnode = &game_traffic_nodes[cur];
+            next = p_tnode->GateLink;
+            p_tnode->GateLink = prev;
+            prev = cur;
+            cur = next;
+        }
+        while (next != 0);
+    }
 }
 
 
