@@ -26,6 +26,7 @@
 #include "bfmemut.h"
 #include "bfini.h"
 
+#include "engincam.h"
 #include "engincolour.h"
 #include "huddrwlstm.h"
 
@@ -785,13 +786,43 @@ TbBool item_is_carried_by_player(ThingIdx thing, WeaponType wtype, ushort plyr)
     return false;
 }
 
-ubyte group_not_seen(ushort group)
+static DIFFTEST_REF_FUNC ubyte group_not_seen_asm(ushort group)
 {
     ubyte ret;
     asm volatile (
       "call ASM_group_not_seen\n"
-        : "=r" (ret) : "a" (group));
+        : "=a" (ret) : "a" (group));
     return ret;
+}
+
+ubyte group_not_seen(ushort group)
+{
+    s32 radius, radius_sq;
+    ThingIdx thing;
+
+    DIFFTEST_SHADOW_RET(group_not_seen, ubyte, group_not_seen_asm(group));
+    radius = 0x90000 / (s32)(short)overall_scale;
+    radius_sq = radius * radius;
+
+    thing = same_type_head[256 + group];
+    while (thing > 0)
+    {
+        struct Thing *p_thing;
+
+        p_thing = &things[thing];
+        if ((p_thing->Flag & TngF_Destroyed) != 0)
+        {
+            thing = p_thing->LinkSameGroup;
+            continue;
+        }
+        if (thing_arrived_at_obj_radius(thing, engn_xc, 0, engn_zc, radius_sq))
+        {
+            thing = -1;
+            continue;
+        }
+        thing = things[thing].LinkSameGroup;
+    }
+    DIFFTEST_RETURN((ubyte)(thing == 0));
 }
 
 TbBool thing_arrived_at_obj_radius(ThingIdx thing, int x, int y, int z, int radius_sq)
