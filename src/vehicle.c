@@ -5020,10 +5020,63 @@ void process_parked_flyer(struct Thing *p_vehicle)
         p_vehicle->U.UVehicle.MaxSpeed -= 26;
 }
 
-void init_mech_explode(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void init_mech_explode_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_init_mech_explode\n"
         : : "a" (p_vehicle));
+}
+
+void init_mech_explode(struct Thing *p_vehicle)
+{
+    ThingIdx thing;
+    s32 mech_x, mech_z;
+
+    DIFFTEST_SHADOW(init_mech_explode, init_mech_explode_asm(p_vehicle));
+    mech_x = p_vehicle->X;
+    mech_z = p_vehicle->Z;
+    if ((p_vehicle->Type != TT_VEHICLE) || (p_vehicle->SubType != SubTT_VEH_MECH))
+        return;
+
+    while (p_vehicle->U.UVehicle.PassengerHead != 0)
+    {
+        struct Thing *p_person;
+
+        p_person = &things[(ushort)p_vehicle->U.UVehicle.PassengerHead];
+        p_vehicle->U.UVehicle.PassengerHead = p_person->U.UPerson.LinkPassenger;
+        p_person->Flag &= ~(TngF_Unkn02000000 | TngF_InVehicle);
+        add_node_thing((ushort)p_person->ThingOffset);
+        set_person_dead(p_person, ANIM_PERS_Unkn12);
+    }
+
+    bang_new4(p_vehicle->X, p_vehicle->Y, p_vehicle->Z, 10);
+    bang_new4(p_vehicle->X, p_vehicle->Y, p_vehicle->Z, 115);
+    bang_new4(p_vehicle->X, p_vehicle->Y, p_vehicle->Z, 45);
+    quick_crater(p_vehicle->X >> 16, p_vehicle->Z >> 16, 2);
+    p_vehicle->Flag = TngF_Destroyed;
+    p_vehicle->State = VehSt_UNKN_D;
+    remove_thing(p_vehicle->ThingOffset);
+    delete_node(p_vehicle);
+
+    // Turn all mech parts into flying debris
+    thing = things_used_head;
+    while (thing > 0)
+    {
+        struct Thing *p_part;
+
+        p_part = &things[thing];
+        thing = p_part->LinkChild;
+        if (p_part->Type != TT_UNKN35)
+            continue;
+        p_part->State = 13;
+        p_part->Flag |= TngF_Destroyed;
+        p_part->VY = 1000;
+        p_part->X <<= 8;
+        p_part->Z <<= 8;
+        p_part->VX = (p_part->X - mech_x) >> 4;
+        p_part->Y <<= 8;
+        p_part->VZ = (p_part->Z - mech_z) >> 4;
+        add_node_thing((ushort)p_part->ThingOffset);
+    }
 }
 
 void process_train(struct Thing *p_vehicle)
