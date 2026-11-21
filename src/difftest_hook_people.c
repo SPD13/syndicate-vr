@@ -13,7 +13,8 @@
  *     - "p_people": tasered persons, support persons, catch-train style
  *       path to a face, group_not_seen() and find_nearest_player();
  *     - "p_net": the network game cleanups of process_things() (bang,
- *       mines explode, random items);
+ *       mines explode, random items), with dropped items aged every turn
+ *       as process_things() does in a network game;
  *     - "p_mech": wrecks the mech and places it again, as the level load
  *       does, so init_mech_explode() and mech_unkn_func_09() repeat.
  *     All choices depend on the game turn and the game state only.
@@ -378,10 +379,34 @@ static void hp_near_turn(void)
     }
 }
 
+/** In a network game process_things() counts the age of each dropped
+ * item (not mines) in its ammo; process_things_mines_explode() blows up
+ * the old ones. Outside a network game they stay at 0.
+ */
+static void hp_net_age_items(void)
+{
+    struct SimpleThing *p_sthing;
+    ThingIdx thing;
+
+    for (thing = sthings_used_head; thing < 0; thing = p_sthing->LinkChild)
+    {
+        p_sthing = &sthings[thing];
+        if (p_sthing->Type != SmTT_DROPPED_ITEM)
+            continue;
+        if ((p_sthing->SubType == WEP_EXPLMINE) || (p_sthing->SubType == WEP_ELEMINE))
+            continue;
+        if (p_sthing->U.UWeapon.WeaponType == 31)
+            continue;
+        p_sthing->U.UWeapon.Ammo++;
+    }
+}
+
 /** The cleanups process_things() runs in a network game only. */
 static void hp_net_turn(void)
 {
     int tech_lv;
+
+    hp_net_age_items();
 
     if ((gameturn % 16) == 5)
     {
