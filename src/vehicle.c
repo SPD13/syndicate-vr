@@ -4874,10 +4874,34 @@ void process_stopping(struct Thing *p_vehicle)
     remove_locks(p_vehicle);
 }
 
-void process_vehicle_goto_point_land(struct Thing *p_vehicle)
+static DIFFTEST_REF_FUNC void process_vehicle_goto_point_land_asm(struct Thing *p_vehicle)
 {
     asm volatile ("call ASM_process_vehicle_goto_point_land\n"
         : : "a" (p_vehicle));
+}
+
+void process_vehicle_goto_point_land(struct Thing *p_vehicle)
+{
+    s32 alt;
+    short angle_x;
+
+    DIFFTEST_SHADOW(process_vehicle_goto_point_land, process_vehicle_goto_point_land_asm(p_vehicle));
+    set_passengers_location(p_vehicle);
+    alt = alt_at_point((short)(p_vehicle->X >> 8), (short)(p_vehicle->Z >> 8)) << 3;
+    if (alt < p_vehicle->Y)
+    {
+        p_vehicle->Speed = 0;
+        p_vehicle->Y -= 0x800;
+    }
+    else
+    {
+        p_vehicle->State = VehSt_PARKED_PARAL;
+    }
+    angle_x = p_vehicle->U.UVehicle.AngleX;
+    if (angle_x > 20)
+        p_vehicle->U.UVehicle.AngleX -= 20;
+    else if (angle_x < -20)
+        p_vehicle->U.UVehicle.AngleX += 20;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
