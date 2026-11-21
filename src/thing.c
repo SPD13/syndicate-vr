@@ -1099,12 +1099,73 @@ out:
     next_unkn_full_light = ufl;
 }
 
-int process_things_mines_explode(int affected_max)
+static DIFFTEST_REF_FUNC int process_things_mines_explode_asm(int affected_max)
 {
     int ret;
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+    /* The asm takes the list head from the upper half of the dword at
+     * sthings_empty_head, where the original binary had sthings_used_head.
+     * In the port that half is padding; fill it for the call so the asm
+     * walks the real list, then restore it. Difftest builds only.
+     */
+    ushort *p_orig_used_head = (ushort *)&sthings_empty_head + 1;
+    ushort saved = *p_orig_used_head;
+    *p_orig_used_head = (ushort)sthings_used_head;
+#endif
     asm volatile ("call ASM_process_things_mines_explode\n"
-        : "=r" (ret) : "a" (affected_max));
+        : "=a" (ret) : "a" (affected_max) : "cc", "memory");
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+    *p_orig_used_head = saved;
+#endif
     return ret;
+}
+
+int process_things_mines_explode(int affected_max)
+{
+    struct SimpleThing *p_sthing;
+    s32 thing;
+    s32 remain;
+    s32 min_ammo;
+    int affected_left;
+
+    DIFFTEST_SHADOW_RET(process_things_mines_explode, int,
+      process_things_mines_explode_asm(affected_max));
+    affected_left = affected_max;
+    min_ammo = 600 - (ushort)ingame.fld_unkCB7;
+    if (min_ammo < 30)
+        min_ammo = 30;
+    // TODO: The asm reads a dword at sthings_empty_head and takes its upper
+    // half, which was sthings_used_head in the original binary layout. In
+    // the port the variables are separate (empty_head is followed by
+    // padding), so the asm always sees head 0 and does nothing. The C
+    // follows the original intent and deliberately differs from the asm.
+    thing = sthings_used_head;
+    remain = (ushort)sthings_used;
+    while (thing < 0)
+    {
+        remain--;
+        if (remain == -1)
+            break;
+        p_sthing = &sthings[thing];
+        thing = p_sthing->LinkChild;
+        if (p_sthing->Type != SmTT_DROPPED_ITEM)
+            continue;
+        if ((p_sthing->SubType >= WEP_MEDI1) && (p_sthing->SubType <= WEP_MEDI2))
+        {
+            if ((LbRandomAnyShort() & 0x1) != 0)
+                continue;
+        }
+        if ((s32)(ushort)p_sthing->U.UWeapon.Ammo < min_ammo)
+            continue;
+        bang_new4(p_sthing->X, p_sthing->Y, p_sthing->Z, 0x37);
+        delete_snode(p_sthing);
+        remove_sthing(p_sthing->ThingOffset);
+        ingame.fld_unkCB7--;
+        affected_left--;
+        if (affected_left <= 0)
+            DIFFTEST_RETURN(1);
+    }
+    DIFFTEST_RETURN(0);
 }
 
 void process_things_unkn_sub2(int tech_lv, int got_many)
