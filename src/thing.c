@@ -5614,10 +5614,34 @@ short get_thing_same_type_head(short ttype, short subtype)
     return thing;
 }
 
-void new_thing_traffic_clone(struct SimpleThing *p_clsthing)
+static DIFFTEST_REF_FUNC void new_thing_traffic_clone_asm(struct SimpleThing *p_clsthing)
 {
     asm volatile ("call ASM_new_thing_traffic_clone\n"
         : : "a" (p_clsthing));
+}
+
+void new_thing_traffic_clone(struct SimpleThing *p_clsthing)
+{
+    struct SimpleThing *p_sthing;
+    ThingIdx sthing;
+    ushort i;
+
+    DIFFTEST_SHADOW(new_thing_traffic_clone, new_thing_traffic_clone_asm(p_clsthing));
+    // TODO the asm does not check for get_new_sthing() returning 0
+    sthing = get_new_sthing();
+    p_sthing = &sthings[sthing];
+    p_sthing->X = p_clsthing->X;
+    p_sthing->Z = p_clsthing->Z;
+    p_sthing->Type = SmTT_TRAFFIC;
+    p_sthing->Y = p_clsthing->Y;
+    p_sthing->SubType = p_clsthing->SubType;
+    p_sthing->ThingOffset = p_clsthing->ThingOffset;
+    for (i = 0; i < 4; i++)
+    {
+        p_sthing->U.UTraffic.Link[i] = p_clsthing->U.UTraffic.Link[i];
+        p_sthing->U.UTraffic.Flags[i] = p_clsthing->U.UTraffic.Flags[i];
+    }
+    add_node_sthing(sthing);
 }
 
 short new_thing_smoke_gen_clone(struct SimpleThing *p_clsthing)
