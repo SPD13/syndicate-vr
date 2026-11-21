@@ -4138,11 +4138,85 @@ void train_unkn_st20_func_1(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void continue_flying_wander(int a1, int a2, int a3, int a4)
+int ariadne_initialise_route(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC void continue_flying_wander_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_continue_flying_wander\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Picks a random point next to one of the map edges and sets a flying
+ * vehicle on a route from there; gives up after 32 tries.
+ * The asm returns 1 on success and 0 on failure in %eax, but the wrapper
+ * is void and no caller uses the value.
+ */
+void continue_flying_wander(int a1, int a2, int a3, int a4)
+{
+    struct Thing *p_vehicle = (struct Thing *)a1;
+    struct MyPath *p_path;
+    s32 tries;
+    s32 rnd, lo, hi;
+    s32 nx, nz, tx, tz;
+    s32 old_x, old_z;
+
+    DIFFTEST_SHADOW(continue_flying_wander,
+      continue_flying_wander_asm(a1, a2, a3, a4));
+    for (tries = 0; tries < 32; tries++)
+    {
+        rnd = (ushort)LbRandomAnyShort();
+        hi = (rnd & 0x7f00) >> 8;
+        lo = rnd & 0x7f;
+        if ((rnd & 0x80) != 0)
+        {
+            nz = lo;
+            tz = hi;
+            if ((rnd & 0x8000) != 0) {
+                nx = 3;
+                tx = 0x7d;
+            } else {
+                nx = 0x7d;
+                tx = 3;
+            }
+        }
+        else
+        {
+            nx = lo;
+            tx = hi;
+            if ((rnd & 0x8000) != 0) {
+                nz = 3;
+                tz = 0x7d;
+            } else {
+                nz = 0x7d;
+                tz = 3;
+            }
+        }
+        old_x = p_vehicle->X;
+        p_vehicle->X = nx << 16;
+        old_z = p_vehicle->Z;
+        p_vehicle->Z = nz << 16;
+        if (ariadne_initialise_route((int)p_vehicle, tx << 8, tz << 8, tz) > 0)
+        {
+            unkn_path_func_001(p_vehicle, 1);
+            p_vehicle->X = old_x;
+            p_vehicle->Z = old_z;
+            move_mapwho(p_vehicle, nx << 16, p_vehicle->Y, nz << 16);
+            p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+            p_vehicle->U.UVehicle.GotoX = p_path->X[p_vehicle->PathOffset & 3];
+            p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
+            p_vehicle->U.UVehicle.GotoZ = p_path->Z[p_vehicle->PathOffset & 3];
+            p_vehicle->State = 0x42;
+            p_vehicle->U.UVehicle.TNode = 0;
+            p_vehicle->U.UVehicle.AngleY = arctan(
+              p_vehicle->U.UVehicle.GotoX - (p_vehicle->X >> 8),
+              p_vehicle->U.UVehicle.GotoZ - (p_vehicle->Z >> 8));
+            return;
+        }
+        p_vehicle->X = old_x;
+        p_vehicle->Z = old_z;
+    }
+    p_vehicle->State = 0x41;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
