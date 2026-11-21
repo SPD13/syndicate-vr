@@ -154,6 +154,26 @@ Lessons learned, do not undo:
 - Debugging the 32-bit exe works with the mingw64 gdb,
   `C:/msys64/mingw64/bin/gdb.exe` (no mingw32 gdb package exists).
 
+Harness lessons of 2026-11-21:
+
+- `rand()`: msvcrt keeps its state in per-thread data outside our image,
+  so the snapshots missed it. Difftest builds now define `rand()` and
+  `srand()` in `src/difftest.c` (msvcrt algorithm, checked against
+  msvcrt at start) so the state is snapshotted (`6fe4c34d`).
+- Some asm reads variables at their offsets in the original binary
+  layout (e.g. the list head of `process_things_mines_explode` as the
+  upper half of `sthings_empty_head`, which is padding in the port). The
+  C uses the real variable; in difftest builds the reference function
+  fills the original slot for the call and restores it, so the asm is
+  still compared (`c602f72d`). `my_preprocess_text` is the older case.
+- A loop attempt fails with "scope ... still calls ASM_x outside
+  reference" when another C function still calls the asm directly; fix
+  that caller by hand (`find_nearest_player`, `b5ed9496`).
+- Merge commits before `e34152e5` print the first scenario's compared
+  count (often 0), not the total; the merges were verified.
+- `decomp/auto` is pushed to `origin` (SPD13 fork) after each merge by
+  `tools/decomp-agent/autopush.sh`; never to `upstream`.
+
 ## Hook scenarios (2026-11-16)
 
 The 28 functions no mission reached are now reached by hooks, one file
