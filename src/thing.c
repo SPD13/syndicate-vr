@@ -2507,16 +2507,43 @@ static DIFFTEST_REF_FUNC void process_stasis_pod_asm(struct SimpleThing *p_sthin
 
 void find_and_stasis(struct SimpleThing *p_stasis, int radius);
 
-/** Calls the asm sound helper ASM_set_dist_volume (no C version yet).
- * Preserves ecx, esi, edi, ebp; clobbers eax, edx, ebx.
- */
-void set_dist_volume(struct SimpleThing *p_sthing,
+static DIFFTEST_REF_FUNC void set_dist_volume_asm(struct SimpleThing *p_sthing,
   int smptbl_id, ushort vol)
 {
     int a1 = (int)p_sthing, a2 = smptbl_id, a3 = vol;
 
     asm volatile ("call ASM_set_dist_volume\n"
         : "+a" (a1), "+d" (a2), "+b" (a3) : : "memory", "cc");
+}
+
+/** Sets the volume of a sample played by a simple thing, attenuated
+ * by the thing's approximate distance from the engine camera centre.
+ */
+void set_dist_volume(struct SimpleThing *p_sthing,
+  int smptbl_id, ushort vol)
+{
+    s32 dx, dz, adx, adz, dist, volume;
+
+    DIFFTEST_SHADOW(set_dist_volume,
+      set_dist_volume_asm(p_sthing, smptbl_id, vol));
+    dx = (p_sthing->X >> 8) - engn_xc;
+    dz = (p_sthing->Z >> 8) - engn_zc;
+    adx = abs(dx);
+    adz = abs(dz);
+    if (adz < adx)
+        dist = adx + (adz >> 1);
+    else
+        dist = adz + (adx >> 1);
+
+    if (dist < 0xa00)
+        volume = ((s32)vol * 127) >> 7;
+    else if (dist >= 0x1a00)
+        volume = 0;
+    else
+        volume = ((127 - ((dist - 0xa00) >> 5)) * (s32)vol) >> 7;
+
+    SetSampleVolume((short)p_sthing->ThingOffset, (short)smptbl_id,
+      (short)volume);
 }
 
 void process_stasis_pod(struct SimpleThing *p_sthing)
