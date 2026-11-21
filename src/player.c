@@ -33,6 +33,7 @@
 #include "hud_panel.h"
 #include "people.h"
 #include "pepgroup.h"
+#include "research.h"
 #include "sound.h"
 #include "thing.h"
 #include "weapon.h"
@@ -549,10 +550,65 @@ void remove_agent(ubyte cryo_no)
     local_player_no = plyr;
 }
 
-void add_agent(ulong weapons, ushort mods)
+static DIFFTEST_REF_FUNC void add_agent_asm(ulong weapons, ushort mods)
 {
     asm volatile ("call ASM_add_agent\n"
         : : "a" (weapons), "d" (mods));
+}
+
+void add_agent(ulong weapons, ushort mods)
+{
+    u32 wflags;
+    u32 wbit;
+    ushort i;
+    ushort count;
+    ushort rnd;
+    ubyte n;
+
+    DIFFTEST_SHADOW(add_agent, add_agent_asm(weapons, mods));
+    n = cryo_agents.NumAgents;
+    if (n >= CRYO_PODS_MAX_COUNT)
+        return;
+
+    wflags = weapons & 0xffa75fff;
+    cryo_agents.Weapons[n] = 0;
+    count = 0;
+    for (i = 0; i < 32; i++)
+    {
+        wbit = 1u << i;
+        if ((wbit & wflags) != 0)
+        {
+            cryo_agents.Weapons[n] |= wbit;
+            if ((research.WeaponsCompleted & wbit) == 0)
+                research.WeaponsAllowed |= wbit;
+            count++;
+        }
+        if (count == 6)
+            break;
+    }
+
+    for (i = 0; i < WFRPK_COUNT; i++)
+        cryo_agents.FourPacks[n].Amount[i] = 0;
+    if ((cryo_agents.Weapons[n] & 0x0020) != 0)
+        cryo_agents.FourPacks[n].Amount[2] = 1;
+    if ((cryo_agents.Weapons[n] & 0x0800) != 0)
+        cryo_agents.FourPacks[n].Amount[0] = 1;
+    if ((cryo_agents.Weapons[n] & 0x1000) != 0)
+        cryo_agents.FourPacks[n].Amount[1] = 1;
+    if ((cryo_agents.Weapons[n] & 0x0400) != 0)
+        cryo_agents.FourPacks[n].Amount[4] = 1;
+    if ((cryo_agents.Weapons[n] & 0x0200) != 0)
+        cryo_agents.FourPacks[n].Amount[3] = 1;
+
+    cryo_agents.Mods[n].Mods = mods;
+    rnd = LbRandomAnyShort();
+    if ((rnd % 17) > 8)
+        cryo_agents.Sex &= ~(1u << n);
+    else
+        cryo_agents.Sex |= (1u << n);
+
+    cryo_agents.NumAgents++;
+    cryo_agent_list_box.Lines = cryo_agents.NumAgents;
 }
 
 ThingIdx direct_control_thing_for_player(PlayerIdx plyr)
