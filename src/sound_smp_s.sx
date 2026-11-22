@@ -533,7 +533,7 @@ GLOBAL_FUNC(ASM_monitor_all_samples)	/* 0x0D5D8C */
 
 
 /*----------------------------------------------------------------*/
-snd_unkn3_find_stop_sample:	/* 0x0D6134 */
+GLOBAL_FUNC(ASM_snd_unkn3_find_stop_sample)	/* 0x0D6134 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -747,7 +747,7 @@ GLOBAL_FUNC(ASM_play_dist_sample)	/* 0x0D61D0 */
 		jle    jump_d633d
 		xor    %edx,%edx
 		mov    %bx,%dx
-		call   snd_unkn3_find_stop_sample
+		call   ac_snd_unkn3_find_stop_sample
 		cwtl
 		test   %eax,%eax
 		je     jump_d6368
@@ -921,7 +921,7 @@ GLOBAL_FUNC(ASM_play_dist_ssample)	/* 0x0D6374 */
 		jle    jump_d64df
 		xor    %edx,%edx
 		mov    %bx,%dx
-		call   snd_unkn3_find_stop_sample
+		call   ac_snd_unkn3_find_stop_sample
 		cwtl
 		test   %eax,%eax
 		je     jump_d650a

@@ -115,6 +115,41 @@ void sfx_apply_cdvolume(void)
         startscr_cdvolume = STARTSCR_VOLUME_MAX;
     SetCDVolume(70 * (127 * startscr_cdvolume / STARTSCR_VOLUME_MAX) / 100);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int heapmgr_add_item(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_heapmgr_add_item\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int heapmgr_free_oldest(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_heapmgr_free_oldest\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
+    return ra;
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void heapmgr_make_newest(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_heapmgr_make_newest\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+
+
 
 struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
   ulong volume, ulong pan, ulong pitch, sbyte loop_count, ubyte stype)
@@ -162,6 +197,18 @@ void play_disk_sample(short id, ushort sample, short vol,
 {
     play_sample_using_heap(9999, 129 + sample, vol, pan, pitch, loop, stype);
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int snd_unkn3_find_stop_sample(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_snd_unkn3_find_stop_sample\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
 
 void play_dist_sample(struct Thing *p_thing, ushort smptbl_id, ushort vol,
   ushort pan, int pitch, int loop, ubyte stype)
@@ -432,6 +479,17 @@ void setup_heaps(short setup_cmd, const char *lang)
         break;
     }
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void heapmgr_defrag(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_heapmgr_defrag\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
 
 void process_sound_heap(void)
 {

@@ -74,7 +74,7 @@ GLOBAL_FUNC (ASM_heapmgr_init)	/* 0x0DFA80 */
 
 
 /*----------------------------------------------------------------*/
-heapmgr_add_item:	/* 0x0DFADC */
+GLOBAL_FUNC(ASM_heapmgr_add_item)	/* 0x0DFADC */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -186,7 +186,7 @@ heapmgr_add_item:	/* 0x0DFADC */
 
 
 /*----------------------------------------------------------------*/
-heapmgr_make_newest:	/* 0x0DFBBC */
+GLOBAL_FUNC(ASM_heapmgr_make_newest)	/* 0x0DFBBC */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -217,7 +217,7 @@ heapmgr_make_newest:	/* 0x0DFBBC */
 
 
 /*----------------------------------------------------------------*/
-heapmgr_free_oldest:	/* 0x0DFBF8 */
+GLOBAL_FUNC(ASM_heapmgr_free_oldest)	/* 0x0DFBF8 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %edx
@@ -346,7 +346,7 @@ heapmgr_free_handle:	/* 0x0DFC2C */
 
 
 /*----------------------------------------------------------------*/
-heapmgr_defrag:	/* 0x0DFCF8 */
+GLOBAL_FUNC(ASM_heapmgr_defrag)	/* 0x0DFCF8 */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
@@ -471,7 +471,7 @@ GLOBAL_FUNC (ASM_process_sound_heap)	/* 0xE00E0 */
 		jmp    jump_e0139
 	jump_e0179:
 		mov    EXPORT_SYMBOL(hmhead),%eax
-		call   heapmgr_defrag
+		call   ac_heapmgr_defrag
 	jump_e0183:
 		pop    %ebp
 		pop    %edi
@@ -597,12 +597,12 @@ GLOBAL_FUNC(ASM_play_sample_using_heap)	/* 0x0E0218 */
 	jump_e029b:
 		mov    EXPORT_SYMBOL(hmhead),%eax
 		mov    %ecx,%edx
-		call   heapmgr_add_item
+		call   ac_heapmgr_add_item
 		mov    %eax,%esi
 		test   %eax,%eax
 		jne    jump_e02bb
 		mov    EXPORT_SYMBOL(hmhead),%eax
-		call   heapmgr_free_oldest
+		call   ac_heapmgr_free_oldest
 		test   %eax,%eax
 		jge    jump_e02c3
 	jump_e02bb:
@@ -648,7 +648,7 @@ GLOBAL_FUNC(ASM_play_sample_using_heap)	/* 0x0E0218 */
 	jump_e031a:
 		mov    EXPORT_SYMBOL(hmhead),%eax
 		mov    %esi,%edx
-		call   heapmgr_make_newest
+		call   ac_heapmgr_make_newest
 		mov    0x8(%edi),%eax
 		mov    (%eax),%edx
 		xor    %eax,%eax
