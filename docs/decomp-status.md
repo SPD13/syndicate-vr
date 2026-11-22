@@ -9,6 +9,17 @@ plan is in `docs/decompilation-agent-plan.md`.
 - Branch `decomp/auto` (pushed to `origin` = SPD13/syndicate-vr since
   2026-11-21, user request; **never** to `upstream`), on top of
   `vr/main`.
+- **State on 2026-11-21 evening** (`decomp/auto` at `8fa4b369` plus this
+  doc): 694 asm functions, **388 shadowed**, 0 queued. All 28 hooked
+  functions are merged (24 by the loop; `find_nearest_player`,
+  `process_things_mines_explode` and `BAT_unknsub_28` finished by hand,
+  see "Harness lessons of 2026-11-21"). Still asm and routed: only the
+  20 sound/network functions (excluded, for platform rewrites) and the
+  12 upstream-recent ones (kept excluded by user decision until upstream
+  settles, auto-queued about 2026-12-01). `route_labels.py --list` finds
+  no internal label left to route. The other `ASM_` bodies without a C
+  caller are dead: upstream replaced them in C (asm calls `ac_x`), or
+  nothing calls them. Total ledger cost $218.
 - **State at the handoff of 2026-11-16 evening** (`decomp/auto` at
   `e1a2e8ac`): 694 asm functions, 361 shadowed (remade in C and
   difftested), 27 queued, all reached only through the new hook
@@ -246,9 +257,8 @@ per group, all called every turn from `difftest_bot_turn()`:
 
 ## Remaining queue
 
-27 queued (the hooked functions minus the merged
-`person_clear_route_and_teleport_to_vehicle`); then only the 20
-sound/network and 12 upstream-recent remain. History before the hooks:
+Empty since 2026-11-21. Only the 20 sound/network and 12
+upstream-recent remain (both excluded, see above). History before the hooks:
 checked and found unreachable in normal scenarios: the flying vehicle goto
 (`process_vehicle_goto_point_fly/land`; nothing sets vehicle state 0x27),
 `add_agent`/`remove_agent` (campaign bookkeeping after the mission),
