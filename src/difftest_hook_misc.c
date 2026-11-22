@@ -9,6 +9,8 @@
  *     whose suffix names the hook (see difftest_suffix_has()).
  * @par Comment:
  *     Called every game turn from difftest_bot_turn().
+ *     Tokens: m_fissure, m_bat, m_cryo, m_typing, and m_pause (the sound
+ *     side of opening the pause screen, every 50 turns).
  * @author   SyndicateVR decomp agent
  * @date     16 Nov 2026
  * @par  Copying and copyrights:
@@ -35,6 +37,7 @@
 #include "keyboard.h"
 #include "player.h"
 #include "research.h"
+#include "sound.h"
 #include "thing.h"
 
 /******************************************************************************/
@@ -241,15 +244,26 @@ static void hook_typing_turn(void)
     }
 }
 
+/** What start_pause_screen() does to the sound: playing samples are muted
+ * (snd_unkn1_volume_all_samples()). Only sound state changes; the game
+ * goes on unpaused.
+ */
+static void hook_pause_turn(void)
+{
+    if ((gameturn % 50) == 25)
+        snd_unkn1_volume_all_samples();
+}
+
 void difftest_hook_misc_turn(void)
 {
-    static int on_fissure = -1, on_bat, on_cryo, on_typing;
+    static int on_fissure = -1, on_bat, on_cryo, on_typing, on_pause;
 
     if (on_fissure < 0) {
         on_fissure = difftest_suffix_has("m_fissure");
         on_bat = difftest_suffix_has("m_bat");
         on_cryo = difftest_suffix_has("m_cryo");
         on_typing = difftest_suffix_has("m_typing");
+        on_pause = difftest_suffix_has("m_pause");
     }
     if (ingame.DisplayMode != DpM_ENGINEPLY)
         return;
@@ -261,6 +275,8 @@ void difftest_hook_misc_turn(void)
         hook_cryo_turn();
     if (on_typing)
         hook_typing_turn();
+    if (on_pause)
+        hook_pause_turn();
 }
 
 #else
