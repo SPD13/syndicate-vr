@@ -19,11 +19,14 @@
 #include "vehtraffic.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 #include "bfutility.h"
 #include "bigmap.h"
 #include "building.h"
 #include "difftest.h"
+#include "engincam.h"
+#include "enginzoom.h"
 #include "game.h"
 #include "game_speed.h"
 #include "thing.h"
@@ -1132,10 +1135,194 @@ void VNAV_init_new_traffic_system(void)
     game_traffic_nodes = p_nodes;
 }
 
-void traffic_unkn_func_01(void)
+extern s32 dword_1556F0;
+extern s32 dword_1556F4;
+extern s32 dword_1556F8;
+extern s32 dword_1556FC;
+extern s32 dword_155700;
+extern s32 data_1dd8fc;
+extern s32 data_1dd900;
+extern s32 data_1dd904;
+extern s32 data_1dd908;
+extern ushort data_1dd90a;
+extern s32 data_1dd90c;
+extern s32 data_1dd910;
+extern s32 data_1dd914;
+extern s32 data_1dd918;
+
+static DIFFTEST_REF_FUNC void traffic_unkn_func_01_asm(void)
 {
     asm volatile ("call ASM_traffic_unkn_func_01\n"
         :  :  : "eax" );
+}
+
+void traffic_unkn_func_01(void)
+{
+    struct TrafficNode *p_tnode;
+    struct TrafficNode *p_lnode;
+    s32 node_x, node_y, node_z;
+    s32 dt_x, dt_y, dt_z;
+    s32 abs_x, abs_y, abs_z;
+    s32 dist, mv_x, mv_y, mv_z;
+    s32 delta, vel;
+    ushort i;
+    int k;
+
+    DIFFTEST_SHADOW(traffic_unkn_func_01, traffic_unkn_func_01_asm());
+    if (data_1dd91c == 0)
+    {
+        render_area_a = render_area_b = 40;
+        for (i = 1; i < next_traffic_node; i++)
+        {
+            p_tnode = &game_traffic_nodes[i];
+            if (p_tnode->Flags == 0xff)
+                continue;
+            if ((p_tnode->Flags & 0x1000) == 0)
+                continue;
+            break;
+        }
+        if (i >= next_traffic_node)
+        {
+            char locstr[100];
+            sprintf(locstr, "next_traffic = %d\n", (int)next_traffic_node);
+        }
+        data_1dd91c = (short)i;
+        p_tnode = &game_traffic_nodes[data_1dd91c];
+        dword_1556F4 = p_tnode->X;
+        dword_1556F8 = p_tnode->Y;
+        dword_1556FC = p_tnode->Z;
+        for (k = 0; k < 4; k++)
+        {
+            if (p_tnode->UTraffic.Link[k] == 0)
+                continue;
+            if ((p_tnode->UTraffic.Flags[k] & 0xC0) == 0)
+                continue;
+            p_lnode = &game_traffic_nodes[-p_tnode->UTraffic.Link[k]];
+            delta = (ushort)arctan(p_lnode->X - dword_1556F4,
+              -(p_lnode->Z - dword_1556FC));
+            delta <<= 5;
+            data_1dd910 = 0;
+            data_1dd908 = delta;
+            data_1dd918 = delta;
+        }
+    }
+
+    p_tnode = &game_traffic_nodes[data_1dd91c];
+    node_x = p_tnode->X;
+    node_y = p_tnode->Y;
+    node_z = p_tnode->Z;
+    dt_x = node_x - dword_1556F4;
+    dt_y = node_y - dword_1556F8;
+    dt_z = node_z - dword_1556FC;
+    if (dt_x * dt_x + dt_y * dt_y + dt_z * dt_z < 0x40000)
+    {
+        for (k = 0; k < 4; k++)
+        {
+            ushort fl;
+
+            if (p_tnode->UTraffic.Link[k] == 0)
+                continue;
+            if ((p_tnode->UTraffic.Flags[k] & 0xC0) != 0)
+            {
+                p_lnode = &game_traffic_nodes[-p_tnode->UTraffic.Link[k]];
+                dt_x = p_lnode->X - node_x;
+                dt_y = p_lnode->Y - node_y;
+                dt_z = p_lnode->Z - node_z;
+                delta = (ushort)arctan(dt_x, -dt_z);
+                data_1dd918 = delta << 5;
+                continue;
+            }
+            data_1dd91c = p_tnode->UTraffic.Link[k];
+            data_1dd91c = -p_tnode->UTraffic.Link[k];
+            if ((game_traffic_nodes[data_1dd91c].Flags & 0x0400) != 0)
+                dword_155700 = 0x400;
+            if ((game_traffic_nodes[data_1dd91c].Flags & 0x0008) != 0)
+                dword_155700 = 0x800;
+            if ((game_traffic_nodes[data_1dd91c].Flags & 0x0800) != 0)
+                dword_155700 = 0x1000;
+            fl = game_traffic_nodes[data_1dd91c].Flags;
+            if ((fl & 0x10) != 0)
+                dword_1556F0 = -70;
+            else if ((fl & 0x20) != 0)
+                dword_1556F0 = -250;
+            else
+                dword_1556F0 = -125;
+        }
+    }
+
+    abs_x = abs(dt_x);
+    abs_y = abs(dt_y);
+    abs_z = abs(dt_z);
+    if (abs_x > abs_y && abs_x > abs_z)
+        dist = abs_x - (abs_x >> 4) + ((abs_y + abs_z) >> 1) - ((abs_y + abs_z) >> 3);
+    else if (abs_x <= abs_y && abs_y > abs_z)
+        dist = abs_y - (abs_y >> 4) + ((abs_x + abs_z) >> 1) - ((abs_x + abs_z) >> 3);
+    else
+        dist = abs_z - (abs_z >> 4) + ((abs_x + abs_y) >> 1) - ((abs_x + abs_y) >> 3);
+    if (dist == 0)
+        dist = 1;
+
+    mv_x = (dword_155700 * dt_x) / dist;
+    mv_y = (dword_155700 * dt_y) / dist;
+    mv_z = (dword_155700 * dt_z) / dist;
+    mv_x = (mv_x - data_1dd8fc) >> 3;
+    mv_z = (mv_z - data_1dd904) >> 3;
+    mv_y = (mv_y - data_1dd900) >> 3;
+    if (mv_x < -200)
+        mv_x = -200;
+    if (mv_x > 200)
+        mv_x = 200;
+    if (mv_y < -200)
+        mv_y = -200;
+    if (mv_y > 200)
+        mv_y = 200;
+    if (mv_z < -200)
+        mv_z = -200;
+    if (mv_z > 200)
+        mv_z = 200;
+
+    data_1dd8fc += mv_x;
+    data_1dd904 += mv_z;
+    data_1dd900 += mv_y;
+    dword_1556F4 += data_1dd8fc >> 4;
+    engn_xc = dword_1556F4;
+    dword_1556F8 += data_1dd900 >> 4;
+    engn_yc = dword_1556F8;
+    dword_1556FC += data_1dd904 >> 4;
+    engn_zc = dword_1556FC;
+
+    delta = data_1dd918 - data_1dd908;
+    if (delta < -0x8000)
+        delta += 0x10000;
+    if (delta > 0x8000)
+        delta -= 0x10000;
+    delta = (delta - data_1dd910) >> 3;
+    if (delta < -350)
+        delta = -350;
+    if (delta > 350)
+        delta = 350;
+    vel = data_1dd910 + delta;
+    data_1dd908 += vel >> 3;
+    // Clears the upper half of data_1dd908
+    data_1dd90a = 0;
+    engn_cam_yaw = data_1dd908;
+    data_1dd910 = vel;
+
+    delta = dword_1556F0 - data_1dd90c;
+    if (delta < -0x400)
+        delta += 0x800;
+    if (delta > 0x400)
+        delta -= 0x800;
+    delta = (delta - data_1dd914) >> 3;
+    if (delta < -25)
+        delta = -25;
+    if (delta > 25)
+        delta = 25;
+    vel = data_1dd914 + delta;
+    data_1dd90c += vel >> 3;
+    data_1dd914 = vel;
+    data_1dd90c &= 0x7FF;
+    engn_cam_tilt = data_1dd90c;
 }
 
 void process_next_tnode(struct Thing *p_vehicle)
