@@ -1168,11 +1168,148 @@ int process_things_mines_explode(int affected_max)
     DIFFTEST_RETURN(0);
 }
 
-void process_things_unkn_sub2(int tech_lv, int got_many)
+static DIFFTEST_REF_FUNC void process_things_unkn_sub2_asm(int tech_lv, int got_many)
 {
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+    /* Same list head layout issue as in process_things_mines_explode_asm(). */
+    ushort *p_orig_used_head = (ushort *)&sthings_empty_head + 1;
+    ushort saved = *p_orig_used_head;
+    *p_orig_used_head = (ushort)sthings_used_head;
+#endif
     asm volatile (
       "call ASM_process_things_unkn_sub2\n"
-        : : "a" (tech_lv), "d" (got_many));
+        : : "a" (tech_lv), "d" (got_many) : "cc", "memory");
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+    *p_orig_used_head = saved;
+#endif
+}
+
+/** Weapon "worth" ranks, copy of data_155d54 in asm. */
+static const ubyte drop_weapon_rank[32] = {
+    0x00, 0x01, 0x02, 0x05, 0x06, 0x0e, 0x13, 0x04,
+    0x08, 0x00, 0x0d, 0x14, 0x12, 0x11, 0x10, 0x0f,
+    0x0b, 0x00, 0x03, 0x00, 0x00, 0x00, 0x0e, 0x00,
+    0x0a, 0x09, 0x15, 0x07, 0x0b, 0x11, 0x00, 0x00,
+};
+
+/** Dropped item StartFrame per weapon type (vtable_e063c in asm). */
+static const ushort drop_weapon_start_frame[26] = {
+    0x422, 0x3eb, 0x41f, 0x41f, 0x41f, 0x3eb, 0x43f, 0x3eb,
+    0x41f, 0x3eb, 0x440, 0x43f, 0x440, 0x43f, 0x3eb, 0x41f,
+    0x3eb, 0x41f, 0x3eb, 0x3eb, 0x41f, 0x3eb, 0x3eb, 0x3eb,
+    0x3eb, 0x3eb,
+};
+
+void process_things_unkn_sub2(int tech_lv, int got_many)
+{
+    static const ubyte bucket_width[] = {
+        2, 2, 3, 4, 6, 5, 4, 4, 6, 8, 7, 10, 13, 13, 15, 8,
+        13, 6, 5, 8, 8, 8,
+    };
+    static const ubyte bucket_wtype[] = {
+        0x02, 0x12, 0x1b, 0x07, 0x0b, 0x0a, 0x04, 0x03,
+        0x08, 0x0d, 0x0c, 0x1a, 0x0f, 0x05, 0x06, 0x16,
+        0x1c, 0x15, 0x19, 0x10, 0x1d, 0x11,
+    };
+    static const ubyte range_add[] = {4, 13, 13, 21, 36, 42, 21, 8};
+    s32 range, rnd, wtype;
+    int i;
+
+    DIFFTEST_SHADOW(process_things_unkn_sub2,
+      process_things_unkn_sub2_asm(tech_lv, got_many));
+
+    if ((u32)(tech_lv - 1) > 7)
+        return;
+    // Fall-through switch: sum of increments from the tech level down to 1
+    range = 0;
+    for (i = tech_lv - 1; i >= 0; i--)
+        range += range_add[i];
+    if (range == 0)
+        return;
+
+    rnd = (s32)(ushort)LbRandomAnyShort() % range;
+    if (rnd < 0) {
+        wtype = 0x01;
+    } else {
+        wtype = -1;
+        for (i = 0; i < (int)(sizeof(bucket_width)/sizeof(bucket_width[0])); i++)
+        {
+            if (rnd < bucket_width[i]) {
+                wtype = bucket_wtype[i];
+                break;
+            }
+            rnd -= bucket_width[i];
+        }
+        if (wtype == -1) {
+            if (rnd >= 0)
+                return;
+            wtype = 0x14;
+        }
+    }
+
+    if (got_many == 0)
+    {
+        struct SimpleThing *p_item;
+        s32 prc_x, prc_z, cor_x, cor_y, cor_z;
+
+        do
+        {
+            prc_x = (s32)(ushort)LbRandomAnyShort() % 480;
+            prc_z = (s32)(ushort)LbRandomAnyShort() % 480;
+            prc_x = (prc_x + 16) << 14;
+            prc_z = (prc_z + 16) << 14;
+        }
+        while (!is_this_a_nice_place_for_a_picnic(prc_x, prc_z));
+        cor_z = prc_z >> 8;
+        cor_x = prc_x >> 8;
+        cor_y = alt_at_point((short)cor_x, (short)cor_z) >> 8;
+        p_item = create_item(cor_x, cor_y, cor_z, 1004, (ubyte)wtype);
+        if (p_item == NULL)
+            return;
+        if ((wtype == WEP_ELEMINE) || (wtype == WEP_EXPLMINE))
+        {
+            p_item->Radius = 50;
+            p_item->Timer1 = 999;
+            p_item->StartTimer1 = 999;
+        }
+        return;
+    }
+    else if (got_many == 1)
+    {
+        struct SimpleThing *p_sthing;
+        s32 thing, remain, cur_wtype;
+
+        thing = sthings_used_head;
+        remain = (ushort)sthings_used;
+        // TODO: The asm walks the list only while the index is positive,
+        // but simple thing indices are negative, so the loop never runs.
+        while (thing > 0)
+        {
+            remain--;
+            if (remain == -1)
+                return;
+            p_sthing = &sthings[thing];
+            if ((p_sthing->Type == SmTT_DROPPED_ITEM) && ((LbRandomAnyShort() & 0x3) == 0))
+            {
+                cur_wtype = (ushort)p_sthing->U.UWeapon.WeaponType;
+                if ((wtype >= 0) && (wtype <= 31) && (cur_wtype >= 0) && (cur_wtype <= 31)
+                  && (drop_weapon_rank[wtype] > drop_weapon_rank[cur_wtype]))
+                {
+                    ushort sframe;
+
+                    p_sthing->U.UWeapon.WeaponType = wtype;
+                    if ((u32)wtype > 25)
+                        sframe = 0x3eb;
+                    else
+                        sframe = drop_weapon_start_frame[wtype];
+                    p_sthing->StartFrame = sframe;
+                    p_sthing->Frame = nstart_ani[sframe + 1];
+                    return;
+                }
+            }
+            thing = p_sthing->LinkChild;
+        }
+    }
 }
 
 static DIFFTEST_REF_FUNC int process_things_bang_asm(int affected_max)
