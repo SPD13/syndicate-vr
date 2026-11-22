@@ -42,6 +42,7 @@
 #include "ssampply.h"
 #include "ssamplst.h"
 
+#include "difftest.h"
 #include "display.h"
 #include "game_data.h"
 #include "game_options.h"
@@ -152,11 +153,40 @@ int heapmgr_free_oldest(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void heapmgr_make_newest(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void heapmgr_make_newest_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_heapmgr_make_newest\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Moves a heap item to the newest end of the age list.
+ * a1 is the heap header, a2 the item; the item keeps the older neighbour
+ * at 0x14 and the newer one at 0x18.
+ */
+void heapmgr_make_newest(int a1, int a2, int a3, int a4)
+{
+    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
+    ubyte *p_item = (ubyte *)a2;
+    ubyte *p_newer;
+    ubyte *p_older;
+    s32 newest;
+
+    DIFFTEST_SHADOW(heapmgr_make_newest, heapmgr_make_newest_asm(a1, a2, a3, a4));
+    p_newer = (ubyte *)*(s32 *)(p_item + 0x18);
+    if (p_newer == NULL)
+        return;
+    p_older = (ubyte *)*(s32 *)(p_item + 0x14);
+    *(s32 *)(p_newer + 0x14) = (s32)p_older;
+    if (p_older != NULL)
+        *(s32 *)(p_older + 0x18) = *(s32 *)(p_item + 0x18);
+    else
+        p_hmhead->field_1C = *(s32 *)(p_item + 0x18);
+    *(s32 *)((ubyte *)p_hmhead->field_20 + 0x18) = (s32)p_item;
+    newest = p_hmhead->field_20;
+    *(s32 *)(p_item + 0x18) = 0;
+    *(s32 *)(p_item + 0x14) = newest;
+    p_hmhead->field_20 = (s32)p_item;
 }
 
 
