@@ -101,7 +101,8 @@ struct unkn_mech_struc3 { // sizeof=0x76
 
 struct unkn_mech_struc4 { // sizeof=0x7A
     short thing;
-    ubyte field_2[33];
+    ubyte field_2;
+    struct unkn_mech_struc4 *field_3[8];
     short field_23;
     s32 field_25;
     s32 field_29;
@@ -521,10 +522,115 @@ int init_unkn1thing(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int 
 }
 
 
-void mech_unkn_func_09(ThingIdx thing)
+static DIFFTEST_REF_FUNC void mech_unkn_func_09_asm(ThingIdx thing)
 {
     asm volatile ("call ASM_mech_unkn_func_09\n"
         : : "a" (thing));
+}
+
+/** Initial part offsets of a mech, X/Y/Z of each of its 12 parts. */
+extern s32 data_1554f8[12];
+extern s32 data_155528[12];
+extern s32 data_155558[12];
+
+/** Parts of a mech: prim object offset, part id, field_79 and children
+ * (relative indices within the mech).
+ */
+struct MechPartInit {
+    s32 prim_offs;
+    short part_id;
+    ubyte field_79;
+    ubyte nchild;
+    ubyte child[4];
+};
+
+static const struct MechPartInit mech_parts_init[12] = {
+    {0x1a,  0, 1, 3, {1, 6, 11, 0}},
+    {0x00,  1, 0, 2, {2, 4, 0, 0}},
+    {0x24,  3, 1, 1, {3, 0, 0, 0}},
+    {0x26,  5, 1, 0, {0, 0, 0, 0}},
+    {0x25,  4, 1, 1, {5, 0, 0, 0}},
+    {0x27,  6, 1, 0, {0, 0, 0, 0}},
+    {0x00,  2, 0, 4, {7, 8, 9, 10}},
+    {0x22,  7, 1, 0, {0, 0, 0, 0}},
+    {0x23,  8, 1, 0, {0, 0, 0, 0}},
+    {0x21,  9, 1, 0, {0, 0, 0, 0}},
+    {0x20, 10, 1, 0, {0, 0, 0, 0}},
+    {0x1b, 11, 1, 0, {0, 0, 0, 0}},
+};
+
+void mech_unkn_func_09(ThingIdx thing)
+{
+    s32 offs_x[12], offs_y[12], offs_z[12];
+    struct Thing *p_thing;
+    struct M33 *p_mat;
+    struct unkn_mech_struc3 *p_u3itm;
+    struct unkn_mech_struc4 *p_u4itm;
+    s32 cor_x, cor_y, cor_z;
+    s32 base;
+    s32 scale;
+    int i, k;
+
+    DIFFTEST_SHADOW(mech_unkn_func_09, mech_unkn_func_09_asm(thing));
+    scale = 0x40;
+    memcpy(offs_x, data_1554f8, sizeof(offs_x));
+    memcpy(offs_y, data_155528, sizeof(offs_y));
+    memcpy(offs_z, data_155558, sizeof(offs_z));
+    p_thing = &things[thing];
+    cor_x = p_thing->X;
+    cor_y = p_thing->Y;
+    cor_z = p_thing->Z;
+    p_mat = &local_mats[p_thing->U.UVehicle.MatrixIndex];
+    base = unkn_mech_var10;
+    for (i = 0; i < 12; i++)
+    {
+        offs_x[i] *= 4;
+        offs_y[i] *= -4;
+        offs_z[i] *= 4;
+    }
+
+    p_u3itm = &unkn_mech_arr3[unkn_mech_var11];
+    p_u3itm->mech3_arr4_ptr = &unkn_mech_arr4[unkn_mech_var10];
+    p_u3itm->mech3_unkn_arr4_idx = unkn_mech_var10;
+    memcpy(&p_u3itm->mech3_unkn_mat_C, &unkn_mech_mat8, sizeof(struct M33));
+    // The asm clears six dwords at 0x3C..0x53, spanning several fields
+    memset(p_u3itm->mech3_unkn_fld_3C, 0, 0x54 - 0x3C);
+    p_u3itm->mech3_unkn_X = cor_x;
+    p_u3itm->mech3_unkn_Y = cor_y;
+    p_u3itm->mech3_unkn_Z = cor_z;
+
+    p_thing = &things[thing];
+    matrix_identity_fill(&local_mats[p_thing->U.UVehicle.MatrixIndex]);
+    p_thing->Flag = 0x04000000;
+    p_thing->U.UVehicle.TNode = 4;
+    p_thing->Owner = (short)unkn_mech_var11;
+    VNAV_unkn_func_207(p_thing);
+
+    for (i = 0; i < 12; i++)
+    {
+        const struct MechPartInit *p_part;
+        int new_thing;
+
+        p_part = &mech_parts_init[i];
+        new_thing = init_unkn1thing((int)p_mat, 0, 0, 0, scale, scale, scale,
+          p_part->prim_offs);
+        p_u4itm = &unkn_mech_arr4[unkn_mech_var10];
+        p_u4itm->thing = (short)new_thing;
+        p_u4itm->field_23 = p_part->part_id;
+        p_u4itm->field_79 = p_part->field_79;
+        p_u4itm->field_61.R[0] = offs_x[i];
+        p_u4itm->field_61.R[1] = offs_y[i];
+        p_u4itm->field_61.R[2] = offs_z[i];
+        p_u4itm->field_2 = p_part->nchild;
+        for (k = 0; k < p_part->nchild; k++) {
+            p_u4itm->field_3[k] = &unkn_mech_arr4[base + p_part->child[k]];
+        }
+        unkn_mech_var10++;
+    }
+
+    p_u3itm = &unkn_mech_arr3[unkn_mech_var11];
+    unkn_mech_var11++;
+    p_u3itm->mech3_unkn_fld_8 = 12;
 }
 
 void veh_add(struct Thing *p_vehicle, short frame)
