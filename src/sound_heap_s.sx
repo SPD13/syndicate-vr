@@ -243,14 +243,14 @@ GLOBAL_FUNC(ASM_heapmgr_free_oldest)	/* 0x0DFBF8 */
 	jump_dfc20:
 		mov    %eax,%edx
 		mov    %ebx,%eax
-		call   heapmgr_free_handle
+		call   ac_heapmgr_free_handle
 		pop    %edx
 		pop    %ebx
 		ret
 
 
 /*----------------------------------------------------------------*/
-heapmgr_free_handle:	/* 0x0DFC2C */
+GLOBAL_FUNC(ASM_heapmgr_free_handle)	/* 0x0DFC2C */
 /*----------------------------------------------------------------*/
 		push   %ebx
 		push   %ecx
