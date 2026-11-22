@@ -16,6 +16,7 @@ or in registers other than eax, ebp not saved.
 Usage:
   python tools/decomp-agent/route_labels.py --list         # analysis only
   python tools/decomp-agent/route_labels.py --apply [names...]
+  --sx src/other.sx works on another asm file (default src/swars.sx).
 Check the result with statetrace.sh against the base build: routing must not
 change behaviour, and the per-function difftest cannot see wrapper mistakes.
 """
@@ -426,8 +427,12 @@ def main():
     ap.add_argument('--list', action='store_true')
     ap.add_argument('--apply', action='store_true')
     ap.add_argument('--force', action='append', default=[])
+    ap.add_argument('--sx', default=None, help='asm file (default src/swars.sx)')
     ap.add_argument('names', nargs='*')
     args = ap.parse_args()
+    if args.sx:
+        global SX
+        SX = os.path.join(REPO, args.sx)
     lines, funcs, order = parse_asm()
     q = json.load(open(os.path.join(HERE, 'queue.json')))['targets']
     # internal labels called by queued (or low-coverage) targets

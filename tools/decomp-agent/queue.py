@@ -22,9 +22,11 @@ COVERAGE = os.path.join(HERE, 'coverage.json')
 # Calls in the scenarios needed for a target to be verifiable (coverage.sh)
 MIN_COVERAGE_CALLS = 5
 
-# Subsystems left for platform rewrites instead of conversion
-EXCLUDE_FILE_RE = re.compile(r'(radica|net|ailssa|bfsmack|sound|dos)', re.I)
-EXCLUDE_NAME_RE = re.compile(r'^(net_|LbNet|ipx|smack|snd_|sound_|ail_|AIL_|dos_|joy_)', re.I)
+# Subsystems left for platform rewrites instead of conversion. The game
+# side of sound (src/sound*.sx) is converted since 2026-11-22; network
+# stays out (solo play first).
+EXCLUDE_FILE_RE = re.compile(r'(radica|net|ailssa|bfsmack|dos)', re.I)
+EXCLUDE_NAME_RE = re.compile(r'^(net_|LbNet|ipx|smack|ail_|AIL_|dos_|joy_)', re.I)
 
 LABEL_RE = re.compile(r'^\s*GLOBAL_FUNC\s*\(\s*(\w+)\s*\)|^(\w+):')
 INSN_RE = re.compile(r'^\s+[a-z]')
