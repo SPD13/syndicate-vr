@@ -14491,10 +14491,39 @@ void person_persuade_person(struct Thing *p_person)
     }
 }
 
-void process_support_person(struct Thing *p_person)
+static DIFFTEST_REF_FUNC void process_support_person_asm(struct Thing *p_person)
 {
     asm volatile ("call ASM_process_support_person\n"
         : : "a" (p_person));
+}
+
+void process_support_person(struct Thing *p_person)
+{
+    struct Thing *p_owner;
+
+    DIFFTEST_SHADOW(process_support_person, process_support_person_asm(p_person));
+    p_owner = &things[p_person->GotoThingIndex];
+
+    if (p_person->U.UPerson.Mood != p_owner->U.UPerson.Mood)
+    {
+        p_person->U.UPerson.Mood = p_owner->U.UPerson.Mood;
+        p_person->Speed = calc_person_speed(p_person);
+    }
+
+    if ((p_owner->Flag & TngF_Destroyed) != 0)
+    {
+        p_person->State = PerSt_NONE;
+        p_person->U.UPerson.ComCur = p_owner->U.UPerson.ComCur;
+        return;
+    }
+
+    if ((p_owner->PTarget != NULL) && (p_owner->U.UPerson.WeaponTurn != 0))
+        p_person->PTarget = p_owner->PTarget;
+
+    if (p_person->PTarget != NULL)
+        try_and_kill_target(p_person);
+    else
+        person_goto_person_nav(p_person);
 }
 
 void person_use_vehicle(struct Thing *p_person)
