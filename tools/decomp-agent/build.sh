@@ -1,11 +1,14 @@
 #!/bin/bash
 # Build syndwarsfx (32-bit, MSYS2 MINGW32 or Linux -m32; 64-bit with --x64).
-# Usage: tools/decomp-agent/build.sh [--check] [--reconf] [--difftest|--coverage|--dos-network|--harness|--x64]
+# Usage: tools/decomp-agent/build.sh [--check] [--reconf] [--difftest|--coverage|--dos-network|--harness|--x64|--arm64]
 #   Builds into <repo>/build/release (or build/difftest with --difftest).
 # --harness: 32-bit, with the game-run test harness and no asm (build/harness).
 # --x64: 64-bit (MSYS2 MINGW64, or native gcc on Linux), with the test
 #   harness, into build/x64; its DLLs are copied next to the exe, so that it
 #   does not pick the 32-bit ones of the game data folder.
+# --arm64: Linux only, cross build for aarch64 with the test harness into
+#   build/arm64, against the libraries of $SWARS_ARM64_SYSROOT (default
+#   ~/arm64-sysroot, made of Ubuntu arm64 .debs); runs under qemu-aarch64.
 WANT_SYS=MINGW32
 for a in "$@"; do [ "$a" = "--x64" ] && WANT_SYS=MINGW64; done
 # On Windows, re-run inside MSYS2 when called from another shell (Git Bash
@@ -29,6 +32,7 @@ for a in "$@"; do
     --dos-network) VARIANT=dosnet; EXTRA_CONF="--enable-dos-network" ;;
     --harness) VARIANT=harness; EXTRA_CONF="--enable-test-harness" ;;
     --x64) VARIANT=x64; EXTRA_CONF="--enable-test-harness" ;;
+    --arm64) VARIANT=arm64; EXTRA_CONF="--enable-test-harness" ;;
     *) echo "unknown arg $a" >&2; exit 2 ;;
     esac
 done
@@ -46,7 +50,22 @@ if [ $RECONF -eq 1 ] || [ ! -f Makefile ]; then
     FL="-m32 -fno-PIC -fno-PIE"
     [ "$VARIANT" = x64 ] && FL=""
     CC="ccache gcc"; command -v ccache >/dev/null || CC=gcc
-    CC="$CC" CFLAGS="$FL -g" CXXFLAGS="$FL -g" LDFLAGS="$FL" \
+    if [ "$VARIANT" = arm64 ]; then
+        SYSROOT="${SWARS_ARM64_SYSROOT:-$HOME/arm64-sysroot}"
+        ML=aarch64-linux-gnu
+        FL="-I$SYSROOT/usr/include -I$SYSROOT/usr/include/$ML"
+        LDX="-L$SYSROOT/usr/lib/$ML -Wl,-rpath-link,$SYSROOT/usr/lib/$ML:$SYSROOT/usr/lib/$ML/pulseaudio"
+        CC="$ML-gcc"; command -v ccache >/dev/null && CC="ccache $CC"
+        export CXX="${SWARS_ARM64_CXX:-$ML-g++}"
+        export PKG_CONFIG_LIBDIR="$SYSROOT/usr/lib/$ML/pkgconfig:$SYSROOT/usr/share/pkgconfig"
+        export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+        EXTRA_CONF="$EXTRA_CONF --host=$ML"
+    fi
+    # Outside Windows the data path is fixed at configure time; the test
+    # scripts run the game from the game data folder, as on Windows
+    case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) ;; *)
+        EXTRA_CONF="$EXTRA_CONF --with-data-path=${SWARS_DATA_PATH:-.}" ;; esac
+    CC="$CC" CFLAGS="$FL -g" CXXFLAGS="$FL -g" LDFLAGS="$FL ${LDX:-}" \
         "$REPO/configure" --prefix=/ --disable-lb-wscreen-control $EXTRA_CONF \
         > configure.log 2>&1 || { tail -30 configure.log; exit 1; }
 fi
@@ -73,7 +92,7 @@ fi
 if [ "$VARIANT" = x64 ] && command -v ldd >/dev/null && [ -f src/syndwarsfx.exe ]; then
     ldd src/syndwarsfx.exe | awk '$3 ~ /^\/mingw64\// {print $3}' | xargs -r cp -u -t src/
 fi
-echo "BUILD OK: $BDIR/src/syndwarsfx.exe"
+echo "BUILD OK: $BDIR/src"
 if [ $CHECK -eq 1 ]; then
     if ! make -j"$JOBS" check > check.log 2>&1; then
         grep -E '^(FAIL|ERROR|# )' check.log | head -40

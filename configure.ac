@@ -279,6 +279,11 @@ AS_IF([test "$need_underscore" = "yes"], [
   CPPFLAGS="$CPPFLAGS -DNEED_UNDERSCORE=1"
 ])
 
+# The code reads bytes as plain char and expects them signed, as on x86;
+# ARM and other targets have unsigned char by default
+CFLAGS="$CFLAGS -fsigned-char"
+CXXFLAGS="$CXXFLAGS -fsigned-char"
+
 CFLAGS="$CFLAGS -Wall -Wextra -Wno-unused-parameter"
 CFLAGS="$CFLAGS -include \"\$(top_builddir)/src/config.h\""
 

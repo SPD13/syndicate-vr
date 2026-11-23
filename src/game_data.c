@@ -18,6 +18,8 @@
 /******************************************************************************/
 #include "game_data.h"
 
+#include <string.h>
+#include <strings.h>
 #include <assert.h>
 #include "bffile.h"
 #include "bfdir.h"

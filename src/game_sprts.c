@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "game_sprts.h"
 
+#include <string.h>
 #include <assert.h>
 #include "bffile.h"
 #include "bfmemory.h"

@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "devcreds.h"
 
+#include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 

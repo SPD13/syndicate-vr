@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "feoptions.h"
 
+#include <string.h>
 #include "bftext.h"
 #include "bfsprite.h"
 #include "bfkeybd.h"

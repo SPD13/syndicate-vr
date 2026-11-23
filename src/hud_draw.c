@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "hud_draw.h"
 
+#include <string.h>
 #include "bfmath.h"
 #include "bfscreen.h"
 #include "bftext.h"

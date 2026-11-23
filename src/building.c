@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "building.h"
 
+#include <string.h>
 #include <assert.h>
 #include <stdlib.h>
 #include "bfmath.h"

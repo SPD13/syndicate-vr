@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "felogin.h"
 
+#include <string.h>
 #include "bffont.h"
 #include "bfkeybd.h"
 #include "bftext.h"

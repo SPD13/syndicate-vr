@@ -7874,7 +7874,7 @@ static void statetrace_turn(void)
         const char *fname = getenv("SWARS_STATETRACE");
         tried = true;
         if (fname != NULL)
-            fp = fopen(fname, "w");
+            fp = fopen(fname, "wb"); // LF on every OS, for diffing
     }
     if (fp == NULL)
         return;

@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "game_save.h"
 
+#include <string.h>
 #include "bffile.h"
 #include "bfstrut.h"
 #include <assert.h>

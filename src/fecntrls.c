@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "fecntrls.h"
 
+#include <string.h>
 #include "bfkeybd.h"
 #include "bftext.h"
 #include "bfutility.h"

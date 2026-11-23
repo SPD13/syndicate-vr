@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "femain.h"
 
+#include <string.h>
 #include "bfgentab.h"
 #include "bftext.h"
 #include "bfkeybd.h"

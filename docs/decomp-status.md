@@ -57,9 +57,20 @@ plan is in `docs/decompilation-agent-plan.md`.
   64-bit Windows, which the traces verify. The asm of reference
   functions is `DIFFTEST_ASM(...)`, empty without difftest, as clang
   rejects x86 register constraints on other targets.
-- Not verified: a Linux or arm64 compile (no WSL, no cross compiler on
-  this PC); game behaviour that depends on the C library (e.g. msvcrt
-  rand() outside the harness) may differ between systems.
+- Linux and arm64, 2026-11-23 (WSL Ubuntu 26.04, see CLAUDE.md): native
+  x64 build and aarch64 cross build (`build.sh --x64` / `--arm64`, the
+  arm64 one run with qemu-user). Fixes: missing `<string.h>` includes;
+  `LONG_MAX`/`ULONG_MAX` stored in 32-bit variables (became -1 on LP64:
+  sffind, ailss, mssxdig, mssxmidi, gtext); `-fsigned-char` for all
+  code (bflib_test_sprdrw failed on arm64 without it); two random draws
+  in one expression (player.c cryo agents' Sex, the bot's mood packet)
+  split into statements, since arm64 evaluates arguments in another
+  order (all +bot traces differed); state trace
+  written in binary mode (Windows traces had CRLF). Results: make check
+  7/7 on both; the 52 traces of both equal the 32-bit asm reference.
+- Not verified: macOS, Android, and clang builds; game behaviour that
+  depends on the C library (e.g. msvcrt rand() outside the harness) may
+  differ between systems.
 - **Asm-free single player build, 2026-11-22/23** (user goal: no asm in a
   build without difftest; network left aside). Done so far:
   - `thing_expld_s`, `thing_fire_s`, `bflib_vidraw_s` assembled only for

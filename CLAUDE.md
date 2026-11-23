@@ -45,9 +45,31 @@ lack clobber lists and break under optimisation.
   `SWARS_TRACE_BUILD=x64 tools/decomp-agent/statetrace.sh <dir>` traces
   it; the traces must equal those of the 32-bit build (`diff -r`).
   `tools/decomp-agent/run_x64.sh [build] [mission] [secs]` runs it.
+- Linux (WSL Ubuntu, clone in `~/swars`, game data copied to
+  `~/gamedata`): `build.sh --x64` builds natively (data path `.`);
+  `build.sh --arm64` cross builds for aarch64 against
+  `~/arm64-sysroot` (made by `tools/decomp-agent/arm64_sysroot.py`, no
+  root needed; C++ cross compiler from `SWARS_ARM64_CXX` if
+  `aarch64-linux-gnu-g++` is not installed). The arm64 exe runs under
+  qemu with `QEMU_LD_PREFIX=/usr/aarch64-linux-gnu` and `LD_LIBRARY_PATH`
+  set to the sysroot's `usr/lib/aarch64-linux-gnu` (and its
+  `pulseaudio/`); `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy` for
+  traces; `statetrace_par.sh <build> <outdir> [jobs]` runs the traces in
+  parallel and sets these. Traces of Linux x64 and arm64 equal the
+  32-bit reference.
+- All code is built with `-fsigned-char`: the decompiled code reads bytes
+  as plain `char` and expects them signed, as on x86 (ARM's `char` is
+  unsigned). New code uses `sbyte`/`ubyte` anyway.
+- Never put two calls with side effects (random draws above all) in one
+  expression or argument list: their order is unspecified, and gcc
+  evaluates arguments right to left on x86 but left to right on arm64.
+  Use separate statements, in the order the x86 build used.
+- Include the headers you use (`<string.h>` for `strlen`, ...): MinGW
+  pulls them in indirectly, glibc does not.
 - Write code that works with 64-bit pointers and LP64 `long`:
   - no `long`/`ulong`: use `s32`/`u32` (`int32_t`/`uint32_t` in
     bfsoundlib) and `%d`/`%u`/`%x` formats; `long` is 64 bits on Linux.
+    Same for limits: `INT32_MAX`/`UINT32_MAX`, not `LONG_MAX`/`ULONG_MAX`.
   - never store a pointer in an int type: raw register arguments that may
     carry pointers are `intptr_t`, address arithmetic uses `uintptr_t`.
   - structs read from or written to files keep the file layout: if they

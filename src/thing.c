@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "thing.h"
 
+#include <string.h>
 #include "bfbox.h"
 #include "bfutility.h"
 #include "bfmath.h"

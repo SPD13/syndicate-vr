@@ -319,7 +319,7 @@ int32_t SS_configure_buffers(DIG_DRIVER *digdrv)
             digdrv->DDT->format_data[digdrv->hw_format].maximum_physical_sample_rate;
 
         match = DIG_F_STEREO_16;
-        delta = LONG_MAX;
+        delta = INT32_MAX;
         for (i = 0; i < 3; i++)
         {
             if (abs(n - pref[i]) <= delta) {
@@ -368,7 +368,7 @@ int32_t SS_configure_buffers(DIG_DRIVER *digdrv)
 
     // Round half-buffer size to nearest binary power between 8 and
     // DIG_DMA_RESERVE / 2; ensure result within driver limits
-    delta = LONG_MAX;
+    delta = INT32_MAX;
     match = bsmax;
 
     for (n = 8; n <= (AIL_preference[DIG_DMA_RESERVE] / 2); n <<= 1)

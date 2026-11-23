@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "player.h"
 
+#include <string.h>
 #include <assert.h>
 #include "bfutility.h"
 #include "ssampply.h"
@@ -69,6 +70,7 @@ void player_mission_agents_toggle_reset(PlayerIdx plyr)
 void cryo_agents_assign_random_names_and_sex(void)
 {
     ushort name_rnd, name_rnd_limit;
+    u32 sex_hi, sex_lo;
     ushort i;
 
     if (background_type == 1) {
@@ -95,7 +97,11 @@ void cryo_agents_assign_random_names_and_sex(void)
         cryo_agents.RandomName[slot2] = tmpval;
     }
 
-    cryo_agents.Sex = (LbRandomAnyShort() << 16) | LbRandomAnyShort();
+    // Separate statements: the operand order of `|` is unspecified, and
+    // differs between targets; high half first, as the x86 builds do
+    sex_hi = LbRandomAnyShort();
+    sex_lo = LbRandomAnyShort();
+    cryo_agents.Sex = (sex_hi << 16) | sex_lo;
 }
 
 void cryo_agent_clear_wep_mod(ushort cryo_no)

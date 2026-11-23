@@ -176,6 +176,11 @@ AC_CHECK_FUNCS([getcwd memmove memset mkdir rmdir])
 
 # Flags
 
+# The code reads bytes as plain char and expects them signed, as on x86;
+# ARM and other targets have unsigned char by default
+CFLAGS="$CFLAGS -fsigned-char"
+CXXFLAGS="$CXXFLAGS -fsigned-char"
+
 CFLAGS="$CFLAGS $SDL_CFLAGS"
 CXXFLAGS="$CXXFLAGS $SDL_CFLAGS"
 LIBS="$LIBS $SDL_LIBS"

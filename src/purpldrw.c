@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "purpldrw.h"
 
+#include <string.h>
 #include "bfconfig.h"
 #include "bfutility.h"
 #include "bfmemut.h"

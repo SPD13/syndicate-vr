@@ -169,7 +169,7 @@ int32_t XDIG_MIDI_trap(MDI_DRIVER *mdidrv, SNDSEQUENCE *seq,
         // sample for this note
         if (voice == ws->n_voices)
         {
-            t = ULONG_MAX;
+            t = UINT32_MAX;
             for (i = 0; i < ws->n_voices; i++)
             {
                 if (ws->time[i] <= t) {

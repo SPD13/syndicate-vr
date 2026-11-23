@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "hud_panel.h"
 
+#include <string.h>
 #include <assert.h>
 #include "bfanywnd.h"
 #include "bffont.h"

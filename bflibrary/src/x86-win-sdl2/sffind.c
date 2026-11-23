@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include "privbflog.h"
@@ -97,16 +98,16 @@ static void convert_find_info(struct TbFileFind *ffind)
 #endif
     ffind->AlternateFilename[sizeof(ffind->AlternateFilename)-1] = '\0';
 #if defined(LB_FILE_FIND_SIMULATED)
-    if (fdata->st.st_size > ULONG_MAX)
-        ffind->Length = ULONG_MAX;
+    if (fdata->st.st_size > UINT32_MAX)
+        ffind->Length = UINT32_MAX;
     else
         ffind->Length = fdata->st.st_size;
     ffind->Attributes = S_ISDIR(fdata->st.st_mode) ? Lb_FILE_ATTR_SUBDIR : Lb_FILE_ATTR_NORMAL;
     LbDateTimeDecode(&fdata->st.st_ctime, &ffind->CreationDate, &ffind->CreationTime);
     LbDateTimeDecode(&fdata->st.st_mtime, &ffind->LastWriteDate, &ffind->LastWriteTime);
 #else
-    if (fdata->size > ULONG_MAX)
-        ffind->Length = ULONG_MAX;
+    if (fdata->size > UINT32_MAX)
+        ffind->Length = UINT32_MAX;
     else
         ffind->Length = fdata->size;
     ffind->Attributes = fdata->attrib; /* our Lb_FILE_ATTR_* flags are compatible with Windows definitions */

@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "fenet.h"
 
+#include <string.h>
 #include <assert.h>
 
 #include "bffont.h"

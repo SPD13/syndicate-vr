@@ -621,9 +621,15 @@ static void bot_build(struct Thing *p_agent, struct Packet *p_pckt)
         build_packet(p_pckt, PAct_FOLLOW_PERSON, agent, target, 0, 0);
         break;
     case 18:
-        build_packet(p_pckt, bot_rand(2) ? PAct_AGENT_SET_MOOD :
-          PAct_GROUP_SET_MOOD, agent, (int)bot_rand(201) - 100, 0, 0);
+    {
+        // Two random draws: keep them in separate statements, as argument
+        // evaluation order differs between targets (this is the order of
+        // the x86 builds which made the reference traces)
+        int mood = (int)bot_rand(201) - 100;
+        ushort action = bot_rand(2) ? PAct_AGENT_SET_MOOD : PAct_GROUP_SET_MOOD;
+        build_packet(p_pckt, action, agent, mood, 0, 0);
         break;
+    }
     case 19:
         build_packet(p_pckt, PAct_PEEPS_SCATTER, agent,
           PRCCOORD_TO_MAPCOORD(p_agent->X), 0, PRCCOORD_TO_MAPCOORD(p_agent->Z));

@@ -2148,7 +2148,7 @@ int32_t AIL2OAL_API_lock_channel(MDI_DRIVER *mdidrv)
     // Search for highest channel # with lowest note activity,
     // skipping already-locked and protected physical channels
     ch = -1;
-    best = LONG_MAX;
+    best = INT32_MAX;
 
     for (i = AIL_MAX_LOCK_CHAN; i >= AIL_MIN_LOCK_CHAN; i--)
     {

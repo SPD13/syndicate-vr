@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "feworld.h"
 
+#include <string.h>
 #include "bfkeybd.h"
 #include "bfmemut.h"
 #include "bfsprite.h"

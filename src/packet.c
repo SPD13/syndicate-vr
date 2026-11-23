@@ -20,6 +20,7 @@
 /******************************************************************************/
 #include "packet.h"
 
+#include <string.h>
 #include "bffile.h"
 #include "bfmemut.h"
 #include "bfutility.h"

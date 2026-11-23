@@ -83,6 +83,11 @@ AC_TYPE_UINT8_T
 
 # Flags
 
+# The code reads bytes as plain char and expects them signed, as on x86;
+# ARM and other targets have unsigned char by default
+CFLAGS="$CFLAGS -fsigned-char"
+CXXFLAGS="$CXXFLAGS -fsigned-char"
+
 CFLAGS="$CFLAGS -Wall -Wextra -Wno-unused-parameter"
 CFLAGS="$CFLAGS -include \"\$(top_builddir)/include/swrendconf.h\""
 
