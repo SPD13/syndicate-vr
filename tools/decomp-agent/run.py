@@ -205,7 +205,7 @@ def attempt(t, args):
         compared = m[-1] if m else '?'
         git('checkout', '-q', '--', *[f for f in git('ls-files', cwd=wt).stdout.split()
                                        if f.endswith('pkg.m4')], cwd=wt, check=False)
-        git('add', '-A', 'src', cwd=wt)
+        git('add', '-A', 'src', 'bfariadne', cwd=wt)
         msg = ('syndwarsfx: Remade %s()\n\n'
                'Verified by difftest, %s compared calls.\n%s\n\n'
                'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n'
