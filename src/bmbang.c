@@ -53,12 +53,193 @@ void bang_init(void)
     phwoar_init();
 }
 
+static DIFFTEST_REF_FUNC void fillin_phwoar_type_info_asm(struct Phwoar *p_phwoar)
+{
+    asm volatile ("call ASM_fillin_phwoar_type_info\n"
+        : : "a" (p_phwoar) : "cc", "memory");
+}
+
+/** Sets the frame and fields of a phwoar; the frame index gets a random
+ * 0..3 offset added to vf_base.
+ */
+static void phwoar_set_type_info(struct Phwoar *p_phwoar, ushort ani,
+  ubyte gestation, ubyte rabbit, sbyte die, ubyte vf_base)
+{
+    ushort rnd;
+
+    p_phwoar->f = nstart_ani[ani];
+    rnd = LbRandomAnyShort();
+    p_phwoar->gestation = gestation;
+    p_phwoar->rabbit = rabbit;
+    p_phwoar->die = die;
+    p_phwoar->vf = (rnd & 3) + vf_base;
+}
+
+/** Variant with a random gestation time as well.
+ */
+static void phwoar_set_type_info_rnd(struct Phwoar *p_phwoar, ubyte vf_base,
+  ubyte rabbit, ushort gest_mask)
+{
+    ushort rnd;
+
+    p_phwoar->f = nstart_ani[900];
+    rnd = LbRandomAnyShort();
+    p_phwoar->vf = (rnd & 3) + vf_base;
+    rnd = LbRandomAnyShort();
+    p_phwoar->rabbit = rabbit;
+    p_phwoar->die = 0xe;
+    p_phwoar->gestation = (rnd & gest_mask) + 3;
+}
+
 /** Fill in the type-specific fields of a freshly allocated Phwoar entry.
  */
 void fillin_phwoar_type_info(struct Phwoar *p_phwoar)
 {
-    asm volatile ("call ASM_fillin_phwoar_type_info\n"
-        : : "a" (p_phwoar) : "cc", "memory");
+    DIFFTEST_SHADOW(fillin_phwoar_type_info, fillin_phwoar_type_info_asm(p_phwoar));
+    switch (p_phwoar->type)
+    {
+    case 0x31:
+    case 0x3b:
+    case 0x45:
+    case 0x95:
+    case 0xbd:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x75);
+        break;
+    case 0x32:
+        phwoar_set_type_info_rnd(p_phwoar, 0x35, 0xd6, 7);
+        break;
+    case 0x33:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x35, 0xe, 0x07);
+        break;
+    case 0x34:
+    case 0x77:
+    case 0x8b:
+    case 0x9f:
+    case 0xb3:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x65);
+        break;
+    case 0x35:
+    case 0x78:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x23, 0xe, 0x07);
+        break;
+    case 0x3c:
+        phwoar_set_type_info_rnd(p_phwoar, 0x25, 0xd9, 3);
+        break;
+    case 0x3d:
+    case 0x47:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x39, 0xe, 0x07);
+        break;
+    case 0x3f:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x57);
+        break;
+    case 0x40:
+    case 0x82:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x26, 0xe, 0x07);
+        break;
+    case 0x46:
+        phwoar_set_type_info_rnd(p_phwoar, 0x25, 0xd8, 3);
+        break;
+    case 0x48:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x55);
+        break;
+    case 0x49:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x24, 0xe, 0x05);
+        break;
+    case 0x52:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x47);
+        break;
+    case 0x53:
+    case 0x55:
+    case 0x57:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x25);
+        break;
+    case 0x54:
+    case 0x5a:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x03, 0xe, 0x0b);
+        break;
+    case 0x56:
+        phwoar_set_type_info(p_phwoar, 900, 0x01, 0x03, 0xe, 0x0b);
+        break;
+    case 0x58:
+        phwoar_set_type_info(p_phwoar, 900, 0x02, 0x03, 0xe, 0x0b);
+        break;
+    case 0x59:
+    case 0x60:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x77);
+        break;
+    case 0x5e:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x17);
+        break;
+    case 0x5f:
+        phwoar_set_type_info(p_phwoar, 900, 0x0c, 0x07, 0xe, 0x03);
+        break;
+    case 0x61:
+        phwoar_set_type_info(p_phwoar, 900, 0x0c, 0x23, 0xe, 0x03);
+        break;
+    case 0x62:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x73);
+        break;
+    case 0x63:
+    case 0x8c:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x25, 0xe, 0x07);
+        break;
+    case 0x64:
+        phwoar_set_type_info(p_phwoar, 905, 0xff, 0x00, 0x4, 0x45);
+        break;
+    case 0x65:
+        phwoar_set_type_info(p_phwoar, 908, 0xff, 0x00, 0x7, 0x75);
+        break;
+    case 0x67:
+        phwoar_set_type_info(p_phwoar, 908, 0xff, 0x00, 0x7, 0x25);
+        break;
+    case 0x68:
+        phwoar_set_type_info(p_phwoar, 908, 0x00, 0x04, 0x7, 0x0b);
+        break;
+    case 0x69:
+        phwoar_set_type_info(p_phwoar, 908, 0xff, 0x00, 0x7, 0x15);
+        break;
+    case 0x6a:
+        phwoar_set_type_info(p_phwoar, 908, 0x00, 0x09, 0x7, 0x0b);
+        break;
+    case 0x6e:
+        phwoar_set_type_info(p_phwoar, 908, 0xff, 0x00, 0x7, 0x35);
+        break;
+    case 0x6f:
+        phwoar_set_type_info(p_phwoar, 908, 0x00, 0x23, 0x7, 0x07);
+        break;
+    case 0x71:
+        phwoar_set_type_info(p_phwoar, 925, 0xff, 0x00, 0x1, 0x11);
+        break;
+    case 0x72:
+        phwoar_set_type_info(p_phwoar, 925, 0x00, 0x05, 0x1, 0x01);
+        break;
+    case 0x81:
+    case 0xa9:
+        phwoar_set_type_info(p_phwoar, 900, 0xff, 0x00, 0xe, 0x45);
+        break;
+    case 0x96:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x28, 0xe, 0x07);
+        break;
+    case 0xa0:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x13, 0xe, 0x07);
+        break;
+    case 0xaa:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x16, 0xe, 0x07);
+        break;
+    case 0xb4:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x15, 0xe, 0x07);
+        break;
+    case 0xbe:
+        phwoar_set_type_info(p_phwoar, 900, 0x00, 0x18, 0xe, 0x07);
+        break;
+    default:
+    {
+        char locstr[32];
+        // The original only formats the message into a local buffer
+        sprintf(locstr, "bad phwoar type %d", (int)p_phwoar->type);
+        break;
+    }
+    }
 }
 
 void new_bang(int x, int y, int z, int type, int owner, int c)
