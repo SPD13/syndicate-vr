@@ -9,6 +9,26 @@ plan is in `docs/decompilation-agent-plan.md`.
 - Branch `decomp/auto` (pushed to `origin` = SPD13/syndicate-vr since
   2026-11-21, user request; **never** to `upstream`), on top of
   `vr/main`.
+- **Sound, 2026-11-22** (`decomp/auto` at `7a7b9b5c`): the game side of
+  sound is done. The 5 sound heap labels and `heapmgr_free_handle` were
+  routed (state traces identical), a `m_pause` hook (scenario
+  `0,5+bot+m_pause`, 52 scenarios) reaches `snd_unkn1_volume_all_samples`,
+  and the loop remade all 15 functions of `sound_smp_s.sx` and
+  `sound_heap_s.sx` on the first pass. Then `af229aa4` made builds without
+  difftest free of sound asm: the sound data moved into `sound.c` (the
+  asm references it), `swars.sx` calls `ac_set_dist_volume`, both files
+  are assembled only with `--enable-difftest` (AM_CONDITIONAL
+  `ENABLE_DIFFTEST`), and without difftest `DIFFTEST_REF_FUNC` is
+  `inline` so unused reference functions need no `ASM_` symbol.
+  `7a7b9b5c` stopped building the dead DOS mixer `ailssa.sx`. The sound
+  library itself (`bfsoundlib`, OpenAL) was already C. Network stays
+  excluded (solo play first). Next candidates for the same step, with no
+  live function left: `bat_s.sx`, `bflib_vidraw_s.sx`,
+  `thing_expld_s.sx`, `thing_fire_s.sx`; `swars.sx` still has the 12
+  upstream-recent functions.
+- State traces were noisy once: 8 of 51 differed in a run started right
+  after a full build, all matched on rerun. Rerun differing traces
+  before trusting them.
 - **State on 2026-11-21 evening** (`decomp/auto` at `8fa4b369` plus this
   doc): 694 asm functions, **388 shadowed**, 0 queued. All 28 hooked
   functions are merged (24 by the loop; `find_nearest_player`,
