@@ -219,11 +219,12 @@ struct HeapMgrHandle *heapmgr_add_item(struct HeapMgrHeader *p_hmhead, s32 size,
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-static DIFFTEST_REF_FUNC void heapmgr_free_handle_asm(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC ushort heapmgr_free_handle_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_heapmgr_free_handle\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return (ushort)ra;
 }
 
 /** Frees a heap item.
@@ -231,18 +232,19 @@ static DIFFTEST_REF_FUNC void heapmgr_free_handle_asm(int a1, int a2, int a3, in
  * address-ordered list (links 0x0C/0x10); unless the next item is marked
  * fixed (flag 0x04 at 0x08), moves the next item's data down to close the
  * gap. Then unlinks the item from the age list (0x14/0x18), updates the
- * header counters and clears the item. The asm leaves the item's ushort
- * at 0x0A in eax, but the function is declared void.
+ * header counters and clears the item. Returns the item's SmpId, which
+ * the asm leaves in ax; heapmgr_free_oldest() returns it.
  */
-void heapmgr_free_handle(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p_item,
+ushort heapmgr_free_handle(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p_item,
   intptr_t a3, int a4)
 {
+    ushort smp_id;
     struct HeapMgrHandle *p_prev;
     struct HeapMgrHandle *p_next;
     struct HeapMgrHandle *p_older;
     struct HeapMgrHandle *p_newer;
 
-    DIFFTEST_SHADOW(heapmgr_free_handle,
+    DIFFTEST_SHADOW_RET(heapmgr_free_handle, ushort,
       heapmgr_free_handle_asm((int)p_hmhead, (int)p_item, a3, a4));
     p_prev = p_item->Prev;
     if (p_prev != NULL)
@@ -288,7 +290,9 @@ void heapmgr_free_handle(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p
 
     p_hmhead->field_10--;
     p_hmhead->field_14 -= p_item->Size;
+    smp_id = p_item->SmpId;
     memset(p_item, 0, sizeof(struct HeapMgrHandle));
+    DIFFTEST_RETURN(smp_id);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
@@ -324,11 +328,8 @@ int heapmgr_free_oldest(struct HeapMgrHeader *p_hmhead, int a2, int a3, int a4)
         if (p_item == NULL)
             DIFFTEST_RETURN((int)-1);
     }
-    // The asm returns whatever eax the free_handle call leaves; the asm
-    // free_handle returns the item's SmpId, read before it clears the
-    // item. Read it here, as heapmgr_free_handle() is declared void.
-    smp_id = p_item->SmpId;
-    heapmgr_free_handle(p_hmhead, p_item, (intptr_t)p_hmhead, a4);
+    // The asm returns the eax the free_handle call leaves: the SmpId
+    smp_id = heapmgr_free_handle(p_hmhead, p_item, (intptr_t)p_hmhead, a4);
     DIFFTEST_RETURN(smp_id);
 }
 /** Routed asm (internal label). Arguments and return value are the
