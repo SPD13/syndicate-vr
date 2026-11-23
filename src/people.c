@@ -2789,13 +2789,92 @@ int tank_los(int a1, int a2, int a3, int a4)
 
 
 
-int build_tank_path(struct Thing *p_thing, int x, int z)
+extern struct Path g_nav_data;
+extern u32 nav_stats__ThisTurn;
+extern s32 gamep_unknval_14;
+extern s32 dword_1AA3A4;
+extern s32 dword_1AA3A8;
+
+void count_fnavs(TbBool now_draw);
+void use_nav_data(int a1, int a2, int a3, int a4);
+void fatter_than_nothing(int a1, int a2, int a3, int a4);
+
+static DIFFTEST_REF_FUNC int build_tank_path_asm(struct Thing *p_thing, int x, int z)
 {
     int ret;
     asm volatile (
       "call ASM_build_tank_path\n"
-        : "=r" (ret) : "a" (p_thing), "d" (x), "b" (z));
+        : "=a" (ret) : "a" (p_thing), "d" (x), "b" (z));
     return ret;
+}
+
+/** Prepares g_fat_data route for a tank towards given target coords
+ * (map coords, not shifted by 8), and attaches it to the thing.
+ * Returns 0 if coords are out of range, 1 otherwise.
+ */
+int build_tank_path(struct Thing *p_thing, int x, int z)
+{
+    s32 alt_x, alt_z;
+    ubyte zip;
+
+    DIFFTEST_SHADOW_RET(build_tank_path, int, build_tank_path_asm(p_thing, x, z));
+
+    // TODO the asm accepts z == 0x8000 while it rejects 0x8000 elsewhere
+    if ((p_thing->X >> 8) < 0 || (p_thing->X >> 8) >= 0x8000 ||
+      (p_thing->Z >> 8) < 0 || (p_thing->Z >> 8) >= 0x8000 ||
+      x < 0 || x >= 0x8000 ||
+      z < 0 || z > 0x8000)
+        DIFFTEST_RETURN((int)0);
+
+    zip = game_my_big_map[((p_thing->Z >> 16) << 7) + (p_thing->X >> 16)].Zip;
+    if (zip != 0)
+    {
+        gamep_unknval_14++;
+        if (game_my_big_map[((z >> 8) << 7) + (x >> 8)].Zip == zip)
+        {
+            g_fat_data.PathLength = 1;
+            g_fat_data.WayPoints[0].x8 = x << 8;
+            g_fat_data.WayPoints[0].y8 = z << 8;
+            use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+            unkn_path_func_001(p_thing, 1);
+            DIFFTEST_RETURN((int)1);
+        }
+    }
+
+    if (tank_los(p_thing->X >> 8, p_thing->Z >> 8, x, z) != 0)
+    {
+        g_fat_data.WayPoints[0].x8 = x << 8;
+        g_fat_data.WayPoints[0].y8 = z << 8;
+        g_fat_data.PathLength = 1;
+        use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+        unkn_path_func_001(p_thing, 1);
+        DIFFTEST_RETURN((int)1);
+    }
+
+    alt_x = dword_1AA3A4;
+    alt_z = dword_1AA3A8;
+    triangulation_select(2);
+    nav_stats__ThisTurn++;
+    path_init8_tank((int)(intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
+      x << 8, z << 8, -2);
+    if (g_nav_data.PathLength != 0)
+    {
+        fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data,
+          0x100, x << 8);
+        use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+        unkn_path_func_001(p_thing, 1);
+        triangulation_select(1);
+        DIFFTEST_RETURN((int)1);
+    }
+
+    count_fnavs((TbBool)-1);
+    triangulation_select(1);
+    g_fat_data.WayPoints[0].x8 = alt_x << 8;
+    g_fat_data.PathLength = 1;
+    g_fat_data.WayPoints[0].y8 = alt_z << 8;
+    use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+    unkn_path_func_001(p_thing, 1);
+    DIFFTEST_RETURN((int)1);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
