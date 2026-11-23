@@ -599,13 +599,43 @@ void update_map_flags(void)
     }
 }
 
-uint sea_texture(int tex)
+extern ubyte textwalk_data[];
+
+static DIFFTEST_REF_FUNC uint sea_texture_asm(int tex)
 {
     uint ret;
     asm volatile (
       "call ASM_sea_texture\n"
-        : "=r" (ret) : "a" (tex));
+        : "=a" (ret) : "a" (tex));
     return ret;
+}
+
+uint sea_texture(int tex)
+{
+    struct SingleFloorTexture *p_fltextr;
+    int tmapX_min, tmapY_min;
+
+    DIFFTEST_SHADOW_RET(sea_texture, uint, sea_texture_asm(tex));
+    p_fltextr = &game_textures[tex];
+
+    tmapX_min = p_fltextr->TMapX1;
+    if (tmapX_min >= p_fltextr->TMapX2)
+        tmapX_min = p_fltextr->TMapX2;
+    if (tmapX_min >= p_fltextr->TMapX3)
+        tmapX_min = p_fltextr->TMapX3;
+    if (tmapX_min >= p_fltextr->TMapX4)
+        tmapX_min = p_fltextr->TMapX4;
+
+    tmapY_min = p_fltextr->TMapY1;
+    if (tmapY_min >= p_fltextr->TMapY2)
+        tmapY_min = p_fltextr->TMapY2;
+    if (tmapY_min >= p_fltextr->TMapY3)
+        tmapY_min = p_fltextr->TMapY3;
+    if (tmapY_min >= p_fltextr->TMapY4)
+        tmapY_min = p_fltextr->TMapY4;
+
+    DIFFTEST_RETURN((uint)(textwalk_data[64 * p_fltextr->Page
+      + 8 * (tmapY_min >> 5) + (tmapX_min >> 5)] & 0x02));
 }
 
 TbBool map_floor_is_water(MapCoord cor_x, MapCoord cor_z)
