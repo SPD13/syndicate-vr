@@ -124,6 +124,7 @@
 #include "purpldrwlst.h"
 #include "building.h"
 #include "campaign.h"
+#include "crtrand.h"
 #include "cybmod.h"
 #include "packet.h"
 #include "pathtrig.h"
@@ -720,10 +721,6 @@ void update_danger_music(ubyte a1)
 
 void fill_floor_textures(void)
 {
-#if 0
-    asm volatile ("call ASM_fill_floor_textures\n"
-        :  :  : "eax" );
-#endif
     struct SingleFloorTexture *p_fltextr;
     uint i;
 
@@ -764,11 +761,6 @@ void fill_floor_textures(void)
 
 void fill_netgame_agent_pos(int plyr, int group, int num_agents)
 {
-#if 0
-    asm volatile (
-      "call ASM_fill_netgame_agent_pos\n"
-        : : "a" (plyr), "d" (group), "b" (num_agents));
-#endif
     ThingIdx thing;
     struct Thing *p_thing;
     short plagent;
@@ -1101,11 +1093,6 @@ void process_view_inputs(int thing)
 
 void check_mouse_overvehicle(struct Thing *p_thing, ubyte target_assign)
 {
-#if 0
-    asm volatile ("call ASM_check_mouse_overvehicle\n"
-        : : "a" (p_thing), "d" (target_assign));
-    return;
-#endif
     struct ShEnginePoint sp;
     int cor_x, cor_y, cor_z;
     int ms_dx, ms_dy, tng_dim;
@@ -2776,11 +2763,6 @@ struct Thing *find_unused_train_track(void)
 }
 void create_train_for_each_track(void)
 {
-#if 0
-    asm volatile ("call ASM_create_train_for_each_track\n"
-        :  :  : "eax" );
-    return;
-#endif
     ushort k;
 
     k = 0;
@@ -3100,10 +3082,6 @@ void init_level(void)
 
 void init_level_3d(ubyte flag)
 {
-#if 0
-    asm volatile ("call ASM_init_level_3d\n"
-        : : "a" (flag));
-#endif
     ushort i;
 
     if (flag)
@@ -3146,11 +3124,6 @@ void init_level_3d(ubyte flag)
 
 void place_multiplayer_agent_groups(void)
 {
-#if 0
-    asm volatile ("call ASM_place_multiplayer_agent_groups\n"
-        :  :  : "eax" );
-    return;
-#endif
     PlayerIdx plyr;
 
     for (plyr = 0; plyr < 8; plyr++)
@@ -3213,10 +3186,6 @@ void place_multiplayer_agent_groups(void)
 
 void init_game_controls(void)
 {
-#if 0
-    asm volatile ("call ASM_init_game_controls\n"
-        :  :  : "eax" );
-#endif
     reset_user_groups();
     reset_user_input();
 
@@ -3251,11 +3220,6 @@ struct Thing *unkn_create_random_person(int cor_x, int cor_y, int cor_z,
 
 void simulated_level(void)
 {
-#if 0
-    asm volatile ("call ASM_simulated_level\n"
-        :  :  : "eax" );
-    return;
-#endif
     int i;
     ushort tl_z, tl_x;
     MapCoord cor_x, cor_y, cor_z;
@@ -3472,13 +3436,13 @@ void init_random_seed(void)
             lbSeed = strtoul(getenv("SWARS_SEED"), NULL, 0);
 #endif
     }
-    srand(lbSeed);
+    game_srand(lbSeed);
 }
 
 void init_random_seed_default(void)
 {
     lbSeed = 0xD15C1234;
-    srand(lbSeed);
+    game_srand(lbSeed);
 }
 
 void preprogress_game_turns(void)
@@ -4144,10 +4108,6 @@ TbBool game_setup(void)
  */
 void mapwho_unkn01(int cent_tile_x, int cent_tile_z)
 {
-#if 0
-    asm volatile ("call ASM_mapwho_unkn01\n"
-        : : "a" (cent_tile_x), "d" (cent_tile_z));
-#endif
     int i;
     int dx, dz;
     int tl_x, tl_z;
@@ -4607,12 +4567,6 @@ ubyte load_game_slot(ubyte click)
 
 ubyte save_game_slot(ubyte click)
 {
-#if 0
-    ubyte ret;
-    asm volatile ("call ASM_save_game_slot\n"
-        : "=r" (ret) : "a" (click));
-    return ret;
-#endif
     char *slot_str;
     int ret;
 
@@ -4670,10 +4624,6 @@ void init_unkn6_adjustable_variables(void)
 
 void init_agents(void)
 {
-#if 0
-    asm volatile ("call ASM_init_agents\n"
-        :  :  : "eax" );
-#endif
     PlayerIdx plyr;
     ushort cryo_no;
 
@@ -5843,12 +5793,6 @@ void do_scroll_map(void)
 
 ubyte weapon_select_input(void)
 {
-#if 0
-    ubyte ret;
-    asm volatile ("call ASM_weapon_select_input\n"
-        : "=r" (ret) : );
-    return ret;
-#endif
     PlayerInfo *p_locplayer;
     struct Packet *p_pckt;
     ThingIdx dcthing;
@@ -5934,11 +5878,6 @@ ubyte weapon_select_input(void)
 
 void do_rotate_map(void)
 {
-#if 0
-    asm volatile ("call ASM_do_rotate_map\n"
-        :  :  : "eax" );
-    return;
-#endif
 
     short rotate_input = 0;
     if (is_gamekey_pressed(GKey_VIEW_SPIN_R))
@@ -6011,12 +5950,6 @@ void do_rotate_map(void)
 
 ubyte process_mouse_inputs(void)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_process_mouse_inputs\n"
-        : "=r" (ret) : );
-    return ret;
-#endif
     PlayerInfo *p_locplayer;
     struct Thing *p_agent;
     struct Packet *p_pckt;
@@ -6811,10 +6744,6 @@ void show_menu_screen_st0(void)
 
 void update_mission_time(TbBool a1)
 {
-#if 0
-    asm volatile ("call ASM_update_mission_time\n"
-        : : "a" (a1));
-#endif
     if (a1)
     {
         // dword_1C4B84 = gameturn; //TODO no function - remove
@@ -7511,12 +7440,6 @@ ubyte critical_action_input(void)
 
 ubyte process_send_person(PlayerIdx plyr, ubyte dmuser)
 {
-#if 0
-    ubyte ret;
-    asm volatile ("call ASM_process_send_person\n"
-        : "=r" (ret) : "a" (plyr), "d" (dmuser));
-    return ret;
-#endif
     PlayerInfo *p_player;
     TbBool usrinp_is_goto_point;
 

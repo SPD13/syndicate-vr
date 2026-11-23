@@ -543,13 +543,6 @@ short find_and_set_connected_face(struct Thing *p_thing, int x, int z, short fac
 void check_mouse_over_face(struct PolyPoint *p_pt0, struct PolyPoint *p_pt1,
   struct PolyPoint *p_pt2, int face, int type)
 {
-#if 0
-    asm volatile (
-      "push %4\n"
-      "call ASM_check_mouse_over_face\n"
-        : : "a" (p_pt0), "d" (p_pt1), "b" (p_pt2), "c" (face), "g" (type));
-    return;
-#endif
     struct SingleObjectFace3 *p_face3;
     struct SingleObjectFace4 *p_face4;
     struct SingleObject *p_sobj;

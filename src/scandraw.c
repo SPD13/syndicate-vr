@@ -509,12 +509,6 @@ void SCANNER_map_line_sample(void)
  */
 void SCANNER_map_line_sample_blend(void)
 {
-#if 0
-    asm volatile (
-      "call ASM_SCANNER_map_line_sample_blend\n"
-        :  :  : "eax" );
-    return;
-#endif
     ubyte tile_x, tile_z;
     u32 frac_x, frac_z;
     ubyte step_int_x, step_int_z;

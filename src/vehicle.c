@@ -341,11 +341,6 @@ void mech_clear_all_fld72(void)
 
 void mech_unkn_func_02(void)
 {
-#if 0
-    asm volatile ("call ASM_mech_unkn_func_02\n"
-        :  :  : "eax" );
-    return;
-#endif
     unkn_mech_var10 = 0;
     unkn_mech_var11 = 0;
 
@@ -354,12 +349,6 @@ void mech_unkn_func_02(void)
 
 int load_mech_dat(const char *fname)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_load_mech_dat\n"
-        : "=r" (ret) : "a" (fname));
-    return ret;
-#endif
     TbFileHandle fh;
     int i, k;
 
@@ -400,10 +389,6 @@ int load_mech_dat(const char *fname)
 
 void init_mech(void)
 {
-#if 0
-    asm volatile ("call ASM_init_mech\n"
-        :  :  : "eax" );
-#endif
     u32 a1idx;
 
     unkn_mech_arr4 = &unkn_mech_stct7->field_3B0[0];
@@ -635,11 +620,6 @@ void mech_unkn_func_09(ThingIdx thing)
 
 void veh_add(struct Thing *p_vehicle, short frame)
 {
-#if 0
-    asm volatile ("call ASM_veh_add\n"
-        : : "a" (p_vehicle), "d" (frame));
-    return;
-#endif
     struct Thing *p_mgun;
     struct SingleObject *p_snobj;
     short coord_x, coord_y, coord_z;
@@ -1496,13 +1476,6 @@ TbBool vehicle_stopped_on_tnode(struct Thing *p_vehicle)
  */
 TbBool check_two_vehicles(struct Thing *p_vehA, struct Thing *p_vehB)
 {
-#if 0
-    TbBool ret;
-    asm volatile (
-      "call ASM_check_two_vehicles\n"
-        : "=r" (ret) : "a" (p_vehA), "d" (p_vehB));
-    return ret;
-#endif
     if (abs(p_vehA->U.UVehicle.AngleDY) > 20)
         return false;
 
@@ -1769,13 +1742,6 @@ static TbBool check_vehicle_col_on_same_mapel(struct Thing *p_vehicle, struct My
  */
 TbBool check_vehicle_col(struct Thing *p_vehicle)
 {
-#if 0
-    TbBool ret;
-    asm volatile (
-      "call ASM_check_vehicle_col\n"
-        : "=r" (ret) : "a" (p_vehicle));
-    return ret;
-#endif
     ushort r;
     struct M33 *p_matA;
     int rad_incl_speed, matA02, matA22;
@@ -5583,11 +5549,6 @@ void vehicle_check_outside_map(struct Thing *p_vehicle)
 
 void process_vehicle(struct Thing *p_vehicle)
 {
-#if 0
-    asm volatile ("call ASM_process_vehicle\n"
-        : : "a" (p_vehicle));
-    return;
-#endif
     if ((p_vehicle->Flag & TngF_Destroyed) == 0)
         p_vehicle->OldTarget = 0;
     if (p_vehicle->U.UVehicle.RecoilTimer > 0)

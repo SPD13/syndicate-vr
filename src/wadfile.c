@@ -80,12 +80,6 @@ TbResult wadfile_find_index_entry(struct WADIndexEntry *fentry, const char *wadf
 
 TbFileHandle open_file_from_wad(const char *filename, const char *wadfile)
 {
-#if 0
-    TbFileHandle ret;
-    asm volatile ("call ASM_open_file_from_wad\n"
-        : "=r" (ret) : "a" (filename), "d" (wadfile));
-    return ret;
-#else
     char locfname[DISKPATH_SIZE];
     char locstr[64];
     struct WADIndexEntry fentry;
@@ -107,7 +101,6 @@ TbFileHandle open_file_from_wad(const char *filename, const char *wadfile)
 
     LbFileSeek(fh, fentry.Offset, Lb_FILE_SEEK_BEGINNING);
     return fh;
-#endif
 }
 
 int load_file_wad(const char *filename, const char *wadfile, void *outbuf)

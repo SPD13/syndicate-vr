@@ -442,11 +442,6 @@ void draw_panel_objective_info(short panel)
 
 void panel_objective_info_mp_update(void)
 {
-#if 0
-    asm volatile ("call ASM_panel_objective_info_mp_update\n"
-        :  :  : "eax" );
-    return;
-#endif
     char locstr[32];
     int player_unkn2[8];
     ushort teams_unun1[8];

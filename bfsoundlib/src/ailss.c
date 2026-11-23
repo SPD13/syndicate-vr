@@ -418,13 +418,6 @@ void SS_stream_to_buffer(SNDSAMPLE *s)
 
 void AIL2OAL_API_init_sample(SNDSAMPLE *s)
 {
-#if 0
-    asm volatile (
-      "push %0\n"
-      "call ASM_AIL_API_init_sample\n"
-      "add $0x4, %%esp\n"
-        :  : "g" (s) : "eax" );
-#endif
     if (s == NULL)
         return;
 

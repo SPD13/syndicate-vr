@@ -224,15 +224,6 @@ struct Smack * RADAPI SMACKOPEN(uint32_t extrabuf, uint32_t flags, char *name)
 
     assert(sizeof(struct Smack) == 0x4AC);
     assert(sizeof(struct SmackSndTrk) == 0x70);
-#if 0
-    asm volatile (
-      "push %3\n"
-      "push %2\n"
-      "push %1\n"
-      "call ASM_SMACKOPEN\n"
-        : "=r" (p_smk) : "g" (extrabuf), "g" (flags), "g" (name));
-    return p_smk;
-#else
     uint32_t begin_time;
     uint32_t n_frames;
     uint32_t v59d;
@@ -571,7 +562,6 @@ __fail:
     RADFREE(p_smk);
     SmackTimerDone();
     return NULL;
-#endif
 }
 
 uint32_t RADAPI SMACKDOFRAME(struct Smack *p_smk)
@@ -633,12 +623,6 @@ void RADAPI SMACKTOBUFFER(uint32_t Flags, const void *buf,
  */
 TbResult play_smk_direct_rad(char *fname, u32 smkflags, ushort plyflags, ushort mode)
 {
-#if 0
-    TbResult ret;
-    asm volatile ("call ASM_play_smk_direct\n"
-        : "=r" (ret) : "a" (fname), "d" (smkflags), "b" (plyflags), "c" (mode));
-    return ret;
-#else
     struct Smack *p_smk;
     int scr_x, scr_y;
     uint frm_no;
@@ -732,7 +716,6 @@ TbResult play_smk_direct_rad(char *fname, u32 smkflags, ushort plyflags, ushort 
     }
     SMACKCLOSE(p_smk);
     return Lb_SUCCESS;
-#endif
 }
 
 // used only from old ASM - remove pending
@@ -785,12 +768,6 @@ void blit_to_screen_smk(struct SSurface *surf, u32 width, u32 height, ushort ply
  */
 TbResult play_smk_via_buffer_rad(char *fname, u32 smkflags, ushort plyflags, SmackDrawCallback callback)
 {
-#if 0
-    TbResult ret;
-    asm volatile ("call ASM_play_smk_via_buffer\n"
-        : "=r" (ret) : "a" (fname), "d" (smkflags), "b" (plyflags), "c" (callback));
-    return ret;
-#else
     struct SSurface surf;
     struct Smack *p_smk;
     uint8_t *frame_buf, *pv_frame_buf;
@@ -870,7 +847,6 @@ TbResult play_smk_via_buffer_rad(char *fname, u32 smkflags, ushort plyflags, Sma
     SMACKCLOSE(p_smk);
     LbScreenSurfaceRelease(&surf);
     return Lb_SUCCESS;
-#endif
 }
 
 #endif // asm player

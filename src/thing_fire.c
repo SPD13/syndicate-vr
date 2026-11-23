@@ -53,10 +53,6 @@ void FIRE_add_flame(ThingIdx firetng, ushort fflame)
 
 void FIRE_new(int x, int y, int z, ubyte type)
 {
-#if 0
-    asm volatile ("call ASM_FIRE_new\n"
-        : : "a" (x), "d" (y), "b" (z), "c" (type));
-#endif
     struct SimpleThing *p_fire;
     struct MyMapElement *p_mapel;
     int cor_x, cor_z;

@@ -45,10 +45,6 @@
 
 void bang_init(void)
 {
-#if 0
-    asm volatile ("call ASM_bang_init\n"
-        :  :  : "eax" );
-#endif
     shrapnel_init();
     phwoar_init();
 }
@@ -244,22 +240,6 @@ void fillin_phwoar_type_info(struct Phwoar *p_phwoar)
 
 void new_bang(int x, int y, int z, int type, int owner, int c)
 {
-#if 0
-    // Pushed through a register holding them: a "g" operand may be placed
-    // relative to the stack pointer, which each push moves.
-    int stkargs[2];
-
-    stkargs[0] = (int)(intptr_t)owner;
-    stkargs[1] = (int)(intptr_t)c;
-
-    asm volatile (
-      "push 4(%4)\n"
-      "push 0(%4)\n"
-      "call ASM_new_bang\n"
-        : : "a" (x), "d" (y), "b" (z), "c" (type), "S" (stkargs)
-        : "cc", "memory");
-    return;
-#endif
     short thing;
     struct SimpleThing *p_sthing;
     int level; // "phwoar type"/level parameter, stored into the phwoar entry

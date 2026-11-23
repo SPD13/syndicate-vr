@@ -1198,12 +1198,6 @@ short search_object_for_qface(ushort object, ubyte gflag, ubyte flag, ushort aft
 
 ThingIdx search_for_station(short X, short Z)
 {
-#if 0
-    ushort ret;
-    asm volatile ("call ASM_search_for_station\n"
-        : "=r" (ret) : "a" (x), "d" (z));
-    return ret;
-#endif
     ThingIdx thing;
     ThingFilterParams params;
 
@@ -1229,16 +1223,6 @@ ThingIdx search_for_ferry(short X, short Y, short Z, ushort R)
 struct Thing *check_for_radius_hit_person(int prc_x, int prc_y, int prc_z,
         int radius, struct Thing *p_owner, int flag, int skip)
 {
-#if 0
-    struct Thing *ret;
-    asm volatile (
-      "push %7\n"
-      "push %6\n"
-      "push %5\n"
-      "call ASM_check_for_radius_hit_person\n"
-        : "=r" (ret) : "a" (prc_x), "d" (prc_y), "b" (prc_z), "c" (radius), "g" (p_owner), "g" (flag), "g" (skip));
-    return ret;
-#else
     ThingIdx thing;
     short dtx, dtz;
     int cor_x, cor_y, cor_z;
@@ -1341,7 +1325,6 @@ struct Thing *check_for_radius_hit_person(int prc_x, int prc_y, int prc_z,
       }
     }
     return NULL;
-#endif
 }
 
 static DIFFTEST_REF_FUNC short find_nearest_person_min_asm(int x, int y, int z,

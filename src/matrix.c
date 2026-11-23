@@ -30,10 +30,6 @@ ushort next_local_mat = 1;
 
 void matrix_identity_fill(struct M33 *p_mat)
 {
-#if 0
-    asm volatile ("call ASM_matrix_identity_fill\n"
-        : : "a" (p_mat));
-#endif
     p_mat->R[0][0] = 0x4000; p_mat->R[0][1] = 0; p_mat->R[0][2] = 0;
     p_mat->R[1][0] = 0; p_mat->R[1][1] = 0x4000; p_mat->R[1][2] = 0;
     p_mat->R[2][0] = 0; p_mat->R[2][1] = 0; p_mat->R[2][2] = 0x4000;
@@ -41,10 +37,6 @@ void matrix_identity_fill(struct M33 *p_mat)
 
 void matrix_transpose_copy(struct M33 *p_mat1, struct M33 *p_mat2)
 {
-#if 0
-    asm volatile ("call ASM_matrix_transpose_copy\n"
-        :  : "a" (p_mat1),  "d" (p_mat2));
-#endif
     int row, col;
 
     for (row = 0; row < 3; row++)

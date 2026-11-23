@@ -39,13 +39,6 @@
 
 ubyte check_mouse_overlap(ushort sspr)
 {
-#if 0
-    ubyte ret;
-    asm volatile (
-      "call ASM_check_mouse_overlap\n"
-        : "=r" (ret) : "a" (sspr));
-    return ret;
-#endif
     struct ScreenBoxBase box;
     struct SortSprite *p_sspr;
     struct Frame *p_frm;
@@ -83,12 +76,6 @@ ubyte check_mouse_overlap(ushort sspr)
 
 ubyte check_mouse_overlap_item(ushort sspr)
 {
-#if 0
-    asm volatile (
-      "call ASM_check_mouse_overlap_item\n"
-        : : "a" (sspr));
-    return 0;
-#endif
     struct ScreenBoxBase box;
     struct SortSprite *p_sspr;
     struct Frame *p_frm;
@@ -132,13 +119,6 @@ ubyte check_mouse_overlap_item(ushort sspr)
 
 ubyte check_mouse_overlap_corpse(ushort sspr)
 {
-#if 0
-    ubyte ret;
-    asm volatile (
-      "call ASM_check_mouse_overlap_corpse\n"
-        : "=r" (ret) : "a" (sspr));
-    return ret;
-#endif
     struct ScreenBoxBase box;
     struct SortSprite *p_sspr;
     struct Frame *p_frm;
@@ -176,13 +156,6 @@ ubyte check_mouse_overlap_corpse(ushort sspr)
 
 ubyte check_mouse_over_netgame_enemy(ushort sspr, struct Thing *p_thing)
 {
-#if 0
-    ubyte ret;
-    asm volatile (
-      "call ASM_check_mouse_over_netgame_enemy\n"
-        : "=r" (ret) : "a" (sspr), "d" (p_thing));
-    return ret;
-#endif
     struct ScreenBoxBase box;
     struct SortSprite *p_sspr;
     struct Frame *p_frm;

@@ -716,12 +716,6 @@ void ipx_openup_listeners(void)
 
 void ipx_stop_network(int plyr)
 {
-#if 0
-    LOGDBG("Starting");
-    asm volatile ("call ASM_ipx_stop_network\n"
-        : : "a" (plyr) );
-    return;
-#endif
     TbClockMSec start_time, curr_time;
     int my_plyr;
     int i;
@@ -791,12 +785,6 @@ void ipx_stop_network(int plyr)
 
 TbResult ipx_get_player_name(char *name, int plyr)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_ipx_get_player_name\n"
-        : "=r" (ret) : "a" (name), "d" (plyr) );
-    return ret;
-#endif
     if (plyr >= 8)
         return Lb_FAIL;
     if (IPXHandler == NULL)

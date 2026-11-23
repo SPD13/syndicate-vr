@@ -689,29 +689,6 @@ short calc_angle_rate(short target_angle, short cur_angle, short *p_glow_size)
 struct SingleObjectFace4 *build_continuos_slice_3d(int near_x, int near_y, int near_z,
   int far_x, int far_y, int far_z, int w1, int w2, ubyte use_cache, ubyte col)
 {
-#if 0
-    // Pushed through a register holding them: a "g" operand may be placed
-    // relative to the stack pointer, which each push moves.
-    int stkargs[6];
-
-    stkargs[0] = (int)(intptr_t)far_y;
-    stkargs[1] = (int)(intptr_t)far_z;
-    stkargs[2] = (int)(intptr_t)w1;
-    stkargs[3] = (int)(intptr_t)w2;
-    stkargs[4] = (int)(intptr_t)use_cache;
-    stkargs[5] = (int)(intptr_t)col;
-
-    asm volatile (
-      "push 20(%4)\n"
-      "push 16(%4)\n"
-      "push 12(%4)\n"
-      "push 8(%4)\n"
-      "push 4(%4)\n"
-      "push 0(%4)\n"
-      "call ASM_build_continuos_slice_3d\n"
-        : : "a" (near_x), "d" (near_y), "b" (near_z), "c" (far_x), "S" (stkargs)
-        : "cc", "memory");
-#endif
     static short near_scr_x = 0;
     static short near_scr_y = 0;
     struct EnginePoint ep;
@@ -758,11 +735,6 @@ struct SingleObjectFace4 *build_continuos_slice_3d(int near_x, int near_y, int n
 
 void build_laser_guided_piece(struct Thing *p_laser)
 {
-#if 0
-    asm volatile ("call ASM_build_laser_guided_piece\n"
-        : : "a" (p_laser));
-    return;
-#endif
     struct Thing *p_target;
     int cur_x, cur_y, cur_z;
     int target_x, target_z;
@@ -1186,52 +1158,12 @@ static void build_laser_beam_generic(int x1, int y1, int z1, int x2, int y2, int
 
 void build_laser_beam(int x1, int y1, int z1, int x2, int y2, int z2, int itime, struct Thing *p_owner)
 {
-#if 0
-    // Pushed through a register holding them: a "g" operand may be placed
-    // relative to the stack pointer, which each push moves.
-    int stkargs[4];
-
-    stkargs[0] = (int)(intptr_t)y2;
-    stkargs[1] = (int)(intptr_t)z2;
-    stkargs[2] = (int)(intptr_t)itime;
-    stkargs[3] = (int)(intptr_t)p_owner;
-
-    asm volatile (
-      "push 12(%4)\n"
-      "push 8(%4)\n"
-      "push 4(%4)\n"
-      "push 0(%4)\n"
-      "call ASM_build_laser_beam\n"
-        : : "a" (x1), "d" (y1), "b" (z1), "c" (x2), "S" (stkargs)
-        : "cc", "memory");
-    return;
-#endif
     build_laser_beam_generic(x1, y1, z1, x2, y2, z2, itime, p_owner,
       2, colour_lookup[ColLU_WHITE], 0x1107);
 }
 
 void build_laser_beam_q(int x1, int y1, int z1, int x2, int y2, int z2, int itime, struct Thing *p_owner)
 {
-#if 0
-    // Pushed through a register holding them: a "g" operand may be placed
-    // relative to the stack pointer, which each push moves.
-    int stkargs[4];
-
-    stkargs[0] = (int)(intptr_t)y2;
-    stkargs[1] = (int)(intptr_t)z2;
-    stkargs[2] = (int)(intptr_t)itime;
-    stkargs[3] = (int)(intptr_t)p_owner;
-
-    asm volatile (
-      "push 12(%4)\n"
-      "push 8(%4)\n"
-      "push 4(%4)\n"
-      "push 0(%4)\n"
-      "call ASM_build_laser_beam_q\n"
-        : : "a" (x1), "d" (y1), "b" (z1), "c" (x2), "S" (stkargs)
-        : "cc", "memory");
-    return;
-#endif
     build_laser_beam_generic(x1, y1, z1, x2, y2, z2, itime, p_owner,
       4, colour_lookup[ColLU_BLUE], 0x1288);
 }
@@ -1254,26 +1186,6 @@ void build_laser29(struct Thing *p_thing)
 void build_razor_wire_strand(int x1, int y1, int z1,
   int x2, int y2, int z2, int itime, struct Thing *p_owner)
 {
-#if 0
-    // Pushed through a register holding them: a "g" operand may be placed
-    // relative to the stack pointer, which each push moves.
-    int stkargs[4];
-
-    stkargs[0] = (int)(intptr_t)y2;
-    stkargs[1] = (int)(intptr_t)z2;
-    stkargs[2] = (int)(intptr_t)itime;
-    stkargs[3] = (int)(intptr_t)p_owner;
-
-    asm volatile (
-      "push 12(%4)\n"
-      "push 8(%4)\n"
-      "push 4(%4)\n"
-      "push 0(%4)\n"
-      "call ASM_build_razor_wire_strand\n"
-        : : "a" (x1), "d" (y1), "b" (z1), "c" (x2), "S" (stkargs)
-        : "cc", "memory");
-    return;
-#endif
     struct EnginePoint ep_beg, ep_end;
     int pscr_dx, pscr_dy, pscr_ddepth;
     int screen_dist;
@@ -1422,11 +1334,6 @@ void build_razor_wire(struct Thing *p_thing)
 
 void build_time_pod(struct SimpleThing *p_sthing)
 {
-#if 0
-    asm volatile ("call ASM_build_time_pod\n"
-        : : "a" (p_sthing));
-    return;
-#endif
   build_polygon_circle(
     PRCCOORD_TO_MAPCOORD(p_sthing->X),
     PRCCOORD_TO_MAPCOORD(p_sthing->Y) + 10,

@@ -336,11 +336,6 @@ void draw_bang_wobble_line(struct SimpleThing *p_pow)
 
 void calc_bul_offsets(void)
 {
-#if 0
-    asm volatile ("call ASM_calc_bul_offsets\n"
-        :  :  : "eax", "cc", "memory" );
-    return;
-#endif
     int count;
     int i;
 
@@ -456,25 +451,6 @@ void build_electricity_strand(struct SimpleThing *p_sthing, ubyte itime)
 void build_electricity(int cor1_x, int cor1_y, int cor1_z,
   int cor2_x, int cor2_y, int cor2_z, int itime, struct Thing *p_owner)
 {
-#if 0
-    // Pushed through a register holding them: a "g" operand may be placed
-    // relative to the stack pointer, which each push moves.
-    int stkargs[4];
-
-    stkargs[0] = (int)(intptr_t)cor2_y;
-    stkargs[1] = (int)(intptr_t)cor2_z;
-    stkargs[2] = (int)(intptr_t)itime;
-    stkargs[3] = (int)(intptr_t)p_owner;
-
-    asm volatile (
-      "push 12(%4)\n"
-      "push 8(%4)\n"
-      "push 4(%4)\n"
-      "push 0(%4)\n"
-      "call ASM_build_electricity\n"
-        : : "a" (cor1_x), "d" (cor1_y), "b" (cor1_z), "c" (cor2_x), "S" (stkargs)
-        : "cc", "memory");
-#endif
     struct EnginePoint ep;
     int scr1_x, scr1_y;
     int scr1_depth;
@@ -1089,12 +1065,6 @@ short draw_object(int sh_x, int sh_y, int sh_z,
 int vectors_mul_by_transposed_matrix(uint vecs_num, const struct M33 *p_mat,
   const struct M31 *p_vecs1, struct M31 *p_vecs2)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_vectors_mul_by_transposed_matrix\n"
-        : "=r" (ret) : "a" (vecs_num),  "d" (p_mat),  "b" (p_vec1),  "c" (p_vec2));
-    return ret;
-#endif
     uint i;
 
     for (i = 0; i < vecs_num; i++)
@@ -1176,14 +1146,6 @@ static void mech12_norm_vec3_q14(int *p_x, int *p_y, int *p_z)
 int mech_unkn_func_12(struct M33 *p_mat1, struct M33 *p_mat2,
   int sin_angl, int cos_angl, int axis)
 {
-#if 0
-    int ret;
-    asm volatile (
-      "push %5\n"
-      "call ASM_mech_unkn_func_12\n"
-        : "=r" (ret) : "a" (p_mat1),  "d" (p_mat2),  "b" (sin_angl),  "c" (cos_angl), "g" ((int)axis));
-    return ret;
-#endif
     struct M33 work;
     int sin_neg, sin_pos, cos_val;
     int row;
@@ -1280,12 +1242,6 @@ int mech_unkn_func_12(struct M33 *p_mat1, struct M33 *p_mat2,
  */
 int mech_unkn_func_13(struct M33 *p_mat1, struct M33 *p_mat2)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_mech_unkn_func_13\n"
-        : "=r" (ret) : "a" (p_mat1),  "d" (p_mat2));
-    return ret;
-#endif
     int len_xz, len_full, len_roll;
     int cos_yaw, sin_yaw, cos_pitch, sin_pitch, cos_roll, sin_roll;
 
@@ -1441,12 +1397,6 @@ int mech_unkn_func_11(struct unkn_mech_struc4 *p_itm4,
 
 int mech_unkn_func_03(struct Thing *p_thing)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_mech_unkn_func_03\n"
-        : "=r" (ret) : "a" (p_thing));
-    return ret;
-#endif
     struct M31 bodypos;
     int mechno;
 

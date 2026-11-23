@@ -89,12 +89,6 @@ short word_1C47E8 = 0;
 
 ubyte accept_mission(ubyte click)
 {
-#if 0
-    ubyte ret;
-    asm volatile ("call ASM_accept_mission\n"
-        : "=r" (ret) : "a" (click));
-    return ret;
-#endif
     if (open_brief > 0)
     {
         change_screen = ChSCRT_WORLDMAP;
@@ -106,12 +100,6 @@ ubyte accept_mission(ubyte click)
 
 ubyte do_unkn1_CANCEL(ubyte click)
 {
-#if 0
-    ubyte ret;
-    asm volatile ("call ASM_do_unkn1_CANCEL\n"
-        : "=r" (ret) : "a" (click));
-    return ret;
-#endif
     reload_background_flag = 1;
     screentype = SCRT_99;
     return 0;

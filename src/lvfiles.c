@@ -1192,10 +1192,6 @@ void level_misc_validate(void)
 
 void level_misc_update(u32 fmtver)
 {
-#if 0
-    asm volatile ("call ASM_level_misc_update\n"
-        :  :  : "eax" );
-#endif
     int limit, i;
 
     limit = get_memory_ptr_allocated_count((void **)&game_level_miscs);

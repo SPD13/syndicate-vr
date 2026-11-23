@@ -323,13 +323,6 @@ int alt_at_point(short x, short z)
 
 int alt_at_point_under_height(int cor_x, int cor_z, int h)
 {
-#if 0
-    int ret;
-    asm volatile (
-      "call ASM_alt_at_point_under_height\n"
-        : "=r" (ret) : "a" (x), "d" (z), "b" (h));
-    return ret;
-#endif
     short tile_x, tile_z;
     ushort ccol;
     ubyte qb;

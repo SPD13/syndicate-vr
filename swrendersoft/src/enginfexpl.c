@@ -81,10 +81,6 @@ ushort explode_face_alloc(void)
 
 void FIRE_init(void)
 {
-#if 0
-    asm volatile ("call ASM_FIRE_init\n"
-        :  :  : "eax" );
-#endif
     int i;
 
     LbMemorySet(FIRE_flame, 0, sizeof(FIRE_flame));

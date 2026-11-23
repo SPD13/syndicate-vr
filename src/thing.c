@@ -33,6 +33,7 @@
 #include "bmbang.h"
 #include "bmcrater.h"
 #include "command.h"
+#include "crtrand.h"
 #include "cybmod.h"
 #include "difftest.h"
 #include "display.h"
@@ -469,10 +470,6 @@ void init_just_things(void)
 
 void init_things(void)
 {
-#if 0
-    asm volatile ("call ASM_init_things\n"
-        :  :  : "eax" );
-#endif
     things_init_times++;
     gameturn = 0;
 
@@ -1716,12 +1713,6 @@ tail:
 
 int recalc_rocket_direction(struct Thing *p_rocket)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_recalc_rocket_direction\n"
-        : "=r" (ret) : "a" (p_rocket));
-    return ret;
-#endif
     struct Thing *p_target;
     int cor_dx, cor_dy, cor_dz;
     int new_vx, new_vy, new_vz;
@@ -2263,13 +2254,6 @@ void process_mine(struct SimpleThing *p_mine)
 
 struct SimpleThing *init_nuclear_bomb(MapCoord x, MapCoord y, MapCoord z)
 {
-#if 0
-    struct SimpleThing *ret;
-    asm volatile (
-      "call ASM_init_nuclear_bomb\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z));
-    return ret;
-#endif
     struct SimpleThing *p_sthing;
     ThingIdx thing;
 
@@ -2304,11 +2288,6 @@ struct SimpleThing *init_nuclear_bomb(MapCoord x, MapCoord y, MapCoord z)
 
 void process_grenade(struct Thing *p_grenade)
 {
-#if 0
-    asm volatile (
-      "call ASM_process_grenade\n"
-        : : "a" (p_grenade));
-#endif
     if (p_grenade->Timer1 == 0)
     {
         MapCoord cor_x, cor_y, cor_z;
@@ -2450,11 +2429,6 @@ void process_razor_wire(struct Thing *p_thing)
 
 void process_air_strike(struct Thing *p_thing)
 {
-#if 0
-    asm volatile (
-      "call ASM_process_air_strike\n"
-        : : "a" (p_thing));
-#endif
     struct SimpleThing *p_sthing;
 
     p_thing->Timer1--;
@@ -2496,11 +2470,6 @@ void process_air_strike(struct Thing *p_thing)
 
 void process_unkn35_crashing(struct Thing *p_thing)
 {
-#if 0
-    asm volatile (
-      "call ASM_process_unkn35_crashing\n"
-        : : "a" (p_thing));
-#endif
     ushort rnd;
     int alt_under;
 
@@ -3100,10 +3069,6 @@ void find_and_stasis(struct SimpleThing *p_stasis, int radius)
 
 void find_and_time_travel(struct SimpleThing *p_sthing)
 {
-#if 0
-    asm volatile ("call ASM_find_and_time_travel\n"
-        :  : "a" (p_sthing));
-#endif
     struct Thing *p_hittng;
 
     p_hittng = check_for_radius_hit_person(
@@ -4919,11 +4884,6 @@ void process_splash(struct SimpleThing *p_sthing)
 
 void process_scale_effect(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
-#if 0
-    asm volatile (
-      "call ASM_process_scale_effect\n"
-        : : "a" (p_sthing), "d" (thing_item));
-#endif
     switch (p_sthing->SubType)
     {
     case 30:
@@ -5535,7 +5495,7 @@ void process_things(void)
     if (in_network_game)
     {
         if (ingame.fld_unkCB7 > 150)
-            process_things_mines_explode((rand() & 0x1F) + 2);
+            process_things_mines_explode((game_rand() & 0x1F) + 2);
         if ((net_game_play_flags & NGPF_Unkn10) != 0 && (gameturn & 0xF) == 0)
             process_things_unkn_sub2(login_control[0].TechLevel, ingame.fld_unkCB7 > 100);
         if (things_used > 900)
@@ -6065,14 +6025,6 @@ void remove_sthing(short tngno)
 
 short add_static(int x, int y, int z, ushort frame, int timer)
 {
-#if 0
-    short ret;
-    asm volatile (
-      "push %5\n"
-      "call ASM_add_static\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z), "c" (frame), "g" (timer));
-    return ret;
-#else
     ThingIdx thing;
     struct SimpleThing *p_sthing;
 
@@ -6103,7 +6055,6 @@ short add_static(int x, int y, int z, ushort frame, int timer)
     p_sthing->Flag = 4;
     p_sthing->Timer1 = timer;
     return thing;
-#endif
 }
 
 TbBool thing_is_within_circle(ThingIdx thing, short X, short Z, ushort R)
@@ -6180,11 +6131,6 @@ TbBool thing_intersects_cylinder(ThingIdx thing, short X, short Y, short Z, usho
 
 void build_same_type_headers(void)
 {
-#if 0
-    asm volatile ("call ASM_build_same_type_headers\n"
-        :  :  : "eax" );
-    return;
-#endif
     struct Thing *p_thing;
     short i;
     ThingIdx thing;
@@ -6898,13 +6844,6 @@ struct SimpleThing *create_stasis_pod(MapCoord x, MapCoord y, MapCoord z,
 struct SimpleThing *create_time_pod(MapCoord x, MapCoord y, MapCoord z,
   ushort timer)
 {
-#if 0
-    struct SimpleThing *ret;
-    asm volatile (
-      "call ASM_create_time_pod\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z), "c" (timer));
-    return ret;
-#endif
     struct SimpleThing *p_podtng;
     ThingIdx thing;
 

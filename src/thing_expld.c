@@ -578,11 +578,6 @@ static void animate_explode_face5(ushort exface, ushort npoints)
 
 void animate_explode(void)
 {
-#if 0
-    asm volatile ("call ASM_animate_explode\n"
-        :  :  : "eax" );
-    return;
-#endif
     struct ExplodeFace *p_exface;
     int i;
     int remain;
@@ -774,11 +769,6 @@ void object_explode_faces(short obj)
 
 void thing_explode_faces(struct Thing *p_thing)
 {
-#if 0
-    asm volatile ("call ASM_thing_explode_faces\n"
-        : : "a" (p_thing));
-    return;
-#endif
     int i;
     short obj;
 
@@ -793,11 +783,6 @@ void thing_explode_faces(struct Thing *p_thing)
 
 void floor_explode_faces(short tile_x, short tile_z)
 {
-#if 0
-    asm volatile ("call ASM_floor_explode_faces\n"
-        : : "a" (tile_x), "d" (tile_z));
-    return;
-#endif
     struct SortMapPoint face_pt0, face_pt1, face_pt2, face_pt3;
     struct MyMapElement *p_mapel;
     ushort eface;

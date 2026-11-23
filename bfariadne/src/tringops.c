@@ -47,14 +47,6 @@ const int MOD3[] = {0, 1, 2, 0, 1, 2};
 TrTriangId tri_split2(TrTriangId tri, TrTipId cor,
   TrCoord pt_x, TrCoord pt_y, TrPointId pt)
 {
-#if 0
-    int ret;
-    asm volatile (
-      "push %5\n"
-      "call ASM_tri_split2\n"
-        : "=r" (ret) : "a" (tri), "d" (cor), "b" (pt_x), "c" (pt_y), "g" (pt));
-    return ret;
-#endif
     struct TrTriangle *p_tri1;
     struct TrTriangle *p_tri2;
     TrTriangId tri2, tri3;
@@ -115,12 +107,6 @@ TrTriangId tri_split2(TrTriangId tri, TrTipId cor,
  */
 TrPointId tri_split3(TrTriangId btri, TrCoord pt_x, TrCoord pt_y)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_tri_split3\n"
-        : "=r" (ret) : "a" (btri), "d" (pt_x), "b" (pt_y));
-    return ret;
-#endif
     TrTriangId tri1, tri2;
     struct TrTriangle *p_tri1;
     struct TrTriangle *p_tri2;
@@ -230,12 +216,6 @@ TrPointId tri_split3(TrTriangId btri, TrCoord pt_x, TrCoord pt_y)
 
 TrPointId edge_split(TrTriangId tri, TrTipId cor, TrCoord pt_x, TrCoord pt_y)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_edge_split\n"
-        : "=r" (ret) : "a" (tri), "d" (cor), "b" (pt_x), "c" (pt_y));
-    return ret;
-#endif
     struct TrTriangle *p_tri;
     struct TrTriangle *p_tri_sec;
     TrPointId pt;
@@ -268,12 +248,6 @@ TrPointId edge_split(TrTriangId tri, TrTipId cor, TrCoord pt_x, TrCoord pt_y)
 
 int edge_rotateAC(TrTriangId tri1, TrTipId cor1)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_edge_rotateAC\n"
-        : "=r" (ret) : "a" (tri1), "d" (cor1));
-    return ret;
-#endif
     struct TrTriangle *p_tri1;
     p_tri1 = &triangulation[0].Triangles[tri1];
 
@@ -385,12 +359,6 @@ int edge_rotateAC(TrTriangId tri1, TrTipId cor1)
 
 TbBool insert_point(TrCoord pt_x, TrCoord pt_y)
 {
-#if 0
-    asm volatile (
-      "call ASM_insert_point\n"
-        : : "a" (pt_x), "d" (pt_y));
-    return true;
-#endif
     TrTriangId tri;
 
     tri = triangle_find8(pt_x << 8, pt_y << 8);

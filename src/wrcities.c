@@ -595,13 +595,6 @@ ushort find_mission_for_city_in_brief(short brief, sbyte city)
 
 sbyte find_closest_city(ushort x, ushort y)
 {
-#if 0
-    sbyte ret;
-    asm volatile (
-      "call ASM_find_closest_city\n"
-        : "=r" (ret) : "a" (x), "d" (y));
-    return ret;
-#endif
     u32 dist, sel_dist;
     sbyte city, sel_city;
 

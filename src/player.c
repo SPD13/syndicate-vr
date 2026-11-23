@@ -383,12 +383,6 @@ TbBool player_agent_is_executing_commands(PlayerIdx plyr, ushort plagent)
 
 TbBool free_slot(ushort plagent, WeaponType wtype)
 {
-#if 0
-    TbBool ret;
-    asm volatile ("call ASM_free_slot\n"
-        : "=r" (ret) : "a" (plagent & 0xff), "d" (wtype-1));
-    return ret;
-#endif
     PlayerInfo *p_locplyr;
     TbBool has_free;
     ushort fp;
@@ -749,10 +743,6 @@ void player_agent_get_user_vect(PlayerIdx plyr, short plagent, struct MapCoords 
 
 void kill_my_players(PlayerIdx plyr)
 {
-#if 0
-    asm volatile ("call ASM_kill_my_players\n"
-        : : "a" (plyr));
-#endif
     PlayerInfo *p_player;
     ushort plagent;
 
@@ -863,12 +853,6 @@ ushort player_agents_place_in_mission_count(PlayerIdx plyr)
 
 int place_default_player(PlayerIdx plyr, TbBool replace)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_place_default_player\n"
-        : "=r" (ret) : "a" (plyr), "d" (replace));
-    return ret;
-#endif
     PlayerInfo *p_player;
     int cor_x, cor_z;
     ushort nagents, plagent;

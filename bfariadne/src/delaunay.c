@@ -128,10 +128,6 @@ int optimise_heuristic(int tri, int cor)
 
 void delaunay_step(void)
 {
-#if 0
-    asm volatile ("call ASM_delaunay_step\n"
-        :  :  : "eax" );
-#else
     uint n_optimised;
     int tri;
     int cor;
@@ -166,7 +162,6 @@ void delaunay_step(void)
         }
     }
     while (n_optimised > 0);
-#endif
 }
 
 /******************************************************************************/

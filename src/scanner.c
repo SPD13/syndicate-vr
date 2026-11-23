@@ -239,15 +239,10 @@ void SCANNER_init_people_colours(void)
 
 void SCANNER_init(void)
 {
-#if 0
-    asm volatile ("call ASM_SCANNER_init\n"
-        :  :  : "eax" );
-#else
     LowTransGrey_InitPaletteBright();
     SCANNER_init_bbpoints();
     LowTransGrey_InitBrightLimitTable();
     SCANNER_init_people_colours();
-#endif
 }
 
 void SCANNER_set_colours(struct PanelStyle *p_style)
@@ -296,24 +291,6 @@ static void SCANNER_scanconvert_fill_row(int left_fx, int right_fx, int row, uby
  */
 void SCANNER_scanconvert(int x0, int y0, int x1, int y1, int x2, int y2, int colour)
 {
-#if 0
-    // Pushed through a register holding them: a "g" operand may be placed
-    // relative to the stack pointer, which each push moves.
-    int stkargs[3];
-
-    stkargs[0] = (int)(intptr_t)x2;
-    stkargs[1] = (int)(intptr_t)y2;
-    stkargs[2] = (int)(intptr_t)colour;
-
-    asm volatile (
-      "push 8(%4)\n"
-      "push 4(%4)\n"
-      "push 0(%4)\n"
-      "call ASM_SCANNER_scanconvert\n"
-        : : "a" (x0), "d" (y0), "b" (x1), "c" (y1), "S" (stkargs)
-        : "cc", "memory");
-    return;
-#endif
     int total_height, dx02, long_slope;
     int long_tracker, other_tracker;
     int row;
@@ -502,11 +479,6 @@ void SCANNER_fill_in_object(int object_idx, TbPixel colour)
 
 void SCANNER_fill_in_road(int thing_idx)
 {
-#if 0
-    asm volatile ("call ASM_SCANNER_fill_in_road\n"
-        : : "a" (thing_idx) : );
-    return;
-#endif
     struct Thing *p_thing;
     int off_x, off_z, off_x_scaled, off_z_scaled;
     int x8, z8, x_minus, x_plus, z_minus, z_plus;
@@ -549,11 +521,6 @@ void SCANNER_fill_in_road(int thing_idx)
  */
 void SCANNER_outline(void)
 {
-#if 0
-    asm volatile ("call ASM_SCANNER_outline\n"
-        : : : "eax" );
-    return;
-#endif
     ubyte *const map = &SCANNER_data[0][0];
     ubyte scratch[256];
     ubyte outline_colour;
@@ -625,12 +592,6 @@ void SCANNER_outline(void)
 //TODO why coordinates are backward?
 int SCANNER_find_colour(int mapx, int mapy)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_SCANNER_find_colour\n"
-        : "=r" (ret) : "a" (mapx), "d" (mapy));
-    return ret;
-#endif
     ushort textr;
     ubyte txtr_bits, tlpos_bits;
     int result;
@@ -807,11 +768,6 @@ static void SCANNER_fill_in_roadways(void)
 
 void SCANNER_fill_in(void)
 {
-#if 0
-    asm volatile ("call ASM_SCANNER_fill_in\n"
-        :  :  : "eax" );
-    return;
-#endif
     SCANNER_fill_in_floor(0, 0, 255, 255);
     SCANNER_fill_in_all_buildings();
     SCANNER_outline();
@@ -820,10 +776,6 @@ void SCANNER_fill_in(void)
 
 void SCANNER_fill_in_a_little_bit(int x1, int z1, int x2, int z2)
 {
-#if 0
-    asm volatile ("call ASM_SCANNER_fill_in_a_little_bit\n"
-        : : "a" (x1), "d" (z1), "b" (x2), "c" (z2));
-#endif
     if (x1 > x2) {
         return;
     }
@@ -930,12 +882,6 @@ static void SCANNER_arcpoint_restart(int arc_idx)
 
 void SCANNER_process_arcpoints(void)
 {
-#if 0
-    asm volatile (
-      "call ASM_SCANNER_process_arcpoints\n"
-        :  :  : "eax" );
-    return;
-#endif
     int arc_idx;
 
     dword_1DB1A0 = 0;
@@ -962,13 +908,6 @@ void SCANNER_process_arcpoints(void)
 
 short SCANNER_init_arcpoint(int x1, int z1, int x2, int z2, int c)
 {
-#if 0
-    asm volatile (
-      "push %4\n"
-      "call ASM_SCANNER_init_arcpoint\n"
-        : : "a" (x1), "d" (z1), "b" (x2), "c" (z2), "g" (c));
-    return -1;
-#endif
     struct Arc *p_arc;
     int arc_idx;
 
@@ -1053,11 +992,6 @@ void SCANNER_init_blippoint(ushort blip_no, int x, int z, int colour)
 
 void SCANNER_find_position(int x, int y, int *Ua, int *Vb)
 {
-#if 0
-    asm volatile (
-      "call ASM_SCANNER_find_position\n"
-        : : "a" (x), "d" (y), "b" (Ua), "c" (Vb));
-#endif
     struct TbPoint s1, s2, dt;
     int mz, mx, zoom, angle;
     int sin_z, cos_z;

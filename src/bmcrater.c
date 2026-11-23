@@ -180,11 +180,6 @@ static void quick_crater_stamp_shape(int cx, int cz, const struct CraterTileSpec
  */
 void quick_crater(int tl_cent_x, int tl_cent_z, int size)
 {
-#if 0
-    asm volatile ("call ASM_quick_crater\n"
-        :  : "a" (tl_cent_x), "d" (tl_cent_z), "b" (size));
-    return;
-#endif
     int min_x, max_x, min_z, max_z;
     int tl_x, tl_z;
 

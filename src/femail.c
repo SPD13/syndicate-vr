@@ -39,12 +39,6 @@ short next_ref = 0;
 
 ushort activate_queued_mail(void)
 {
-#if 0
-    ushort ret;
-    asm volatile ("call ASM_activate_queued_mail\n"
-        : "=r" (ret) : );
-    return ret;
-#endif
     struct EmailItem *p_mail;
     ushort bri, eml, nml;
     short nref;
@@ -98,10 +92,6 @@ ushort activate_queued_mail(void)
 
 void delete_mail(ushort mailnum, ubyte emtype)
 {
-#if 0
-    asm volatile ("call ASM_delete_mail\n"
-        : : "a" (mailnum), "d" (emtype));
-#else
     ushort i;
 
     if (emtype == MlTp_Mission)
@@ -121,7 +111,6 @@ void delete_mail(ushort mailnum, ubyte emtype)
         }
         next_email--;
     }
-#endif
 }
 
 void queue_up_new_mail(ubyte emtype, short missi)

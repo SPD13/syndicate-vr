@@ -104,14 +104,6 @@ void AIL_VOC_terminate(SNDSAMPLE *s)
 
 void AIL_process_VOC_block(SNDSAMPLE *s, int32_t play_flag)
 {
-#if 0
-    asm volatile (
-      "push %1\n"
-      "push %0\n"
-      "call ASM_AIL_process_VOC_block\n"
-      "add $0x8, %%esp\n"
-        :  : "g" (s), "g" (play_flag) : "eax" );
-#endif
     int32_t voice_block;
     void *b;
 

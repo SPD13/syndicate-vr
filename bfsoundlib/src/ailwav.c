@@ -82,14 +82,6 @@ void AIL_WAV_terminate(SNDSAMPLE *s)
 
 void AIL_process_WAV_image(const uint8_t *image, SNDSAMPLE *s)
 {
-#if 0
-    asm volatile (
-      "push %1\n"
-      "push %0\n"
-      "call ASM_AIL_process_WAV_image\n"
-      "add $0x8, %%esp\n"
-        :  : "g" (info), "g" (s) : "eax" );
-#endif
     WAVE_FMT *f;
     WAVE_DATA *d;
 

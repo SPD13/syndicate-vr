@@ -600,11 +600,6 @@ struct MyMapElement *map_element_for_clipped_cords(int map_x, int map_z)
 
 void lvdraw_do_floor(void)
 {
-#if 0
-    asm volatile ("call ASM_lvdraw_do_floor\n"
-        :  :  : "eax" );
-    return;
-#endif
     struct ShEnginePoint loc_unknarrD[(RENDER_AREA_MAX+1)*4];
     struct MyMapElement loc_mapel;
     int shift_a, shift_b;

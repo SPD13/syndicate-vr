@@ -939,12 +939,6 @@ int get_weapon_zoom_min(WeaponType wtype)
 
 short current_hand_weapon_range(struct Thing *p_person)
 {
-#if 0
-    short ret;
-    asm volatile ("call ASM_current_hand_weapon_range\n"
-        : "=r" (ret) : "a" (p_person));
-    return ret;
-#endif
     return get_hand_weapon_range(p_person, p_person->U.UPerson.CurrentWeapon);
 }
 
@@ -960,12 +954,6 @@ int get_persons_weapon_range(struct Thing *p_person, WeaponType wtype)
 
 int get_weapon_range(struct Thing *p_person)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_get_weapon_range\n"
-        : "=r" (ret) : "a" (p_person));
-    return ret;
-#endif
     WeaponType wtype;
 
     wtype = p_person->U.UPerson.CurrentWeapon;
@@ -993,12 +981,6 @@ TbBool current_weapon_has_targetting(struct Thing *p_person)
 
 WeaponType find_nth_weapon_held(ThingIdx person, ubyte n)
 {
-#if 0
-    char ret;
-    asm volatile ("call ASM_find_nth_weapon_held\n"
-        : "=r" (ret) : "a" (person), "d" (n));
-    return ret;
-#endif
     struct Thing *p_person;
     u32 weapons;
     WeaponType wtype;
@@ -1181,11 +1163,6 @@ void player_agent_set_weapon_quantities_proper(struct Thing *p_person)
  */
 void weapon_sweep(struct Thing *p_owner, int *vx, int *vy, int *vz)
 {
-#if 0
-    asm volatile ("call ASM_weapon_sweep\n"
-        : : "a" (p_owner), "d" (vx), "b" (vy), "c" (vz));
-    return;
-#endif
     int spread;
     struct MapCoords own_cor;
     int dist;
@@ -1221,12 +1198,6 @@ void weapon_sweep(struct Thing *p_owner, int *vx, int *vy, int *vz)
 
 struct SimpleThing *init_spark(int x, int y, int z)
 {
-#if 0
-    struct SimpleThing *ret;
-    asm volatile ("call ASM_init_spark\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z));
-    return ret;
-#endif
     struct SimpleThing *p_sthing;
     ThingIdx thing;
     int angle1, angle2;
@@ -1355,11 +1326,6 @@ void elec_hit_building(int x, int y, int z, short col)
 
 void init_shoot_recoil(struct Thing *p_person, short vx, short vy, short vz)
 {
-#if 0
-    asm volatile ("call ASM_init_shoot_recoil\n"
-        : : "a" (p_person), "d" (vx), "b" (vy), "c" (vz));
-    return;
-#endif
     int angle, octant;
 
     angle = arctan(vx, -vz);
@@ -1851,10 +1817,6 @@ void init_sparks(MapCoord cor_x, MapCoord cor_y, MapCoord cor_z, ushort count, s
 
 void init_laser(struct Thing *p_owner, ushort start_age)
 {
-#if 0
-    asm volatile ("call ASM_init_laser\n"
-        : : "a" (p_owner), "d" (start_age));
-#endif
     struct Thing *p_shot;
     struct WeaponDef *wdef;
     struct M31 prc_beg_pt, prc_fin_pt;
@@ -2002,12 +1964,6 @@ void init_laser(struct Thing *p_owner, ushort start_age)
 
 void init_mgun_laser(struct Thing *p_owner, ushort start_age)
 {
-#if 0
-    asm volatile (
-      "call ASM_init_mgun_laser\n"
-        : : "a" (p_owner), "d" (start_age));
-    return;
-#endif
     struct Thing *p_shot;
     struct WeaponDef *wdef;
     struct M31 prc_beg_pt;
@@ -2256,24 +2212,13 @@ void persons_taser_affecting_things(struct Thing *p_person)
 
 short init_taser(struct Thing *p_person)
 {
-#if 0
-    short ret;
-    asm volatile ("call ASM_init_taser\n"
-        : "=r" (ret) : "a" (p_person));
-    return ret;
-#else
     create_taser_strand_circle(p_person);
     persons_taser_affecting_things(p_person);
     return 0;
-#endif
 }
 
 void init_rocket(struct Thing *p_owner)
 {
-#if 0
-    asm volatile ("call ASM_init_rocket\n"
-        : : "a" (p_owner));
-#endif
     struct Thing *p_shot;
     struct M31 prc_beg_pt, prc_fin_pt;
     int pos_dt_x, pos_dt_z, pos_dt_y;
@@ -2399,11 +2344,6 @@ static void update_razor_wire_end_to_thing(struct Thing *p_wire, struct Thing *p
 
 void init_razor_wire(struct Thing *p_person, ubyte subtype)
 {
-#if 0
-    asm volatile ("call ASM_init_razor_wire\n"
-        : : "a" (p_person), "d" (subtype));
-    return;
-#endif
     struct Thing *p_wire;
     ThingIdx wiretng;
 
@@ -2431,11 +2371,6 @@ void init_razor_wire(struct Thing *p_person, ubyte subtype)
 
 void finalise_razor_wire(struct Thing *p_person)
 {
-#if 0
-    asm volatile ("call ASM_finalise_razor_wire\n"
-        : : "a" (p_person));
-    return;
-#endif
     struct Thing *p_wire;
     s32 vec_x, vec_y, vec_z;
     short new_vect;
@@ -2499,13 +2434,6 @@ void snap_razor_wire(intptr_t a1, int a2, int a3, int a4)
 
 void init_lay_razor(struct Thing *p_thing, short x, short y, short z, int flag)
 {
-#if 0
-    asm volatile (
-      "push %4\n"
-      "call ASM_init_lay_razor\n"
-        : : "a" (p_thing), "d" (x), "b" (y), "c" (z), "g" ((u32)flag));
-    return;
-#endif
     (void)y;
     p_thing->State = PerSt_GOTO_POINT;
     p_thing->U.UPerson.ComTimer = -1;
@@ -2545,11 +2473,6 @@ TbBool person_collect_energy_from_lay_wire(struct Thing *p_person, struct Thing 
 
 void update_razor_wire(struct Thing *p_person)
 {
-#if 0
-    asm volatile ("call ASM_update_razor_wire\n"
-        : : "a" (p_person));
-    return;
-#endif
     struct Thing *p_wire;
 
     p_wire = &things[p_person->U.UPerson.SpecialOwner];
@@ -2567,10 +2490,6 @@ void update_razor_wire(struct Thing *p_person)
 
 void init_laser_beam(struct Thing *p_owner, ushort start_age, ubyte stype)
 {
-#if 0
-    asm volatile ("call ASM_init_laser_beam\n"
-        : : "a" (p_owner), "d" (start_age), "b" (type));
-#endif
     struct Thing *p_shot;
     struct WeaponDef *wdef;
     struct M31 prc_beg_pt, prc_fin_pt;
@@ -2776,11 +2695,6 @@ void init_laser_beam(struct Thing *p_owner, ushort start_age, ubyte stype)
 
 void init_laser_guided(struct Thing *p_owner, ushort count)
 {
-#if 0
-    asm volatile ("call ASM_init_laser_guided\n"
-        : : "a" (p_owner), "d" (count));
-    return;
-#endif
     struct Thing *p_startpostng;
     u32 group_bits;
     int a_dist;
@@ -2923,10 +2837,6 @@ void weapon_shooting_creates_unkn2(MapCoord cor_x, MapCoord cor_y, MapCoord cor_
 
 void init_laser_elec(struct Thing *p_owner, ushort start_age)
 {
-#if 0
-    asm volatile ("call ASM_init_laser_elec\n"
-        : : "a" (p_owner), "d" (start_age));
-#endif
     struct Thing *p_shot;
     struct WeaponDef *wdef;
     struct M31 prc_beg_pt, prc_fin_pt;
@@ -3088,10 +2998,6 @@ void init_laser_q_sep(struct Thing *p_owner, ushort count)
 
 void init_uzi(struct Thing *p_owner)
 {
-#if 0
-    asm volatile ("call ASM_init_uzi\n"
-        : : "a" (p_owner));
-#endif
     struct WeaponDef *wdef;
     struct M31 prc_beg_pt, prc_fin_pt;
     u32 rhit;
@@ -3230,11 +3136,6 @@ void init_uzi(struct Thing *p_owner)
 
 void init_minigun(struct Thing *p_owner)
 {
-#if 0
-    asm volatile ("call ASM_init_minigun\n"
-        : : "a" (p_owner));
-    return;
-#endif
     struct WeaponDef *wdef;
     struct M31 prc_beg_pt, prc_fin_pt;
     u32 rhit;
@@ -3468,10 +3369,6 @@ void init_flamer(struct Thing *p_owner)
 
 void init_long_range(struct Thing *p_owner)
 {
-#if 0
-    asm volatile ("call ASM_init_long_range\n"
-        : : "a" (p_owner));
-#endif
     struct WeaponDef *wdef;
     struct M31 prc_beg_pt, prc_fin_pt;
     u32 rhit;
@@ -3613,10 +3510,6 @@ void init_long_range(struct Thing *p_owner)
 
 void init_air_strike(struct Thing *p_owner)
 {
-#if 0
-    asm volatile ("call ASM_init_air_strike\n"
-        : : "a" (p_owner));
-#endif
     ThingIdx shottng;
     struct Thing *p_thing;
     ubyte grp;
@@ -3648,10 +3541,6 @@ void init_air_strike(struct Thing *p_owner)
 
 void init_stasis_gun(struct Thing *p_owner)
 {
-#if 0
-    asm volatile ("call ASM_init_stasis_gun\n"
-        : : "a" (p_owner));
-#endif
     struct M31 prc_beg_pt, prc_fin_pt;
     struct Thing *p_target;
     int cor_fin_x, cor_fin_y, cor_fin_z;
@@ -3712,10 +3601,6 @@ void init_stasis_gun(struct Thing *p_owner)
 
 void init_time_gun(struct Thing *p_owner)
 {
-#if 0
-    asm volatile ("call ASM_init_time_gun\n"
-        : : "a" (p_owner));
-#endif
     struct M31 prc_beg_pt, prc_fin_pt;
     int cor_fin_x, cor_fin_y, cor_fin_z;
     int cor_beg_x, cor_beg_y, cor_beg_z;
@@ -3833,10 +3718,6 @@ void init_c_iff(struct Thing *p_owner)
 
 void init_grenade(struct Thing *p_owner, ushort gtype)
 {
-#if 0
-    asm volatile ("call ASM_init_grenade\n"
-        : : "a" (p_owner), "d" (gtype));
-#endif
     struct Thing *p_shot;
     struct M31 prc_beg_pt, prc_fin_pt;
     int pos_dt_x, pos_dt_z, pos_dt_y;
@@ -3920,10 +3801,6 @@ void init_grenade(struct Thing *p_owner, ushort gtype)
 
 void init_v_rocket(struct Thing *p_owner)
 {
-#if 0
-    asm volatile ("call ASM_init_v_rocket\n"
-        : : "a" (p_owner));
-#else
     ThingIdx shottng;
     struct M31 prc_beg_pt, prc_fin_pt;
     struct Thing *p_shot;
@@ -4022,17 +3899,10 @@ void init_v_rocket(struct Thing *p_owner)
     play_dist_sample(p_shot, 24, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3);
 
     shot_alerts_peeps(p_shot);
-#endif
 }
 
 void init_mech_rocket(struct Thing *p_owner, struct Thing *p_mech, int x, int y, int z)
 {
-#if 0
-    asm volatile (
-      "push %4\n"
-      "call ASM_init_mech_rocket\n"
-        : : "a" (p_owner), "d" (p_mech), "b" (x), "c" (y), "g" (z));
-#endif
     struct M31 prc_beg_pt, prc_fin_pt;
     ThingIdx shottng;
     struct Thing *p_shot;
@@ -4261,12 +4131,6 @@ void give_take_me_weapon(struct Thing *p_person, int item, int giveortake, short
 
 ushort set_player_weapon_turn(struct Thing *p_person, ushort delay_turns)
 {
-#if 0
-    ushort ret;
-    asm volatile ("call ASM_set_player_weapon_turn\n"
-        : "=r" (ret) : "a" (p_person), "d" (delay_turns));
-    return ret;
-#endif
     PlayerIdx plyr;
     ushort plagent;
     WeaponType wtype;
@@ -4590,12 +4454,6 @@ void reset_clone_disguise(struct Thing *p_person)
 
 int gun_out_anim(struct Thing *p_person, ubyte shoot_flag)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_gun_out_anim\n"
-        : "=r" (ret) : "a" (p_person), "d" (shoot_flag));
-    return ret;
-#endif
     if ((p_person->Flag & TngF_Destroyed) != 0) {
         return p_person->U.UPerson.AnimMode;
     }
@@ -4759,10 +4617,6 @@ ubyte vehicle_with_person_shoot_at_target(struct Thing *p_owner)
 
 void process_vehicle_weapon(struct Thing *p_vehicle, struct Thing *p_person)
 {
-#if 0
-    asm volatile ("call ASM_process_vehicle_weapon\n"
-        : : "a" (p_vehicle), "d" (p_person));
-#else
     // If another passenger controls the weapon of this vehicle, no action
     if (person_is_non_selected_agent(p_person)
       && (get_vehicle_passenger_in_player_control(p_vehicle) != 0))
@@ -4816,15 +4670,10 @@ void process_vehicle_weapon(struct Thing *p_vehicle, struct Thing *p_person)
     {
         vehicle_with_person_shoot_at_target(p_person);
     }
-#endif
 }
 
 void process_mech_weapon(struct Thing *p_vehicle, struct Thing *p_person)
 {
-#if 0
-    asm volatile ("call ASM_process_mech_weapon\n"
-        : : "a" (p_vehicle), "d" (p_person));
-#else
     if ((p_person->Flag & TngF_ShootAtPos) != 0)
     {
         struct MapCoords trgtd;
@@ -4910,7 +4759,6 @@ void process_mech_weapon(struct Thing *p_vehicle, struct Thing *p_person)
         init_laser_guided(p_person, 32);
         init_laser_guided(p_person, 32);
     }
-#endif
 }
 
 ushort persuade_power_required(ThingIdx victim)
@@ -5019,12 +4867,6 @@ TbBool person_can_be_persuaded_now(ThingIdx attacker, ThingIdx target,
 
 short process_persuadertron(struct Thing *p_person, ubyte target_select, ushort *energy_reqd)
 {
-#if 0
-    short ret;
-    asm volatile ("call ASM_process_persuadertron\n"
-        : "=r" (ret) : "a" (p_person), "d" (target_select), "b" (energy_reqd));
-    return ret;
-#endif
     short cor_x, cor_z;
     short weapon_range;
 
@@ -5083,10 +4925,6 @@ void get_soul(struct Thing *p_dead, struct Thing *p_person)
 
 void choose_best_weapon_for_range(struct Thing *p_person, int dist)
 {
-#if 0
-    asm volatile ("call ASM_choose_best_weapon_for_range\n"
-        : : "a" (p_person), "d" (dist));
-#endif
     u32 wmask;
     int best_range;
     int best_damage;
@@ -5848,11 +5686,6 @@ void process_wielded_weapon(struct Thing *p_person)
 
 void process_weapon(struct Thing *p_person)
 {
-#if 0
-    asm volatile ("call ASM_process_weapon\n"
-        : : "a" (p_person));
-    return;
-#endif
     process_energy_alarm(p_person);
 
     p_person->U.UPerson.Flag3 &= ~PrsF3_Unkn40;

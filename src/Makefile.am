@@ -43,6 +43,8 @@ syndwarsfx_SOURCES = \
 	campaign.h \
 	command.c \
 	command.h \
+	crtrand.c \
+	crtrand.h \
 	cybmod.c \
 	cybmod.h \
 	devcreds.c \

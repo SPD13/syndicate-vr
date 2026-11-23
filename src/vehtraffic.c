@@ -572,11 +572,6 @@ void remove_agok_lock(struct Thing *p_vehicle)
 
 void remove_locks(struct Thing *p_vehicle)
 {
-#if 0
-    asm volatile ("call ASM_remove_locks\n"
-        : : "a" (p_vehicle));
-    return;
-#endif
     if ((p_vehicle->U.UVehicle.WorkPlace & VWPFlg_HasAgPhase1) != 0)
         remove_agphase1_lock(p_vehicle);
     if ((p_vehicle->U.UVehicle.WorkPlace & VWPFlg_HasAgPhase2) != 0)
@@ -588,11 +583,6 @@ void remove_locks(struct Thing *p_vehicle)
 
 void remove_locks_apart_from_agok(struct Thing *p_vehicle)
 {
-#if 0
-    asm volatile ("call ASM_remove_locks_apart_from_agok\n"
-        : : "a" (p_vehicle));
-    return;
-#endif
     if ((p_vehicle->U.UVehicle.WorkPlace & VWPFlg_HasAgPhase1) != 0)
         remove_agphase1_lock(p_vehicle);
     if ((p_vehicle->U.UVehicle.WorkPlace & VWPFlg_HasAgPhase2) != 0)
@@ -653,13 +643,6 @@ static TbBool check_person_close_on_mapel(struct MyMapElement *p_mapel)
 
 int check_person_close(struct TrafficNode *p_tnode)
 {
-#if 0
-    int ret;
-    asm volatile (
-      "call ASM_check_person_close\n"
-        : "=r" (ret) : "a" (p_tnode));
-    return ret;
-#endif
     int tile_ctr_x, tile_ctr_z;
     int tlno;
     int tile_x;
@@ -1349,11 +1332,6 @@ void traffic_unkn_func_01(void)
 
 void process_next_tnode(struct Thing *p_vehicle)
 {
-#if 0
-    asm volatile ("call ASM_process_next_tnode\n"
-        : : "a" (p_vehicle));
-    return;
-#endif
     short tnode;
     int tndt_x, tndt_z;
     int nxdist_sq; //< Squared distance to next traffic node or station

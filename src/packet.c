@@ -306,13 +306,6 @@ void snprint_packet(char *buf, u32 buflen, struct Packet *p_pckt)
 
 void build_packet(struct Packet *packet, ushort action, u32 param1, s32 x, s32 y, s32 z)
 {
-#if 0
-    asm volatile (
-      "push %5\n"
-      "push %4\n"
-      "call ASM_build_packet\n"
-        : : "a" (packet), "d" (action), "b" (param1), "c" (x), "g" (y), "g" (z));
-#endif
     ubyte num_params;
 
     num_params = packet_action_params_count(action);
@@ -349,13 +342,6 @@ void build_packet(struct Packet *packet, ushort action, u32 param1, s32 x, s32 y
 
 void build_packet2(struct Packet *packet, ushort action, u32 param1, s32 x, s32 y, s32 z)
 {
-#if 0
-    asm volatile (
-      "push %5\n"
-      "push %4\n"
-      "call ASM_build_packet2\n"
-        : : "a" (packet), "d" (type), "b" (param1), "c" (x), "g" (y), "g" (z));
-#endif
     ubyte num_params;
 
     num_params = packet_action_params_count(action);
@@ -392,13 +378,6 @@ void build_packet2(struct Packet *packet, ushort action, u32 param1, s32 x, s32 
 
 void build_packet3(struct Packet *packet, ushort action, u32 param1, s32 x, s32 y, s32 z)
 {
-#if 0
-    asm volatile (
-      "push %5\n"
-      "push %4\n"
-      "call ASM_build_packet3\n"
-        : : "a" (packet), "d" (type), "b" (param1), "c" (x), "g" (y), "g" (z));
-#endif
     ubyte num_params;
 
     num_params = packet_action_params_count(action);
@@ -435,13 +414,6 @@ void build_packet3(struct Packet *packet, ushort action, u32 param1, s32 x, s32 
 
 void build_packet4(struct Packet *packet, ushort action, u32 param1, s32 x, s32 y, s32 z)
 {
-#if 0
-    asm volatile (
-      "push %5\n"
-      "push %4\n"
-      "call ASM_build_packet4\n"
-        : : "a" (packet), "d" (type), "b" (param1), "c" (x), "g" (y), "g" (z));
-#endif
     ubyte num_params;
 
     num_params = packet_action_params_count(action);
@@ -552,11 +524,6 @@ void PacketRecord_OpenRead(void)
 
 TbResult PacketRecord_Read(struct Packet *p_pckt, ushort dblmode)
 {
-#if 0
-    asm volatile (
-      "call ASM_PacketRecord_Read\n"
-        : : "a" (p_pckt));
-#endif
     ushort locbuf[5];
     struct Packet *p_subpckt;
     int nread, len;
@@ -607,11 +574,6 @@ TbResult PacketRecord_Read(struct Packet *p_pckt, ushort dblmode)
 
 void PacketRecord_Write(struct Packet *p_pckt, ushort dblmode)
 {
-#if 0
-    asm volatile (
-      "call ASM_PacketRecord_Write\n"
-        : : "a" (p_pckt));
-#endif
     ushort locbuf[5 * LOCAL_USERS_MAX_COUNT + 1];
     struct Packet *p_subpckt;
     uint len;

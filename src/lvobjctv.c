@@ -834,14 +834,6 @@ ubyte group_not_seen(ushort group)
 
 TbBool thing_arrived_at_obj_radius(ThingIdx thing, int x, int y, int z, int radius_sq)
 {
-#if 0
-    ubyte ret;
-    asm volatile (
-      "push %5\n"
-      "call ASM_thing_arrived_at_obj_radius\n"
-        : "=r" (ret) : "a" (thing), "d" (x), "b" (y), "c" (z), "g" (radius_sq));
-    return ret;
-#endif
     int dist_x, dist_z;
 
     if (thing >= 0)

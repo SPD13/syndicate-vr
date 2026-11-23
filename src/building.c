@@ -203,10 +203,6 @@ struct Thing *create_building_thing(int x, int y, int z, ushort obj, ushort nobj
 
 void do_dome_rotate1(struct Thing *p_building)
 {
-#if 0
-    asm volatile ("call ASM_do_dome_rotate1\n"
-        : : "a" (p_building));
-#endif
     ushort obj, i;
     ushort pt1_beg, pt1_num;
 
@@ -238,10 +234,6 @@ void do_dome_rotate1(struct Thing *p_building)
 
 void process_dome1(struct Thing *p_building)
 {
-#if 0
-    asm volatile ("call ASM_process_dome1\n"
-        : : "a" (p_building));
-#endif
     uint timer0;
 
     switch (p_building->State)
@@ -1095,12 +1087,6 @@ void init_mgun_explode(struct Thing *p_thing)
 
 void collapse_building(short x, short y, short z, struct Thing *p_building)
 {
-#if 0
-    asm volatile (
-      "call ASM_collapse_building\n"
-        :  : "a" (x), "d" (y), "b" (z), "c" (p_thing));
-    return;
-#endif
     struct SimpleThing *p_sthing;
     short thing;
     int i;
@@ -1668,10 +1654,6 @@ ubyte mgun_shoot_at_target(struct Thing *p_mgun)
 
 void process_mounted_gun(struct Thing *p_building)
 {
-#if 0
-    asm volatile ("call ASM_process_mounted_gun\n"
-        : : "a" (p_building));
-#endif
     struct Thing *p_target;
 
     if (p_building->U.UMGun.RecoilTimer > 0)
@@ -1950,10 +1932,6 @@ void process_bld36(struct Thing *p_building)
 
 void process_building(struct Thing *p_building)
 {
-#if 0
-    asm volatile ("call ASM_process_building\n"
-        : : "a" (p_building));
-#endif
     if ((p_building->Flag & TngF_Unkn00040000) != 0)
     {
         if ((p_building->Flag & TngF_Destroyed) != 0)

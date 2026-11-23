@@ -254,12 +254,6 @@ int pointed_at8(TrFineCoord pt_x, TrFineCoord pt_y, int *r_tri, int *r_cor)
 
 int triangle_find8(TrFineCoord pt_x, TrFineCoord pt_y)
 {
-#if 0
-    int ret;
-    asm volatile ("call ASM_triangle_find8\n"
-        : "=r" (ret) : "a" (pt_x), "d" (pt_y));
-    return ret;
-#else
     int tri; //TODO switch type to TrTriangId
     int remain;
 
@@ -341,7 +335,6 @@ int triangle_find8(TrFineCoord pt_x, TrFineCoord pt_y)
     }
     triangulation[0].last_tri = tri;
     return tri;
-#endif
 }
 
 static DIFFTEST_REF_FUNC int triangle_findSE8_asm(int x, int y)
@@ -754,13 +747,6 @@ TbBool two4_line_intersection(int x1, int y1, int x2, int y2, int x3, int y3, in
 TbBool point_find(TrCoord pt_x, TrCoord pt_y, int *r_tri, int *r_cor)
 // TODO change types to TrTriangId *r_tri, TrTipId *r_cor
 {
-#if 0
-    int ret;
-    asm volatile (
-      "call ASM_point_find\n"
-        : "=r" (ret) : "a" (pt_x), "d" (pt_y), "b" (r_tri), "c" (r_cor));
-    return ret;
-#else
     TrTriangId tri;
     TrTipId cor;
 
@@ -780,7 +766,6 @@ TbBool point_find(TrCoord pt_x, TrCoord pt_y, int *r_tri, int *r_cor)
         }
     }
     return false;
-#endif
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -1163,13 +1148,6 @@ void make_clipped_edges(int en1, int en2)
 
 void thin_wall(int x1, int y1, int x2, int y2, ubyte en1, ubyte en2)
 {
-#if 0
-    asm volatile (
-      "push %5\n"
-      "push %4\n"
-      "call ASM_thin_wall\n"
-        : : "a" (x1), "d" (y1), "b" (x2), "c" (y2), "g" (en1), "g" (en2));
-#else
     thin_wall_x1 = x1;
     thin_wall_y1 = y1;
     thin_wall_x2 = x2;
@@ -1188,7 +1166,6 @@ void thin_wall(int x1, int y1, int x2, int y2, ubyte en1, ubyte en2)
         make_clip_list(x1, y1, x2, y2);
         make_clipped_edges(en1, en2);
     }
-#endif
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -1761,22 +1738,6 @@ s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
 
 void path_init8_unkn3(struct Path *p_path, int ax8, int ay8, int bx8, int by8, int a6)
 {
-#if 0
-    // Pushed through a register holding them: a "g" operand may be placed
-    // relative to the stack pointer, which each push moves.
-    int stkargs[2];
-
-    stkargs[0] = (int)(intptr_t)by8;
-    stkargs[1] = (int)(intptr_t)a6;
-
-    asm volatile (
-      "push 4(%4)\n"
-      "push 0(%4)\n"
-      "call ASM_path_init8_unkn3\n"
-        : : "a" (p_path), "d" (ax8), "b" (ay8), "c" (bx8), "S" (stkargs)
-        : "cc", "memory");
-    return;
-#endif
     navi_onscreen_debug(0);
 
     p_path->PathLength = 0;
@@ -2249,11 +2210,6 @@ void thin_wall_around_object(ushort obj, ushort colt)
 
 void thin_wall_around_object_rm(ushort obj, ushort colt)
 {
-#if 0
-    asm volatile (
-      "call ASM_thin_wall_around_object_rm\n"
-        : : "a" (obj), "d" (colt));
-#else
     short obj_x, obj_y, obj_z;
     short startface3, endface3;
     short startface4, endface4;
@@ -2279,17 +2235,10 @@ void thin_wall_around_object_rm(ushort obj, ushort colt)
     {
         thin_wall_around_face4(obj_x, obj_y, obj_z, face, colt, THIN_PASS);
     }
-#endif
 }
 
 void brute_fill_rectangle(int x1, int y1, int x2, int y2, ubyte solid)
 {
-#if 0
-    asm volatile (
-      "push %4\n"
-      "call ASM_brute_fill_rectangle\n"
-        : : "a" (x1), "d" (y1), "b" (x2), "c" (y2), "g" (solid));
-#else
     int tri;
 
     for (tri = 0; tri < triangulation[0].ix_Triangles; tri++)
@@ -2305,17 +2254,10 @@ void brute_fill_rectangle(int x1, int y1, int x2, int y2, ubyte solid)
         p_tri = &triangulation[0].Triangles[tri];
         p_tri->solid = solid;
     }
-#endif
 }
 
 void fill_rectangle(int x1, int y1, int x2, int y2, ubyte solid)
 {
-#if 0
-    asm volatile (
-      "push %4\n"
-      "call ASM_fill_rectangle\n"
-        : : "a" (x1), "d" (y1), "b" (x2), "c" (y2), "g" (solid));
-#else
     int tri1, tri2, tri3, tri4, ucor;
     int area_r, area_t;
 
@@ -2366,17 +2308,10 @@ void fill_rectangle(int x1, int y1, int x2, int y2, ubyte solid)
         return;
 
     brute_fill_rectangle(x1, y1, x2, y2, solid);
-#endif
 }
 
 void tri_set_rectangle(int x1, int y1, int x2, int y2, ubyte solid)
 {
-#if 0
-    asm volatile (
-      "push %4\n"
-      "call ASM_tri_set_rectangle\n"
-        : : "a" (x1), "d" (y1), "b" (x2), "c" (y2), "g" (solid));
-#else
     int sx1, sy1, sx2, sy2;
 
     sx1 = x1;
@@ -2400,7 +2335,6 @@ void tri_set_rectangle(int x1, int y1, int x2, int y2, ubyte solid)
     make_edge(sx2, sy2, sx1, sy2);
     make_edge(sx1, sy2, sx1, sy1);
     fill_rectangle(sx1, sy1, sx2, sy2, solid);
-#endif
 }
 
 void triangulate_set_rectangle(int x1, int y1, int x2, int y2, ubyte solid)
@@ -2410,11 +2344,6 @@ void triangulate_set_rectangle(int x1, int y1, int x2, int y2, ubyte solid)
 
 void triangulation_initxy(int x1, int y1, int x2, int y2)
 {
-#if 0
-    asm volatile (
-      "call ASM_triangulation_initxy\n"
-        : : "a" (x1), "d" (y1), "b" (x2), "c" (y2));
-#else
     int tri, pt;
     struct TrTriangle *p_tri;
     struct TrPoint *p_point;
@@ -2468,7 +2397,6 @@ void triangulation_initxy(int x1, int y1, int x2, int y2)
     p_tri->enter = 7;
     triangulation[0].ix_Triangles = 2;
     triangulation[0].count_Triangles = 2;
-#endif
 }
 
 void triangulation_init(void)
@@ -2485,10 +2413,6 @@ void triangulation_init(void)
 
 void triangulation_init_edges(void)
 {
-#if 0
-    asm volatile ("call ASM_triangulation_init_edges\n"
-        :  :  : "eax" );
-#else
     int dim_lo, dim_hi;
     dim_lo = -4096+256;
     dim_hi = 32768+4096+256;
@@ -2501,7 +2425,6 @@ void triangulation_init_edges(void)
     make_edge(dim_hi, dim_lo, dim_hi, dim_hi);
     make_edge(dim_hi, dim_hi, dim_lo, dim_hi);
     make_edge(dim_lo, dim_hi, dim_lo, dim_lo);
-#endif
 }
 
 static DIFFTEST_REF_FUNC void triangulation_allocate_asm(int tgnNo, int maxTrigs)
@@ -2535,12 +2458,6 @@ void triangulation_allocate(int tgnNo, int maxTrigs)
 
 void triangulate_area(ubyte *p_map, int x1, int y1, int x2, int y2)
 {
-#if 0
-    asm volatile (
-      "push %4\n"
-      "call ASM_triangulate_area\n"
-        : : "a" (p_map), "d" (x1), "b" (y1), "c" (x2), "g" (y2));
-#else
     ubyte solid;
 
     if (!triangulation[0].tri_initialised)
@@ -2557,18 +2474,11 @@ void triangulate_area(ubyte *p_map, int x1, int y1, int x2, int y2)
             continue;
         tri_set_rectangle(x1 << 7, y1 << 7, x2 << 7, y2 << 7, solid);
     }
-#endif
 }
 
 void triangulate_map(ubyte *p_map)
 {
-#if 0
-    asm volatile (
-      "call ASM_triangulate_map\n"
-        : : "a" (p_map));
-#else
     triangulate_area(p_map, 0, 0, 256, 256);
-#endif
 }
 
 void triangulation_clear(void)

@@ -30,6 +30,7 @@
 #include "engintxtrmap.h"
 
 #include "bigmap.h"
+#include "crtrand.h"
 #include "difftest.h"
 #include "game.h"
 #include "game_options.h"
@@ -589,9 +590,9 @@ void BAT_unknsub_28(int a1, int a2)
     int rnd;
 
     DIFFTEST_SHADOW(BAT_unknsub_28, BAT_unknsub_28_asm(a1, a2));
-    if ((rand() & 0xff) > 0x2a)
+    if ((game_rand() & 0xff) > 0x2a)
         return;
-    rnd = rand() % 32;
+    rnd = game_rand() % 32;
     if (rnd < 7) {
         kind = 0;
     } else if ((rnd -= 7) < 7) {
@@ -637,7 +638,7 @@ void BAT_unknsub_28(int a1, int a2)
     p_bonus->Y = a1;
     p_bonus->UnkDw2 = a2;
     p_bonus->X = kind;
-    p_bonus->UnkDw3 = (rand() & 0x3f) + 0x5f;
+    p_bonus->UnkDw3 = (game_rand() & 0x3f) + 0x5f;
 }
 
 static DIFFTEST_REF_FUNC void BAT_unknsub_22_asm(void)
@@ -730,7 +731,7 @@ void BAT_unknsub_22(void)
         BAT_score += 10;
         hits = (BAT_bricks[idx] >> 4) & 3;
         BAT_bricks[idx] |= 0x40;
-        p_ball->UnkDw6 += BAT_ball_brick_speed_chg[rand() & 3] << 8;
+        p_ball->UnkDw6 += BAT_ball_brick_speed_chg[game_rand() & 3] << 8;
 
         if (p_ball->UnkDw3 <= top)
         {
@@ -742,7 +743,7 @@ void BAT_unknsub_22(void)
                 range = 2 * abs(p_ball->UnkDw7);
                 if (range < 0xfff)
                     range = 0xfff;
-                p_ball->UnkDw6 += ((rand() << 8) % range) - (range >> 1);
+                p_ball->UnkDw6 += ((game_rand() << 8) % range) - (range >> 1);
                 dist = BAT_approx_dist(abs(p_ball->UnkDw7), abs(p_ball->UnkDw6));
                 if (dist < BAT_ball_speed_limit())
                 {
@@ -847,7 +848,7 @@ void BAT_unknsub_22(void)
         p_ball->UnkDw7 = -p_ball->UnkDw7;
         p_ball->UnkDw6 = ((p_ball->NextX - (BAT_paddle_x << 8)) * (-p_ball->UnkDw7))
           / (BAT_data_1e2798 << 8);
-        p_ball->UnkDw6 = p_ball->UnkDw6 + ((rand() & 0xff) - 0x7f);
+        p_ball->UnkDw6 = p_ball->UnkDw6 + ((game_rand() & 0xff) - 0x7f);
 
         dist_lim = dist + (dist >> 3);
         if (dist_lim > BAT_ball_speed_limit())
@@ -970,7 +971,7 @@ static void BAT_create_starting_ball(void)
 
         ball->X = (BAT_SCREEN_WIDTH / 2) << 8;
         ball->Y = (49) << 8;
-        rnd = rand();
+        rnd = game_rand();
         ball->UnkDw7 = 0;
         ball->UnkDw6 = ((rnd & 7) << 8) - 768;
     }
@@ -978,13 +979,6 @@ static void BAT_create_starting_ball(void)
 
 int BAT_unknsub_27(void)
 {
-#if 0
-    int ret;
-    asm volatile (
-      "call ASM_BAT_unknsub_27\n"
-        : "=r" (ret) : );
-    return ret;
-#endif
     int tile_x, tile_z;
 
     for (tile_x = bat_unknvalA_min; tile_x <= bat_unknvalA_max; tile_x++)
@@ -1173,8 +1167,8 @@ static void BAT_balls_duplicate(void)
             break;
         p_nball->X = p_ball->X;
         p_nball->Y = p_ball->Y;
-        p_nball->UnkDw6 = (rand() & 0xFFFF) + p_ball->UnkDw6 - 0x7FFF;
-        p_nball->UnkDw7 = (rand() & 0xFFFF) + p_ball->UnkDw7 - 0x7FFF;
+        p_nball->UnkDw6 = (game_rand() & 0xFFFF) + p_ball->UnkDw6 - 0x7FFF;
+        p_nball->UnkDw7 = (game_rand() & 0xFFFF) + p_ball->UnkDw7 - 0x7FFF;
     }
 }
 
@@ -1287,7 +1281,7 @@ void breakout_play_sub2(void)
         kind = p_bonus->X;
         if (kind > 6)
             continue;
-        rnd = rand() & 0x3f;
+        rnd = game_rand() & 0x3f;
         colour = pixmap.fade_table[(rnd << 8) + colour_lookup[bonus_col[kind]]];
         BAT_draw_char((p_bonus->Y - 0x100) >> 8, (p_bonus->UnkDw2 - 0x200) >> 8,
           bonus_chr[kind], colour);
@@ -1329,10 +1323,6 @@ void BAT_bricks_load(int a1)
 
 void BAT_play(void)
 {
-#if 0
-    asm volatile ("call ASM_BAT_play\n"
-        :  :  : "eax" );
-#else
     switch (BAT_state)
     {
     case BATSt_Reset:
@@ -1394,7 +1384,7 @@ void BAT_play(void)
             {
               BAT_state = BATSt_GameWon;
               BAT_game_won_timer = 150;
-              rand();
+              game_rand();
               BAT_data_1e26e8 = 0;
             }
             else
@@ -1485,7 +1475,6 @@ void BAT_play(void)
         BAT_reset_free_balls();
         BAT_reset_free_bonuses();
     }
-#endif
 }
 
 static DIFFTEST_REF_FUNC void BAT_unknsub_20_asm(int a1, int a2, int a3, int a4, ubyte *p_screen)

@@ -409,15 +409,6 @@ uint32_t RADAPI ac_MSSSMACKTIMERREAD(void);
 
 uint8_t RADAPI SMACKSOUNDUSEMSS(uint32_t speed, void *digdrv)
 {
-#if 0
-    uint8_t ret;
-    asm volatile (
-      "push %2\n"
-      "push %1\n"
-      "call ASM_SMACKSOUNDUSEMSS\n"
-        : "=r" (ret) : "g" (speed), "g" (digdrv));
-    return ret;
-#endif
     if (SmackTimerReadAddr != NULL)
         return 0;
     SmackMSSDigDriver = digdrv;

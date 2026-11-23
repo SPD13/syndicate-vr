@@ -987,12 +987,6 @@ void wait_for_sound_sample_finish(ushort smpl_id)
 
 struct HeapMgrHeader *heapmgr_init(void *p_buf, int buf_size, int n_samples)
 {
-#if 0
-    struct HeapMgrHeader *ret;
-    asm volatile ("call ASM_heapmgr_init\n"
-        : "=r" (ret) : "a" (p_buf), "d" (buf_size), "b" (n_samples));
-    return ret;
-#endif
     struct HeapMgrHeader *p_hmhead;
     uint offs_after_samples;
     int offs3;

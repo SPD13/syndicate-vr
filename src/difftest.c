@@ -26,6 +26,7 @@
 #include <string.h>
 #include "bfconfig.h"
 #include "bftypes.h"
+#include "crtrand.h"
 #if defined(WIN32) || defined(_WIN32)
 # include <windows.h>
 #endif
@@ -39,24 +40,22 @@
  * the asm run's draws. In difftest builds rand() and srand() are defined
  * here, with the msvcrt algorithm and initial state, so the state lives in
  * our .data and is saved, restored and compared like other game state.
- * The asm reaches rand() through ac_rand, which calls this one too.
- * Harness builds without difftest use it as well, so that runs give the
- * same draws on every target and C library.
+ * The asm reaches rand() through ac_rand, which calls this one too. The
+ * state is that of game_rand() (crtrand.c), which the C code calls, so
+ * that both sides draw from one sequence.
  */
-static u32 dt_holdrand = 1;
 
 void srand(unsigned int seed) __attribute__((no_instrument_function));
 int rand(void) __attribute__((no_instrument_function));
 
 void srand(unsigned int seed)
 {
-    dt_holdrand = seed;
+    game_srand(seed);
 }
 
 int rand(void)
 {
-    dt_holdrand = dt_holdrand * 214013u + 2531011u;
-    return (int)((dt_holdrand >> 16) & 0x7FFF);
+    return game_rand();
 }
 
 /** Xorshift on 32 bits, also where ulong is longer; the bot uses it too. */
@@ -206,7 +205,7 @@ static void dt_check_rand(void)
     crt_rand = (int (*)(void))GetProcAddress(crt, "rand");
     if ((crt_srand == NULL) || (crt_rand == NULL) || (crt_rand == rand))
         return;
-    saved = dt_holdrand;
+    saved = game_rand_state;
     crt_srand(12345);
     srand(12345);
     bad = 0;
@@ -214,7 +213,7 @@ static void dt_check_rand(void)
         if (crt_rand() != rand())
             bad++;
     }
-    dt_holdrand = saved;
+    game_rand_state = saved;
     if (bad != 0)
         dt_log("difftest: WARNING rand() differs from msvcrt in %d of 64 draws\n", bad);
 #endif
