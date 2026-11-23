@@ -3383,11 +3383,11 @@ static DIFFTEST_REF_FUNC int VNAV_can_i_get_there_asm(int a1, int a2, int a3, in
     return ra;
 }
 
-/** Route buffer filled by VNAV_do(); asm data at VNAV_route,
- * the route node list starts at VNAV_route__route.
+/** Route buffer filled by VNAV_do(), asm data at VNAV_route: [2] is the
+ * route length, the route nodes start at [3] (the asm label
+ * VNAV_route__route) and [4] is 42 if no route was found.
  */
-extern short VNAV_route;
-extern short VNAV_route__route[];
+extern short VNAV_route[];
 
 void VNAV_find_nearnodes(int a1, int a2, int a3, int a4);
 
@@ -3412,8 +3412,8 @@ int VNAV_can_i_get_there(int a1, int a2, int a3, int a4)
         DIFFTEST_RETURN(0);
     if (p_vehicle->U.UVehicle.TNode == -tnode)
         DIFFTEST_RETURN(1);
-    VNAV_do(p_vehicle->U.UVehicle.TNode, (short)(-drop_node), (int)&VNAV_route, x);
-    if (VNAV_route__route[1] == 42)
+    VNAV_do(p_vehicle->U.UVehicle.TNode, (short)(-drop_node), (int)VNAV_route, x);
+    if (VNAV_route[4] == 42)
         DIFFTEST_RETURN(0);
     DIFFTEST_RETURN(1);
 }
@@ -3534,28 +3534,28 @@ int VNAV_goto(int a1, int a2, int a3, int a4)
     }
     else
     {
-        short *p_route_hdr = &VNAV_route;
+        short *p_route_hdr = VNAV_route;
         s32 nsteps, ridx, j;
         uint sh;
 
         VNAV_do(p_vehicle->U.UVehicle.TNode, (short)(-drop_node),
-          (int)&VNAV_route, x);
-        if (VNAV_route__route[1] == 42)
+          (int)VNAV_route, x);
+        if (VNAV_route[4] == 42)
             DIFFTEST_RETURN((int)0);
 
-        // route length is the short at VNAV_route+4
+        // route length is the short at VNAV_route[2]
         ridx = p_route_hdr[2] - 2;
         nsteps = 0;
         while (ridx >= 0)
         {
             for (j = 0; ; j++)
             {
-                node = -VNAV_route__route[2 + ridx];
+                node = -VNAV_route[5 + ridx];
                 lnk = game_traffic_nodes[node].UTraffic.Link[j];
-                if (lnk < 0 && lnk == VNAV_route__route[1 + ridx])
+                if (lnk < 0 && lnk == VNAV_route[4 + ridx])
                     break;
                 if (lnk > 0 && (ushort)things[lnk].U.UObject.TNode ==
-                  (ushort)VNAV_route__route[1 + ridx])
+                  (ushort)VNAV_route[4 + ridx])
                     break;
             }
             *p_path8 &= 0xfc;
@@ -16489,6 +16489,30 @@ static DIFFTEST_REF_FUNC int find_a_target_asm(int a1, int a2, int a3, int a4)
 }
 
 extern s32 dword_1AA67C;
+
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+ubyte tag_current = 0xff;
+short word_1AA38E;
+short word_1AA390;
+short word_1AA392;
+short word_1AA394;
+s32 dword_1AA3A4;
+s32 dword_1AA3A8;
+s32 dword_1AA3AC;
+s32 dword_1AA3B0;
+ushort word_1AA678;
+s32 dword_1AA67C;
+s32 dword_1AA680;
+struct Path fwd_path;
+s32 heap[257];
+s32 heap_end;
+short VNAV_route[128];
+s32 veh_ma_heap[257];
+s32 data_1c8a5c;
+struct Path g_nav_data;
+#endif /* typed asm data */
 
 /** Checks one candidate of find_a_target(), updating the best one found.
  */

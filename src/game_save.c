@@ -64,6 +64,20 @@ extern u32 data_177004;
 extern u32 save_hashtbl_03[59];
 extern u32 save_hashtbl_verify_code;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+u32 save_mortal_salt;
+u32 save_hashtbl_01[55];
+u32 data_176f1c;
+u32 save_hashtbl_02[57];
+u32 data_177004;
+u32 save_hashtbl_03[59];
+ubyte save_crypto_tables_state[3];
+ubyte save_crypto_data_state[3];
+u32 save_hashtbl_verify_code;
+#endif /* typed asm data */
+
 ulong save_crypto_transform1(ubyte a1);
 ulong save_crypto_transform2(ubyte a1);
 ulong save_crypto_transform3(ubyte a1);

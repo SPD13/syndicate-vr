@@ -2631,6 +2631,24 @@ int func_4225c(int a1, int a2, int a3, int a4)
 extern ushort word_1C83E2;
 extern ushort word_1C83E8;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+s32 dword_152E38[5] = {-1, -1, -1, -1, -1};
+long unkn01_downcount;
+long unkn01_pos_x;
+long unkn01_pos_y;
+short data_1c42fe;
+short data_1c4300;
+ubyte map_crater_first;
+ushort word_1C83E2;
+ushort word_1C83E8;
+ushort word_1C8446;
+ushort current_map;
+short current_level;
+ushort data_1c8468;
+#endif /* typed asm data */
+
 struct Thing *find_unused_train_track(void);
 
 static DIFFTEST_REF_FUNC int create_train_carriage_asm(short cor_dx, short cor_dy, short cor_dz, short otype)

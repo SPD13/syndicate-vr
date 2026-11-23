@@ -398,6 +398,26 @@ extern ubyte SCANNER_cont;
 
 extern s32 SCANNER_unknarr_1DBB6C[512];
 extern TbPixel *SCANNER_screenptr;
+
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+s32 SCANNER_nrp_sh_y;
+s32 SCANNER_nrp_sh_x;
+s32 SCANNER_scr_x;
+s32 SCANNER_scr_y;
+s32 SCANNER_ln_width;
+TbPixel *SCANNER_screenptr;
+s32 SCANNER_hip_sh_y;
+s32 SCANNER_hip_sh_x;
+ubyte SCANNER_lop_sh_y;
+ubyte SCANNER_lop_sh_x;
+ubyte SCANNER_brig;
+ubyte SCANNER_cont;
+TbPixel SCANNER_people_colours[15];
+ubyte SCANNER_colour[5];
+s32 SCANNER_unknarr_1DBB6C[512];
+#endif /* typed asm data */
 extern u32 SCANNER_keep_arcs;
 
 ubyte net_player_colours[8];

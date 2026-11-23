@@ -26,6 +26,17 @@ extern TrCoord fringe_y[256];
 extern TrCoord fringe_x1, fringe_y1, fringe_x2, fringe_y2;
 extern ubyte *fringe_map;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+TrCoord fringe_y[256];
+TrCoord fringe_x1;
+TrCoord fringe_y1;
+TrCoord fringe_x2;
+TrCoord fringe_y2;
+ubyte *fringe_map;
+#endif /* typed asm data */
+
 
 void fringe_init(ubyte *p_map, TrCoord x1, TrCoord y1, TrCoord x2, TrCoord y2)
 {

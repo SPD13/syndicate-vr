@@ -682,6 +682,18 @@ ubyte unused_func_026(ubyte a1)
 extern ubyte data_1c476e;
 extern short data_1c4770;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+struct BangDetail bangdetail;
+short map_cratunkn2[50];
+ubyte map_crater_last;
+ubyte data_1c476b;
+short data_1c476c;
+ubyte data_1c476e;
+short data_1c4770;
+#endif /* typed asm data */
+
 static DIFFTEST_REF_FUNC void unused_func_025_asm(short a1, short a2, short a3)
 {
     asm volatile (

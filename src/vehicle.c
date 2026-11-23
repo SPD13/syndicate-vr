@@ -2852,8 +2852,10 @@ int find_next_ship_tnode(int a1, int a2, int a3, int a4)
 }
 
 
-extern s32 data_1c84f4;
-extern s32 data_1c84f8[];
+/** Second traffic node list: count at [0], up to 16 nodes at [1..16]
+ * (asm labels data_1c84f4 and data_1c84f8, right after dword_1C8474).
+ */
+extern s32 data_1c84f4[];
 
 static DIFFTEST_REF_FUNC void process_ship_asm(struct Thing *p_vehicle)
 {
@@ -2909,7 +2911,7 @@ void process_ship(struct Thing *p_vehicle)
 
                 *(ubyte *)&p_tnode->Flags = flags & 0xBF;
                 rnd = LbRandomAnyShort();
-                p_vehicle->U.UVehicle.TNode = (short)data_1c84f8[(s32)rnd % data_1c84f4];
+                p_vehicle->U.UVehicle.TNode = (short)data_1c84f4[1 + (s32)rnd % data_1c84f4[0]];
                 p_tnode = &game_traffic_nodes[p_vehicle->U.UVehicle.TNode];
                 x = p_tnode->X << 8;
                 z = p_tnode->Z << 8;
@@ -4488,6 +4490,30 @@ void process_my_flying_vehicle(struct Thing *p_vehicle)
 /** Unplacing animation steps: AngleDY (in 1/8 units), AngleX delta, ReqdSpeed.
  */
 extern short unplace[];
+
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+short unplace[60] = {
+    -5, 0, 200, -10, 0, 150, -20, 0,
+    100, -30, 0, 50, -40, 0, 0, -50,
+    0, 0, -60, 0, 0, -70, 0, -50,
+    -60, 0, -100, -50, 0, -150, -40, 0,
+    -250, -30, 0, -300, -20, 0, -350, -10,
+    0, -400, -10, 0, -450, -5, 0, -450,
+    0, 0, -500, 0, 0, -500, 0, 0,
+    -500,
+};
+u32 rand_d = 0x3f69a093;
+s32 data_1554f8[12] = {0, 0, -70, -10, 70, 10, 0, -40, 40, 40, -40};
+s32 data_155528[12] = {0, -10, 0, 75, 0, 75, 70, 20, 20, 20, 20, 65};
+s32 data_155558[12] = {0, 0, 0, 10, 0, 10, -10, -40, -40, 40, 40, -10};
+GameTurn last_swoosh_turn;
+short last_swoosh_thing;
+s32 data_1c84f4[17];
+short VNAV_nearnodes[5];
+s32 VNAV_nodedists[5];
+#endif /* typed asm data */
 
 static DIFFTEST_REF_FUNC void process_unplacing_asm(struct Thing *p_vehicle)
 {

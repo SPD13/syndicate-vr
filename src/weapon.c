@@ -194,6 +194,12 @@ const struct TbNamedEnum weapons_conf_weapon_cmds[] = {
 
 extern ubyte byte_1DD8F8;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+ubyte byte_1DD8F8;
+#endif /* typed asm data */
+
 /******************************************************************************/
 
 void read_weapons_conf_file(void)

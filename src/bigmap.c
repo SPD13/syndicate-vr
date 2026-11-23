@@ -30,6 +30,12 @@
 
 #include "game_data.h"
 #include "swlog.h"
+
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+ushort crater_unkn_texture_flags;
+#endif /* typed asm data */
 /******************************************************************************/
 const struct Direction angle_direction[] = {
     {   0,  256},

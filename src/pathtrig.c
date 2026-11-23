@@ -73,6 +73,14 @@ s32 route_bak[3000];
 extern short link__MapColListEmptyHead;
 extern short link__MapColVectEmptyHead;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+short link__MapColListEmptyHead;
+short link__MapColVectEmptyHead;
+struct Path g_fat_data;
+#endif /* typed asm data */
+
 /** Map of the ground surface for triangluation purposes, 2x2 per tile.
  */
 ubyte *ground_map = NULL;

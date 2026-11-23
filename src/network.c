@@ -79,6 +79,14 @@ char ModemRequestString[80];
 extern struct TbUnknCommSt netunkst_1E81E0;
 
 extern struct TbSerialDev *dword_1E85E3;
+
+#if !(defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK)
+/* Variables of the asm data (netdos_data.c), for builds without the asm;
+ * DOS network builds take the byte layout of the asm from that file. */
+ulong NetTimeoutTicks = 0xffffffff;
+struct TbUnknCommSt netunkst_1E81E0;
+struct TbSerialDev *dword_1E85E3;
+#endif /* typed asm data */
 ubyte modem_is_configured = 0;
 
 extern int last_pkt_size;
@@ -88,7 +96,31 @@ extern struct TbIPXPlayerHeader loggon_header;
 extern ubyte player_loggon;
 
 extern struct ComHandlerInfo com_dev[4];
+
+#if !(defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK)
+/* Variables of the asm data (netser1_data.c), for builds without the asm;
+ * DOS network builds take the byte layout of the asm from that file. */
+struct ComHandlerInfo com_dev[4] = {
+    {.field_4 = 0x3f8, .field_6 = 0xc, .field_8 = 4},
+    {.field_4 = 0x2f8, .field_6 = 0xb, .field_8 = 3},
+    {.field_4 = 0x3e8, .field_6 = 0xc, .field_8 = 4},
+    {.field_4 = 0x2e8, .field_6 = 0xb, .field_8 = 3},
+};
+#endif /* typed asm data */
 extern struct IPXDatagramBackup datagram_backup[8];
+
+#if !(defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK)
+/* Variables of the asm data (netipx1_data.c), for builds without the asm;
+ * DOS network builds take the byte layout of the asm from that file. */
+struct TbIPXHandler *IPXHandler;
+struct TbIPXPlayer IPXPlayer;
+struct TbIPXPlayerHeader loggon_header;
+ubyte player_loggon;
+int last_pkt_size;
+ulong ipx_send_packet_count[8][8];
+ulong ipx_got_player_send_packet_count[8];
+struct IPXDatagramBackup datagram_backup[8];
+#endif /* typed asm data */
 
 struct TbNetworkService NetworkServicePtr;
 

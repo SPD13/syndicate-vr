@@ -31,6 +31,13 @@
 #include "game.h"
 #include "swlog.h"
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+ubyte *dword_1C6DE4;
+ubyte *dword_1C6DE8;
+#endif /* typed asm data */
+
 /******************************************************************************/
 
 struct TbSprite *pointer_sprites;

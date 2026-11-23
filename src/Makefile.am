@@ -26,7 +26,6 @@ syndwarsfx_SOURCES = \
 	../bfsmacklib/include/smack.h \
 	../bfsmacklib/include/smack2ail.h \
 	../bfsmacklib/src/smailfile.c \
-	../bfsmacklib/src/bfsmacklib_data.c \
 	../bfsmacklib/include/smkdec.h \
 	../bfsmacklib/src/smkdec.c \
 	config.h \
@@ -34,7 +33,6 @@ syndwarsfx_SOURCES = \
 	bmbang.h \
 	bmcrater.c \
 	bmcrater.h \
-	bat_data.c \
 	bat.c \
 	bat.h \
 	bigmap.c \
@@ -150,9 +148,6 @@ syndwarsfx_SOURCES = \
 	mouse.h \
 	mydraw.c \
 	mydraw.h \
-	netipx1_data.c \
-	netser1_data.c \
-	netdos_data.c \
 	network.c \
 	network.h \
 	pathtrig.c \
@@ -178,9 +173,6 @@ syndwarsfx_SOURCES = \
 	purpldrw.h \
 	purpldrwlst.c \
 	purpldrwlst.h \
-	radica1_data.c \
-	radica2_data.c \
-	radica3_data.c \
 	research.c \
 	research.h \
 	rules.c \
@@ -193,7 +185,6 @@ syndwarsfx_SOURCES = \
 	sound.h \
 	specblit.c \
 	specblit.h \
-	swars_data.c \
 	swlog.h \
 	thing.c \
 	thing.h \
@@ -251,9 +242,17 @@ syndwarsfx_RCFLAGS = \
 
 # The DOS network services (IPX, serial, RADICA) are asm using DOS
 # interrupts; only built with --enable-dos-network. Without them the
-# network service functions report failure (single player).
+# network service functions report failure (single player). The data of
+# that asm (*_data.c) is its byte layout; other builds define the variables
+# C uses with their types, in the C files.
 if DOS_NETWORK
 syndwarsfx_SOURCES += \
+	netipx1_data.c \
+	netser1_data.c \
+	netdos_data.c \
+	radica1_data.c \
+	radica2_data.c \
+	radica3_data.c \
 	netipx1.sx \
 	netser1.sx \
 	netdos.sx \
@@ -262,9 +261,14 @@ syndwarsfx_SOURCES += \
 	radica3.sx
 endif
 
-# The asm of remade functions is kept only as the difftest reference
+# The asm of remade functions is kept only as the difftest reference, with
+# its data as the byte layout it needs (*_data.c); other builds define the
+# variables C uses with their types, in the C files.
 if ENABLE_DIFFTEST
 syndwarsfx_SOURCES += \
+	../bfsmacklib/src/bfsmacklib_data.c \
+	bat_data.c \
+	swars_data.c \
 	../bfsmacklib/src/bfsmacklib_s.sx \
 	swars.sx \
 	../bfsmacklib/src/smack2ail.c \

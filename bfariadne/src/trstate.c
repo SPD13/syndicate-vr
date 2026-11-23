@@ -24,6 +24,12 @@
 #include "difftest.h"
 #include "trstate.h"
 #include "trlog.h"
+
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+int selected_triangulation_no = -1;
+#endif /* typed asm data */
 /******************************************************************************/
 
 struct Triangulation triangulation[TRIANGULATIONS_COUNT];

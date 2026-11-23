@@ -58,6 +58,15 @@ extern ubyte byte_1E56DC[PALETTE_8b_SIZE];
 extern uint32_t simspeed;
 extern uint32_t forcerate;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (bfsmacklib_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+uint32_t simspeed;
+uint32_t forcerate;
+ubyte byte_1E56DC[PALETTE_8b_SIZE];
+SmackDrawCallback smack_draw_callback;
+#endif /* typed asm data */
+
 #define __DS__ 0
 /******************************************************************************/
 

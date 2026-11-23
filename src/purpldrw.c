@@ -65,6 +65,15 @@ s32 purple_box_x2, purple_box_y2;
 extern s32 dword_1DC50C, dword_1DC510;
 extern s32 dword_1DC534, dword_1DC538;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+s32 dword_1DC50C;
+s32 dword_1DC510;
+s32 dword_1DC534;
+s32 dword_1DC538;
+#endif /* typed asm data */
+
 static TbBool button_input_suppressed_by_modal_box(struct ScreenButton *p_btn)
 {
     if (show_alert && button_is_modal_alert(p_btn))

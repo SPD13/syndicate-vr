@@ -84,7 +84,7 @@ s32 scanner_next_key_no;
 
 extern ushort signal_count;
 extern ulong turn_last; // = 999;
-extern ulong SCANNER_keep_arcs;
+extern u32 SCANNER_keep_arcs;
 extern struct BbpAdds SCANNER_bbpadds[SCANNER_BBP_ADDS_COUNT];
 
 ushort SCANNER_base_zoom_factor = 180;
@@ -97,6 +97,23 @@ extern struct rectangle redo_scanner[128];
 
 extern s32 redo_scanner_last;
 extern s32 redo_scanner_first;
+
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+ulong turn_last = 0x3e7;
+struct rectangle redo_scanner[128];
+s32 redo_scanner_last;
+s32 redo_scanner_first;
+ushort signal_count;
+ubyte SCANNER_data[SCANNER_MAPDATA_HEIGHT][SCANNER_MAPDATA_WIDTH];
+s32 *SCANNER_width;
+u32 SCANNER_keep_arcs;
+u32 dword_1DB1A0;
+struct MovingPoint SCANNER_arcpoint[SCANNER_ARC_COUNT * SCANNER_POINTS_PER_ARC];
+struct SimplePoint SCANNER_bbpoint[SCANNER_BIG_BLIP_COUNT * SCANNER_BBP_ADDS_COUNT];
+struct BbpAdds SCANNER_bbpadds[SCANNER_BBP_ADDS_COUNT];
+#endif /* typed asm data */
 
 /******************************************************************************/
 

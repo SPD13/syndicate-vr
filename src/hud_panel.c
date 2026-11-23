@@ -70,6 +70,12 @@ ubyte player_message_timer[PLAYERS_LIMIT];
 
 extern char panel_objective_text[360];
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+char panel_objective_text[360];
+#endif /* typed asm data */
+
 /** Over which agent weapon the cursor is currently placed.
  *
  * Used just for the graphical detail of highliting current weapon when mouse over.

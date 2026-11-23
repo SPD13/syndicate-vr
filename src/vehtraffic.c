@@ -38,6 +38,8 @@ ushort next_traffic_node = 1;
 
 extern uint dword_1C8470;
 extern int dword_1C8474[32];
+/** Second traffic node list, see vehicle.c */
+extern s32 data_1c84f4[];
 
 short tnode_find_used_link(struct TrafficNode *p_tnode)
 {
@@ -270,11 +272,11 @@ static DIFFTEST_REF_FUNC int VNAV_renavigate_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-/** Route buffer filled by VNAV_do(); asm data at VNAV_route,
- * the route node list starts at VNAV_route__route.
+/** Route buffer filled by VNAV_do(), asm data at VNAV_route: [2] is the
+ * route length, the route nodes start at [3] (the asm label
+ * VNAV_route__route) and [4] is 42 if no route was found.
  */
-extern short VNAV_route;
-extern short VNAV_route__route[];
+extern short VNAV_route[];
 
 void VNAV_do(int a1, int a2, int a3, int a4);
 
@@ -286,7 +288,7 @@ void VNAV_do(int a1, int a2, int a3, int a4);
 int VNAV_renavigate(int a1, int a2, int a3, int a4)
 {
     struct Thing *p_vehicle = (struct Thing *)a1;
-    short *p_route_hdr = &VNAV_route;
+    short *p_route_hdr = VNAV_route;
     u32 *p_path;
     u32 *p_flags32;
     ubyte *p_path8;
@@ -304,23 +306,23 @@ int VNAV_renavigate(int a1, int a2, int a3, int a4)
     p_flags8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy4a;
 
     VNAV_do(p_vehicle->U.UVehicle.TNode, p_vehicle->U.UVehicle.AccelX,
-      (int)&VNAV_route, a4);
-    if (VNAV_route__route[1] == 42)
+      (int)VNAV_route, a4);
+    if (VNAV_route[4] == 42)
         DIFFTEST_RETURN((int)0);
 
-    // route length is the short at VNAV_route+4
+    // route length is the short at VNAV_route[2]
     ridx = p_route_hdr[2] - 2;
     nsteps = 0;
     while (ridx >= 0)
     {
         for (j = 0; ; j++)
         {
-            node = -VNAV_route__route[2 + ridx];
+            node = -VNAV_route[5 + ridx];
             lnk = game_traffic_nodes[node].UTraffic.Link[j];
-            if (lnk < 0 && lnk == VNAV_route__route[1 + ridx])
+            if (lnk < 0 && lnk == VNAV_route[4 + ridx])
                 break;
             if (lnk > 0 && (ushort)things[lnk].U.UObject.TNode ==
-              (ushort)VNAV_route__route[1 + ridx])
+              (ushort)VNAV_route[4 + ridx])
                 break;
             if (2 * j > 6)
                 DIFFTEST_RETURN((int)0);
@@ -1040,10 +1042,9 @@ void VNAV_init_new_traffic_system(void)
     int i, k;
 
     DIFFTEST_SHADOW(VNAV_init_new_traffic_system, VNAV_init_new_traffic_system_asm());
-    // The second node list (data_1c84f4 count followed by data_1c84f8[16])
-    // is not exported from the asm; it directly follows dword_1C8474[32].
-    // Entries are stored at p_list2_count[1..16].
-    p_list2_count = (s32 *)dword_1C8474 + 32;
+    // The second node list: count followed by entries [1..16]; the asm
+    // reaches it as dword_1C8474 + 32
+    p_list2_count = data_1c84f4;
 
     p_nodes = game_traffic_nodes;
     dword_1C8470 = 0;
@@ -1144,11 +1145,31 @@ extern s32 data_1dd8fc;
 extern s32 data_1dd900;
 extern s32 data_1dd904;
 extern s32 data_1dd908;
-extern ushort data_1dd90a;
 extern s32 data_1dd90c;
 extern s32 data_1dd910;
 extern s32 data_1dd914;
 extern s32 data_1dd918;
+
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+s32 dword_1556F0 = -50;
+s32 dword_1556F4 = 0x4000;
+s32 dword_1556F8 = 0x200;
+s32 dword_1556FC = 0x4000;
+s32 dword_155700 = 0x400;
+uint dword_1C8470;
+int dword_1C8474[32];
+s32 data_1dd8fc;
+s32 data_1dd900;
+s32 data_1dd904;
+s32 data_1dd908;
+s32 data_1dd90c;
+s32 data_1dd910;
+s32 data_1dd914;
+s32 data_1dd918;
+s32 data_1dd91c;
+#endif /* typed asm data */
 
 static DIFFTEST_REF_FUNC void traffic_unkn_func_01_asm(void)
 {
@@ -1303,8 +1324,9 @@ void traffic_unkn_func_01(void)
         delta = 350;
     vel = data_1dd910 + delta;
     data_1dd908 += vel >> 3;
-    // Clears the upper half of data_1dd908
-    data_1dd90a = 0;
+    // The asm clears the upper half of data_1dd908 by writing the word
+    // label data_1dd90a over it
+    data_1dd908 &= 0xFFFF;
     engn_cam_yaw = data_1dd908;
     data_1dd910 = vel;
 

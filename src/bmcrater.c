@@ -32,6 +32,13 @@
 extern ubyte map_crater_next;
 extern struct MapCreater map_craters[MAP_CRATERS_COUNT];
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+struct MapCreater map_craters[MAP_CRATERS_COUNT];
+ubyte map_crater_next;
+#endif /* typed asm data */
+
 struct CraterTileSpec {
     sbyte dx, dz;
     ubyte depth;

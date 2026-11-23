@@ -1042,6 +1042,14 @@ static DIFFTEST_REF_FUNC void apply_full_light_asm(short lx, short lz, ushort b,
 
 extern ushort data_17fa52;
 
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+short word_1552F8 = 1;
+s32 dword_176D6C;
+ushort data_17fa52;
+#endif /* typed asm data */
+
 void apply_full_light(short lx, short lz, ushort b, ushort intens, ushort lid)
 {
     struct UnkFLight *p_ufl;

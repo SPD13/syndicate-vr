@@ -50,6 +50,13 @@
 #include "vehicle.h"
 #include "wadfile.h"
 #include "swlog.h"
+
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+const char *scrollinfo_text = "NO OBJECTIVE";
+ubyte byte_1C844F;
+#endif /* typed asm data */
 /******************************************************************************/
 
 enum ObjectiveDefFlags {
