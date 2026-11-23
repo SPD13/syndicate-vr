@@ -304,16 +304,56 @@ void play_disk_sample(short id, ushort sample, short vol,
 {
     play_sample_using_heap(9999, 129 + sample, vol, pan, pitch, loop, stype);
 }
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
- * remade. Registers it does not preserve are declared clobbered.
- */
-int snd_unkn3_find_stop_sample(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int snd_unkn3_find_stop_sample_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_snd_unkn3_find_stop_sample\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx); only eax (sample
+ * number) and edx (volume) are read.
+ *
+ * Stops the quietest playing instance of given sample, if it is quieter
+ * than given volume. Returns 1 if a sample was stopped.
+ */
+int snd_unkn3_find_stop_sample(int a1, int a2, int a3, int a4)
+{
+    struct SampleInfo *p_sinfo;
+    struct SampleInfo *p_first;
+    struct SampleInfo *p_last;
+    ushort smp_id;
+    ushort vol;
+    short best_source;
+    short best_vol;
+
+    DIFFTEST_SHADOW_RET(snd_unkn3_find_stop_sample, int,
+      snd_unkn3_find_stop_sample_asm(a1, a2, a3, a4));
+    smp_id = (ushort)a1;
+    vol = (ushort)a2;
+    best_source = 9999;
+    best_vol = 9999;
+    p_first = GetFirstSampleInfoStructure();
+    p_last = GetLastSampleInfoStructure();
+    for (p_sinfo = p_first; p_sinfo <= p_last; p_sinfo++)
+    {
+        if (!IsSamplePlaying(0, 0, p_sinfo->SampleHandle))
+            continue;
+        if (p_sinfo->SampleNumber != smp_id)
+            continue;
+        if ((s32)vol <= p_sinfo->SampleVolume)
+            continue;
+        if ((s32)best_vol <= p_sinfo->SampleVolume)
+            continue;
+        best_source = (short)p_sinfo->SourceID;
+        best_vol = (short)p_sinfo->SampleVolume;
+    }
+    if (best_source == 9999)
+        DIFFTEST_RETURN((int)0);
+    stop_sample_using_heap(best_source, (short)smp_id);
+    DIFFTEST_RETURN((int)1);
 }
 
 
