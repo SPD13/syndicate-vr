@@ -33,7 +33,7 @@ syndwarsfx_SOURCES = \
 	bmbang.h \
 	bmcrater.c \
 	bmcrater.h \
-	bat_s.sx \
+	bat_data.c \
 	bat.c \
 	bat.h \
 	bigmap.c \
@@ -242,6 +242,7 @@ syndwarsfx_RCFLAGS = \
 # The asm of remade functions is kept only as the difftest reference
 if ENABLE_DIFFTEST
 syndwarsfx_SOURCES += \
+	bat_s.sx \
 	bflib_vidraw_s.sx \
 	sound_smp_s.sx \
 	sound_heap_s.sx \

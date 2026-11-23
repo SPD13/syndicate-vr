@@ -48,13 +48,13 @@ GLOBAL_FUNC(ASM_BAT_draw_char)	/* 0x0DCF40 */
 		mov    %bl,%al
 		inc    %al
 		and    $0xff,%eax
-		mov    _IsTable(%eax),%dl
+		mov    EXPORT_SYMBOL(_IsTable)(%eax),%dl
 		test   $0x20,%dl
 		je     jump_dcf72
 		movsbl %bl,%eax
 		lea    -0x30(%eax),%edx
 		lea    0x0(,%edx,4),%eax
-		mov    $BAT_unkn1,%ebx
+		mov    $EXPORT_SYMBOL(BAT_unkn1),%ebx
 		add    %edx,%eax
 		add    %eax,%ebx
 		jmp    jump_dcfbd
@@ -64,29 +64,29 @@ GLOBAL_FUNC(ASM_BAT_draw_char)	/* 0x0DCF40 */
 		movsbl %bl,%eax
 		lea    -0x41(%eax),%edx
 		lea    0x0(,%edx,4),%eax
-		mov    $BAT_unkn2,%ebx
+		mov    $EXPORT_SYMBOL(BAT_unkn2),%ebx
 		add    %edx,%eax
 		add    %eax,%ebx
 		jmp    jump_dcfbd
 	jump_dcf8f:
 		cmp    $0x21,%bl
 		jne    jump_dcf9b
-		mov    $data_155864,%ebx
+		mov    $EXPORT_SYMBOL(data_155864),%ebx
 		jmp    jump_dcfbd
 	jump_dcf9b:
 		cmp    $0x2e,%bl
 		jne    jump_dcfa7
-		mov    $data_155869,%ebx
+		mov    $EXPORT_SYMBOL(data_155869),%ebx
 		jmp    jump_dcfbd
 	jump_dcfa7:
 		cmp    $0x3a,%bl
 		jne    jump_dcfb3
-		mov    $data_15586e,%ebx
+		mov    $EXPORT_SYMBOL(data_15586e),%ebx
 		jmp    jump_dcfbd
 	jump_dcfb3:
 		cmp    $0x3f,%bl
 		jne    jump_dcff5
-		mov    $data_155873,%ebx
+		mov    $EXPORT_SYMBOL(data_155873),%ebx
 	jump_dcfbd:
 		mov    EXPORT_SYMBOL(BAT_screen),%edx
 		shl    $0x8,%esi
@@ -195,8 +195,8 @@ func_dd2c8:
 /*----------------------------------------------------------------*/
 		mov    $0xb00,%ebp
 		mov    $0xa4,%eax
-		mov    %ebp,data_1e2cb4
-		mov    %eax,data_1e2cac
+		mov    %ebp,EXPORT_SYMBOL(data_1e2cb4)
+		mov    %eax,EXPORT_SYMBOL(data_1e2cac)
 	jump_dd2dd:
 		mov    0x14(%ecx),%edx
 		mov    0x10(%ecx),%ebx
@@ -224,8 +224,8 @@ func_dd31b:
 /*----------------------------------------------------------------*/
 		mov    $0x400,%edx
 		mov    $0xa4,%ebx
-		mov    %edx,data_1e2cb4
-		mov    %ebx,data_1e2cac
+		mov    %edx,EXPORT_SYMBOL(data_1e2cb4)
+		mov    %ebx,EXPORT_SYMBOL(data_1e2cac)
 		jmp    jump_dd2dd
 
 
@@ -453,33 +453,33 @@ func_dd557:
 		test   %esi,%esi
 		jne    jump_dd22a
 	jump_dd597:
-		mov    data_1e2cac,%edx
+		mov    EXPORT_SYMBOL(data_1e2cac),%edx
 		test   %edx,%edx
 		jne    jump_dd5ad
-		movl   $0x600,data_1e2cb4
+		movl   $0x600,EXPORT_SYMBOL(data_1e2cb4)
 		jmp    jump_dd5b6
 	jump_dd5ad:
 		lea    -0x1(%edx),%ebx
-		mov    %ebx,data_1e2cac
+		mov    %ebx,EXPORT_SYMBOL(data_1e2cac)
 	jump_dd5b6:
-		mov    data_1e2cb4,%eax
-		mov    data_1e2cb0,%esi
+		mov    EXPORT_SYMBOL(data_1e2cb4),%eax
+		mov    EXPORT_SYMBOL(data_1e2cb0),%esi
 		sub    %esi,%eax
 		sar    $0x3,%eax
 		lea    (%esi,%eax,1),%edi
-		mov    data_1e2cb4,%ebp
+		mov    EXPORT_SYMBOL(data_1e2cb4),%ebp
 		mov    %edi,%eax
 		sub    %ebp,%eax
-		mov    %edi,data_1e2cb0
+		mov    %edi,EXPORT_SYMBOL(data_1e2cb0)
 		cltd
 		xor    %edx,%eax
 		sub    %edx,%eax
 		cmp    $0x8,%eax
 		jge    jump_dd5ed
-		mov    data_1e2cb4,%eax
-		mov    %eax,data_1e2cb0
+		mov    EXPORT_SYMBOL(data_1e2cb4),%eax
+		mov    %eax,EXPORT_SYMBOL(data_1e2cb0)
 	jump_dd5ed:
-		mov    data_1e2cb0,%eax
+		mov    EXPORT_SYMBOL(data_1e2cb0),%eax
 		sar    $0x8,%eax
 		mov    %eax,EXPORT_SYMBOL(BAT_data_1e2798)
 		pop    %ebp
@@ -868,7 +868,7 @@ GLOBAL_FUNC(ASM_BAT_bricks_load)	/* 0xddae0 */
 		cmp    %esi,%edx
 		je     jump_ddb11
 	jump_ddb34:
-		mov    breakout_levs0__bricks(%edx),%bl
+		mov    EXPORT_SYMBOL(breakout_levs0__bricks)(%edx),%bl
 		mov    %bl,EXPORT_SYMBOL(BAT_bricks)(%eax)
 		test   $0x80,%bl
 		jne    jump_ddb2e
@@ -897,43 +897,43 @@ GLOBAL_FUNC (ASM_BAT_unknsub_20)	/* 0xDDB64 */
 		push   %ebp
 		mov    %eax,EXPORT_SYMBOL(bat_unknvalA_min)
 		mov    EXPORT_SYMBOL(colour_lookup)+2,%al
-		mov    %al,data_1e2710
+		mov    %al,EXPORT_SYMBOL(data_1e2710)
 		mov    EXPORT_SYMBOL(colour_lookup)+3,%al
-		mov    %al,data_1e2711
+		mov    %al,EXPORT_SYMBOL(data_1e2711)
 		mov    EXPORT_SYMBOL(colour_lookup)+4,%al
-		mov    %al,data_1e2712
+		mov    %al,EXPORT_SYMBOL(data_1e2712)
 		mov    EXPORT_SYMBOL(colour_lookup)+1,%al
-		mov    %al,data_1e2713
+		mov    %al,EXPORT_SYMBOL(data_1e2713)
 		mov    EXPORT_SYMBOL(colour_lookup)+0x09,%al
 		mov    EXPORT_SYMBOL(vec_tmap)+16,%edi
-		mov    %al,data_1e2714
+		mov    %al,EXPORT_SYMBOL(data_1e2714)
 		mov    EXPORT_SYMBOL(colour_lookup)+0x05,%al
 		mov    %edx,EXPORT_SYMBOL(bat_unknvalB_min)
-		mov    %al,data_1e2715
+		mov    %al,EXPORT_SYMBOL(data_1e2715)
 		mov    EXPORT_SYMBOL(colour_lookup)+0x08,%al
 		mov    %ebx,EXPORT_SYMBOL(bat_unknvalA_max)
-		mov    %al,data_1e2716
+		mov    %al,EXPORT_SYMBOL(data_1e2716)
 		mov    EXPORT_SYMBOL(colour_lookup)+7,%al
 		mov    %ecx,EXPORT_SYMBOL(bat_unknvalB_max)
-		mov    %al,data_1e2717
+		mov    %al,EXPORT_SYMBOL(data_1e2717)
 		mov    EXPORT_SYMBOL(colour_lookup)+0x0A,%al
 		add    $0xa040,%edi
-		mov    %al,data_1e2718
+		mov    %al,EXPORT_SYMBOL(data_1e2718)
 		xor    %eax,%eax
 	jump_ddbe6:
 		xor    %edx,%edx
-		mov    data_1e2710(%eax),%dl
+		mov    EXPORT_SYMBOL(data_1e2710)(%eax),%dl
 		inc    %eax
 		mov    EXPORT_SYMBOL(pixmap)+0x2000(%edx),%dl # pixmap.fade_table[0x2000+?]
-		mov    %dl,data_1e270f(%eax)
+		mov    %dl,EXPORT_SYMBOL(data_1e270f)(%eax)
 		cmp    $0x8,%eax
 		jl     jump_ddbe6
 		xor    %eax,%eax
-		mov    data_1e2718,%al
+		mov    EXPORT_SYMBOL(data_1e2718),%al
 		mov    $0xc,%esi
 		mov    EXPORT_SYMBOL(pixmap)+0x3000(%eax),%al # pixmap.fade_table[0x3000+?]
 		mov    $0x80,%cl
-		mov    %al,data_1e2718
+		mov    %al,EXPORT_SYMBOL(data_1e2718)
 		mov    EXPORT_SYMBOL(colour_lookup)+1,%al
 		xor    %ebx,%ebx
 		mov    %al,EXPORT_SYMBOL(BAT_lives_colour)
@@ -948,7 +948,7 @@ GLOBAL_FUNC (ASM_BAT_unknsub_20)	/* 0xDDB64 */
 		imul   $0xc,%ebx,%eax
 	jump_ddc35:
 		inc    %eax
-		mov    %cl,BAT_data_1e271b(%eax)
+		mov    %cl,EXPORT_SYMBOL(BAT_data_1e271b)(%eax)
 		cmp    %edx,%eax
 		je     jump_ddc27
 		jmp    jump_ddc35
@@ -957,7 +957,7 @@ GLOBAL_FUNC (ASM_BAT_unknsub_20)	/* 0xDDB64 */
 		mov    $EXPORT_SYMBOL(BAT_free_balls),%ebx
 		xor    %eax,%eax
 		mov    %edx,EXPORT_SYMBOL(BAT_free_balls)
-		mov    %ebx,data_1e27c4
+		mov    %ebx,EXPORT_SYMBOL(data_1e27c4)
 		mov    $EXPORT_SYMBOL(BAT_balls_store),%ebx
 		xor    %edx,%edx
 		add    $0x28,%ebx
@@ -970,7 +970,7 @@ GLOBAL_FUNC (ASM_BAT_unknsub_20)	/* 0xDDB64 */
 		add    $0x28,%ebx
 		add    $0x20,%ecx
 		add    $0x28,%eax
-		mov    %ecx,data_1e27c4(%esi)
+		mov    %ecx,EXPORT_SYMBOL(data_1e27c4)(%esi)
 		cmp    $0x1f,%edx
 		jl     jump_ddc64
 		mov    $EXPORT_SYMBOL(BAT_bonus_store),%ebp
@@ -981,7 +981,7 @@ GLOBAL_FUNC (ASM_BAT_unknsub_20)	/* 0xDDB64 */
 		mov    %ecx,EXPORT_SYMBOL(BAT_dwarr_1e27c0)(%eax)
 		mov    $EXPORT_SYMBOL(BAT_free_bonuses),%eax
 		lea    0x18(%ebp),%ebx
-		mov    %eax,data_1e2cd0
+		mov    %eax,EXPORT_SYMBOL(data_1e2cd0)
 		xor    %eax,%eax
 	jump_ddcb3:
 		inc    %edx
@@ -992,7 +992,7 @@ GLOBAL_FUNC (ASM_BAT_unknsub_20)	/* 0xDDB64 */
 		add    $0x18,%ebx
 		add    $0x10,%esi
 		add    $0x18,%eax
-		mov    %esi,data_1e2cd0(%ecx)
+		mov    %esi,EXPORT_SYMBOL(data_1e2cd0)(%ecx)
 		cmp    $0xf,%edx
 		jl     jump_ddcb3
 		xor    %edx,%edx
@@ -1067,7 +1067,7 @@ GLOBAL_FUNC(ASM_BAT_unknsub_21)	/* 0x0DDCF8 */
 		and    %ebp,%eax
 		and    $0xff,%ebx
 		mov    EXPORT_SYMBOL(BAT_bricks)(%edi),%dl
-		mov    data_1e2710(%ebx),%bl
+		mov    EXPORT_SYMBOL(data_1e2710)(%ebx),%bl
 		test   $0x40,%dl
 		je     jump_dddc3
 		mov    %dl,%dh
@@ -1399,7 +1399,7 @@ GLOBAL_FUNC(ASM_BAT_unknsub_22)	/* 0x0DDF38 */
 		mov    %eax,0x18(%esp)
 		call   ac_rand
 		and    $0x3,%eax
-		mov    data_155794(,%eax,4),%eax
+		mov    EXPORT_SYMBOL(data_155794)(,%eax,4),%eax
 		mov    0x18(%esi),%ebx
 		shl    $0x8,%eax
 		add    %eax,%ebx
@@ -2003,7 +2003,7 @@ func_de91e:
 		imul   $0xc,%ebx,%eax
 	jump_de95a:
 		inc    %eax
-		mov    %ch,BAT_data_1e271b(%eax)
+		mov    %ch,EXPORT_SYMBOL(BAT_data_1e271b)(%eax)
 		cmp    %edx,%eax
 		je     jump_de94c
 		jmp    jump_de95a
@@ -2106,7 +2106,7 @@ breakout_func_de991:
 		call   ac_breakout_play_sub1
 		mov    EXPORT_SYMBOL(BAT_score),%eax
 		push   %eax
-		push   $ascD_17
+		push   $EXPORT_SYMBOL(ascD_17)
 		lea    0x48(%esp),%eax
 		push   %eax
 		lea    0x4c(%esp),%esi
@@ -2137,7 +2137,7 @@ breakout_func_de991:
 	jump_deaed:
 		mov    EXPORT_SYMBOL(BAT_levelno),%edx
 		push   %edx
-		push   $ascD_18
+		push   $EXPORT_SYMBOL(ascD_18)
 		lea    0x48(%esp),%eax
 		push   %eax
 		call   ac_sprintf
@@ -2199,7 +2199,7 @@ breakout_func_de991:
 		jl     jump_debb6
 		mov    EXPORT_SYMBOL(BAT_levelno),%ebp
 		push   %ebp
-		push   $aBreakoutEnteringLevel
+		push   $EXPORT_SYMBOL(aBreakoutEnteringLevel)
 		jmp    jump_debd1
 	jump_debb6:
 		mov    EXPORT_SYMBOL(BAT_levelno),%edx
@@ -2209,7 +2209,7 @@ breakout_func_de991:
 		sub    %edx,%eax
 		mov    EXPORT_SYMBOL(BAT_levels)(,%eax,4),%edi
 		push   %edi
-		push   $ascS_8
+		push   $EXPORT_SYMBOL(ascS_8)
 	jump_debd1:
 		lea    0x8(%esp),%eax
 		push   %eax
@@ -2257,7 +2257,7 @@ breakout_func_de991:
 		mov    $EXPORT_SYMBOL(BAT_balls_store),%edi
 		call   ac_BAT_bricks_load
 		mov    %edx,EXPORT_SYMBOL(BAT_free_balls)
-		mov    %ebx,data_1e27c4
+		mov    %ebx,EXPORT_SYMBOL(data_1e27c4)
 		xor    %eax,%eax
 		mov    $EXPORT_SYMBOL(BAT_balls_store),%ebx
 		xor    %edx,%edx
@@ -2270,7 +2270,7 @@ breakout_func_de991:
 		add    $0x20,%esi
 		add    $0x28,%eax
 		add    $0x28,%ebx
-		mov    %esi,data_1e27c4(%ecx)
+		mov    %esi,EXPORT_SYMBOL(data_1e27c4)(%ecx)
 		cmp    $0x1f,%edx
 		jl     jump_dec74
 		xor    %ecx,%ecx
@@ -2376,7 +2376,7 @@ func_ded40:
 		call   ac_breakout_play_sub1
 		mov    EXPORT_SYMBOL(BAT_score),%esi
 		push   %esi
-		push   $ascD_17
+		push   $EXPORT_SYMBOL(ascD_17)
 		lea    0x68(%esp),%eax
 		push   %eax
 		call   ac_sprintf
@@ -2407,7 +2407,7 @@ func_ded40:
 	jump_dee44:
 		mov    EXPORT_SYMBOL(BAT_levelno),%edi
 		push   %edi
-		push   $ascD_18
+		push   $EXPORT_SYMBOL(ascD_18)
 		lea    0x68(%esp),%eax
 		push   %eax
 		call   ac_sprintf
@@ -2525,7 +2525,7 @@ func_ded40:
 		imul   $0xc,%ecx,%eax
 	jump_defc1:
 		inc    %eax
-		mov    %bh,BAT_data_1e271b(%eax)
+		mov    %bh,EXPORT_SYMBOL(BAT_data_1e271b)(%eax)
 		cmp    %edx,%eax
 		je     jump_defb3
 		jmp    jump_defc1
@@ -2597,7 +2597,7 @@ func_deffc:
 		call   ac_breakout_play_sub1
 		mov    EXPORT_SYMBOL(BAT_score),%edi
 		push   %edi
-		push   $ascD_17
+		push   $EXPORT_SYMBOL(ascD_17)
 		lea    0xa8(%esp),%eax
 		push   %eax
 		lea    0xac(%esp),%esi
@@ -2628,7 +2628,7 @@ func_deffc:
 	jump_df101:
 		mov    EXPORT_SYMBOL(BAT_levelno),%ebp
 		push   %ebp
-		push   $ascD_18
+		push   $EXPORT_SYMBOL(ascD_18)
 		lea    0xa8(%esp),%eax
 		push   %eax
 		call   ac_sprintf
@@ -2686,10 +2686,10 @@ func_deffc:
 	jump_df1b5:
 		call   ac_BAT_unknsub_21
 		call   ac_breakout_play_sub2
-		mov    $aBreakoutBadLuck,%esi
+		mov    $EXPORT_SYMBOL(aBreakoutBadLuck),%esi
 		mov    $0x1e,%edi
 		mov    EXPORT_SYMBOL(colour_lookup)+0x08,%al
-		mov    aBreakoutBadLuck,%bh
+		mov    EXPORT_SYMBOL(aBreakoutBadLuck),%bh
 		mov    %al,0xe0(%esp)
 		test   %bh,%bh
 		je     jump_df207
@@ -2820,7 +2820,7 @@ func_df2e0:
 		call   ac_breakout_play_sub1
 		mov    EXPORT_SYMBOL(BAT_score),%ebx
 		push   %ebx
-		push   $ascD_17
+		push   $EXPORT_SYMBOL(ascD_17)
 		lea    0x88(%esp),%eax
 		push   %eax
 		lea    0x8c(%esp),%esi
@@ -2850,7 +2850,7 @@ func_df2e0:
 	jump_df3d9:
 		mov    EXPORT_SYMBOL(BAT_levelno),%ecx
 		push   %ecx
-		push   $ascD_18
+		push   $EXPORT_SYMBOL(ascD_18)
 		lea    0x88(%esp),%eax
 		push   %eax
 		call   ac_sprintf
@@ -2908,11 +2908,11 @@ func_df2e0:
 	jump_df48d:
 		call   ac_breakout_play_sub2
 		call   ac_BAT_unknsub_21
-		mov    $aBreakoutGameOver,%esi
+		mov    $EXPORT_SYMBOL(aBreakoutGameOver),%esi
 		mov    $0x1e,%edi
 		mov    EXPORT_SYMBOL(colour_lookup)+0x08,%al
 		mov    EXPORT_SYMBOL(BAT_game_over_timer),%ebp
-		mov    aBreakoutGameOver,%bl
+		mov    EXPORT_SYMBOL(aBreakoutGameOver),%bl
 		dec    %ebp
 		mov    %al,0xec(%esp)
 		mov    %ebp,EXPORT_SYMBOL(BAT_game_over_timer)
@@ -2951,7 +2951,7 @@ func_df2e0:
 		imul   $0xc,%ecx,%eax
 	jump_df514:
 		inc    %eax
-		mov    %bl,BAT_data_1e271b(%eax)
+		mov    %bl,EXPORT_SYMBOL(BAT_data_1e271b)(%eax)
 		cmp    %edx,%eax
 		je     jump_df506
 		jmp    jump_df514
@@ -2983,13 +2983,13 @@ func_df554:
 		add    $0x100,%ecx
 		cmp    $0x40,%edi
 		jl     jump_df561
-		mov    $aBreakoutCongratulation,%esi
+		mov    $EXPORT_SYMBOL(aBreakoutCongratulation),%esi
 		mov    $0x12,%edi
 		mov    EXPORT_SYMBOL(colour_lookup)+0x05,%al
 		mov    EXPORT_SYMBOL(BAT_game_won_timer),%ecx
 		mov    %al,0xf0(%esp)
 		dec    %ecx
-		mov    aBreakoutCongratulation,%ah
+		mov    EXPORT_SYMBOL(aBreakoutCongratulation),%ah
 		mov    %ecx,EXPORT_SYMBOL(BAT_game_won_timer)
 		test   %ah,%ah
 		je     jump_df5cf
@@ -3010,10 +3010,10 @@ func_df554:
 		test   %dh,%dh
 		jne    jump_df5a5
 	jump_df5cf:
-		mov    $aBreakoutBonusGameCompl,%esi
+		mov    $EXPORT_SYMBOL(aBreakoutBonusGameCompl),%esi
 		mov    $0xa,%edi
 		mov    EXPORT_SYMBOL(colour_lookup)+0x05,%al
-		mov    aBreakoutBonusGameCompl,%bl
+		mov    EXPORT_SYMBOL(aBreakoutBonusGameCompl),%bl
 		mov    %al,0xf4(%esp)
 		test   %bl,%bl
 		je     jump_df619
@@ -3034,10 +3034,10 @@ func_df554:
 		test   %cl,%cl
 		jne    jump_df5ef
 	jump_df619:
-		mov    $aBreakoutBonusItem,%esi
+		mov    $EXPORT_SYMBOL(aBreakoutBonusItem),%esi
 		mov    $0x1c,%edi
 		mov    EXPORT_SYMBOL(colour_lookup)+1,%al
-		mov    aBreakoutBonusItem,%ch
+		mov    EXPORT_SYMBOL(aBreakoutBonusItem),%ch
 		mov    %al,0xf8(%esp)
 		test   %ch,%ch
 		je     jump_df662
@@ -3058,10 +3058,10 @@ func_df554:
 		test   %ah,%ah
 		jne    jump_df639
 	jump_df662:
-		mov    $aBreakoutAwarded,%esi
+		mov    $EXPORT_SYMBOL(aBreakoutAwarded),%esi
 		mov    $0x22,%edi
 		mov    EXPORT_SYMBOL(colour_lookup)+1,%al
-		mov    aBreakoutAwarded,%dl
+		mov    EXPORT_SYMBOL(aBreakoutAwarded),%dl
 		mov    %al,0xd0(%esp)
 		test   %dl,%dl
 		je     jump_df6ac
@@ -3132,7 +3132,7 @@ func_df554:
 		imul   $0xc,%ecx,%eax
 	jump_df731:
 		inc    %eax
-		mov    %bl,BAT_data_1e271b(%eax)
+		mov    %bl,EXPORT_SYMBOL(BAT_data_1e271b)(%eax)
 		cmp    %edx,%eax
 		je     jump_df723
 		jmp    jump_df731
@@ -3143,7 +3143,7 @@ func_df554:
 		xor    %eax,%eax
 		mov    %esi,EXPORT_SYMBOL(BAT_free_balls)
 		lea    0x28(%esi),%ebx
-		mov    %edi,data_1e27c4
+		mov    %edi,EXPORT_SYMBOL(data_1e27c4)
 		mov    %esi,%edi
 	jump_df75d:
 		inc    %edx
@@ -3153,7 +3153,7 @@ func_df554:
 		add    $0x20,%ecx
 		add    $0x28,%eax
 		add    $0x28,%ebx
-		mov    %ecx,data_1e27c4(%esi)
+		mov    %ecx,EXPORT_SYMBOL(data_1e27c4)(%esi)
 		cmp    $0x1f,%edx
 		jl     jump_df75d
 		mov    $0x1,%edx
@@ -3189,7 +3189,7 @@ func_df554:
 		imul   $0xc,%ebx,%eax
 	jump_df7f3:
 		inc    %eax
-		mov    %cl,BAT_data_1e271b(%eax)
+		mov    %cl,EXPORT_SYMBOL(BAT_data_1e271b)(%eax)
 		cmp    %edx,%eax
 		je     jump_df7e5
 		jmp    jump_df7f3
@@ -3210,7 +3210,7 @@ func_df554:
 		mov    $EXPORT_SYMBOL(BAT_free_balls),%eax
 		xor    %edx,%edx
 		mov    %ebp,EXPORT_SYMBOL(BAT_free_balls)
-		mov    %eax,data_1e27c4
+		mov    %eax,EXPORT_SYMBOL(data_1e27c4)
 		lea    0x28(%ebp),%ebx
 		xor    %eax,%eax
 		mov    %ebp,%edi
@@ -3222,7 +3222,7 @@ func_df554:
 		add    $0x20,%esi
 		add    $0x28,%eax
 		add    $0x28,%ebx
-		mov    %esi,data_1e27c4(%ecx)
+		mov    %esi,EXPORT_SYMBOL(data_1e27c4)(%ecx)
 		cmp    $0x1f,%edx
 		jl     jump_df842
 		mov    $EXPORT_SYMBOL(BAT_bonus_store),%ecx
@@ -3230,7 +3230,7 @@ func_df554:
 		mov    $EXPORT_SYMBOL(BAT_free_bonuses),%esi
 		mov    %edx,EXPORT_SYMBOL(BAT_balls_head)
 		mov    %ecx,EXPORT_SYMBOL(BAT_free_bonuses)
-		mov    %esi,data_1e2cd0
+		mov    %esi,EXPORT_SYMBOL(data_1e2cd0)
 		mov    %edx,EXPORT_SYMBOL(BAT_dwarr_1e27c0)(%eax)
 		lea    0x18(%ecx),%ebx
 		xor    %eax,%eax
@@ -3243,7 +3243,7 @@ func_df554:
 		add    $0x10,%esi
 		add    $0x18,%eax
 		add    $0x18,%ebx
-		mov    %esi,data_1e2cd0(%ecx)
+		mov    %esi,EXPORT_SYMBOL(data_1e2cd0)(%ecx)
 		cmp    $0xf,%edx
 		jl     jump_df88e
 		xor    %edi,%edi
@@ -3262,320 +3262,6 @@ func_df554:
 
 /*----------------------------------------------------------------*/
 .section .rodata
-
-
-ascD_17:	/* 0x15EC00 */
-		.string "%d"
-ascD_18:	/* 0x15EC03 */
-		.string "%d"
-aBreakoutEnteringLevel:	/* 0x15EC06 */
-		.string "ENTERING LEVEL : %d"
-ascS_8:	/* 0x15EC1A */
-		.string "%s"
-aBreakoutBadLuck:	/* 0x15EC1D */
-		.string "BAD LUCK!"
-aBreakoutGameOver:	/* 0x15EC27 */
-		.string "GAME OVER"
-aBreakoutCongratulation:	/* 0x15EC31 */
-		.string "CONGRATULATIONS"
-aBreakoutBonusGameCompl:	/* 0x15EC41 */
-		.string "BONUS GAME COMPLETE"
-aBreakoutBonusItem:	/* 0x15EC55 */
-		.string "BONUS ITEM"
-aBreakoutAwarded:	/* 0x15EC60 */
-		.string "AWARDED"
-aMarkIsGreat:	/* 0x15EC68 */
-		.string "MARK IS GREAT"
-aForAllWeapons:	/* 0x15EC76 */
-		.string "FOR ALL WEAPONS"
-aBreakoutDestroyTheBric:	/* 0x15EC86 */
-		.string "DESTROY THE BRICKS"
-aBreakoutFortification:	/* 0x15EC99 */
-		.string "FORTIFICATION"
-aBreakoutBullfrogForeve:	/* 0x15ECA7 */
-		.string "BULLFROG FOREVER"
-aBreakoutBricky:	/* 0x15ECB8 */
-		.string "BRICKY"
-aBreakoutStiffUpperLip:	/* 0x15ECBF */
-		.string "STIFF UPPER LIP"
-aBreakoutRaindropsKeep_:	/* 0x15ECCF */
-		.string "RAINDROPS KEEP..."
-aBreakoutDownTheSpout:	/* 0x15ECE1 */
-		.string "DOWN THE SPOUT"
-aBreakoutUpTheTube:	/* 0x15ECF0 */
-		.string "UP THE TUBE"
-aBreakoutEurocorp:	/* 0x15ECFC */
-		.string "EUROCORP"
-aBreakoutTheBullfrogCha:	/* 0x15ED05 */
-		.string "THE BULLFROG CHALLENGE"
-
-data_155794:
-		.ascii  "\xfe\xff\xff\xff"
-		.fill   0x8
-		.ascii  "\x02\x00\x00\x00"
-		.long   aMarkIsGreat
-		.long   aForAllWeapons
-BAT_unkn1:	/* 0x1557AC */
-		.ascii  "\x07\x05\x05\x05\x07\x06\x02\x02"
-		.ascii  "\x02\x07\x07\x01\x07\x04\x07\x07"
-		.ascii  "\x01\x07\x01\x07\x05\x05\x07\x01"
-		.ascii  "\x01\x07\x04\x07\x01\x07\x07\x04"
-		.ascii  "\x07\x05\x07\x07\x01\x01\x01\x01"
-		.ascii  "\x07\x05\x07\x05\x07\x07\x05\x07"
-		.ascii  "\x01\x01\x00\x00"
-BAT_unkn2:	/* 0x1557E0 */
-		.ascii  "\x02\x05\x07\x05\x05\x06\x05\x06"
-		.ascii  "\x05\x06\x03\x04\x04\x04\x03\x06"
-		.ascii  "\x05\x05\x05\x06\x07\x04\x07\x04"
-		.ascii  "\x07\x07\x04\x07\x04\x04\x03\x04"
-		.ascii  "\x05\x05\x07\x05\x05\x07\x05\x05"
-		.ascii  "\x07\x02\x02\x02\x07\x07\x01\x01"
-		.ascii  "\x01\x06\x05\x05\x06\x05\x05\x04"
-		.ascii  "\x04\x04\x04\x07\x05\x07\x05\x05"
-		.ascii  "\x05\x05\x07\x07\x07\x05\x02\x05"
-		.ascii  "\x05\x05\x02\x06\x05\x06\x04\x04"
-		.ascii  "\x02\x05\x05\x05\x03\x06\x05\x06"
-		.ascii  "\x05\x05\x03\x04\x02\x01\x06\x07"
-		.ascii  "\x02\x02\x02\x02\x05\x05\x05\x05"
-		.ascii  "\x07\x05\x05\x05\x05\x02\x05\x05"
-		.ascii  "\x05\x07\x05\x05\x05\x02\x05\x05"
-		.ascii  "\x05\x05\x02\x02\x02\x07\x01\x02"
-		.ascii  "\x04\x07\x00\x00"
-data_155864:
-		.ascii  "\x04\x04\x04\x00\x04"
-data_155869:
-		.long	0x0
-		.byte	0x4
-data_15586e:
-		.ascii  "\x00\x04\x00\x04\x00"
-data_155873:
-		.ascii  "\x07\x01\x03\x00\x02"
-		.align	4
-
-
-GLOBAL (BAT_levels)	/* 0x155878 */
-		.long   aBreakoutDestroyTheBric
-breakout_levs0__bricks:
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-		.ascii  "\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01"
-		.ascii  "\x02\x02\x02\x02\x02\x02\x02\x02\x02\x02\x02\x02"
-		.ascii  "\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03\x03"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.long   aBreakoutFortification
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x35\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x35"
-		.ascii  "\x35\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x35"
-		.ascii  "\x35\x16\x16\x16\x16\x16\x16\x16\x16\x16\x16\x35"
-		.ascii  "\x35\x05\x05\x05\x05\x05\x05\x05\x05\x05\x05\x35"
-		.ascii  "\x35\x05\x05\x05\x05\x05\x05\x05\x05\x05\x05\x35"
-		.ascii  "\x35\x16\x16\x16\x16\x16\x16\x16\x16\x16\x16\x35"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.long   aBreakoutBullfrogForeve
-		.ascii  "\x35\x00\x16\x02\x02\x16\x00\x16\x02\x02\x16\x00"
-		.ascii  "\x35\x16\x00\x16\x02\x16\x00\x16\x02\x16\x00\x16"
-		.ascii  "\x35\x02\x16\x00\x16\x16\x00\x16\x16\x00\x16\x02"
-		.ascii  "\x35\x02\x02\x16\x00\x16\x00\x16\x00\x16\x02\x02"
-		.ascii  "\x35\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-		.ascii  "\x35\x02\x02\x16\x00\x16\x00\x16\x00\x16\x02\x02"
-		.ascii  "\x35\x02\x16\x00\x16\x16\x00\x16\x16\x00\x16\x02"
-		.ascii  "\x35\x16\x00\x16\x02\x16\x00\x16\x02\x16\x00\x16"
-		.ascii  "\x35\x00\x16\x02\x02\x16\x00\x16\x02\x02\x16\x00"
-		.ascii  "\x35\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.long   aBreakoutBricky
-		.ascii  "\x16\x16\x16\x16\x80\x80\x80\x80\x16\x16\x16\x16"
-		.ascii  "\x24\x00\x00\x24\x80\x80\x80\x80\x24\x05\x05\x24"
-		.ascii  "\x35\x35\x35\x35\x80\x80\x80\x80\x35\x35\x35\x35"
-		.ascii  "\x80\x80\x80\x80\x80\x16\x16\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x24\x03\x03\x24\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x24\x24\x80\x80\x80\x80\x80"
-		.ascii  "\x16\x16\x16\x16\x80\x80\x80\x80\x16\x16\x16\x16"
-		.ascii  "\x24\x02\x02\x24\x80\x80\x80\x80\x24\x07\x07\x24"
-		.ascii  "\x35\x35\x35\x35\x80\x80\x80\x80\x35\x35\x35\x35"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.long   aBreakoutStiffUpperLip
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x24\x24\x80\x80\x24\x24\x80\x80\x80"
-		.ascii  "\x80\x24\x24\x00\x00\x24\x24\x00\x00\x24\x24\x80"
-		.ascii  "\x24\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x24"
-		.ascii  "\x80\x03\x00\x00\x00\x00\x00\x00\x00\x00\x03\x80"
-		.ascii  "\x80\x80\x03\x03\x00\x00\x00\x00\x03\x03\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x03\x03\x03\x03\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.long   aBreakoutRaindropsKeep_
-		.ascii  "\x80\x80\x35\x80\x80\x24\x24\x24\x80\x80\x80\x80"
-		.ascii  "\x80\x35\x35\x35\x24\x24\x24\x24\x24\x24\x80\x80"
-		.ascii  "\x80\x24\x24\x24\x24\x24\x24\x24\x24\x38\x38\x80"
-		.ascii  "\x24\x24\x24\x24\x24\x24\x38\x38\x38\x38\x80\x80"
-		.ascii  "\x80\x38\x38\x38\x38\x38\x38\x38\x38\x80\x02\x80"
-		.ascii  "\x80\x02\x80\x02\x80\x35\x35\x80\x80\x02\x80\x80"
-		.ascii  "\x02\x80\x02\x80\x02\x80\x35\x35\x02\x80\x02\x80"
-		.ascii  "\x80\x02\x80\x02\x80\x02\x80\x35\x80\x02\x80\x80"
-		.ascii  "\x02\x80\x02\x80\x02\x80\x35\x80\x02\x80\x02\x80"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.long   aBreakoutDownTheSpout
-		.ascii  "\x35\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x35"
-		.ascii  "\x35\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x35"
-		.ascii  "\x35\x80\x35\x80\x80\x80\x80\x80\x80\x35\x80\x35"
-		.ascii  "\x35\x05\x35\x80\x80\x80\x80\x80\x80\x35\x05\x35"
-		.ascii  "\x35\x05\x35\x80\x35\x80\x80\x35\x80\x35\x05\x35"
-		.ascii  "\x35\x05\x35\x05\x35\x80\x80\x35\x05\x35\x05\x35"
-		.ascii  "\x35\x01\x35\x05\x35\x05\x05\x35\x05\x35\x01\x35"
-		.ascii  "\x35\x01\x35\x01\x35\x05\x05\x35\x01\x35\x01\x35"
-		.ascii  "\x35\x01\x35\x01\x35\x01\x01\x35\x01\x35\x01\x35"
-		.ascii  "\x35\x38\x35\x38\x35\x01\x01\x35\x38\x35\x38\x35"
-		.long   aBreakoutUpTheTube
-		.ascii  "\x80\x80\x80\x80\x06\x80\x80\x06\x80\x80\x80\x80"
-		.ascii  "\x02\x02\x02\x02\x24\x00\x00\x24\x02\x02\x02\x02"
-		.ascii  "\x02\x02\x02\x02\x24\x00\x00\x24\x02\x02\x02\x02"
-		.ascii  "\x02\x02\x02\x02\x38\x01\x01\x38\x02\x02\x02\x02"
-		.ascii  "\x02\x02\x02\x02\x38\x01\x01\x38\x02\x02\x02\x02"
-		.ascii  "\x02\x02\x02\x02\x35\x01\x01\x35\x02\x02\x02\x02"
-		.ascii  "\x02\x02\x02\x02\x35\x01\x01\x35\x02\x02\x02\x02"
-		.ascii  "\x02\x02\x02\x02\x35\x01\x01\x35\x02\x02\x02\x02"
-		.ascii  "\x35\x35\x35\x35\x35\x01\x01\x35\x35\x35\x35\x35"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.ascii  ""
-		.long   aBreakoutEurocorp
-		.ascii  "\x35\x35\x35\x35\x35\x35\x35\x35\x35\x35\x35\x35"
-		.ascii  "\x35\x35\x02\x02\x02\x02\x02\x02\x02\x02\x02\x02"
-		.ascii  "\x35\x35\x02\x35\x35\x35\x35\x35\x35\x35\x35\x02"
-		.ascii  "\x35\x35\x02\x02\x02\x02\x02\x02\x02\x02\x02\x02"
-		.ascii  "\x35\x35\x02\x35\x35\x35\x35\x35\x02\x02\x02\x02"
-		.ascii  "\x35\x35\x02\x02\x02\x02\x02\x02\x02\x02\x02\x02"
-		.ascii  "\x35\x35\x02\x35\x35\x35\x35\x35\x35\x35\x35\x02"
-		.ascii  "\x35\x35\x02\x02\x02\x02\x02\x02\x02\x02\x02\x02"
-		.ascii  "\x35\x35\x35\x35\x35\x35\x35\x35\x35\x35\x35\x24"
-		.ascii  "\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80"
-		.long   aBreakoutTheBullfrogCha
-		.ascii  "\x80\x80\x05\x80\x80\x05\x05\x80\x80\x05\x80\x05"
-		.ascii  "\x80\x05\x05\x80\x05\x03\x03\x05\x80\x05\x05\x80"
-		.ascii  "\x05\x05\x05\x80\x05\x03\x03\x05\x80\x05\x05\x05"
-		.ascii  "\x80\x80\x05\x35\x03\x03\x03\x03\x35\x05\x80\x80"
-		.ascii  "\x80\x80\x80\x35\x16\x16\x16\x16\x35\x80\x80\x80"
-		.ascii  "\x80\x35\x80\x35\x16\x16\x16\x16\x35\x80\x35\x80"
-		.ascii  "\x35\x35\x35\x35\x16\x16\x16\x16\x35\x35\x35\x35"
-		.ascii  "\x80\x35\x35\x35\x24\x24\x24\x24\x35\x35\x35\x80"
-		.ascii  "\x80\x80\x35\x35\x35\x38\x38\x35\x35\x35\x80\x80"
-		.ascii  "\x35\x35\x35\x35\x35\x05\x05\x35\x35\x35\x35\x35"
-		.align	4
-
-GLOBAL (_IsTable)
-		.ascii  "\x00\x01\x01\x01\x01\x01\x01\x01"
-		.ascii  "\x01\x01\x03\x03\x03\x03\x03\x01"
-		.ascii  "\x01\x01\x01\x01\x01\x01\x01\x01"
-		.ascii  "\x01\x01\x01\x01\x01\x01\x01\x01"
-		.ascii  "\x01\x0a\x0c\x0c\x0c\x0c\x0c\x0c"
-		.ascii  "\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c"
-		.byte	0xc
-		.ascii  "8888888888"
-		.ascii  "\x0c\x0c\x0c\x0c\x0c\x0c\x0c"
-		.ascii  "XXXXXXHHHHHHHHHHHHHHHHHHHH"
-		.ascii  "\x0c\x0c\x0c\x0c\x0c\x0c\x98\x98"
-		.ascii  "\x98\x98\x98\x98\x88\x88\x88\x88"
-		.ascii  "\x88\x88\x88\x88\x88\x88\x88\x88"
-		.ascii  "\x88\x88\x88\x88\x88\x88\x88\x88"
-		.ascii  "\x0c\x0c\x0c\x0c\x01"
-		.fill   0x83
-		.align	4
-
-/*----------------------------------------------------------------*/
+/* data moved to C (sx_data2c.py) */
 .data
-
-GLOBAL (bat_unknvalA_min)	/* 0x1e26d4 */
-		.long	0x0
-GLOBAL (bat_unknvalB_min)	/* 0x1e26d8 */
-		.long	0x0
-GLOBAL (bat_unknvalA_max)	/* 0x1e26dc */
-		.long	0x0
-GLOBAL (bat_unknvalB_max)	/* 0x1e26e0 */
-		.long	0x0
-GLOBAL (BAT_screen)	/* 0x1e26e4 */
-		.long	0x0
-GLOBAL (BAT_data_1e26e8)	/* 0x1e26e8 */
-		.long	0x0
-GLOBAL (BAT_game_won_timer)	/* 0x_1e26ec */
-		.long	0x0
-GLOBAL (BAT_level_intro_timer)	/* 0x1e26f0 */
-		.long	0x0
-GLOBAL (BAT_ball_lost_timer)	/* 0x1e26f4 */
-		.long	0x0
-GLOBAL (BAT_game_over_timer)	/* 0x1e26f8 */
-		.long	0x0
-GLOBAL (BAT_state)	/* 0x1e26fc */
-		.long	0x0
-GLOBAL (BAT_levelno)	/* 0x1e2700 */
-		.long	0x0
-GLOBAL (BAT_num_lives)	/* 0x1e2704 */
-		.long	0x0
-GLOBAL (BAT_score)	/* 0x1e2708 */
-		.long	0x0
-GLOBAL (BAT_bricks_remain)	/* 0x1e270c */
-		.ascii  "\x00\x00\x00"
-data_1e270f:
-		.byte	0x0
-data_1e2710:
-		.byte	0x0
-data_1e2711:
-		.byte	0x0
-data_1e2712:
-		.byte	0x0
-data_1e2713:
-		.byte	0x0
-data_1e2714:
-		.byte	0x0
-data_1e2715:
-		.byte	0x0
-data_1e2716:
-		.byte	0x0
-data_1e2717:
-		.byte	0x0
-data_1e2718:
-		.ascii  "\x00\x00\x00"
-BAT_data_1e271b:	/* 0x1e271b */
-		.byte	0x0
-GLOBAL (BAT_bricks)	/* 0x1e271c */
-		.fill   0x78
-GLOBAL (BAT_paddle_x)	/* 0x1e2794 */
-		.long	0x0
-GLOBAL (BAT_data_1e2798)	/* 0x1e2798 */
-		.long	0x0
-GLOBAL (BAT_lives_colour)	/* 0x1e279c */
-		.long	0x0
-GLOBAL (BAT_balls_store)	/* 0x1e27a0 */
-		.fill   0x20
-GLOBAL(BAT_dwarr_1e27c0)	/* 0x1e27c0 */
-		.long	0x0
-data_1e27c4:
-		.fill   0x4dc
-GLOBAL (BAT_free_balls)	/* 0x_1e2ca0 */
-		.long	0x0
-GLOBAL (BAT_balls_head)	/* 0x1e2ca4 */
-		.long	0x0
-GLOBAL (BAT_ball_colour)	/* 0x1e2ca8 */
-		.long	0x0
-data_1e2cac:
-		.long	0x0
-data_1e2cb0:
-		.long	0x0
-data_1e2cb4:
-		.fill   0x8
-GLOBAL (BAT_bonus_store)	/* 0x1e2cbc */
-		.fill   0x10
-GLOBAL (BAT_dwarr_1e2ccc)	/* 0x1e2ccc */
-		.long	0x0
-data_1e2cd0:
-		.fill   0x16c
-GLOBAL (BAT_free_bonuses)	/* 0x1e2e3c */
-		.long	0x0
-GLOBAL (BAT_bonuses_head)	/* 0x1e2e40 */
-		.long	0x0
-
+/* data moved to C (sx_data2c.py) */
