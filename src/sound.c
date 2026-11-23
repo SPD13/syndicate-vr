@@ -725,10 +725,48 @@ void heapmgr_defrag(int a1, int a2, int a3, int a4)
 }
 
 
-void process_sound_heap(void)
+static DIFFTEST_REF_FUNC void process_sound_heap_asm(void)
 {
     asm volatile ("call ASM_process_sound_heap\n"
-        :  :  : "eax" );
+        :  :  : "eax", "cc", "memory" );
+}
+
+/** Refreshes the lock flags (0x06 at 0x08) of heap handles: clears them for
+ * all samples, then sets them again for samples still playing. Samples which
+ * stopped get their UserFlag bit 0x01 cleared. Then defragments the heap.
+ */
+void process_sound_heap(void)
+{
+    struct SampleInfo *p_sinfo;
+    struct SampleInfo *p_last;
+    struct HeapMgrHandle *p_hmhandle;
+    s32 i;
+
+    DIFFTEST_SHADOW(process_sound_heap, process_sound_heap_asm());
+    if ((ingame.Flags & GamF_Unkn00020000) == 0)
+        return;
+    for (i = 0; i < samples_in_bank; i++)
+    {
+        p_hmhandle = sample_table[i].hmhandle;
+        if (p_hmhandle != NULL)
+            p_hmhandle->field_0[8] &= ~0x06;
+    }
+    p_last = GetLastSampleInfoStructure();
+    for (p_sinfo = GetFirstSampleInfoStructure(); p_sinfo <= p_last; p_sinfo++)
+    {
+        if (p_sinfo->SampleHandle == NULL)
+            continue;
+        if ((p_sinfo->UserFlag & 0x01) == 0)
+            continue;
+        if (!IsSamplePlaying(0, 0, p_sinfo->SampleHandle)) {
+            p_sinfo->UserFlag &= ~0x01;
+            continue;
+        }
+        p_hmhandle = sample_table[p_sinfo->SampleNumber].hmhandle;
+        if (p_hmhandle != NULL)
+            p_hmhandle->field_0[8] |= 0x06;
+    }
+    heapmgr_defrag((int)hmhead, 0, 0, 0);
 }
 
 /******************************************************************************/
