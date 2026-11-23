@@ -40241,7 +40241,7 @@ GLOBAL_FUNC(ASM_del_thing_vectors_from_mapwho)	/* 0x05F6E4 */
 
 
 /*----------------------------------------------------------------*/
-tank_los:	/* 0x05F8B4 */
+GLOBAL_FUNC(ASM_tank_los)	/* 0x05F8B4 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -77468,7 +77468,7 @@ GLOBAL_FUNC(ASM_path_init8_wide)
 
 
 /*----------------------------------------------------------------*/
-path_init8_tank:	/* 0x087028 */
+GLOBAL_FUNC(ASM_path_init8_tank)	/* 0x087028 */
 /*----------------------------------------------------------------*/
 		push   %esi
 		push   %edi
@@ -99408,7 +99408,7 @@ GLOBAL_FUNC(ASM_build_tank_path)	/* 0x0C0C58 */
 		mov    0x18(%esi),%eax
 		sar    $0x8,%edx
 		sar    $0x8,%eax
-		call   tank_los
+		call   ac_tank_los
 		mov    %ebp,%ebx
 		mov    %edi,%edx
 		shl    $0x8,%ebx
@@ -99446,7 +99446,7 @@ GLOBAL_FUNC(ASM_build_tank_path)	/* 0x0C0C58 */
 		mov    %edx,%ecx
 		mov    %eax,%edx
 		mov    $EXPORT_SYMBOL(g_nav_data),%eax
-		call   path_init8_tank
+		call   ac_path_init8_tank
 		mov    EXPORT_SYMBOL(g_nav_data)+0x10,%eax
 		test   %eax,%eax
 		je     jump_c0df1

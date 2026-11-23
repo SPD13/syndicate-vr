@@ -2644,6 +2644,33 @@ void person_init_drop_special(struct Thing *p_person, ThingIdx item)
     p_person->U.UPerson.OldAnimMode = p_person->U.UPerson.AnimMode;
     p_person->U.UPerson.AnimMode = ANIM_PERS_Unkn13;
 }
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+void path_init8_tank(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    int stkargs[2];
+    int *p_stk = stkargs;
+    stkargs[0] = a5;
+    stkargs[1] = a6;
+    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_path_init8_tank\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+/** Routed asm (internal label). Arguments and return value are the
+ * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
+ * remade. Registers it does not preserve are declared clobbered.
+ */
+int tank_los(int a1, int a2, int a3, int a4)
+{
+    int ra = a1, rd = a2, rb = a3, rc = a4;
+    asm volatile ("call ASM_tank_los\n"
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+    return ra;
+}
+
+
 
 int build_tank_path(struct Thing *p_thing, int x, int z)
 {
