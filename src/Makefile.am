@@ -193,6 +193,7 @@ syndwarsfx_SOURCES = \
 	specblit.c \
 	specblit.h \
 	swars.sx \
+	swars_data.c \
 	swlog.h \
 	thing.c \
 	thing.h \
