@@ -4047,12 +4047,84 @@ void process_unkn58(struct SimpleThing *p_sthing)
     p_sthing->Frame = frm;
 }
 
-ubyte napalm_person(struct Thing *p_person, ushort multi)
+static DIFFTEST_REF_FUNC ubyte napalm_person_asm(struct Thing *p_person, ushort multi)
 {
     ubyte ret;
     asm volatile ("call ASM_napalm_person\n"
-        : "=r" (ret) : "a" (p_person), "d" (multi));
+        : "=a" (ret) : "a" (p_person), "d" (multi));
     return ret;
+}
+
+ubyte napalm_person(struct Thing *p_person, ushort multi)
+{
+    u32 dmg;
+    ushort frm;
+
+    DIFFTEST_SHADOW_RET(napalm_person, ubyte, napalm_person_asm(p_person, multi));
+    if ((ushort)p_person->State == 0x24)
+        DIFFTEST_RETURN((ubyte)0);
+    if ((p_person->Flag & TngF_Destroyed) != 0)
+        DIFFTEST_RETURN((ubyte)0);
+
+    if (p_person->Type == SmTT_STATIC)
+    {
+        struct SimpleThing *p_static = (struct SimpleThing *)p_person;
+
+        p_static->U.UScenery.Health -= weapon_defs[WEP_FLAMER].HitDamage;
+        if (p_static->U.UScenery.Health <= 0)
+            set_static_on_fire(p_static);
+        DIFFTEST_RETURN((ubyte)0);
+    }
+
+    if (p_person->SubType == 7)
+        DIFFTEST_RETURN((ubyte)0);
+    if (cybmod_chest_level(&p_person->U.UPerson.UMod) > 3)
+        DIFFTEST_RETURN((ubyte)0);
+
+    dmg = weapon_defs[WEP_FLAMER].HitDamage;
+    // The asm takes all 4 upper bits here, not masked to 3 like cybmod_skin_level()
+    if ((ushort)(p_person->U.UPerson.UMod.Mods >> 12) == 2)
+        dmg >>= 2;
+    p_person->Health -= (ushort)(dmg * multi);
+
+    if (p_person->Health > 0)
+    {
+        if ((p_person->Flag2 & TgF2_KnockedOut) == 0)
+        {
+            short rcl;
+
+            rcl = (short)lbSinTable[512 + (p_person->U.UPerson.RecoilDir << 3)];
+            init_recoil(p_person, rcl, 0, rcl, 7);
+        }
+        DIFFTEST_RETURN((ubyte)0);
+    }
+
+    if ((p_person->Flag2 & TgF2_KnockedOut) != 0)
+    {
+        set_person_dead(p_person, 0x12);
+        DIFFTEST_RETURN((ubyte)1);
+    }
+    if ((p_person->Flag & TngF_Persuaded) != 0)
+        stop_being_persuaded(p_person);
+
+    p_person->State = 0x24;
+    p_person->U.UPerson.FrameId.Version[0] = 0;
+    play_dist_sample(p_person, 0x1D, 0x7F, 0x40, 100, -1, 2);
+    p_person->Flag |= TngF_Unkn40000000;
+    p_person->U.UPerson.RecoilTimer = (LbRandomAnyShort() + 0x32) & 0x1F;
+    p_person->Flag &= ~(TngF_Unkn0001 | TngF_PersKeepPost | TngF_WepRecoil | TngF_Persuaded);
+    p_person->U.UPerson.Timer2 = 10;
+    p_person->U.UPerson.StartTimer2 = 10;
+    p_person->Timer1 = 10;
+    p_person->StartTimer1 = 10;
+    p_person->U.UPerson.AnimMode = 0x11;
+    p_person->U.UPerson.OldAnimMode = 0x11;
+    p_person->Flag2 &= ~(TgF2_Unkn0008 | TgF2_KnockedOut);
+    frm = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode];
+    p_person->Frame = nstart_ani[frm + p_person->U.UPerson.Angle];
+    p_person->U.UPerson.Target2 = 0;
+    p_person->StartFrame = people_frames[p_person->SubType][p_person->U.UPerson.AnimMode] - 1;
+    DIFFTEST_RETURN((ubyte)1);
 }
 static DIFFTEST_REF_FUNC void person_go_insane_asm(int a1, int a2, int a3, int a4)
 {
