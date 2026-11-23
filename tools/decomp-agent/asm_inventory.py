@@ -19,8 +19,8 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 from sx_deps import strip_c  # noqa: E402
 
-TOPS = ('src', 'bflibrary/src', 'bfsoundlib/src', 'bfsmacklib/src', 'swrendersoft/src')
-MAKEFILES = ('src/Makefile.am', 'bflibrary/Makefile.am', 'bfsoundlib/Makefile.am',
+TOPS = ('src', 'bfariadne/src', 'bflibrary/src', 'bfsoundlib/src', 'bfsmacklib/src', 'swrendersoft/src')
+MAKEFILES = ('src/Makefile.am', 'bfariadne/Makefile.am', 'bflibrary/Makefile.am', 'bfsoundlib/Makefile.am',
              'swrendersoft/Makefile.am')
 ASM_RE = re.compile(r'\basm\s+volatile\b|\b__asm__\b|\basm\s*\(')
 FUNC_RE = re.compile(r'\n(\w[\w \*]*?\b(\w+)\s*\([^;{]*\))\s*\{')
