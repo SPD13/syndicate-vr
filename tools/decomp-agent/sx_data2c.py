@@ -251,6 +251,8 @@ def gen_c(sx_rel, secs, text_labels, base):
     names = []
     defs = []
     code_targets = set()
+    ext_data = set()
+    defined = set(o['name'] for _, objs in secs for o in objs if o['name'])
     for sec, objs in secs:
         for i, o in enumerate(objs):
             n = c_name(o, sec, i, base)
@@ -280,12 +282,15 @@ def gen_c(sx_rel, secs, text_labels, base):
                 else:
                     tgt, add = p[1], p[2]
                     fields.append('    void *p%d;' % k)
-                    if tgt in text_labels:
+                    if tgt not in text_labels and tgt not in defined and                             not tgt.startswith(('ac_', 'ASM_')):
+                        ext_data.add(tgt)
+                    if tgt in text_labels or (tgt not in defined and tgt.startswith(('ac_', 'ASM_'))):
                         code_targets.add(tgt)
                         expr = '(void *)((ubyte *)%s + %d)' % (tgt, add) if add else '(void *)%s' % tgt
                         inits.append('#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST\n    %s,\n#else\n    NULL,\n#endif' % expr)
                     else:
-                        expr = '(void *)((ubyte *)&%s + %d)' % (tgt, add) if add else '(void *)&%s' % tgt
+                        amp = '' if tgt in ext_data else '&'
+                        expr = '(void *)((ubyte *)%s%s + %d)' % (amp, tgt, add) if add else '(void *)%s%s' % (amp, tgt)
                         inits.append('    %s,' % expr)
             if not fields:
                 # a label with no data of its own (followed by another label)
@@ -304,6 +309,11 @@ def gen_c(sx_rel, secs, text_labels, base):
         out.append('extern ubyte %s[];' % t)
     out.append('#endif')
     out.append('')
+    if ext_data:
+        out.append('/* Data defined elsewhere that the data points to */')
+        for t in sorted(ext_data):
+            out.append('extern ubyte %s[];' % t)
+        out.append('')
     # forward declarations so that pointers may refer to later objects
     struct_defs = [d for d in defs if d.startswith('struct SxD_') and d.endswith(';') and '=' not in d]
     obj_defs = [d for d in defs if d not in struct_defs]
@@ -358,6 +368,10 @@ def rewrite_sx(lines, secs, code_targets):
 
 
 def main():
+    cvars = set()
+    for a in sys.argv[1:]:
+        if a.startswith('--c-vars='):
+            cvars = set(x for x in a.split('=', 1)[1].split(',') if x)
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     sx, cfile = args[0], args[1]
     base = os.path.splitext(os.path.basename(cfile))[0]
@@ -365,6 +379,11 @@ def main():
         base = base[:-5]
     lines, items, text_labels = parse(os.path.join(REPO, sx))
     secs = build_objects(items)
+    # labels `_name` that are the C variable `name` (the asm used the C
+    # symbol name directly): not generated, the asm refers to the variable
+    for sec, objs in secs:
+        objs[:] = [o for o in objs if not (o['name'] and o['name'].startswith('_')
+                                           and o['name'][1:] in cvars)]
     text, names, code_targets = gen_c(sx, secs, text_labels, base)
     for sec, objs in secs:
         size = sum(len(p[1]) if p[0] == 'b' else 4 for o in objs for p in o['parts'])
@@ -373,6 +392,8 @@ def main():
     if '--apply' in sys.argv:
         open(os.path.join(REPO, cfile), 'w', encoding='utf-8', newline='\n').write(text)
         new = rewrite_sx(lines, secs, code_targets)
+        for v in cvars:
+            new = re.sub(r'(?<![\w(])_%s\b' % re.escape(v), 'EXPORT_SYMBOL(%s)' % v, new)
         open(os.path.join(REPO, sx), 'w', encoding='utf-8', newline='').write(new)
         print('wrote', cfile, 'and rewrote', sx)
     else:

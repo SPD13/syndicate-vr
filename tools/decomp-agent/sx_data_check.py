@@ -72,9 +72,16 @@ def sym_addr(syms, name):
 
 
 def main():
+    cvars = set()
+    for a in sys.argv[4:]:
+        if a.startswith('--c-vars='):
+            cvars = set(x for x in a.split('=', 1)[1].split(',') if x)
     old_exe, new_exe, sx = sys.argv[1:4]
     lines, items, text_labels = sx_data2c.parse(sx)
     secs = sx_data2c.build_objects(items)
+    for sec, objs in secs:
+        objs[:] = [o for o in objs if not (o['name'] and o['name'].startswith('_')
+                                           and o['name'][1:] in cvars)]
     so, sn = symbols(old_exe), symbols(new_exe)
     ro, rn = sections(old_exe), sections(new_exe)
     bad = 0
