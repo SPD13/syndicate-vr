@@ -7,7 +7,6 @@ syndwarsfx_SOURCES = \
 	bflib_vidraw.c \
 	bflib_vidraw.h \
 	bflib_vidraw_s.sx \
-	../bfsoundlib/src/ailssa.sx \
 	../bfariadne/include/trfringe.h \
 	../bfariadne/src/trfringe.c \
 	../bfariadne/include/triangls.h \
