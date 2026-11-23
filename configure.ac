@@ -223,6 +223,7 @@ AS_IF([test "x$enable_dos_network" = "xyes"], [
   AC_DEFINE([ENABLE_DOS_NETWORK], [1], [Define to build the DOS network services asm])
 ])
 AM_CONDITIONAL([DOS_NETWORK], [test "x$enable_dos_network" = "xyes"])
+AM_CONDITIONAL([ASM_WRAPPERS], [test "x$enable_difftest" = "xyes" -o "x$enable_dos_network" = "xyes"])
 
 # libraries from within this project are only built after `make` is executed
 AC_SUBST(BFLIBRARY_LIBS, "-L\"\$(top_builddir)/lib\" -lbullfrog")
@@ -276,6 +277,8 @@ LIBS="$LIBS $BFSOUNDLIB_LIBS"
 
 CFLAGS="$CFLAGS $SWRENDERLIB_CFLAGS"
 LIBS="$LIBS $SWRENDERLIB_LIBS"
+# swrender uses bullfrog functions which no other object may pull in
+LIBS="$LIBS -lbullfrog"
 
 CFLAGS="$CFLAGS $SDL_CFLAGS"
 LIBS="$LIBS $SDL_LIBS"

@@ -193,7 +193,6 @@ syndwarsfx_SOURCES = \
 	sound.h \
 	specblit.c \
 	specblit.h \
-	swars.sx \
 	swars_data.c \
 	swlog.h \
 	thing.c \
@@ -235,7 +234,13 @@ syndwarsfx_CPPFLAGS = \
   -I"$(top_srcdir)/swrendersoft/include" \
   -I"$(top_srcdir)/bfariadne/include"
 
+# Watcom-to-C wrappers (ac_*) are called only from asm, which builds
+# without difftest and DOS network do not have
+if ASM_WRAPPERS
 syndwarsfx_WRAPPERS = wrappers_dos.o wrappers_game.o wrappers_libc.o wrappers_util.o
+else
+syndwarsfx_WRAPPERS =
+endif
 if ENABLE_DIFFTEST
 syndwarsfx_WRAPPERS += wrappers_smack.o
 endif
@@ -261,6 +266,7 @@ endif
 if ENABLE_DIFFTEST
 syndwarsfx_SOURCES += \
 	../bfsmacklib/src/bfsmacklib_s.sx \
+	swars.sx \
 	../bfsmacklib/src/smack2ail.c \
 	bat_s.sx \
 	bflib_vidraw_s.sx \
