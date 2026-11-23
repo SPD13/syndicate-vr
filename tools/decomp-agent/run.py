@@ -43,7 +43,7 @@ ALLOWED_TOOLS = [
     'Bash(git diff*)', 'Bash(git status*)',
 ]
 # Files an attempt may change
-ALLOWED_CHANGE_RE = re.compile(r'^src/[\w]+\.(c|h)$')
+ALLOWED_CHANGE_RE = re.compile(r'^(src|bfariadne/src|bfariadne/include)/[\w]+\.(c|h)$')
 
 
 def log(msg):

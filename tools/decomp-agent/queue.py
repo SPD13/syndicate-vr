@@ -106,13 +106,16 @@ def parse_c():
     """Returns dict asm_name -> {cfile, cfunc} for live `call ASM_x`."""
     live = {}
     remade_refs = {}
-    for fn in sorted(os.listdir(os.path.join(REPO, 'src'))):
+    # bfariadne (triangulation) is compiled with the game sources
+    files = [('src', f) for f in sorted(os.listdir(os.path.join(REPO, 'src')))]
+    files += [('bfariadne/src', f) for f in sorted(os.listdir(os.path.join(REPO, 'bfariadne', 'src')))]
+    for sub, fn in files:
         if not fn.endswith('.c'):
             continue
-        path = os.path.join(REPO, 'src', fn)
+        path = os.path.join(REPO, sub, fn)
         raw = open(path, errors='replace').read()
         for m in re.finditer(r'DIFFTEST_SHADOW(?:_RET)?\s*\(\s*(\w+)', raw):
-            remade_refs[m.group(1)] = 'src/' + fn
+            remade_refs[m.group(1)] = sub + '/' + fn
         text = strip_inactive(raw)
         funcs = [(m.start(), m.group(1)) for m in C_FUNC_RE.finditer(text)]
         for m in re.finditer(r'call\s+_?ASM_(\w+)', text):
@@ -120,7 +123,7 @@ def parse_c():
             for pos, name in funcs:
                 if pos < m.start():
                     cfunc = name
-            live[m.group(1)] = {'cfile': 'src/' + fn, 'cfunc': cfunc}
+            live[m.group(1)] = {'cfile': sub + '/' + fn, 'cfunc': cfunc}
     return live, remade_refs
 
 
