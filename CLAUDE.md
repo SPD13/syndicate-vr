@@ -1,7 +1,13 @@
 # SyndWarsFX / Syndicate VR — notes for Claude
 
-Source port of Syndicate Wars. Much game logic is still 32-bit x86 asm
-(`src/swars.sx` and other `*.sx`), called from C through generated wrappers.
+Source port of Syndicate Wars. Since 2026-11-23 a build without difftest
+contains no asm: every function a single player game runs is C. The
+original 32-bit x86 asm (`src/swars.sx` and other `*.sx`, their data now in
+generated `*_data.c`) is assembled only with `--enable-difftest`, as the
+reference of the differential tests; the DOS network asm only with
+`--enable-dos-network`. New asm-calling code must not appear outside
+DIFFTEST_REF_FUNC reference functions (`tools/decomp-agent/asm_inventory.py`
+must stay empty).
 Our work (branch `decomp/auto`, pushed to `origin` = SPD13 fork, never to `upstream`) converts
 asm functions to C, verified by differential testing. Plan:
 `docs/decompilation-agent-plan.md`. Current state and how to resume the

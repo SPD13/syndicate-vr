@@ -9,6 +9,20 @@ plan is in `docs/decompilation-agent-plan.md`.
 - Branch `decomp/auto` (pushed to `origin` = SPD13/syndicate-vr since
   2026-11-21, user request; **never** to `upstream`), on top of
   `vr/main`.
+- **Reached 2026-11-23 (`42ae380d`): builds without difftest contain no
+  asm.** `asm_inventory.py` lists no live inline asm and no .sx; the
+  executable has no ASM_/ac_ symbols; make check passes; missions and the
+  intro video run. The last steps: the 12 upstream-recent functions and
+  the two bfariadne wrappers (`triangulation_select`,
+  `optimise_heuristic`; queue.py and run.py now cover `bfariadne/src`)
+  remade by the loop; `path_init8_tank`/`tank_los` routed and remade;
+  `swars.sx` assembled only with difftest, the generated `ac_` wrappers
+  only with difftest or `--enable-dos-network` (`ASM_WRAPPERS`);
+  `-lbullfrog` repeated after `-lswrender` (the wrappers used to pull in
+  the bullfrog objects swrender needs).
+- Next steps towards arm64/64-bit (plan step 2): build without `-m32`
+  and fix pointer-size assumptions; the generated `*_data.c` are 32-bit
+  byte layouts and need real types; the DOS network has no replacement.
 - **Asm-free single player build, 2026-11-22/23** (user goal: no asm in a
   build without difftest; network left aside). Done so far:
   - `thing_expld_s`, `thing_fire_s`, `bflib_vidraw_s` assembled only for
