@@ -25,11 +25,10 @@ syndwarsfx_SOURCES = \
 	../bfsmacklib/src/bfsmack.c \
 	../bfsmacklib/include/smack.h \
 	../bfsmacklib/include/smack2ail.h \
-	../bfsmacklib/src/smack2ail.c \
 	../bfsmacklib/src/smailfile.c \
+	../bfsmacklib/src/bfsmacklib_data.c \
 	../bfsmacklib/include/smkdec.h \
 	../bfsmacklib/src/smkdec.c \
-	../bfsmacklib/src/bfsmacklib_s.sx \
 	config.h \
 	bmbang.c \
 	bmbang.h \
@@ -237,6 +236,9 @@ syndwarsfx_CPPFLAGS = \
   -I"$(top_srcdir)/bfariadne/include"
 
 syndwarsfx_WRAPPERS = wrappers_dos.o wrappers_game.o wrappers_libc.o wrappers_util.o
+if ENABLE_DIFFTEST
+syndwarsfx_WRAPPERS += wrappers_smack.o
+endif
 
 syndwarsfx_RCFLAGS = \
   -I"$(top_srcdir)/src" -I"$(builddir)" \
@@ -258,6 +260,8 @@ endif
 # The asm of remade functions is kept only as the difftest reference
 if ENABLE_DIFFTEST
 syndwarsfx_SOURCES += \
+	../bfsmacklib/src/bfsmacklib_s.sx \
+	../bfsmacklib/src/smack2ail.c \
 	bat_s.sx \
 	bflib_vidraw_s.sx \
 	sound_smp_s.sx \

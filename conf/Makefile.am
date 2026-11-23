@@ -43,4 +43,5 @@ EXTRA_DIST = \
 	wrappers_dos.conf \
 	wrappers_game.conf \
 	wrappers_libc.conf \
+	wrappers_smack.conf \
 	wrappers_util.conf

@@ -23,6 +23,7 @@
 #include "bfsmack.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "bfkeybd.h"
@@ -34,6 +35,10 @@
 #include "bfscrsurf.h"
 #include "bfsvaribl.h"
 
+#include "bftime.h"
+#include "aildebug.h"
+#include "mssal.h"
+#include "smkdec.h"
 #include "smack2ail.h"
 #include "smailfile.h"
 
@@ -66,6 +71,9 @@ void set_smack_free(void (*cb)(void *ptr))
     smack_free = cb;
 }
 
+/* The original asm player (RAD Smacker) is kept only in difftest builds,
+ * as the reference of the C decoder (see smack_compare_files()). */
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
 //TODO place SMACK* functions into separate file
 int32_t SmackGetSizeTables(void)
 {
@@ -614,7 +622,7 @@ void RADAPI SMACKTOBUFFER(uint32_t Flags, const void *buf,
  * change or resize is not required. Can even decode into hardware frame buffer directly,
  * if only the platform allows such access (modern OSes do not).
  */
-TbResult play_smk_direct(char *fname, u32 smkflags, ushort plyflags, ushort mode)
+TbResult play_smk_direct_rad(char *fname, u32 smkflags, ushort plyflags, ushort mode)
 {
 #if 0
     TbResult ret;
@@ -727,6 +735,8 @@ void copy_to_screen_smk(uint8_t *p_buf, u32 width, u32 height, ushort plyflags)
 #endif
 }
 
+#endif // asm player
+
 void blit_to_screen_smk(struct SSurface *surf, u32 width, u32 height, ushort plyflags)
 {
     struct TbRect srect;
@@ -755,6 +765,8 @@ void blit_to_screen_smk(struct SSurface *surf, u32 width, u32 height, ushort ply
     LbScreenSwap();
 }
 
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+
 /** Play SMK video file by decoding it into temporary surface before blitting onto screen.
  *
  * Uses fast blitting methods, as the decode buffer is in a surface with hardware-backing capability
@@ -762,7 +774,7 @@ void blit_to_screen_smk(struct SSurface *surf, u32 width, u32 height, ushort ply
  * or changing pixel format of the image. After bit but before displaying the new image, a callback
  * is executed allowing for applying effects or other modifications to the working screen buffer.
  */
-TbResult play_smk_via_buffer(char *fname, u32 smkflags, ushort plyflags, SmackDrawCallback callback)
+TbResult play_smk_via_buffer_rad(char *fname, u32 smkflags, ushort plyflags, SmackDrawCallback callback)
 {
 #if 0
     TbResult ret;
@@ -851,6 +863,208 @@ TbResult play_smk_via_buffer(char *fname, u32 smkflags, ushort plyflags, SmackDr
     return Lb_SUCCESS;
 #endif
 }
+
+#endif // asm player
+
+/******************************************************************************/
+/* Playback with the C decoder (smkdec.c); used by all builds. */
+
+/** Starts the first audio track of the video as one sound sample; returns
+ * the sample, or NULL without sound. */
+static SNDSAMPLE *smk_sound_start(struct SmkDec *p_dec, uint8_t **p_pcm)
+{
+    struct DIG_DRIVER *p_snddrv;
+    SNDSAMPLE *p_smp;
+    const struct SmkDecAudio *p_aud;
+    int32_t len;
+    int32_t format;
+
+    *p_pcm = NULL;
+    p_aud = &p_dec->audio[0];
+    if (p_aud->rate == 0)
+        return NULL;
+    p_snddrv = GetSoundDriver();
+    if (p_snddrv == NULL)
+        return NULL;
+    len = smkdec_decode_audio(p_dec, 0, p_pcm);
+    if (len <= 0) {
+        free(*p_pcm);
+        *p_pcm = NULL;
+        return NULL;
+    }
+    p_smp = AIL_allocate_sample_handle(p_snddrv);
+    if (p_smp == NULL) {
+        free(*p_pcm);
+        *p_pcm = NULL;
+        return NULL;
+    }
+    format = 0;
+    if (p_aud->bits == 16)
+        format |= DIG_F_16BITS_MASK;
+    if (p_aud->channels == 2)
+        format |= DIG_F_STEREO_MASK;
+    AIL_init_sample(p_smp);
+    AIL_set_sample_type(p_smp, format, (p_aud->bits == 16) ? 1 : 0);
+    AIL_set_sample_address(p_smp, *p_pcm, len);
+    AIL_set_sample_playback_rate(p_smp, p_aud->rate);
+    AIL_set_sample_volume(p_smp, 127);
+    AIL_start_sample(p_smp);
+    return p_smp;
+}
+
+static void smk_sound_stop(SNDSAMPLE *p_smp, uint8_t *pcm)
+{
+    if (p_smp != NULL) {
+        AIL_end_sample(p_smp);
+        AIL_release_sample_handle(p_smp);
+    }
+    free(pcm);
+}
+
+/** Waits until frame frm_no+1 is due, as SMACKWAIT did; returns true if
+ * the user asked to stop. */
+static TbBool smk_wait_next_frame(const struct SmkDec *p_dec, TbClockMSec start_clk,
+  uint frm_no, ushort plyflags)
+{
+    TbBool finish = false;
+    TbClockMSec due;
+
+    due = start_clk + (TbClockMSec)(((uint64_t)(frm_no + 1) * p_dec->us_per_frame) / 1000);
+    while (LbTimerClock() < due)
+    {
+        game_hacky_update();
+        if ((plyflags & 0x0002) != 0)
+            continue;
+        if (lbKeyOn[KC_ESCAPE] || lbKeyOn[KC_RETURN] || lbKeyOn[KC_SPACE] || lbDisplay.MLeftButton)
+            finish = true;
+        if (finish)
+            break;
+    }
+    return finish;
+}
+
+/** Decodes the next frame; with plyflags 0x0400 the video loops. */
+static int smk_next_frame(struct SmkDec *p_dec, ushort plyflags)
+{
+    if ((p_dec->next_frame >= p_dec->frames) && ((plyflags & 0x0400) != 0))
+        p_dec->next_frame = 0;
+    return smkdec_next_frame(p_dec);
+}
+
+/** Play SMK video file by decoding it directly to work screen buffer.
+ */
+TbResult play_smk_direct(char *fname, u32 smkflags, ushort plyflags, ushort mode)
+{
+    struct SmkDec *p_dec;
+    SNDSAMPLE *p_smp;
+    uint8_t *pcm;
+    int scr_x, scr_y;
+    uint frm_no, y, w, h;
+    TbBool finish;
+    TbClockMSec start_clk;
+
+    p_dec = smkdec_open(fname);
+    if (p_dec == NULL)
+        return Lb_FAIL;
+    p_smp = NULL;
+    pcm = NULL;
+    if ((plyflags & 0x0001) == 0)
+        p_smp = smk_sound_start(p_dec, &pcm);
+
+    // Hardware frame buffer access (plyflags 0x0100) was DOS only; the work
+    // screen is used instead.
+    scr_x = ((int)lbDisplay.GraphicsScreenWidth - (int)p_dec->width) >> 1;
+    scr_y = ((int)lbDisplay.GraphicsScreenHeight - (int)p_dec->height) >> 1;
+    w = p_dec->width;
+    h = p_dec->height;
+    if (scr_x < 0) {
+        w = lbDisplay.GraphicsScreenWidth;
+        scr_x = 0;
+    }
+    if (scr_y < 0) {
+        h = lbDisplay.GraphicsScreenHeight;
+        scr_y = 0;
+    }
+
+    start_clk = LbTimerClock();
+    finish = false;
+    for (frm_no = 0; !finish; frm_no++)
+    {
+        if (((plyflags & 0x0400) == 0) && (frm_no >= p_dec->frames))
+            break;
+        if (smk_next_frame(p_dec, plyflags) < 0)
+            break;
+        LbMemoryCopy(byte_1E56DC, p_dec->palette, PALETTE_8b_SIZE);
+        for (y = 0; y < h; y++)
+        {
+            LbMemoryCopy(lbDisplay.WScreen + (scr_y + y) * lbDisplay.GraphicsScreenWidth + scr_x,
+              p_dec->image + y * p_dec->width, w);
+        }
+        LbScreenWaitVbi();
+        LbPaletteSet(byte_1E56DC);
+        LbScreenSwap();
+        finish = smk_wait_next_frame(p_dec, start_clk, frm_no, plyflags);
+    }
+    smk_sound_stop(p_smp, pcm);
+    smkdec_close(p_dec);
+    return Lb_SUCCESS;
+}
+
+/** Play SMK video file by decoding it into temporary surface before blitting onto screen.
+ *
+ * The blitting allows for resizing or changing pixel format of the image. After blit
+ * but before displaying the new image, a callback is executed allowing for applying
+ * effects or other modifications to the working screen buffer.
+ */
+TbResult play_smk_via_buffer(char *fname, u32 smkflags, ushort plyflags, SmackDrawCallback callback)
+{
+    struct SSurface surf;
+    struct SmkDec *p_dec;
+    SNDSAMPLE *p_smp;
+    uint8_t *pcm, *frame_buf;
+    uint frm_no;
+    TbBool finish;
+    TbClockMSec start_clk;
+
+    p_dec = smkdec_open(fname);
+    if (p_dec == NULL)
+        return Lb_FAIL;
+
+    LbScreenSurfaceInit(&surf);
+    if (LbScreenSurfaceCreate(&surf, p_dec->width, p_dec->height) == Lb_FAIL) {
+        smkdec_close(p_dec);
+        return Lb_FAIL;
+    }
+    p_smp = NULL;
+    pcm = NULL;
+    if ((plyflags & 0x0001) == 0)
+        p_smp = smk_sound_start(p_dec, &pcm);
+
+    start_clk = LbTimerClock();
+    finish = false;
+    for (frm_no = 0; !finish; frm_no++)
+    {
+        if (((plyflags & 0x0400) == 0) && (frm_no >= p_dec->frames))
+            break;
+        if (smk_next_frame(p_dec, plyflags) < 0)
+            break;
+        LbMemoryCopy(byte_1E56DC, p_dec->palette, PALETTE_8b_SIZE);
+        frame_buf = LbScreenSurfaceLock(&surf);
+        if (frame_buf == NULL)
+            break;
+        LbMemoryCopy(frame_buf, p_dec->image, p_dec->width * p_dec->height);
+        LbScreenSurfaceUnlock(&surf);
+        LbScreenWaitVbi();
+        LbPaletteSet(byte_1E56DC);
+        blit_to_screen_smk(&surf, p_dec->width, p_dec->height, plyflags);
+        finish = smk_wait_next_frame(p_dec, start_clk, frm_no, plyflags);
+    }
+    smk_sound_stop(p_smp, pcm);
+    smkdec_close(p_dec);
+    LbScreenSurfaceRelease(&surf);
+    return Lb_SUCCESS;
+}
+
 
 TbResult play_smk(char *fname, u32 smkflags, ushort plyflags)
 {
