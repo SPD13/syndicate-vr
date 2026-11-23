@@ -45,8 +45,8 @@ struct TbSPoint {
 };
 
 struct DrawRange { // sizeof = 8
-    long x;
-    long w;
+    s32 x;
+    s32 w;
 };
 
 struct DrawRange draw_ranges[DRAW_RANGES_COUNT];

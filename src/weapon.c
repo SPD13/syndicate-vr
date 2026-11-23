@@ -209,7 +209,7 @@ void read_weapons_conf_file(void)
     TbFileHandle conf_fh;
     TbBool done;
     int i;
-    long k;
+    s32 k;
     int cmd_num;
     char *conf_buf;
     struct TbIniParser parser;
@@ -234,8 +234,8 @@ void read_weapons_conf_file(void)
     }
     conf_buf[conf_len] = '\0';
     LbIniParseStart(&parser, conf_buf, conf_len);
-#define CONFWRNLOG(format,args...) LOGWARN("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
-#define CONFDBGLOG(format,args...) LOGDBG("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
+#define CONFWRNLOG(format,args...) LOGWARN("%s(line %u): " format, conf_fname, parser.line_num, ## args)
+#define CONFDBGLOG(format,args...) LOGDBG("%s(line %u): " format, conf_fname, parser.line_num, ## args)
     weapons_count = 0;
     // Parse the [common] section of loaded file
     if (LbIniFindSection(&parser, "common") != Lb_SUCCESS) {
@@ -1034,9 +1034,9 @@ WeaponType find_nth_weapon_held(ThingIdx person, ubyte n)
     return 0;
 }
 
-ulong person_carried_weapons_pesuaded_sell_value(struct Thing *p_person)
+u32 person_carried_weapons_pesuaded_sell_value(struct Thing *p_person)
 {
-    ulong credits;
+    u32 credits;
     WeaponType wtype;
 
     credits = 0;
@@ -1276,7 +1276,7 @@ struct SimpleThing *init_spark(int x, int y, int z)
 
 static DIFFTEST_REF_FUNC void elec_hit_building_asm(int x, int y, int z, short col)
 {
-    asm volatile ("call ASM_elec_hit_building\n"
+    DIFFTEST_ASM("call ASM_elec_hit_building\n"
         : : "a" (x), "d" (y), "b" (z), "c" (col));
 }
 
@@ -1660,7 +1660,7 @@ static DIFFTEST_REF_FUNC int bul_path_end_asm(int x1, int y1, int z1,
     stkargs[3] = (int)(intptr_t)p_owner;
     stkargs[4] = (int)(intptr_t)status;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 16(%5)\n"
       "push 12(%5)\n"
       "push 8(%5)\n"
@@ -2477,7 +2477,7 @@ void delete_vect(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 static DIFFTEST_REF_FUNC void snap_razor_wire_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_snap_razor_wire\n"
+    DIFFTEST_ASM("call ASM_snap_razor_wire\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -3376,7 +3376,7 @@ void init_minigun(struct Thing *p_owner)
 
 static DIFFTEST_REF_FUNC void init_flamer_asm(struct Thing *p_owner)
 {
-    asm volatile ("call ASM_init_flamer\n"
+    DIFFTEST_ASM("call ASM_init_flamer\n"
         : : "a" (p_owner));
 }
 
@@ -3778,7 +3778,7 @@ void init_time_gun(struct Thing *p_owner)
 
 static DIFFTEST_REF_FUNC void init_c_iff_asm(struct Thing *p_owner)
 {
-    asm volatile ("call ASM_init_c_iff\n"
+    DIFFTEST_ASM("call ASM_init_c_iff\n"
         : : "a" (p_owner));
 }
 
@@ -4123,7 +4123,7 @@ void init_mech_rocket(struct Thing *p_owner, struct Thing *p_mech, int x, int y,
 static DIFFTEST_REF_FUNC void give_take_me_weapon_asm(struct Thing *p_person,
   int item, int giveortake, short id)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_give_take_me_weapon\n"
         : : "a" (p_person), "d" (item), "b" (giveortake), "c" (id));
 }
@@ -4662,7 +4662,7 @@ int gun_out_anim(struct Thing *p_person, ubyte shoot_flag)
 static DIFFTEST_REF_FUNC ushort player_weapon_time_asm(struct Thing *p_person)
 {
     ushort ret;
-    asm volatile ("call ASM_player_weapon_time\n"
+    DIFFTEST_ASM("call ASM_player_weapon_time\n"
         : "=a" (ret) : "a" (p_person));
     return ret;
 }
@@ -5051,7 +5051,7 @@ short process_persuadertron(struct Thing *p_person, ubyte target_select, ushort 
 
 static DIFFTEST_REF_FUNC void get_soul_asm(struct Thing *p_dead, struct Thing *p_person)
 {
-    asm volatile ("call ASM_get_soul\n"
+    DIFFTEST_ASM("call ASM_get_soul\n"
         : : "a" (p_dead), "d" (p_person));
 }
 
@@ -5936,7 +5936,7 @@ static DIFFTEST_REF_FUNC s32 laser_hit_at_asm(s32 cor1_x, s32 cor1_y, s32 cor1_z
     stkargs[1] = (int)(intptr_t)p_cor2_z;
     stkargs[2] = (int)(intptr_t)p_shot;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 8(%5)\n"
       "push 4(%5)\n"
       "push 0(%5)\n"

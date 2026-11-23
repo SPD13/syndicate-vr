@@ -242,7 +242,7 @@ TbBool draw_world_landmass_shape(struct ScreenBox *p_box)
     {
         short k;
         short *arr;
-        long tmc, tmend;
+        s32 tmc, tmend;
 
         k = word_155110[i];
         arr = dword_1C529C[i];
@@ -297,7 +297,7 @@ TbBool draw_world_landmass_projector(struct ScreenBox *p_box)
     {
         short k;
         short *arr;
-        long tmc, tmn, tmend, tmiter;
+        s32 tmc, tmn, tmend, tmiter;
 
         k = word_155110[i];
         arr = dword_1C529C[i];
@@ -744,7 +744,7 @@ TbResult load_mapout(ubyte **pp_buf, const char *dir)
 {
     char locstr[52];
     ubyte *p_buf;
-    long len;
+    s32 len;
     int i;
     TbResult ret;
 

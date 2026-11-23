@@ -94,13 +94,13 @@ TbResult LbMouseOnEndSwap(void);
  * Set offset within pointer sprite where the mouse actually points at.
  *  Also called LbMouseSetPointerHotspot().
  */
-TbResult LbMouseChangeSpriteOffset(long hot_x, long hot_y);
+TbResult LbMouseChangeSpriteOffset(s32 hot_x, s32 hot_y);
 
 /**
  * Get offset within pointer sprite where the mouse actually points at.
  *  Also called GetPointerHotspot().
  */
-TbResult LbMouseGetSpriteOffset(long *hot_x, long *hot_y);
+TbResult LbMouseGetSpriteOffset(s32 *hot_x, s32 *hot_y);
 
 TbResult LbMouseChangeSprite(const struct TbSprite *pointer_spr);
 
@@ -115,7 +115,7 @@ TbResult LbMouseChangeSprite(const struct TbSprite *pointer_spr);
  *   means unchanged ratio from OS.
  * @return Lb_SUCCESS if the ratio values were of correct range and have been set.
  */
-TbResult LbMouseChangeMoveRatio(long ratio_x, long ratio_y);
+TbResult LbMouseChangeMoveRatio(s32 ratio_x, s32 ratio_y);
 
 /**
  * Enables or disables confining the mouse pointer to the graphics window.
@@ -148,8 +148,8 @@ TbBool LbMouseIsInstalled(void);
 TbResult LbMouseSetup(const struct TbSprite *pointer_spr, int ratio_x, int ratio_y);
 TbResult LbMouseReset(void);
 TbResult LbMouseSuspend(void);
-TbResult LbMouseSetWindow(long x, long y, long width, long height);
-TbResult LbMouseSetPosition(long x, long y);
+TbResult LbMouseSetWindow(s32 x, s32 y, s32 width, s32 height);
+TbResult LbMouseSetPosition(s32 x, s32 y);
 
 /** Default callback for converting raw mouse coords into screen coords.
  *

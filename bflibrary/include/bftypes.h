@@ -128,6 +128,7 @@ extern "C" {
  */
 #define DISKPATH_SIZE    144
 
+/** Not used by the game code: 64 bits on LP64 systems; use u32. */
 typedef unsigned long ulong;
 typedef unsigned int uint;
 typedef unsigned short ushort;
@@ -151,7 +152,7 @@ typedef int TbResult;
 /** Small, single byte boolean. */
 typedef unsigned char TbBool;
 /** Large boolean. */
-typedef unsigned long DwBool;
+typedef u32 DwBool;
 
 typedef size_t TbMemSize;
 

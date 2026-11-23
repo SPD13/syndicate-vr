@@ -385,7 +385,7 @@ enum MdiDriverSystemDataUse {
  *
  * Originally named `HTIMER`. This less generic name helps to remember this is sound-related.
  */
-typedef long HSNDTIMER;
+typedef int32_t HSNDTIMER;
 
 /** Handle to interface provider.
  */

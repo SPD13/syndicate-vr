@@ -310,7 +310,7 @@ TbBool person_only_affected_by_adv_persuader(ThingIdx person);
 
 /** Print person state in function-like style to a buffer.
  */
-void snprint_person_state(char *buf, ulong buflen, struct Thing *p_thing);
+void snprint_person_state(char *buf, u32 buflen, struct Thing *p_thing);
 
 TbBool person_is_dead(ThingIdx thing);
 TbBool person_is_dead_or_dying(ThingIdx thing);

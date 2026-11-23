@@ -136,7 +136,7 @@ void test_tringl_draw_random_triangles(const ubyte *pal, short res_h)
 
 TbBool test_tringl(void)
 {
-    static ulong seeds[] = {0x0, 0xD15C1234, 0xD15C0000, 0xD15C0005, 0xD15C000F,
+    static u32 seeds[] = {0x0, 0xD15C1234, 0xD15C0000, 0xD15C0005, 0xD15C000F,
       0xD15C03DC, 0xD15C07DF, 0xD15CE896, 0xB00710FA, };
     ubyte pal[PALETTE_8b_SIZE];
     ubyte ref_pal[PALETTE_8b_SIZE];
@@ -144,7 +144,7 @@ TbBool test_tringl(void)
     TbScreenModeInfo *mdinfo;
     TbScreenMode mode = Lb_SCREEN_MODE_640_480_8;
     TbPixel *ref_buffer;
-    ulong picno;
+    u32 picno;
 
     if (LbErrorLogSetup(NULL, "tst_tringl.log", Lb_ERROR_LOG_NEW) != Lb_SUCCESS) {
         LOGERR("execution log setup failed");
@@ -180,22 +180,22 @@ TbBool test_tringl(void)
     for (picno = 1; picno < sizeof(seeds)/sizeof(seeds[0]); picno++)
     {
         char loc_fname[64];
-        ulong ref_width, ref_height;
-        long maxdiff;
-        ulong maxpos;
+        u32 ref_width, ref_height;
+        s32 maxdiff;
+        u32 maxpos;
 
         LbScreenClear(0);
         lbSeed = seeds[picno];
         test_tringl_draw_random_triangles(pal, mdinfo->Height);
 
-        sprintf(loc_fname, "referenc/tst_tringl%lu_rf.png", picno);
+        sprintf(loc_fname, "referenc/tst_tringl%u_rf.png", picno);
         LbPngLoad(loc_fname, ref_buffer, &ref_width, &ref_height, ref_pal);
         if ((ref_width != mdinfo->Width) || (ref_height != mdinfo->Height)) {
             LOGERR("%s: unexpected reference image size", loc_fname);
             return false;
         }
 
-        sprintf(loc_fname, "tst_tringl%lu.png", picno);
+        sprintf(loc_fname, "tst_tringl%u.png", picno);
         LbPngSaveScreen(loc_fname, lbDisplay.WScreen, pal, true);
 
         // compare image with reference
@@ -203,11 +203,11 @@ TbBool test_tringl(void)
         maxdiff = LbImageBuffersMaxDifference(lbDisplay.WScreen, pal, ref_buffer,
           ref_pal, mdinfo->Width * mdinfo->Height, &maxpos);
        if (maxdiff > 12) {
-            LOGERR("%s: high pixel difference to reference (%ld) at (%lu,%lu)",
+            LOGERR("%s: high pixel difference to reference (%d) at (%u,%u)",
               loc_fname, maxdiff, maxpos % mdinfo->Width, maxpos / mdinfo->Width);
             return false;
         }
-        LOGSYNC("%s: acceptable pixel difference to reference (%ld) at (%lu,%lu)",
+        LOGSYNC("%s: acceptable pixel difference to reference (%d) at (%u,%u)",
             loc_fname, maxdiff, maxpos % mdinfo->Width, maxpos / mdinfo->Width);
     }
 

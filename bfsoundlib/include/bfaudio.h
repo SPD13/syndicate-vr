@@ -60,8 +60,8 @@ void EnsureAILStartup(void);
 void InitAudio(AudioInitOptions *audOpts);
 void FreeAudio(void);
 
-void SetSoundMasterVolume(long vol);
-void SetMusicMasterVolume(long vol);
+void SetSoundMasterVolume(int32_t vol);
+void SetMusicMasterVolume(int32_t vol);
 
 /******************************************************************************/
 #ifdef __cplusplus

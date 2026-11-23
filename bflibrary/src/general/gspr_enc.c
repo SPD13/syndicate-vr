@@ -111,7 +111,7 @@ int LbScreenSpriteEncode(TbSprite *p_spr, TbSpriteData p_spr_data)
 {
     TbPixel transcol;
 
-    LOGNO("at (%ld,%ld)", x, y);
+    LOGNO("at (%d,%d)", x, y);
     transcol = lbDisplay.WScreen[0];
     p_spr->SWidth = lbDisplay.GraphicsWindowWidth;
     p_spr->SHeight = lbDisplay.GraphicsWindowHeight;

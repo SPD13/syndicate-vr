@@ -35,7 +35,7 @@
 
 TbBool ssnd_active = true;
 TbFileHandle adpcm_handle = INVALID_FILE;
-long adpcm_file_open = 0;
+int32_t adpcm_file_open = 0;
 SNDSAMPLE *sample_handle = NULL;
 uint8_t *ssnd_buffer[2];
 uint8_t *adpcm_source_buffer = NULL;

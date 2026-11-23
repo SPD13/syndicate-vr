@@ -41,8 +41,8 @@ typedef void * OSSurfaceHandle;
 
 struct SSurface {
     OSSurfaceHandle surf_data;
-    ulong locks_count;
-    long pitch;
+    u32 locks_count;
+    s32 pitch;
 };
 
 /******************************************************************************/
@@ -68,7 +68,7 @@ void LbScreenSurfaceInit(struct SSurface *surf);
  * Screen surfaces are a way for optimized compositing when the application screen
  * consists of several independently generated parts.
  */
-TbResult LbScreenSurfaceCreate(struct SSurface *surf, ulong w, ulong h);
+TbResult LbScreenSurfaceCreate(struct SSurface *surf, u32 w, u32 h);
 
 TbResult LbScreenSurfaceRelease(struct SSurface *surf);
 
@@ -86,8 +86,8 @@ TbResult LbScreenSurfaceRelease(struct SSurface *surf);
  *
  * @return Gives Lb_SUCCESS if blitting was performed correctly.
  */
-TbResult LbScreenSurfaceBlit(struct SSurface *surf, ulong x, ulong y,
-    struct TbRect *rect, ulong blflags);
+TbResult LbScreenSurfaceBlit(struct SSurface *surf, u32 x, u32 y,
+    struct TbRect *rect, u32 blflags);
 
 /** Blits between rectangular area of screen and of given surface.
  *
@@ -103,7 +103,7 @@ TbResult LbScreenSurfaceBlit(struct SSurface *surf, ulong x, ulong y,
  * @return Gives Lb_SUCCESS if blitting was performed correctly.
  */
 TbResult LbScreenSurfaceBlitScaled(struct SSurface *surf, struct TbRect *scrn_rect,
-    struct TbRect *surf_rect, ulong blflags);
+    struct TbRect *surf_rect, u32 blflags);
 
 /** Locks the surface, allowing direct access to its pixel data buffer.
  */

@@ -22,10 +22,10 @@
 #include "bfline.h"
 #include "bfscreen.h"
 
-TbResult LbDrawHVLine(long X1, long Y1, long X2, long Y2, TbPixel colour)
+TbResult LbDrawHVLine(s32 X1, s32 Y1, s32 X2, s32 Y2, TbPixel colour)
 {
-    long clipX1, clipX2, clipY1, clipY2;
-    long maxX, maxY, x, y;
+    s32 clipX1, clipX2, clipY1, clipY2;
+    s32 maxX, maxY, x, y;
     ubyte *ptr;
     ubyte *m;
 

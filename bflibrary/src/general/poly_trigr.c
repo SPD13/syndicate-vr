@@ -47,26 +47,26 @@ static inline ubyte __CFADDS__(short x, short y)
 /**
  * whether the addition (x+y) of two long ints would use carry
  */
-static inline ubyte __CFADDL__(long x, long y)
+static inline ubyte __CFADDL__(s32 x, s32 y)
 {
-    return (ulong)(x) > (ulong)(x+y);
+    return (u32)(x) > (u32)(x+y);
 }
 
 /**
  * rotate left unsigned long
  */
-static inline ulong __ROL4__(ulong value, int count)
+static inline u32 __ROL4__(u32 value, int count)
 {
     const uint nbits = 4 * 8;
 
     if (count > 0) {
         count %= nbits;
-        ulong high = value >> (nbits - count);
+        u32 high = value >> (nbits - count);
         value <<= count;
         value |= high;
     } else {
         count = -count % nbits;
-        ulong low = value << (nbits - count);
+        u32 low = value << (nbits - count);
         value >>= count;
         value |= low;
     }
@@ -141,7 +141,7 @@ void trig_render_md01(struct TrigLocalRend *tlr)
 
         if (pX  < 0)
         {
-            long mX;
+            s32 mX;
             short colH;
 
             if (pY <= 0)
@@ -193,7 +193,7 @@ void trig_render_md02(struct TrigLocalRend *tlr)
 {
     struct PolyPoint *pp;
     ubyte *m;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     pp = polyscans;
@@ -206,7 +206,7 @@ void trig_render_md02(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pX, pY;
-        long pU;
+        s32 pU;
         ushort colS;
         ubyte *o;
 
@@ -218,8 +218,8 @@ void trig_render_md02(struct TrigLocalRend *tlr)
         if (pX < 0)
         {
             ushort colL, colH;
-            ulong factorA;
-            long mX;
+            u32 factorA;
+            s32 mX;
 
             if (pY <= 0)
                 continue;
@@ -277,7 +277,7 @@ void trig_render_md03(struct TrigLocalRend *tlr)
 {
     struct PolyPoint *pp;
     ubyte *m;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     pp = polyscans;
@@ -290,8 +290,8 @@ void trig_render_md03(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pX, pY;
-        long pU;
-        ulong factorA;
+        s32 pU;
+        u32 factorA;
         ushort colS;
         ubyte *o;
 
@@ -303,7 +303,7 @@ void trig_render_md03(struct TrigLocalRend *tlr)
         if (pX < 0)
         {
             short colL, colH;
-            long mX;
+            s32 mX;
 
             if (pY <= 0)
                 continue;
@@ -389,7 +389,7 @@ void trig_render_md04(struct TrigLocalRend *tlr)
         {
             ushort colL, colH;
             TbBool pU_carry;
-            long mX;
+            s32 mX;
 
             if (pY <= 0)
                 continue;
@@ -441,9 +441,9 @@ void trig_render_md05(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *f;
-    long lsh_var_54;
-    long lsh_var_60;
-    long lvr_var_54;
+    s32 lsh_var_54;
+    s32 lsh_var_60;
+    s32 lvr_var_54;
 
     m = vec_map;
     f = pixmap.fade_table;
@@ -454,13 +454,13 @@ void trig_render_md05(struct TrigLocalRend *tlr)
     }
 
     {
-        ulong factorA, factorB, factorC;
+        u32 factorA, factorB, factorC;
         factorC = tlr->var_48;
         // original code used unsigned compare here, making the condition always false
         //if (tlr->var_60 < 0) factorC--;
         factorC = __ROL4__(factorC, 16);
         factorA = __ROL4__(tlr->var_54, 16);
-        factorB = ((ulong)tlr->var_60) >> 8;
+        factorB = ((u32)tlr->var_60) >> 8;
         lsh_var_54 = (factorC & 0xFFFF0000) | (factorB & 0xFFFF);
         lsh_var_60 = (factorA & 0xFFFFFF00) | (factorC & 0xFF);
         lvr_var_54 = (factorA & 0xFF);
@@ -468,8 +468,8 @@ void trig_render_md05(struct TrigLocalRend *tlr)
 
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
-        long pX, pY;
-        long rfactA, rfactB;
+        s32 pX, pY;
+        s32 rfactA, rfactB;
         ushort colM;
         ubyte *o;
         ubyte *o_ln;
@@ -481,9 +481,9 @@ void trig_render_md05(struct TrigLocalRend *tlr)
 
         if (pX < 0)
         {
-            ulong factorA, factorB;
+            u32 factorA, factorB;
             ushort colL, colH;
-            long mX;
+            s32 mX;
 
             if (pY <= 0)
                 continue;
@@ -503,7 +503,7 @@ void trig_render_md05(struct TrigLocalRend *tlr)
         }
         else
         {
-            ulong factorA, factorB;
+            u32 factorA, factorB;
             ushort colL, colH;
 
             if (pY > vec_window_width)
@@ -560,8 +560,8 @@ void trig_render_md06(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *f;
-    long lsh_var_54;
-    long lsh_var_60;
+    s32 lsh_var_54;
+    s32 lsh_var_60;
 
     m = vec_map;
     f = pixmap.fade_table;
@@ -577,9 +577,9 @@ void trig_render_md06(struct TrigLocalRend *tlr)
     {
         ubyte *o;
         short pXa, pYa;
-        long factorA;
-        long pY;
-        ulong factorB;
+        s32 factorA;
+        s32 pY;
+        u32 factorB;
         ushort colM;
 
         pXa = (pp->X >> 16);
@@ -591,8 +591,8 @@ void trig_render_md06(struct TrigLocalRend *tlr)
         {
             ushort colL, colH;
             ushort pXMa;
-            long pXMb;
-            ulong mX;
+            s32 pXMb;
+            u32 mX;
 
             if (pYa <= 0)
                 continue;
@@ -672,7 +672,7 @@ void trig_render_md07(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *f;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     f = pixmap.fade_table;
@@ -686,9 +686,9 @@ void trig_render_md07(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pXa;
-        long pYa;
-        long pXm;
-        long factorA;
+        s32 pYa;
+        s32 pXm;
+        s32 factorA;
         ushort colM;
         ubyte *o;
 
@@ -699,7 +699,7 @@ void trig_render_md07(struct TrigLocalRend *tlr)
         if ( (pXa & 0x8000u) != 0 )
         {
             ushort colL, colH;
-            ulong factorB, factorC;
+            u32 factorB, factorC;
 
             if ( (short)pYa <= 0 )
                 continue;
@@ -759,7 +759,7 @@ void trig_render_md08(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *f;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     f = pixmap.fade_table;
@@ -773,10 +773,10 @@ void trig_render_md08(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pXa;
-        long pYa;
+        s32 pYa;
         ushort colM;
         ubyte *o;
-        long factorA;
+        s32 factorA;
 
         pXa = (pp->X >> 16);
         pYa = (pp->Y >> 16);
@@ -785,8 +785,8 @@ void trig_render_md08(struct TrigLocalRend *tlr)
         if ( (pXa & 0x8000u) != 0 )
         {
             ushort colL, colH;
-            ulong factorB, factorC;
-            long pXm;
+            u32 factorB, factorC;
+            s32 pXm;
 
             if ( (short)pYa <= 0 )
                 continue;
@@ -847,7 +847,7 @@ void trig_render_md09(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *f;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     f = pixmap.fade_table;
@@ -861,8 +861,8 @@ void trig_render_md09(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pXa, pYa;
-        long pXm;
-        long factorA;
+        s32 pXm;
+        s32 factorA;
         ushort colM;
         ubyte *o;
 
@@ -873,7 +873,7 @@ void trig_render_md09(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            ulong factorB, factorC;
+            u32 factorB, factorC;
 
             if (pYa <= 0)
                 continue;
@@ -936,7 +936,7 @@ void trig_render_md10(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *f;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     f = pixmap.fade_table;
@@ -951,9 +951,9 @@ void trig_render_md10(struct TrigLocalRend *tlr)
     {
         short pXa;
         short pYa;
-        ulong factorB;
-        long factorA;
-        ulong factorC;
+        u32 factorB;
+        s32 factorA;
+        u32 factorC;
         ushort colM;
         ubyte *o;
 
@@ -964,7 +964,7 @@ void trig_render_md10(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            long pXm;
+            s32 pXm;
 
             if (pYa <= 0)
                 continue;
@@ -1026,7 +1026,7 @@ void trig_render_md12(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *g;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1039,10 +1039,10 @@ void trig_render_md12(struct TrigLocalRend *tlr)
 
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
-        long pXa;
+        s32 pXa;
         short pYa;
-        long pXm;
-        long factorA;
+        s32 pXm;
+        s32 factorA;
         ushort colM;
         ubyte *o;
 
@@ -1053,7 +1053,7 @@ void trig_render_md12(struct TrigLocalRend *tlr)
         if ( (pXa & 0x8000u) != 0 )
         {
             ushort colL, colH;
-            ulong factorB, factorC;
+            u32 factorB, factorC;
 
             if ( (short)pYa <= 0 )
                 continue;
@@ -1113,7 +1113,7 @@ void trig_render_md13(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *g;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1127,8 +1127,8 @@ void trig_render_md13(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pXa, pYa;
-        long pXm;
-        long factorA;
+        s32 pXm;
+        s32 factorA;
         ushort colM;
         ubyte *o;
 
@@ -1139,7 +1139,7 @@ void trig_render_md13(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            ulong factorB, factorC;
+            u32 factorB, factorC;
 
             if ( (short)pYa <= 0 )
                 continue;
@@ -1317,7 +1317,7 @@ void trig_render_md16(struct TrigLocalRend *tlr)
         {
             ushort colL, colH;
             ubyte factorA_carry;
-            ulong pXMa;
+            u32 pXMa;
             short pXMb;
 
             if (pYa <= 0)
@@ -1395,7 +1395,7 @@ void trig_render_md17(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            ulong pXMa;
+            u32 pXMa;
             short pXMb;
 
             if (pYa <= 0)
@@ -1452,7 +1452,7 @@ void trig_render_md18(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *g;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1462,8 +1462,8 @@ void trig_render_md18(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pXa, pYa;
-        long pXm;
-        long factorA;
+        s32 pXm;
+        s32 factorA;
         ushort colM;
         ubyte *o;
 
@@ -1474,7 +1474,7 @@ void trig_render_md18(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            ulong factorB, factorC;
+            u32 factorB, factorC;
 
             if (pYa <= 0)
                 continue;
@@ -1536,7 +1536,7 @@ void trig_render_md19(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *g;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1546,7 +1546,7 @@ void trig_render_md19(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pXa, pYa;
-        long factorA;
+        s32 factorA;
         ushort colM;
         ubyte *o;
 
@@ -1557,8 +1557,8 @@ void trig_render_md19(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            long pXm;
-            ulong factorB, factorC;
+            s32 pXm;
+            u32 factorB, factorC;
 
             if (pYa <= 0)
                 continue;
@@ -1618,8 +1618,8 @@ void trig_render_md20(struct TrigLocalRend *tlr)
     ubyte *m;
     ubyte *g;
     ubyte *f;
-    long lsh_var_54;
-    long lsh_var_60;
+    s32 lsh_var_54;
+    s32 lsh_var_60;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1631,10 +1631,10 @@ void trig_render_md20(struct TrigLocalRend *tlr)
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
         short pXa, pYa;
-        long pXMa;
-        long pXMb;
-        long factorA;
-        long factorC;
+        s32 pXMa;
+        s32 pXMb;
+        s32 factorA;
+        s32 factorC;
         ushort colM;
         ubyte *o;
 
@@ -1645,7 +1645,7 @@ void trig_render_md20(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            ulong factorB;
+            u32 factorB;
 
             if (pYa <= 0)
                 continue;
@@ -1712,8 +1712,8 @@ void trig_render_md21(struct TrigLocalRend *tlr)
     ubyte *m;
     ubyte *g;
     ubyte *f;
-    long lsh_var_54;
-    long lsh_var_60;
+    s32 lsh_var_54;
+    s32 lsh_var_60;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1727,7 +1727,7 @@ void trig_render_md21(struct TrigLocalRend *tlr)
         short pXa, pYa;
         ushort colM;
         ubyte *o;
-        long factorA, factorC;
+        s32 factorA, factorC;
 
         pXa = (pp->X >> 16);
         pYa = (pp->Y >> 16);
@@ -1736,9 +1736,9 @@ void trig_render_md21(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            long pXMa;
-            long pXMb;
-            ulong factorB;
+            s32 pXMa;
+            s32 pXMb;
+            u32 factorB;
 
             if (pYa <= 0)
                 continue;
@@ -1805,7 +1805,7 @@ void trig_render_md22(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *g;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1818,8 +1818,8 @@ void trig_render_md22(struct TrigLocalRend *tlr)
         ushort colM;
         short pYa;
         ubyte *o;
-        long pXm;
-        long factorA;
+        s32 pXm;
+        s32 factorA;
 
         pXa = (pp->X >> 16);
         pYa = (pp->Y >> 16);
@@ -1828,7 +1828,7 @@ void trig_render_md22(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            ulong factorB, factorC;
+            u32 factorB, factorC;
 
             if (pYa <= 0)
                 continue;
@@ -1890,7 +1890,7 @@ void trig_render_md23(struct TrigLocalRend *tlr)
     struct PolyPoint *pp;
     ubyte *m;
     ubyte *g;
-    long lsh_var_54;
+    s32 lsh_var_54;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1903,8 +1903,8 @@ void trig_render_md23(struct TrigLocalRend *tlr)
         ushort colM;
         short pYa;
         ubyte *o;
-        long pXm;
-        long factorA;
+        s32 pXm;
+        s32 factorA;
         ubyte factorA_carry;
 
         pXa = (pp->X >> 16);
@@ -1914,7 +1914,7 @@ void trig_render_md23(struct TrigLocalRend *tlr)
         if ( (pXa & 0x8000u) != 0 )
         {
             ushort colL, colH;
-            ulong factorB, factorC;
+            u32 factorB, factorC;
 
             if (pYa <= 0)
                 continue;
@@ -1976,8 +1976,8 @@ void trig_render_md24(struct TrigLocalRend *tlr)
     ubyte *m;
     ubyte *g;
     ubyte *f;
-    long lsh_var_54;
-    long lsh_var_60;
+    s32 lsh_var_54;
+    s32 lsh_var_60;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -1992,10 +1992,10 @@ void trig_render_md24(struct TrigLocalRend *tlr)
         ushort colM;
         short pYa;
         ubyte *o;
-        long pXMa;
-        long pXMb;
-        long factorA;
-        long factorC;
+        s32 pXMa;
+        s32 pXMb;
+        s32 factorA;
+        s32 factorC;
 
         pXa = (pp->X >> 16);
         pYa = (pp->Y >> 16);
@@ -2004,7 +2004,7 @@ void trig_render_md24(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            ulong factorB;
+            u32 factorB;
 
             if (pYa <= 0)
                 continue;
@@ -2075,8 +2075,8 @@ void trig_render_md25(struct TrigLocalRend *tlr)
     ubyte *m;
     ubyte *g;
     ubyte *f;
-    long lsh_var_54;
-    long lsh_var_60;
+    s32 lsh_var_54;
+    s32 lsh_var_60;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -2091,10 +2091,10 @@ void trig_render_md25(struct TrigLocalRend *tlr)
         ushort colM;
         short pYa;
         ubyte *o;
-        long pXMa;
-        long pXMb;
-        long factorA;
-        long factorC;
+        s32 pXMa;
+        s32 pXMb;
+        s32 factorA;
+        s32 factorC;
 
         pXa = (pp->X >> 16);
         pYa = (pp->Y >> 16);
@@ -2103,7 +2103,7 @@ void trig_render_md25(struct TrigLocalRend *tlr)
         if (pXa < 0)
         {
             ushort colL, colH;
-            ulong factorB;
+            u32 factorB;
 
             if (pYa <= 0)
                 continue;
@@ -2174,9 +2174,9 @@ void trig_render_md26(struct TrigLocalRend *tlr)
     ubyte *m;
     ubyte *g;
     ubyte *f;
-    long lsh_var_54;
-    long lsh_var_60;
-    long lvr_var_54;
+    s32 lsh_var_54;
+    s32 lsh_var_60;
+    s32 lvr_var_54;
 
     m = vec_map;
     g = pixmap.ghost_table;
@@ -2184,15 +2184,15 @@ void trig_render_md26(struct TrigLocalRend *tlr)
     pp = polyscans;
 
     {
-        ulong v1;
-        ulong v2;
+        u32 v1;
+        u32 v2;
         ubyte v3;
 
         v1 = __ROL4__(tlr->var_48, 16);
         v2 = __ROL4__(tlr->var_54, 16);
         v3 = v2;
         v2 = (v2 & 0xFFFFFF00) + (v1 & 0xFF);
-        v1 = (v1 & 0xFFFF0000) + (((ulong)tlr->var_60 >> 8) & 0xFFFF);
+        v1 = (v1 & 0xFFFF0000) + (((u32)tlr->var_60 >> 8) & 0xFFFF);
         v2 = (v2 & 0xFFFF0000) + (v2 & 0xFF);
         lsh_var_54 = v1;
         lsh_var_60 = v2;
@@ -2200,12 +2200,12 @@ void trig_render_md26(struct TrigLocalRend *tlr)
     }
     for (; tlr->var_44; tlr->var_44--, pp++)
     {
-        long pXa;
-        long pYa;
+        s32 pXa;
+        s32 pYa;
         ubyte *o;
-        ulong factorB, factorD;
-        long factorA;
-        ulong factorC;
+        u32 factorB, factorD;
+        s32 factorA;
+        u32 factorC;
         ushort colM;
 
         pXa = pp->X >> 16;
@@ -2220,7 +2220,7 @@ void trig_render_md26(struct TrigLocalRend *tlr)
             pXa = -pXa;
             factorA = __ROL4__(pp->U + pXa * tlr->var_48, 16);
             factorB = __ROL4__(pp->V + pXa * tlr->var_54, 16);
-            factorC = (ulong)(pp->S + pXa * tlr->var_60) >> 8;
+            factorC = (u32)(pp->S + pXa * tlr->var_60) >> 8;
             factorB = (factorB & 0xFFFFFF00) | (factorA & 0xFF);
             factorA = (factorA & 0xFFFF0000) | (factorC & 0xFFFF);
             factorD = __ROL4__(pp->V + pXa * tlr->var_54, 16);
@@ -2239,7 +2239,7 @@ void trig_render_md26(struct TrigLocalRend *tlr)
             o += pXa;
             factorA = __ROL4__(pp->U, 16);
             factorB = __ROL4__(pp->V, 16);
-            factorC = (ulong)pp->S >> 8;
+            factorC = (u32)pp->S >> 8;
             factorB = (factorB & 0xFFFFFF00) | (factorA & 0xFF);
             factorA = (factorA & 0xFFFF0000) | (factorC & 0xFFFF);
             factorD = __ROL4__(pp->V, 16);

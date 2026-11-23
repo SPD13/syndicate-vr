@@ -58,7 +58,7 @@ extern "C" {
 
 typedef char *PCHAR,*LPCH,*PCH,*NPSTR,*LPSTR,*PSTR;
 typedef const char *LPCCH,*PCSTR,*LPCSTR;
-typedef unsigned long DWORD;
+typedef u32 DWORD;
 typedef int WINBOOL,*PWINBOOL,*LPWINBOOL;
 #define BOOL WINBOOL
 typedef void *PVOID,*LPVOID;
@@ -394,7 +394,7 @@ int _findclose(intptr_t fhandle) {
 #endif
 
 TbResult LbFileFindFirst(const char *filespec, struct TbFileFind *ffind,
-  ulong attributes)
+  u32 attributes)
 {
     int result;
 #if LB_FILENAME_TRANSFORM

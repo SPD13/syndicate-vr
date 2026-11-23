@@ -52,7 +52,7 @@ TbBool flashy_draw_text(int x, int y, const char *text, ubyte speed,
   int top_line, short *textpos, int cyan_flag);
 ubyte flashy_draw_purple_text_box(struct ScreenTextBox *p_box);
 void draw_flic_purple_list(void (*fn)());
-void draw_noise_box_purple_list(int x, int y, ulong width, ulong height);
+void draw_noise_box_purple_list(int x, int y, u32 width, u32 height);
 
 short get_text_box_lines_visible(struct ScreenTextBox *p_box);
 

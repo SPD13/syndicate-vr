@@ -54,10 +54,10 @@ TbBool SoundAble = true;
 ushort SoundType = 0;
 TbBool DisableLoadSounds = false;
 
-ulong MaxNumberOfSamples = 10;
+uint32_t MaxNumberOfSamples = 10;
 TbBool StereoSound = true;
 TbBool UseMultiMediaExtensions = false;
-long CurrentSoundMasterVolume = 127;
+int32_t CurrentSoundMasterVolume = 127;
 TbBool ive_got_an_sb16 = false;
 
 AIL_INI MusicInstallChoice;
@@ -66,7 +66,7 @@ TbBool MusicAble = true;
 TbBool DisableLoadMusic = false;
 TbBool DisableDangerMusic = false;
 
-long CurrentMusicMasterVolume = 127;
+int32_t CurrentMusicMasterVolume = 127;
 
 extern DIG_DRIVER *SoundDriver;
 extern MDI_DRIVER *MusicDriver;
@@ -199,7 +199,7 @@ void FreeAudio(void)
         reset_SB16_volumes();
 }
 
-void SetSoundMasterVolume(long vol)
+void SetSoundMasterVolume(int32_t vol)
 {
     if (!SoundAble || !SoundInstalled)
         return;
@@ -209,7 +209,7 @@ void SetSoundMasterVolume(long vol)
     CurrentSoundMasterVolume = vol;
 }
 
-void SetMusicMasterVolume(long vol)
+void SetMusicMasterVolume(int32_t vol)
 {
     if (!MusicAble || !MusicInstalled)
         return;

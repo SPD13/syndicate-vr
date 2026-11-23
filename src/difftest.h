@@ -99,6 +99,16 @@ enum DiffTestExitCodes {
 #define DIFFTEST_REF_FUNC inline __attribute__((unused))
 #endif
 
+/** Inline asm of a reference function: only difftest builds have the asm
+ * it calls, and only x86 compilers accept its register constraints, so in
+ * other builds it is left out (the reference functions are not called).
+ */
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+#define DIFFTEST_ASM(...) asm volatile (__VA_ARGS__)
+#else
+#define DIFFTEST_ASM(...) do { } while (0)
+#endif
+
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
 
 int difftest_shadow_begin(const char *name, void *frame);
@@ -176,14 +186,14 @@ void difftest_run_fuzz(void);
  */
 struct DiffTestFuzzCase {
     const char *name;
-    void (*func)(ulong *p_seed);
+    void (*func)(u32 *p_seed);
 };
 
 extern const struct DiffTestFuzzCase difftest_fuzz_cases[];
 
 /** Xorshift pseudo-random generator for fuzz inputs.
  */
-ulong difftest_fuzz_rand(ulong *p_seed);
+u32 difftest_fuzz_rand(u32 *p_seed);
 
 /******************************************************************************/
 #ifdef __cplusplus

@@ -37,9 +37,9 @@ struct MissionStatus mission_status[MISSION_STATUS_LIMIT];
 
 /******************************************************************************/
 
-long time_difference(struct SynTime *tm1, struct SynTime *tm2)
+s32 time_difference(struct SynTime *tm1, struct SynTime *tm2)
 {
-    return 60 * (tm1->Hour - (long)tm2->Hour) + tm1->Minute - (long)tm2->Minute;
+    return 60 * (tm1->Hour - (s32)tm2->Hour) + tm1->Minute - (s32)tm2->Minute;
 }
 
 void syntime_inc_days(struct SynTime *tm, ushort ndays)
@@ -102,7 +102,7 @@ void clear_mission_status(ushort brief)
 
 void clear_open_mission_status(void)
 {
-    ulong id;
+    u32 id;
 
     if (in_network_game)
     {

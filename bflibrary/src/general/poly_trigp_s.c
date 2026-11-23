@@ -23,7 +23,7 @@
 /**
  * whether the subtraction (x-y) of two long ints would overflow
  */
-static inline ubyte __OFSUBL__(long x, long y)
+static inline ubyte __OFSUBL__(s32 x, s32 y)
 {
     return ((x < 0) ^ (y < 0)) & ((x < 0) ^ (x-y < 0));
 }

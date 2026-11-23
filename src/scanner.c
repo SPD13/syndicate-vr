@@ -83,7 +83,7 @@ const int scanner_arrow_mode_code_keys[] = {
 s32 scanner_next_key_no;
 
 extern ushort signal_count;
-extern ulong turn_last; // = 999;
+extern u32 turn_last; // = 999;
 extern u32 SCANNER_keep_arcs;
 extern struct BbpAdds SCANNER_bbpadds[SCANNER_BBP_ADDS_COUNT];
 
@@ -101,7 +101,7 @@ extern s32 redo_scanner_first;
 #if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
 /* Variables of the asm data (swars_data.c), for builds without the asm;
  * difftest builds take the byte layout of the asm from that file. */
-ulong turn_last = 0x3e7;
+u32 turn_last = 0x3e7;
 struct rectangle redo_scanner[128];
 s32 redo_scanner_last;
 s32 redo_scanner_first;
@@ -879,7 +879,7 @@ static void SCANNER_arcpoint_set_points(int arc_idx, int x1, int z1, int x2, int
     {
         struct MovingPoint *p_pt;
         ushort widx;
-        long sin_v, cos_v;
+        s32 sin_v, cos_v;
 
         p_pt = &SCANNER_arcpoint[base_i + k];
         widx = angle & (2 * LbFPMath_PI - 1);
@@ -1173,7 +1173,7 @@ ushort do_group_near_thing_scanner(struct Objective *p_objectv, ushort next_sign
     short tgthing;
     short nearthing;
     ushort group;
-    long X1, Z1;
+    s32 X1, Z1;
     int X2, Z2;
 
     group = p_objectv->Arg2;
@@ -1250,7 +1250,7 @@ ushort do_group_near_thing_scanner(struct Objective *p_objectv, ushort next_sign
 
 ushort do_target_thing_scanner(struct Objective *p_objectv, ushort next_signal)
 {
-    long X, Z;
+    s32 X, Z;
     ushort n;
     ubyte colr;
     ThingIdx thing;
@@ -1283,7 +1283,7 @@ ushort do_target_thing_scanner(struct Objective *p_objectv, ushort next_signal)
 
 ushort do_target_item_scanner(struct Objective *p_objectv, ushort next_signal)
 {
-    long X, Z;
+    s32 X, Z;
     ushort n;
     ushort weapon;
     ubyte colr;
@@ -1333,7 +1333,7 @@ ushort do_target_item_scanner(struct Objective *p_objectv, ushort next_signal)
 
 ushort do_thing_arrive_area_scanner(struct Objective *p_objectv, ushort next_signal)
 {
-    long X, Z;
+    s32 X, Z;
     ushort n;
     ubyte colr;
     ThingIdx thing;
@@ -1380,8 +1380,8 @@ ushort do_thing_arrive_area_scanner(struct Objective *p_objectv, ushort next_sig
 
 ushort do_thing_near_thing_scanner(struct Objective *p_objectv, ushort next_signal)
 {
-    long X1, Z1;
-    long X2, Z2;
+    s32 X1, Z1;
+    s32 X2, Z2;
     ushort n;
     ubyte colr;
     ThingIdx thing1, thing2;

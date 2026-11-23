@@ -72,9 +72,9 @@ struct TbSetupSprite {
 
 struct TbHugeSprite {
     TbSpriteData Data;  //**< Raw sprite data, with RLE coded transparency.
-    long * Lines;  //**< Index of line starts in the sprite data.
-    unsigned long SWidth;
-    unsigned long SHeight;
+    s32 * Lines;  //**< Index of line starts in the sprite data.
+    u32 SWidth;
+    u32 SHeight;
 };
 
 #define TILED_SPRITE_DIM 10
@@ -93,7 +93,7 @@ struct TiledSprite {
  * Returns that size. Nothing changes where the entries have the file
  * layout (32-bit builds).
  */
-long LbSpriteTabExpand(void *buf, long file_len);
+s32 LbSpriteTabExpand(void *buf, s32 file_len);
 
 /** Set up data pointers in an array of sprites within given bounds.
  */
@@ -118,9 +118,9 @@ TbResult LbSpriteResetAll();
 
 extern ubyte * lbSpriteReMapPtr;
 
-TbResult LbSpriteDrawOneColour(long x, long y, const TbSprite *spr, const TbPixel colour);
-TbResult LbSpriteDraw(long x, long y, const TbSprite *spr);
-TbResult LbSpriteDrawRemap(long x, long y, const TbSprite *spr, const ubyte *cmap);
+TbResult LbSpriteDrawOneColour(s32 x, s32 y, const TbSprite *spr, const TbPixel colour);
+TbResult LbSpriteDraw(s32 x, s32 y, const TbSprite *spr);
+TbResult LbSpriteDrawRemap(s32 x, s32 y, const TbSprite *spr, const ubyte *cmap);
 
 /**
  * Draws a scaled sprite on current graphics window at given position.
@@ -132,7 +132,7 @@ TbResult LbSpriteDrawRemap(long x, long y, const TbSprite *spr, const ubyte *cma
  * @return Gives 0 on success.
  * @see LbSpriteSetScalingData()
  */
-TbResult LbSpriteDrawUsingScalingData(long posx, long posy, const TbSprite *sprite);
+TbResult LbSpriteDrawUsingScalingData(s32 posx, s32 posy, const TbSprite *sprite);
 
 /**
  * Sets scaling data for drawing scaled sprites.
@@ -143,8 +143,8 @@ TbResult LbSpriteDrawUsingScalingData(long posx, long posy, const TbSprite *spri
  * @param dwidth Width which the sprite should have on destination buffer.
  * @param dheight Height which the sprite should have on destination buffer.
  */
-void LbSpriteSetScalingData(long x, long y, long swidth, long sheight,
-    long dwidth, long dheight);
+void LbSpriteSetScalingData(s32 x, s32 y, s32 swidth, s32 sheight,
+    s32 dwidth, s32 dheight);
 
 /**
  * Draws an alpha-blended scaled sprite on current graphics window at given position.
@@ -160,7 +160,7 @@ void LbSpriteSetScalingData(long x, long y, long swidth, long sheight,
  * @see SetAlphaScalingData()
  * @see LbSpriteDrawUsingScalingData()
  */
-TbResult DrawAlphaSpriteUsingScalingData(long posx, long posy, const TbSprite *sprite);
+TbResult DrawAlphaSpriteUsingScalingData(s32 posx, s32 posy, const TbSprite *sprite);
 
 /**
  * Draws a scaled sprite on current graphics window at given position, ignoring shadows.
@@ -174,13 +174,13 @@ TbResult DrawAlphaSpriteUsingScalingData(long posx, long posy, const TbSprite *s
  * @return Gives 0 on success.
  * @see LbSpriteSetScalingData()
  */
-TbResult DrawSpriteWthShadowUsingScalingData(long posx, long posy, const TbSprite *sprite);
+TbResult DrawSpriteWthShadowUsingScalingData(s32 posx, s32 posy, const TbSprite *sprite);
 
-void SetAlphaScalingData(long x, long y, long swidth, long sheight,
-    long dwidth, long dheight);
+void SetAlphaScalingData(s32 x, s32 y, s32 swidth, s32 sheight,
+    s32 dwidth, s32 dheight);
 
-TbResult LbSpriteDrawScaled(long xpos, long ypos, const TbSprite *sprite,
-    long dest_width, long dest_height);
+TbResult LbSpriteDrawScaled(s32 xpos, s32 ypos, const TbSprite *sprite,
+    s32 dest_width, s32 dest_height);
 
 #define LbSpriteDrawResized(xpos, ypos, un_per_px, sprite) \
   LbSpriteDrawScaled(xpos, ypos, sprite, \
@@ -199,8 +199,8 @@ TbResult LbSpriteDrawScaled(long xpos, long ypos, const TbSprite *sprite,
  * @param colour The colour to be used for drawing.
  * @return 
  */
-TbResult LbSpriteDrawScaledOneColour(long xpos, long ypos, const TbSprite *sprite,
-  long dest_width, long dest_height, const TbPixel colour);
+TbResult LbSpriteDrawScaledOneColour(s32 xpos, s32 ypos, const TbSprite *sprite,
+  s32 dest_width, s32 dest_height, const TbPixel colour);
 
 #define LbSpriteDrawResizedOneColour(xpos, ypos, un_per_px, sprite, colour) \
   LbSpriteDrawScaledOneColour(xpos, ypos, sprite, \
@@ -219,8 +219,8 @@ TbResult LbSpriteDrawScaledOneColour(long xpos, long ypos, const TbSprite *sprit
  * @param cmap Colour mapping array.
  * @return 
  */
-TbResult LbSpriteDrawScaledRemap(long xpos, long ypos, const TbSprite *sprite,
-    long dest_width, long dest_height, const ubyte *cmap);
+TbResult LbSpriteDrawScaledRemap(s32 xpos, s32 ypos, const TbSprite *sprite,
+    s32 dest_width, s32 dest_height, const ubyte *cmap);
 
 #define LbSpriteDrawResizedRemap(xpos, ypos, un_per_px, sprite, cmap) \
   LbSpriteDrawScaledRemap(xpos, ypos, sprite, \

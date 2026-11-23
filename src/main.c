@@ -423,8 +423,8 @@ void read_conf_file(void)
     LbIniParseStart(&parser, locbuf, conf_len);
     // Parse the loaded file
 #define COMMAND_TEXT(cmd_num) LbNamedEnumGetName(conf_file_cmnds,cmd_num)
-#define CONFWRNLOG(format,args...) LOGWARN("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
-#define CONFDBGLOG(format,args...) LOGDBG("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
+#define CONFWRNLOG(format,args...) LOGWARN("%s(line %u): " format, conf_fname, parser.line_num, ## args)
+#define CONFDBGLOG(format,args...) LOGDBG("%s(line %u): " format, conf_fname, parser.line_num, ## args)
 
     while (parser.pos < parser.buflen)
     {

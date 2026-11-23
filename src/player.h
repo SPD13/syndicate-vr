@@ -143,7 +143,7 @@ TbBool player_cryo_transfer_weapon_between_agents(ushort from_cryo_no,
 TbBool player_cryo_add_cybmod(ushort cryo_no, ubyte cybmod);
 const char *get_cryo_agent_name(short cryo_no);
 void remove_agent(ubyte cryo_no);
-void add_agent(ulong weapons, ushort mods);
+void add_agent(u32 weapons, ushort mods);
 
 /** Reset agents toggled to reduce team size during mission.
  */

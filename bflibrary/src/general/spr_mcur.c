@@ -34,42 +34,42 @@ struct SSurface;
  */
 volatile TbBool lbPointerAdvancedDraw = true;
 
-long cursor_xsteps_array[2*CURSOR_SCALING_XSTEPS];
-long cursor_ysteps_array[2*CURSOR_SCALING_YSTEPS];
+s32 cursor_xsteps_array[2*CURSOR_SCALING_XSTEPS];
+s32 cursor_ysteps_array[2*CURSOR_SCALING_YSTEPS];
 
 // function used for actual drawing
 TbResult LbSpriteDrawUsingScalingUpDataSolidLR(uchar *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const struct TbSprite *sprite);
+  int outheight, s32 *xstep, s32 *ystep, const struct TbSprite *sprite);
 
 /******************************************************************************/
 
-void LbCursorSpriteSetScalingWidthClipped(long x, long swidth, long dwidth, long gwidth)
+void LbCursorSpriteSetScalingWidthClipped(s32 x, s32 swidth, s32 dwidth, s32 gwidth)
 {
-    LOGNO("starting %ld -> %ld at %ld", swidth, dwidth, x);
+    LOGNO("starting %d -> %d at %d", swidth, dwidth, x);
     if (swidth > CURSOR_SCALING_XSTEPS)
         swidth = CURSOR_SCALING_XSTEPS;
     LbSpriteSetScalingWidthClippedArray(cursor_xsteps_array, x, swidth, dwidth, gwidth);
 }
 
-void LbCursorSpriteSetScalingWidthSimple(long x, long swidth, long dwidth)
+void LbCursorSpriteSetScalingWidthSimple(s32 x, s32 swidth, s32 dwidth)
 {
-    LOGNO("starting %ld -> %ld at %ld", swidth, dwidth, x);
+    LOGNO("starting %d -> %d at %d", swidth, dwidth, x);
     if (swidth > CURSOR_SCALING_XSTEPS)
         swidth = CURSOR_SCALING_XSTEPS;
     LbSpriteSetScalingWidthSimpleArray(cursor_xsteps_array, x, swidth, dwidth);
 }
 
-void LbCursorSpriteSetScalingHeightClipped(long y, long sheight, long dheight, long gheight)
+void LbCursorSpriteSetScalingHeightClipped(s32 y, s32 sheight, s32 dheight, s32 gheight)
 {
-    LOGNO("starting %ld -> %ld at %ld", sheight, dheight, y);
+    LOGNO("starting %d -> %d at %d", sheight, dheight, y);
     if (sheight > CURSOR_SCALING_YSTEPS)
         sheight = CURSOR_SCALING_YSTEPS;
     LbSpriteSetScalingHeightClippedArray(cursor_ysteps_array, y, sheight, dheight, gheight);
 }
 
-void LbCursorSpriteSetScalingHeightSimple(long y, long sheight, long dheight)
+void LbCursorSpriteSetScalingHeightSimple(s32 y, s32 sheight, s32 dheight)
 {
-    LOGNO("starting %ld -> %ld at %ld", sheight, dheight, y);
+    LOGNO("starting %d -> %d at %d", sheight, dheight, y);
     if (sheight > CURSOR_SCALING_YSTEPS)
         sheight = CURSOR_SCALING_YSTEPS;
     LbSpriteSetScalingHeightSimpleArray(cursor_ysteps_array, y, sheight, dheight);
@@ -78,7 +78,7 @@ void LbCursorSpriteSetScalingHeightSimple(long y, long sheight, long dheight)
 /**
  * Draws the mouse pointer sprite on a display buffer.
  */
-long PointerDraw(long x, long y, struct TbSprite *spr, TbPixel *outbuf, unsigned long scanline)
+s32 PointerDraw(s32 x, s32 y, struct TbSprite *spr, TbPixel *outbuf, u32 scanline)
 {
     unsigned int dwidth,dheight;
     // Prepare bounds
@@ -102,8 +102,8 @@ long PointerDraw(long x, long y, struct TbSprite *spr, TbPixel *outbuf, unsigned
     } else {
         LbCursorSpriteSetScalingHeightSimple(y, spr->SHeight, dheight);
     }
-    long *xstep;
-    long *ystep;
+    s32 *xstep;
+    s32 *ystep;
     {
         xstep = &cursor_xsteps_array[0];
         ystep = &cursor_ysteps_array[0];

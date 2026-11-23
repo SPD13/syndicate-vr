@@ -386,7 +386,7 @@ fail_buf:
 struct SmkDec *smkdec_open(const char *fname)
 {
     FILE *fp;
-    long len;
+    int32_t len;
     uint8_t *buf;
 
     fp = fopen(fname, "rb");

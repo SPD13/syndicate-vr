@@ -100,7 +100,7 @@ enum ObjectiveDefFlags {
 struct ObjectiveDef {
     const char *CmdName;
     const char *DefText;
-    ulong Flags;
+    u32 Flags;
 };
 
 struct ObjectiveDef objectv_defs[] = {
@@ -277,7 +277,7 @@ short draw_objectv_y;
 
 char *objective_text[OBJECTIVE_TEXT_MAX];
 
-int add_used_objective(long mapno, long levelno)
+int add_used_objective(s32 mapno, s32 levelno)
 {
     struct Objective *p_objectv;
     int objectv;
@@ -796,7 +796,7 @@ TbBool item_is_carried_by_player(ThingIdx thing, WeaponType wtype, ushort plyr)
 static DIFFTEST_REF_FUNC ubyte group_not_seen_asm(ushort group)
 {
     ubyte ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_group_not_seen\n"
         : "=a" (ret) : "a" (group));
     return ret;
@@ -887,7 +887,7 @@ static DIFFTEST_REF_FUNC ubyte all_group_arrived_square_asm(ushort group,
 
     stkargs[0] = z2;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 0(%5)\n"
       "call ASM_all_group_arrived_square\n"
         : "=a" (ret)
@@ -938,7 +938,7 @@ static DIFFTEST_REF_FUNC ubyte mem_group_arrived_square2_asm(struct Thing *p_per
     stkargs[1] = (int)(intptr_t)z2;
     stkargs[2] = (int)(intptr_t)count;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 8(%5)\n"
       "push 4(%5)\n"
       "push 0(%5)\n"
@@ -1626,7 +1626,7 @@ short test_objective(ushort objectv, ushort show_obj)
     return 0;
 }
 
-void snprint_objective(char *buf, ulong buflen, struct Objective *p_objectv, ushort objectv)
+void snprint_objective(char *buf, u32 buflen, struct Objective *p_objectv, ushort objectv)
 {
     struct ObjectiveDef *p_odef;
     char *s;
@@ -1733,7 +1733,7 @@ void snprint_objective(char *buf, ulong buflen, struct Objective *p_objectv, ush
     snprintf(s, buflen - (s-buf), " )");
 }
 
-void save_objective_chain_conf(TbFileHandle fh, ushort objectv_head, char *buf, ulong buflen)
+void save_objective_chain_conf(TbFileHandle fh, ushort objectv_head, char *buf, u32 buflen)
 {
     ushort objectv;
 
@@ -1760,7 +1760,7 @@ void save_objective_chain_conf(TbFileHandle fh, ushort objectv_head, char *buf, 
     }
 }
 
-void snprint_netscan_objctv(char *buf, ulong buflen, struct NetscanObjective *p_nsobv, ushort nsobv)
+void snprint_netscan_objctv(char *buf, u32 buflen, struct NetscanObjective *p_nsobv, ushort nsobv)
 {
     char *s;
     ubyte nparams;
@@ -1818,7 +1818,7 @@ void snprint_netscan_objctv(char *buf, ulong buflen, struct NetscanObjective *p_
 }
 
 void save_netscan_objectives_conf(TbFileHandle fh, struct NetscanObjective *nsobv_arr,
-  ushort nsobv_count, char *buf, ulong buflen)
+  ushort nsobv_count, char *buf, u32 buflen)
 {
     ushort nsobv;
     ushort nfilled;
@@ -1840,7 +1840,7 @@ void save_netscan_objectives_conf(TbFileHandle fh, struct NetscanObjective *nsob
     }
 }
 
-int tokenize_script_func(char *olist[], char *obuf, const char *ibuf, long ibuflen)
+int tokenize_script_func(char *olist[], char *obuf, const char *ibuf, s32 ibuflen)
 {
     TbBool in_quotes, token_end, parse_end;
     int li;
@@ -1942,12 +1942,12 @@ int tokenize_script_func(char *olist[], char *obuf, const char *ibuf, long ibufl
     return li;
 }
 
-int parse_objective_param(struct Objective *p_objectv, ulong *fields_used, const char *buf, long buflen)
+int parse_objective_param(struct Objective *p_objectv, u32 *fields_used, const char *buf, s32 buflen)
 {
     struct ObjectiveDef *p_odef;
     char *toklist[PARAM_TOKEN_MAX];
     char tokbuf[128];
-    ulong stored_field;
+    u32 stored_field;
     int i;
 
     p_odef = &objectv_defs[p_objectv->Type];
@@ -2115,13 +2115,13 @@ int parse_objective_param(struct Objective *p_objectv, ulong *fields_used, const
     return 1;
 }
 
-int parse_next_used_objective(const char *buf, long buflen, long pri, long mapno, long levelno)
+int parse_next_used_objective(const char *buf, s32 buflen, s32 pri, s32 mapno, s32 levelno)
 {
     struct ObjectiveDef *p_odef;
     struct Objective *p_objectv;
     char *toklist[COMMAND_TOKEN_MAX];
     char tokbuf[256];
-    ulong fields_used;
+    u32 fields_used;
     int i, objectv, nret;
 
     i = tokenize_script_func(toklist, tokbuf, buf, buflen);
@@ -2167,12 +2167,12 @@ int parse_next_used_objective(const char *buf, long buflen, long pri, long mapno
     return nret;
 }
 
-int parse_netscan_obv_param(struct NetscanObjective *p_nsobv, const char *buf, long buflen)
+int parse_netscan_obv_param(struct NetscanObjective *p_nsobv, const char *buf, s32 buflen)
 {
     char *toklist[PARAM_TOKEN_MAX];
     char tokbuf[128];
     int i;
-    ulong n;
+    u32 n;
 
     LbMemorySet(toklist, 0, sizeof(toklist));
     i = tokenize_script_func(toklist, tokbuf, buf, buflen);
@@ -2244,7 +2244,7 @@ int parse_netscan_obv_param(struct NetscanObjective *p_nsobv, const char *buf, l
     return 1;
 }
 
-int parse_next_netscan_objective(const char *buf, long buflen, long nsobv)
+int parse_next_netscan_objective(const char *buf, s32 buflen, s32 nsobv)
 {
     struct NetscanObjective *p_nsobv;
     char *toklist[COMMAND_TOKEN_MAX];

@@ -56,7 +56,7 @@ static DIFFTEST_REF_FUNC ubyte check_big_point_triangle_asm(int x, int y,
     stkargs[2] = (int)(intptr_t)wx;
     stkargs[3] = (int)(intptr_t)wy;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 12(%5)\n"
       "push 8(%5)\n"
       "push 4(%5)\n"
@@ -103,7 +103,7 @@ static DIFFTEST_REF_FUNC int inside_the_triangle_asm(struct SingleObjectFace3 *p
   int x, int z)
 {
     int ret;
-    asm volatile ("call ASM_inside_the_triangle\n"
+    DIFFTEST_ASM("call ASM_inside_the_triangle\n"
         : "=a" (ret), "+d" (x), "+b" (z) : "a" (p_face) : "cc", "memory");
     return ret;
 }
@@ -148,7 +148,7 @@ static DIFFTEST_REF_FUNC int set_thing_height_on_face_tri64_asm(struct Thing *p_
   int x, int z, int face)
 {
     int ret;
-    asm volatile ("call ASM_set_thing_height_on_face_tri64\n"
+    DIFFTEST_ASM("call ASM_set_thing_height_on_face_tri64\n"
         : "=a" (ret), "+d" (x), "+b" (z), "+c" (face) : "a" (p_thing) : "cc", "memory");
     return ret;
 }
@@ -233,7 +233,7 @@ static DIFFTEST_REF_FUNC ushort set_thing_height_on_face_tri_asm(struct Thing *p
   int x, int z, short face)
 {
     ushort ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_set_thing_height_on_face_tri\n"
         : "=a" (ret) : "a" (p_thing), "d" (x), "b" (z), "c" (face));
     return ret;
@@ -261,7 +261,7 @@ static DIFFTEST_REF_FUNC int inside_the_quad_asm(struct SingleObjectFace4 *p_fac
   int x, int z)
 {
     int ret;
-    asm volatile ("call ASM_inside_the_quad\n"
+    DIFFTEST_ASM("call ASM_inside_the_quad\n"
         : "=a" (ret), "+d" (x), "+b" (z) : "a" (p_face) : "cc", "memory");
     return ret;
 }
@@ -315,7 +315,7 @@ static DIFFTEST_REF_FUNC int set_thing_height_on_face_quad64_asm(struct Thing *p
   int x, int z, int face)
 {
     int ret;
-    asm volatile ("call ASM_set_thing_height_on_face_quad64\n"
+    DIFFTEST_ASM("call ASM_set_thing_height_on_face_quad64\n"
         : "=a" (ret), "+d" (x), "+b" (z), "+c" (face) : "a" (p_thing) : "cc", "memory");
     return ret;
 }
@@ -399,7 +399,7 @@ static DIFFTEST_REF_FUNC ushort set_thing_height_on_face_quad_asm(struct Thing *
   int x, int z, short face)
 {
     ushort ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_set_thing_height_on_face_quad\n"
         : "=a" (ret) : "a" (p_thing), "d" (x), "b" (z), "c" (face));
     return ret;
@@ -436,7 +436,7 @@ static DIFFTEST_REF_FUNC short find_and_set_connected_face_asm(struct Thing *p_t
 {
     short ret;
     int iface = face;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_find_and_set_connected_face\n"
         : "=a" (ret), "+d" (x), "+b" (z), "+c" (iface) : "a" (p_thing)
         : "cc", "memory");

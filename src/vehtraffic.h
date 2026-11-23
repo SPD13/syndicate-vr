@@ -79,7 +79,7 @@ void tnode_all_unlink_thing(ThingIdx thing);
 void process_next_tnode(struct Thing *p_vehicle);
 void remove_locks(struct Thing *p_vehicle);
 
-void VNAV_preprocess_bezier_turns(ulong nturns);
+void VNAV_preprocess_bezier_turns(u32 nturns);
 void VNAV_init_new_traffic_system(void);
 
 void traffic_unkn_func_01(void);

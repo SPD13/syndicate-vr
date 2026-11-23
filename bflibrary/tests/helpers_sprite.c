@@ -583,8 +583,8 @@ void get_example_sprites_file_name(int sprfile_no, char *fname)
 TbScreenMode get_example_sprites_screen_mode(int sprfile_no)
 {
     char locstr[64];
-    ulong img_width, img_height, img_bpp;
-    ulong flags;
+    u32 img_width, img_height, img_bpp;
+    u32 flags;
 
     switch (sprfile_no)
     {
@@ -600,7 +600,7 @@ TbScreenMode get_example_sprites_screen_mode(int sprfile_no)
         break;
     }
 
-    sprintf(locstr, "%lux%lux%lu", img_width, img_height, img_bpp);
+    sprintf(locstr, "%ux%ux%u", img_width, img_height, img_bpp);
     if (img_bpp <= 8)
         flags = Lb_VF_PALETTE;
     else

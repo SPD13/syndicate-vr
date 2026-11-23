@@ -339,7 +339,7 @@ TbBool person_can_be_persuaded_now(ThingIdx attacker, ThingIdx target,
  */
 TbBool current_weapon_has_targetting(struct Thing *p_person);
 
-ulong person_carried_weapons_pesuaded_sell_value(struct Thing *p_person);
+u32 person_carried_weapons_pesuaded_sell_value(struct Thing *p_person);
 
 TbBool person_weapons_remove_one(struct Thing *p_person, WeaponType wtype);
 

@@ -127,7 +127,7 @@ static void XMI_init_sequence_state(SNDSEQUENCE *seq)
  */
 static void XMI_rewind_sequence(SNDSEQUENCE *seq)
 {
-    unsigned long int wildpos;
+    unsigned long wildpos; // WildMidi API type
 
     // Initialize sequence state table
     XMI_init_sequence_state(seq);
@@ -1223,7 +1223,7 @@ int32_t XMI_playback_update(SNDSEQUENCE *seq)
 
                     len = XMI_read_VLN((const uint8_t **)&ptr);
 
-                    len += (int32_t) ((uint32_t)ptr - (uint32_t)seq->EVNT_ptr);
+                    len += (int32_t)((const uint8_t *)ptr - (const uint8_t *)seq->EVNT_ptr);
 
                     XMI_sysex_message(mdidrv, seq->EVNT_ptr, len);
 

@@ -22,9 +22,9 @@
 
 #include <limits.h>
 
-unsigned long blong(unsigned char *p)
+u32 blong(unsigned char *p)
 {
-    unsigned long n;
+    u32 n;
     n = p[0];
     n = (n << 8) + p[1];
     n = (n << 8) + p[2];
@@ -32,9 +32,9 @@ unsigned long blong(unsigned char *p)
     return n;
 }
 
-unsigned long llong(unsigned char *p)
+u32 llong(unsigned char *p)
 {
-    unsigned long n;
+    u32 n;
     n = p[3];
     n = (n << 8) + p[2];
     n = (n << 8) + p[1];
@@ -42,17 +42,17 @@ unsigned long llong(unsigned char *p)
     return n;
 }
 
-unsigned long bword(unsigned char *p)
+u32 bword(unsigned char *p)
 {
-    unsigned long n;
+    u32 n;
     n = p[0];
     n = (n << 8) + p[1];
     return n;
 }
 
-unsigned long lword(unsigned char *p)
+u32 lword(unsigned char *p)
 {
-    unsigned long n;
+    u32 n;
     n = p[1];
     n = (n << 8) + p[0];
     return n;
@@ -66,7 +66,7 @@ void toggle_flag_byte(unsigned char *flags, unsigned char mask)
     *flags ^= mask;
 }
 
-void toggle_flag_dword(unsigned long *flags, unsigned long mask)
+void toggle_flag_dword(u32 *flags, u32 mask)
 {
   if ((*flags & mask) == 0)
     *flags |= mask;
@@ -90,7 +90,7 @@ void set_flag_byte(unsigned char *flags, unsigned char mask, short value)
     *flags ^= *flags & mask;
 }
 
-void set_flag_dword(unsigned long *flags, unsigned long mask, short value)
+void set_flag_dword(u32 *flags, u32 mask, short value)
 {
   if (value)
     *flags |= mask;
@@ -98,7 +98,7 @@ void set_flag_dword(unsigned long *flags, unsigned long mask, short value)
     *flags ^= *flags & mask;
 }
 
-int number_of_set_bits(unsigned long i)
+int number_of_set_bits(u32 i)
 {
     i = i - ((i >> 1) & 0x55555555); // add pairs of bits
     i = (i & 0x33333333) + ((i >> 2) & 0x33333333);  // quads

@@ -28,19 +28,19 @@ extern "C" {
 
 /** Return the big-endian longword at p.
  */
-unsigned long blong(unsigned char *p);
+u32 blong(unsigned char *p);
 
 /** Return the little-endian longword at p.
  */
-unsigned long llong(unsigned char *p);
+u32 llong(unsigned char *p);
 
 /** Return the big-endian word at p.
  */
-unsigned long bword(unsigned char *p);
+u32 bword(unsigned char *p);
 
 /* Return the little-endian word at p.
  */
-unsigned long lword(unsigned char *p);
+u32 lword(unsigned char *p);
 
 /**
  * Toggles a masked bit in the flags field to the value.
@@ -56,7 +56,7 @@ void toggle_flag_byte(unsigned char *flags, unsigned char mask);
  * @param flags Pointer to the flags byte.
  * @param mask Bitmask for the flag.
  */
-void toggle_flag_dword(unsigned long *flags, unsigned long mask);
+void toggle_flag_dword(u32 *flags, u32 mask);
 
 /**
  * Sets a masked bit in the flags field to the value.
@@ -83,13 +83,13 @@ void set_flag_byte(unsigned char *flags, unsigned char mask, short value);
  * @param mask Bitmask for the flag.
  * @param value The new logic value.
  */
-void set_flag_dword(unsigned long *flags, unsigned long mask, short value);
+void set_flag_dword(u32 *flags, u32 mask, short value);
 
 /**
  * Returns the amount of bits set in given integer.
  * @param i The integer which bits are to be counted.
  */
-int number_of_set_bits(unsigned long i);
+int number_of_set_bits(u32 i);
 
 /**
  * Bitwise shift left with rotation (wrapping the bits).

@@ -29,14 +29,14 @@ unsigned short const lbSqrTable[] = {
 /** Returns position of most significant set bit in the non-zero value x.
  * Same as the former `bsrl` asm; checked on 20 million random inputs.
  */
-static inline void _BitScanReverse(ulong *y, ulong x)
+static inline void _BitScanReverse(u32 *y, u32 x)
 {
     *y = 31 - __builtin_clz((u32)x);
 }
 
-long LbSqrL(ulong x)
+s32 LbSqrL(u32 x)
 {
-  ulong y;
+  u32 y;
 
   if (x <= 0)
     return 0;

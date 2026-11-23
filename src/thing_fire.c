@@ -318,7 +318,7 @@ LABEL_184:
 static DIFFTEST_REF_FUNC void apply_unkn_vehicle50_damage_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_apply_unkn_vehicle50_damage\n"
+    DIFFTEST_ASM("call ASM_apply_unkn_vehicle50_damage\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -408,7 +408,7 @@ struct SimpleThing *init_nuclear_bomb(MapCoord x, MapCoord y, MapCoord z);
 
 static DIFFTEST_REF_FUNC void set_static_on_fire_asm(struct SimpleThing *p_static)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_set_static_on_fire\n"
         :  : "a" (p_static));
 }

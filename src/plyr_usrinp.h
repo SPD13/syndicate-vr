@@ -80,7 +80,7 @@ enum SpecialUserInputControlModes {
  */
 struct SpecialUserInput
 {
-  ulong Bits;
+  u32 Bits;
   sbyte DtX;
   sbyte DtZ;
   ushort Turn; /* from do_user_interface(), this seem to be game turn of last action */

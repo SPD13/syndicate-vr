@@ -49,7 +49,7 @@ ThingIdx find_thing_on_mapwho_tile_within_circle_with_bfilter(short tile_x, shor
   short ttype, short subtype, ThingBoolFilter filter, ThingFilterParams *params)
 {
     ThingIdx thing;
-    ulong k;
+    u32 k;
 
     k = 0;
     thing = get_mapwho_thing_index(tile_x, tile_z);
@@ -109,7 +109,7 @@ ThingIdx find_thing_on_mapwho_tile_within_circle_with_mfilter(s32 *p_min_fval, s
 {
     s32 min_fval, fval;
     ThingIdx min_thing, thing;
-    ulong k;
+    u32 k;
 
     k = 0;
     min_fval = INT32_MAX;
@@ -176,7 +176,7 @@ ThingIdx find_thing_on_mapwho_tile_within_circle_with_mfilter(s32 *p_min_fval, s
  *
  * @return Gives thing index, or 0 if not found.
  */
-static ThingIdx find_thing_type_on_spiral_near_tile_with_bfilter(short X, short Z, ushort R, long spiral_len,
+static ThingIdx find_thing_type_on_spiral_near_tile_with_bfilter(short X, short Z, ushort R, s32 spiral_len,
   short ttype, short subtype, ThingBoolFilter filter, ThingFilterParams *params)
 {
     short tile_x, tile_z;
@@ -188,7 +188,7 @@ static ThingIdx find_thing_type_on_spiral_near_tile_with_bfilter(short X, short 
     {
         struct MapOffset *sstep;
         ThingIdx thing;
-        long sX, sZ;
+        s32 sX, sZ;
 
         sstep = &spiral_step[around];
         sX = tile_x + sstep->h;
@@ -244,7 +244,7 @@ s32 mfilter_farthest(ThingIdx thing, short X, short Z, ThingFilterParams *params
  *
  * @return Gives thing index, or 0 if not found.
  */
-static ThingIdx find_thing_type_on_spiral_near_tile_with_mfilter(short X, short Z, ushort R, long spiral_len,
+static ThingIdx find_thing_type_on_spiral_near_tile_with_mfilter(short X, short Z, ushort R, s32 spiral_len,
   short ttype, short subtype, ThingMinFilter filter, ThingFilterParams *params)
 {
     s32 min_fval;
@@ -261,7 +261,7 @@ static ThingIdx find_thing_type_on_spiral_near_tile_with_mfilter(short X, short 
         struct MapOffset *sstep;
         s32 fval;
         ThingIdx thing;
-        long sX, sZ;
+        s32 sX, sZ;
 
         sstep = &spiral_step[around];
         sX = tile_x + sstep->h;
@@ -284,7 +284,7 @@ static ThingIdx find_thing_type_on_same_type_list_within_circle_with_bfilter(sho
   short ttype, short subtype, ThingBoolFilter filter, ThingFilterParams *params)
 {
     ThingIdx thing;
-    ulong k;
+    u32 k;
 
     k = 0;
     thing = get_thing_same_type_head(ttype, subtype);
@@ -346,7 +346,7 @@ static ThingIdx find_thing_type_on_same_type_list_within_circle_with_mfilter(sho
 {
     s32 min_fval, fval;
     ThingIdx min_thing, thing;
-    ulong k;
+    u32 k;
 
     k = 0;
     min_fval = INT32_MAX;
@@ -416,7 +416,7 @@ static ThingIdx find_thing_type_on_same_type_list_outside_circle_with_mfilter(sh
 {
     s32 min_fval, fval;
     ThingIdx min_thing, thing;
-    ulong k;
+    u32 k;
 
     k = 0;
     min_fval = INT32_MAX;
@@ -485,7 +485,7 @@ static short find_thing_type_on_same_type_list_with_bfilter(short ttype, short s
   ThingBoolFilter filter, ThingFilterParams *params)
 {
     ThingIdx thing;
-    ulong k;
+    u32 k;
 
     k = 0;
     thing = get_thing_same_type_head(ttype, subtype);
@@ -833,7 +833,7 @@ ThingIdx find_person_which_can_be_persuaded_now(short X, short Z, ushort R,
 static DIFFTEST_REF_FUNC int find_nearest_player_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_find_nearest_player\n"
+    DIFFTEST_ASM("call ASM_find_nearest_player\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -895,7 +895,7 @@ int find_nearest_player(intptr_t a1, int a2, int a3, int a4)
 static DIFFTEST_REF_FUNC short find_nearest_from_group_asm(struct Thing *p_person, ushort group, ubyte no_persuaded)
 {
     short ret;
-    asm volatile ("call ASM_find_nearest_from_group\n"
+    DIFFTEST_ASM("call ASM_find_nearest_from_group\n"
         : "=a" (ret) : "a" (p_person), "d" (group), "b" (no_persuaded));
     return ret;
 }
@@ -1053,7 +1053,7 @@ ThingIdx search_things_for_type_farthest_from_xz(short X, short Z, short ttype, 
 static DIFFTEST_REF_FUNC ThingIdx search_things_for_uniqueid_asm(short uniqid, ubyte flag)
 {
     ThingIdx ret;
-    asm volatile ("call ASM_search_things_for_uniqueid\n"
+    DIFFTEST_ASM("call ASM_search_things_for_uniqueid\n"
         : "=a" (ret) : "a" (uniqid), "d" (flag));
     return ret;
 }
@@ -1094,7 +1094,7 @@ ThingIdx search_things_for_uniqueid(short uniqid, ubyte flag)
 static DIFFTEST_REF_FUNC ThingIdx find_nearest_object2_asm(short mx, short mz, ushort sub_type)
 {
     ThingIdx ret;
-    asm volatile ("call ASM_find_nearest_object2\n"
+    DIFFTEST_ASM("call ASM_find_nearest_object2\n"
         : "=a" (ret) : "a" (mx), "d" (mz), "b" (sub_type));
     return ret;
 }
@@ -1163,7 +1163,7 @@ ThingIdx find_nearest_object2(short mx, short mz, ushort sub_type)
 static DIFFTEST_REF_FUNC short search_object_for_qface_asm(ushort object, ubyte gflag, ubyte flag, ushort after)
 {
     short ret;
-    asm volatile ("call ASM_search_object_for_qface\n"
+    DIFFTEST_ASM("call ASM_search_object_for_qface\n"
         : "=a" (ret) : "a" (object), "d" (gflag), "b" (flag), "c" (after));
     return ret;
 }
@@ -1356,7 +1356,7 @@ static DIFFTEST_REF_FUNC short find_nearest_person_min_asm(int x, int y, int z,
     stkargs[1] = (int)(intptr_t)angle1;
     stkargs[2] = (int)(intptr_t)group_bits;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 8(%5)\n"
       "push 4(%5)\n"
       "push 0(%5)\n"
@@ -1419,7 +1419,7 @@ short find_nearest_person_min(int x, int y, int z,
 static DIFFTEST_REF_FUNC struct Thing *check_for_people_asm(int x, int y, int z, ushort radius)
 {
     struct Thing *ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_check_for_people\n"
         : "=a" (ret) : "a" (x), "d" (y), "b" (z), "c" (radius));
     return ret;

@@ -70,11 +70,11 @@ enum RenderingVectorMode {
 };
 
 struct PolyPoint { // sizeof=20
-    long X; //< offset=0, Horizonal coordinate within screen buffer
-    long Y; //< offset=4, Vertical coordinate within screen buffer
-    long U; //< offset=8, Texture UV mapping, U coordinate
-    long V; //< offset=12, Texture UV mapping, V coordinate
-    long S; //< offset=16, Shiness / brighness of the point
+    s32 X; //< offset=0, Horizonal coordinate within screen buffer
+    s32 Y; //< offset=4, Vertical coordinate within screen buffer
+    s32 U; //< offset=8, Texture UV mapping, U coordinate
+    s32 V; //< offset=12, Texture UV mapping, V coordinate
+    s32 S; //< offset=16, Shiness / brighness of the point
 };
 
 #pragma pack()
@@ -86,10 +86,10 @@ extern ubyte vec_mode;
 
 extern ubyte *poly_screen;
 
-extern long vec_window_width;
-extern long vec_window_height;
+extern s32 vec_window_width;
+extern s32 vec_window_height;
 
-extern long vec_screen_width;
+extern s32 vec_screen_width;
 extern ubyte *vec_screen;
 
 extern ubyte *vec_map;
@@ -99,7 +99,7 @@ extern ubyte *dither_map;
 extern ubyte *dither_end;
 
 void setup_vecs(ubyte *screenbuf, ubyte *nvec_map,
-  ulong line_len, ulong width, ulong height);
+  u32 line_len, u32 width, u32 height);
 
 /** Triangle rendering function.
  *

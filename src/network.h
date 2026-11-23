@@ -66,7 +66,7 @@ struct NetworkServiceFunction { // sizeof=36
 
 struct TbNetworkSession { // sizeof=40
     NSESS_HANDLE Id; // offset=0
-    ulong GameId; // offset=4
+    u32 GameId; // offset=4
     char Name[8]; // offset=8 (orig.=6)
     short HostPlayerNumber; // offset=16 (orig.=14)
     short MaxPlayers; // offset=18 (orig.=16)
@@ -150,7 +150,7 @@ struct ComHandlerInfo {
   ushort field_6;
   ushort field_8;
   ushort field_A[4];
-  ulong field_12;
+  u32 field_12;
   ushort field_16;
   ushort field_18;
   ushort field_1A;
@@ -164,7 +164,7 @@ struct TbIPXPlayerHeader {
   ubyte field_1C[4];
   short field_20;
   ubyte field_22[4];
-  long field_26;
+  s32 field_26;
   ubyte field_2A;
   ubyte field_2B;
   ubyte field_2C;
@@ -238,7 +238,7 @@ struct TbIPXHandler {
   ubyte field_D;
   ubyte field_E[4];
   ubyte field_12[24];
-  long field_2A;
+  s32 field_2A;
   ubyte field_2E[4];
   short field_32;
   char field_34[16];
@@ -248,8 +248,8 @@ struct TbIPXHandler {
 };
 
 struct IPXDatagramBackup {
-  long field_0;
-  long field_4;
+  s32 field_0;
+  s32 field_4;
   short field_8;
   ubyte field_A[538];
   short field_224;
@@ -257,7 +257,7 @@ struct IPXDatagramBackup {
 
 struct TbNetworkPlayer { // sizeof=22
     NPLYR_HANDLE Id; // offset=0
-    ulong PlayerNumber; // offset=2
+    u32 PlayerNumber; // offset=2
     char Name[16]; // offset=6
 };
 
@@ -271,7 +271,7 @@ struct TbNetworkSessionList { // sizeof=218
 /******************************************************************************/
 extern ubyte modem_is_configured;
 extern struct TbNetworkService NetworkServicePtr;
-extern ulong NetTimeoutTicks;
+extern u32 NetTimeoutTicks;
 // Application-accessible copy of the service structure?
 extern struct TbNetworkService nsvc;
 
@@ -280,7 +280,7 @@ TbResult LbNetworkSetBaud(int rate);
 TbResult LbNetworkSessionCreate(struct TbNetworkSession *session, char *a2);
 TbResult LbNetworkSessionJoin(struct TbNetworkSession *session, char *a2);
 int LbNetworkSessionList(struct TbNetworkSessionList *p_nslist, int listlen);
-TbResult LbNetworkSetTimeoutSec(ulong tmsec);
+TbResult LbNetworkSetTimeoutSec(u32 tmsec);
 
 TbResult LbNetworkSetSessionCreateFunction(void *func);
 TbResult LbNetworkSetSessionJoinFunction(void *func);
@@ -297,7 +297,7 @@ TbResult LbNetworkServiceStart(struct NetworkServiceInfo *nsvc);
 int LbNetworkSessionNumberPlayers(void);
 TbBool LbNetworkSessionActive(void);
 TbResult LbNetworkHostPlayerNumber(void);
-TbResult LbNetworkSetupIPXAddress(ulong addr);
+TbResult LbNetworkSetupIPXAddress(u32 addr);
 TbResult LbNetworkPlayerNumber(void);
 TbResult LbNetworkExchange(void *a1, int a2);
 TbResult LbNetworkPlayerName(char *name, int plyr);

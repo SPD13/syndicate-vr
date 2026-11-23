@@ -53,9 +53,9 @@ typedef struct {
     char *Name;
     void **BufferPtr;
     ushort ESize;
-    long N;
+    s32 N;
     void *PrivBuffer;
-    long dum2;
+    s32 dum2;
     ubyte dum3;
 } MemSystem;
 

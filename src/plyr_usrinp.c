@@ -353,7 +353,7 @@ void update_agent_move_direction_deltas(struct SpecialUserInput *p_usrinp)
 static DIFFTEST_REF_FUNC short get_next_player_agent_asm(ushort player)
 {
     short ret;
-    asm volatile ("call ASM_get_next_player_agent\n"
+    DIFFTEST_ASM("call ASM_get_next_player_agent\n"
         : "=a" (ret) : "a" (player));
     return ret;
 }

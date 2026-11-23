@@ -55,7 +55,7 @@ void bang_init(void)
 
 static DIFFTEST_REF_FUNC void fillin_phwoar_type_info_asm(struct Phwoar *p_phwoar)
 {
-    asm volatile ("call ASM_fillin_phwoar_type_info\n"
+    DIFFTEST_ASM("call ASM_fillin_phwoar_type_info\n"
         : : "a" (p_phwoar) : "cc", "memory");
 }
 
@@ -560,7 +560,7 @@ extern short data_1c476c;
 static DIFFTEST_REF_FUNC void unused_func_192_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_unused_func_192\n"
+    DIFFTEST_ASM("call ASM_unused_func_192\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
 }
 
@@ -605,7 +605,7 @@ extern ubyte data_1c476b;
 static DIFFTEST_REF_FUNC ubyte unused_func_026_asm(ubyte a1)
 {
     ubyte ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_unused_func_026\n"
         : "=a" (ret) : "a" (a1) : "cc", "memory");
     return ret;
@@ -696,7 +696,7 @@ short data_1c4770;
 
 static DIFFTEST_REF_FUNC void unused_func_025_asm(short a1, short a2, short a3)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_unused_func_025\n"
         : : "a" (a1), "d" (a2), "b" (a3) : "cc", "memory");
 }
@@ -745,7 +745,7 @@ extern short link__MapColListEmptyHead;
 static DIFFTEST_REF_FUNC int del_thing_vectors_from_mapwho_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_del_thing_vectors_from_mapwho\n"
+    DIFFTEST_ASM("call ASM_del_thing_vectors_from_mapwho\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -803,7 +803,7 @@ static DIFFTEST_REF_FUNC void do_shockwave_asm(int x, int y, int z,
     stkargs[0] = (int)(intptr_t)intensity;
     stkargs[1] = (int)(intptr_t)p_owner;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%4)\n"
       "push 0(%4)\n"
       "call ASM_do_shockwave\n"
@@ -1004,7 +1004,7 @@ void do_shockwave(int x, int y, int z, int radius_arg, int intensity, struct Thi
 static DIFFTEST_REF_FUNC void do_shockwave_building_asm(int dist, int intensity,
   struct Thing *p_thing, struct Thing *p_owner)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_do_shockwave_building\n"
         : : "a" (dist), "d" (intensity), "b" (p_thing), "c" (p_owner));
 }
@@ -1035,7 +1035,7 @@ static DIFFTEST_REF_FUNC void do_shockwave_vehicle_asm(int dx, int dz,
     stkargs[0] = (int)(intptr_t)p_vevicle;
     stkargs[1] = (int)(intptr_t)p_owner;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%4)\n"
       "push 0(%4)\n"
       "call ASM_do_shockwave_vehicle\n"
@@ -1084,7 +1084,7 @@ static DIFFTEST_REF_FUNC void do_shockwave_person_asm(int dx, int dz,
     stkargs[0] = (int)(intptr_t)p_person;
     stkargs[1] = (int)(intptr_t)p_owner;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%4)\n"
       "push 0(%4)\n"
       "call ASM_do_shockwave_person\n"
@@ -1225,7 +1225,7 @@ static DIFFTEST_REF_FUNC void do_shockwave_scale_effect_asm(int dx, int dz,
     stkargs[0] = (int)(intptr_t)p_sthing;
     stkargs[1] = (int)(intptr_t)p_owner;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%4)\n"
       "push 0(%4)\n"
       "call ASM_do_shockwave_scale_effect\n"

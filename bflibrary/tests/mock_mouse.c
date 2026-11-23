@@ -42,7 +42,7 @@ TbResult MockMouseChangeSprite(const struct TbSprite *pointer_spr)
     return Lb_SUCCESS;
 }
 
-TbResult MockMouseChangeSpriteOffset(long hot_x, long hot_y)
+TbResult MockMouseChangeSpriteOffset(s32 hot_x, s32 hot_y)
 {
     if (!lbMouseInstalled)
         return Lb_FAIL;
@@ -51,7 +51,7 @@ TbResult MockMouseChangeSpriteOffset(long hot_x, long hot_y)
     return Lb_SUCCESS;
 }
 
-TbResult MockMouseGetSpriteOffset(long *hot_x, long *hot_y)
+TbResult MockMouseGetSpriteOffset(s32 *hot_x, s32 *hot_y)
 {
     *hot_x = -mock_hotspot.x;
     *hot_y = -mock_hotspot.y;

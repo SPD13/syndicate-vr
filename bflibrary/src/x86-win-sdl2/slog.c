@@ -66,7 +66,7 @@ TbResult LbLogSetPrefixFmt(struct TbLog *log, const char *format, ...)
     return Lb_SUCCESS;
 }
 
-TbResult LbLogSetup(struct TbLog *log, const char *filename, ulong flags)
+TbResult LbLogSetup(struct TbLog *log, const char *filename, u32 flags)
 {
     log->Initialised = false;
     LbMemorySet(log->Filename, 0, FILENAME_MAX);

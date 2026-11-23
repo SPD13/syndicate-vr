@@ -27,11 +27,11 @@
 
 ubyte * lbSpriteReMapPtr;
 
-long LbSpriteTabExpand(void *buf, long file_len)
+s32 LbSpriteTabExpand(void *buf, s32 file_len)
 {
     ubyte *p_file = buf;
     struct TbSprite *p_spr = buf;
-    long n, i;
+    s32 n, i;
 
     n = file_len / LB_SPRITE_FILE_SIZE;
     if (sizeof(struct TbSprite) == LB_SPRITE_FILE_SIZE)

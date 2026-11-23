@@ -107,7 +107,7 @@ ubyte load_music_bank(TbFileHandle fh, ubyte bankId)
     LbFileRead(fh, dt, 8);
     if (blong(dt+0) == RNC_SIGNATURE)
     {
-        long flength;
+        int32_t flength;
         flength = blong(dt+4);
         LbFileRead(fh, dt + 8, flength - 8);
         UnpackM1(dt, flength);
@@ -121,7 +121,7 @@ ubyte load_music_bank(TbFileHandle fh, ubyte bankId)
     LbFileRead(fh, m, 8);
     if (blong(m+0) == RNC_SIGNATURE)
     {
-        long flength;
+        int32_t flength;
         flength = blong(m+4);
         LbFileRead(fh, m + 8, flength - 8);
         UnpackM1(m, flength);
@@ -143,8 +143,8 @@ ubyte load_music_bank(TbFileHandle fh, ubyte bankId)
 int LoadMusic(ushort bankNo)
 {
     TbFileHandle fh;
-    long fsize;
-    ulong nbanks_offs;
+    int32_t fsize;
+    uint32_t nbanks_offs;
     ushort nbanks[4];
     ubyte bankId;
 

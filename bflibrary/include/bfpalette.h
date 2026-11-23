@@ -76,8 +76,8 @@ TbPixel LbPaletteFindColourHalfWaged(const ubyte *pal, ubyte r, ubyte g, ubyte b
 
 /** Draw the current palette on screen, in form ot 16x16 table.
  */
-TbResult LbPaletteDraw(long X, long Y,
-  ulong Width, ulong Height, ushort Flags);
+TbResult LbPaletteDraw(s32 X, s32 Y,
+  u32 Width, u32 Height, ushort Flags);
 
 /** Retrieves the indexed colour video palette.
  *
@@ -116,7 +116,7 @@ TbResult LbPaletteDataFillDefVGA(ubyte *palette);
 
 /** Get colour distance by computing squares of coordinates.
  */
-long LbColourDistanceLinearSq(ubyte r1, ubyte g1, ubyte b1,
+s32 LbColourDistanceLinearSq(ubyte r1, ubyte g1, ubyte b1,
   ubyte r2, ubyte g2, ubyte b2);
 
 #ifdef __cplusplus

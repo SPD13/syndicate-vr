@@ -158,7 +158,7 @@ static DIFFTEST_REF_FUNC struct Thing *create_building_thing_asm(int x, int y,
     stkargs[0] = (int)(intptr_t)nobj;
     stkargs[1] = (int)(intptr_t)a6;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_create_building_thing\n"
@@ -302,7 +302,7 @@ void process_dome1(struct Thing *p_building)
 static DIFFTEST_REF_FUNC int sit_on_my_face_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_sit_on_my_face\n"
+    DIFFTEST_ASM("call ASM_sit_on_my_face\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -353,7 +353,7 @@ int sit_on_my_face(int a1, intptr_t a2, int a3, int a4)
 static DIFFTEST_REF_FUNC void do_people_on_exploding_building_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_do_people_on_exploding_building\n"
+    DIFFTEST_ASM("call ASM_do_people_on_exploding_building\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -422,7 +422,7 @@ static DIFFTEST_REF_FUNC ushort explode_thing_building_asm(short thing,
   short x, short y, short z)
 {
     ushort ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_explode_thing_building\n"
         : "=a" (ret) : "a" (thing), "d" (x), "b" (y), "c" (z));
     return ret;
@@ -1060,7 +1060,7 @@ void collapse_building_station(struct Thing *p_building)
 
 static DIFFTEST_REF_FUNC void init_mgun_explode_asm(struct Thing *p_thing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_init_mgun_explode\n"
         :  : "a" (p_thing));
     return;
@@ -1173,7 +1173,7 @@ static DIFFTEST_REF_FUNC short create_a_pod_asm(struct Thing *p_thing,
   struct Thing *p_loader, ushort pod_id)
 {
     short ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_create_a_pod\n"
         : "=a" (ret) : "a" (p_thing), "d" (p_loader), "b" (pod_id));
     return ret;
@@ -1228,7 +1228,7 @@ short create_a_pod(struct Thing *p_thing, struct Thing *p_loader, ushort pod_id)
 
 static DIFFTEST_REF_FUNC void process_shuttle_loader_asm(struct Thing *p_building)
 {
-    asm volatile ("call ASM_process_shuttle_loader\n"
+    DIFFTEST_ASM("call ASM_process_shuttle_loader\n"
         : : "a" (p_building));
 }
 
@@ -1275,7 +1275,7 @@ static DIFFTEST_REF_FUNC void bul_hit_vector_asm(int x, int y, int z, short col,
     stkargs[0] = (int)(intptr_t)hp;
     stkargs[1] = (int)(intptr_t)type;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%4)\n"
       "push 0(%4)\n"
       "call ASM_bul_hit_vector\n"
@@ -1312,7 +1312,7 @@ void bul_hit_vector(int x, int y, int z, short col, int hp, int type)
 static DIFFTEST_REF_FUNC int rotate_obj_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_rotate_obj\n"
+    DIFFTEST_ASM("call ASM_rotate_obj\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -1363,7 +1363,7 @@ int rotate_obj(int a1, int a2, int a3, intptr_t a4)
 
 static DIFFTEST_REF_FUNC void rotate_object_asm(struct Thing *p_object)
 {
-    asm volatile ("call ASM_rotate_object\n"
+    DIFFTEST_ASM("call ASM_rotate_object\n"
         : : "a" (p_object));
 }
 
@@ -1393,7 +1393,7 @@ static DIFFTEST_REF_FUNC int mounted_los_asm(int x1, int y1, int z1, int x2, int
     stkargs[0] = (int)(intptr_t)y2;
     stkargs[1] = (int)(intptr_t)z2;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_mounted_los\n"
@@ -1470,7 +1470,7 @@ int mounted_los(int x1, int y1, int z1, int x2, int y2, int z2)
 static DIFFTEST_REF_FUNC int kill_flags_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_kill_flags\n"
+    DIFFTEST_ASM("call ASM_kill_flags\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
     return ra;
 }
@@ -1505,7 +1505,7 @@ int kill_flags(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
 static DIFFTEST_REF_FUNC ThingIdx aquire_target_asm(struct Thing *p_gun)
 {
     ThingIdx ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_aquire_target\n"
         : "=a" (ret) : "a" (p_gun));
     return ret;
@@ -1578,7 +1578,7 @@ ThingIdx aquire_target(struct Thing *p_gun)
 static DIFFTEST_REF_FUNC ubyte track_target_asm(struct Thing *p_mgun)
 {
     ubyte ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_track_target\n"
         : "=a" (ret) : "a" (p_mgun));
     return ret;
@@ -1725,7 +1725,7 @@ void process_mounted_gun(struct Thing *p_building)
 static DIFFTEST_REF_FUNC int apply_object_morph_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_apply_object_morph\n"
+    DIFFTEST_ASM("call ASM_apply_object_morph\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -1779,7 +1779,7 @@ int apply_object_morph(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void process_gate1_asm(struct Thing *p_building)
 {
-    asm volatile ("call ASM_process_gate1\n"
+    DIFFTEST_ASM("call ASM_process_gate1\n"
         : : "a" (p_building));
 }
 

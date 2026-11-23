@@ -170,7 +170,7 @@ int32_t OPENAL_free_buffers(uint32_t n_sources)
     if (n_buffers > sound_free_buffer_count) {
         if (AIL_debug || AIL_sys_debug)
             fprintf(AIL_debugfile, "%s: From %d buffers, %d escaped deletion\n",
-                __func__, n_buffers, n_buffers - sound_free_buffer_count);
+                __func__, (int)n_buffers, (int)(n_buffers - sound_free_buffer_count));
         n_buffers = sound_free_buffer_count;
     }
     sound_free_buffer_count -= n_buffers;
@@ -318,7 +318,7 @@ int32_t OPENAL_free_buffers_for_ogg_vorbis(OggVorbisStream *stream)
     if (n_buffers != SOUND_MUSIC_BUFFERS) {
         if (AIL_debug || AIL_sys_debug)
             fprintf(AIL_debugfile, "%s: From %d buffers, %d escaped deletion\n",
-                __func__, SOUND_MUSIC_BUFFERS, SOUND_MUSIC_BUFFERS - n_buffers);
+                __func__, (int)SOUND_MUSIC_BUFFERS, (int)(SOUND_MUSIC_BUFFERS - n_buffers));
     }
     return 1;
 }
@@ -567,7 +567,7 @@ queue_mdi_sequence_buffers(MDI_DRIVER *mdidrv, SNDSEQUENCE *seq)
                 ||
                 (--seq->loop_count != 0))
             {
-                unsigned long int wildpos;
+                unsigned long wildpos; // WildMidi API type
 
                 seq->EVNT_ptr = (uint8_t *) seq->EVNT + 8;
 

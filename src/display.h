@@ -28,10 +28,10 @@
 
 struct ScreenBufBkp {
     ubyte *WScreen;
-    long PhysicalScreenWidth;
-    long PhysicalScreenHeight;
-    long GraphicsScreenWidth;
-    long GraphicsScreenHeight;
+    s32 PhysicalScreenWidth;
+    s32 PhysicalScreenHeight;
+    s32 GraphicsScreenWidth;
+    s32 GraphicsScreenHeight;
     struct TbAnyWindow GWindow;
 };
 

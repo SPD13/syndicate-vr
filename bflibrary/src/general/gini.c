@@ -31,7 +31,7 @@
 #include "bfstrut.h"
 #include "privbflog.h"
 
-TbResult LbIniParseStart(struct TbIniParser *parser, const char *buf, long buflen)
+TbResult LbIniParseStart(struct TbIniParser *parser, const char *buf, s32 buflen)
 {
     parser->pos = 0;
     parser->line_num = 1;
@@ -199,7 +199,7 @@ int LbIniRecognizeKey(struct TbIniParser *parser, const struct TbNamedEnum keyli
     return -2;
 }
 
-int LbIniGetKey(struct TbIniParser *parser, char *dst, long dstlen)
+int LbIniGetKey(struct TbIniParser *parser, char *dst, s32 dstlen)
 {
     int i;
     TbBool in_quotes;
@@ -270,7 +270,7 @@ int LbIniGetKey(struct TbIniParser *parser, char *dst, long dstlen)
     return i;
 }
 
-int LbIniValueGetStrWhole(struct TbIniParser *parser, char *dst, long dstlen)
+int LbIniValueGetStrWhole(struct TbIniParser *parser, char *dst, s32 dstlen)
 {
     int i;
     TbBool in_quotes;
@@ -308,7 +308,7 @@ int LbIniValueGetStrWhole(struct TbIniParser *parser, char *dst, long dstlen)
     return i;
 }
 
-int LbIniValueGetStrWord(struct TbIniParser *parser, char *dst, long dstlen)
+int LbIniValueGetStrWord(struct TbIniParser *parser, char *dst, s32 dstlen)
 {
     int i;
     TbBool in_quotes;
@@ -351,7 +351,7 @@ int LbIniValueGetStrWord(struct TbIniParser *parser, char *dst, long dstlen)
     return i;
 }
 
-int LbIniValueGetLongInt(struct TbIniParser *parser, long *dst)
+int LbIniValueGetLongInt(struct TbIniParser *parser, s32 *dst)
 {
     char buf[32];
     char *bend;

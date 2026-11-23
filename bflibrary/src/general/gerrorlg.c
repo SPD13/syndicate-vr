@@ -86,7 +86,7 @@ TbResult LbErrorLogSetup(const char *directory, const char *filename, ubyte flag
 {
     const char *fixed_fname;
     char log_filename[FILENAME_MAX];
-    ulong flags;
+    u32 flags;
 
     if (error_log_initialised)
         return Lb_FAIL;

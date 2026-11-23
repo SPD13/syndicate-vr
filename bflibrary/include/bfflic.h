@@ -98,7 +98,7 @@ struct Animation {
      * will be put, or from where data will be used to encode next frame.
      */
     ubyte *FrameBuffer;
-    long anfield_4;
+    s32 anfield_4;
     short Xpos;
     short Ypos;
 	/** Zero-based number of the frame to be played / recorded next.
@@ -112,7 +112,7 @@ struct Animation {
 	/** Frame FLI header for the last played played / recorded frame.
      */
     struct FLCFrameChunk FLCFrameChunk;
-    long anfield_30;
+    s32 anfield_30;
 	/** Buffer with previously encoded animation frame pixel data.
      * Used only for recording, unused during playback.
      */

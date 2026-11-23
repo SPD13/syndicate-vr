@@ -22,29 +22,29 @@
 #include "bfscreen.h"
 
 //static - temporarly public, as it is used in ASM
-void draw_b_line(long x1, long y1, long x2, long y2, TbPixel colour)
+void draw_b_line(s32 x1, s32 y1, s32 x2, s32 y2, TbPixel colour)
 {
-  long apx = 2 * abs(x2 - x1);
-  long spx;
+  s32 apx = 2 * abs(x2 - x1);
+  s32 spx;
   if (x2 - x1 <= 0)
     spx = -1;
   else
     spx = 1;
-  long apy = 2 * abs(y2 - y1);
-  long spy;
+  s32 apy = 2 * abs(y2 - y1);
+  s32 spy;
   if (y2 - y1 <= 0 )
     spy = -1;
   else
     spy = 1;
-  long doffy = spy * lbDisplay.GraphicsScreenWidth;
-  long offset = lbDisplay.GraphicsScreenWidth * y1 + x1;
-  long x = x1;
-  long y = y1;
+  s32 doffy = spy * lbDisplay.GraphicsScreenWidth;
+  s32 offset = lbDisplay.GraphicsScreenWidth * y1 + x1;
+  s32 x = x1;
+  s32 y = y1;
   if (lbDisplay.DrawFlags & Lb_SPRITE_TRANSPAR4)
   {
     if (apx <= apy)
     {
-      long d = apx - (apy>>1);
+      s32 d = apx - (apy>>1);
       while ( true )
       {
         unsigned short glass_idx = lbDisplay.GraphicsWindowPtr[offset]
@@ -62,7 +62,7 @@ void draw_b_line(long x1, long y1, long x2, long y2, TbPixel colour)
       }
     } else
     {
-      long d = apy - (apx >> 1);
+      s32 d = apy - (apx >> 1);
       while ( true )
       {
         unsigned short glass_idx = lbDisplay.GraphicsWindowPtr[offset]
@@ -84,7 +84,7 @@ void draw_b_line(long x1, long y1, long x2, long y2, TbPixel colour)
   {
       if ( apx <= apy )
       {
-        long d = apx - (apy >> 1);
+        s32 d = apx - (apy >> 1);
         while ( 1 )
         {
           unsigned short glass_idx = (lbDisplay.GraphicsWindowPtr[offset]<<8)
@@ -102,7 +102,7 @@ void draw_b_line(long x1, long y1, long x2, long y2, TbPixel colour)
         }
       } else
       {
-        long d = apy - (apx >> 1);
+        s32 d = apy - (apx >> 1);
         while ( 1 )
         {
           unsigned short glass_idx = (lbDisplay.GraphicsWindowPtr[offset]<<8)
@@ -123,7 +123,7 @@ void draw_b_line(long x1, long y1, long x2, long y2, TbPixel colour)
   {
       if ( apx <= apy )
       {
-        long d = apx - (apy >> 1);
+        s32 d = apx - (apy >> 1);
         while ( true )
         {
           lbDisplay.GraphicsWindowPtr[offset] = ((unsigned char)colour);
@@ -140,7 +140,7 @@ void draw_b_line(long x1, long y1, long x2, long y2, TbPixel colour)
       }
       else
       {
-        long d = apy - (apx >> 1);
+        s32 d = apy - (apx >> 1);
         while ( 1 )
         {
           lbDisplay.GraphicsWindowPtr[offset] = ((unsigned char)colour);
@@ -159,11 +159,11 @@ void draw_b_line(long x1, long y1, long x2, long y2, TbPixel colour)
   }
 }
 
-TbResult LbDrawLine(long X1, long Y1, long X2, long Y2, TbPixel colour)
+TbResult LbDrawLine(s32 X1, s32 Y1, s32 X2, s32 Y2, TbPixel colour)
 {
     TbResult result = Lb_OK;
     // Adjusting X-dimension coordinates
-    long width_max = lbDisplay.GraphicsWindowWidth - 1;
+    s32 width_max = lbDisplay.GraphicsWindowWidth - 1;
     if ( X1 >= 0 )
     {
         if ( X1 <= width_max )
@@ -208,7 +208,7 @@ TbResult LbDrawLine(long X1, long Y1, long X2, long Y2, TbPixel colour)
         }
     }
     // Adjusting Y-dimension coordinates
-    long height_max = lbDisplay.GraphicsWindowHeight - 1;
+    s32 height_max = lbDisplay.GraphicsWindowHeight - 1;
     if ( Y1 < 0 )
     {
         if ( Y2 < 0 ) return 1;

@@ -21,12 +21,12 @@
 #include "bfbox.h"
 #include "bfscreen.h"
 
-TbResult LbDrawBoxNoClip(long destX, long destY, ulong width, ulong height,
+TbResult LbDrawBoxNoClip(s32 destX, s32 destY, u32 width, u32 height,
   TbPixel colour)
 {
     ubyte *d;
     ubyte *m;
-    long w, h, shift;
+    s32 w, h, shift;
 
     d = &lbDisplay.GraphicsWindowPtr[destX + lbDisplay.GraphicsScreenWidth * destY];
     shift = lbDisplay.GraphicsScreenWidth - width;
@@ -68,11 +68,11 @@ TbResult LbDrawBoxNoClip(long destX, long destY, ulong width, ulong height,
     return Lb_SUCCESS;
 }
 
-TbResult LbDrawBoxClip(long destX, long destY, ulong width, ulong height,
+TbResult LbDrawBoxClip(s32 destX, s32 destY, u32 width, u32 height,
   TbPixel colour)
 {
-    long clpY;
-    long clpwidth, clpheight;
+    s32 clpY;
+    s32 clpwidth, clpheight;
 
     clpwidth = width;
     clpheight = height;
@@ -105,10 +105,10 @@ TbResult LbDrawBoxClip(long destX, long destY, ulong width, ulong height,
         return Lb_FAIL;
     }
 
-    long deltaX, deltaY;
+    s32 deltaX, deltaY;
     ubyte *d;
     ubyte *m;
-    long w, h, shift;
+    s32 w, h, shift;
 
     // After original, this function uses WScreen instead of precomputed
     // GraphicsWindowPtr. There doesn't seem to be any logical reason for that.

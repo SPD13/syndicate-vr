@@ -36,7 +36,7 @@ typedef struct {
     short Arg2;
     short Arg3;
     short Arg4;
-    long Arg5;
+    s32 Arg5;
 } ThingFilterParams;
 
 /** Definition of a simple callback type which can only return true/false and has no memory

@@ -582,7 +582,7 @@ ushort my_draw_text(short x, short y, const char *text, ushort startline)
 
 static DIFFTEST_REF_FUNC void my_preprocess_text_asm(char *text)
 {
-    asm volatile ("call ASM_my_preprocess_text\n"
+    DIFFTEST_ASM("call ASM_my_preprocess_text\n"
         :  : "a" (text));
 }
 

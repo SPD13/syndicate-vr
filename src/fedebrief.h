@@ -31,10 +31,10 @@ struct DebriefReport {
     short RefNo;
     short BriefNo;
     short Status;
-    ulong Income;
-    ulong Expenditure;
-    ulong WeaponsResearched;
-    ulong ModsResearched;
+    u32 Income;
+    u32 Expenditure;
+    u32 WeaponsResearched;
+    u32 ModsResearched;
     ubyte ScientistsLost;
     ubyte SciLostReason;
 };

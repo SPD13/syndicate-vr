@@ -255,7 +255,7 @@ ubyte packet_action_params_count(ushort action)
     }
 }
 
-void snprint_packet(char *buf, ulong buflen, struct Packet *p_pckt)
+void snprint_packet(char *buf, u32 buflen, struct Packet *p_pckt)
 {
     const char *name;
     char *s;

@@ -659,8 +659,8 @@ void save_mission_single_conf(TbFileHandle fh, struct Mission *p_missi, char *bu
         LbFileWrite(fh, buf, strlen(buf));
     }
     if (p_missi->ResearchWeapons != 0) {
-        sprintf(buf, "ResearchWeapons = 0x%lx\n",
-          (ulong)p_missi->ResearchWeapons);
+        sprintf(buf, "ResearchWeapons = 0x%x\n",
+          (u32)p_missi->ResearchWeapons);
         LbFileWrite(fh, buf, strlen(buf));
     }
     if (p_missi->ExtraRewardType != 0) {
@@ -834,7 +834,7 @@ TbBool read_missions_conf_info(int num)
     TbFileHandle conf_fh;
     TbBool done;
     unsigned int i;
-    long k;
+    s32 k;
     char *conf_buf;
     struct TbIniParser parser;
     char conf_fname[80];
@@ -870,8 +870,8 @@ TbBool read_missions_conf_info(int num)
     }
     conf_buf[conf_len] = '\0';
     LbIniParseStart(&parser, conf_buf, conf_len);
-#define CONFWRNLOG(format,args...) LOGWARN("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
-#define CONFDBGLOG(format,args...) LOGDBG("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
+#define CONFWRNLOG(format,args...) LOGWARN("%s(line %u): " format, conf_fname, parser.line_num, ## args)
+#define CONFDBGLOG(format,args...) LOGDBG("%s(line %u): " format, conf_fname, parser.line_num, ## args)
     p_campgn = &campaigns[num];
     LbMemorySet(p_campgn, 0, sizeof(struct Campaign));
 
@@ -1032,7 +1032,7 @@ TbBool read_missions_conf_info(int num)
     return true;
 }
 
-int ApIniValueGetIntDotInt(struct TbIniParser *parser, long *dst1, long *dst2)
+int ApIniValueGetIntDotInt(struct TbIniParser *parser, s32 *dst1, s32 *dst2)
 {
     char buf[64];
     char *bend;
@@ -1055,7 +1055,7 @@ void read_missions_conf_file(int num)
     TbFileHandle conf_fh;
     TbBool done;
     int i, n;
-    long k, l;
+    s32 k, l;
     char *conf_buf;
     struct TbIniParser parser;
     struct Campaign *p_campgn;
@@ -1082,8 +1082,8 @@ void read_missions_conf_file(int num)
     }
     conf_buf[conf_len] = '\0';
     LbIniParseStart(&parser, conf_buf, conf_len);
-#define CONFWRNLOG(format,args...) LOGWARN("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
-#define CONFDBGLOG(format,args...) LOGDBG("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
+#define CONFWRNLOG(format,args...) LOGWARN("%s(line %u): " format, conf_fname, parser.line_num, ## args)
+#define CONFDBGLOG(format,args...) LOGDBG("%s(line %u): " format, conf_fname, parser.line_num, ## args)
     p_campgn = &campaigns[num];
     next_mission = 0;
     next_used_objective = 0;
@@ -1134,7 +1134,7 @@ void read_missions_conf_file(int num)
                 n |= (1 << (i-1));
             }
             p_campgn->ResearchWeapons = n;
-            CONFDBGLOG("%s 0x%lx", COMMAND_TEXT(cmd_num), p_campgn->ResearchWeapons);
+            CONFDBGLOG("%s 0x%x", COMMAND_TEXT(cmd_num), p_campgn->ResearchWeapons);
             break;
         case MissL_StandardWeapons:
             n = 0;
@@ -1150,7 +1150,7 @@ void read_missions_conf_file(int num)
                 n |= (1 << (i-1));
             }
             p_campgn->StandardWeapons = n;
-            CONFDBGLOG("%s 0x%lx", COMMAND_TEXT(cmd_num), p_campgn->StandardWeapons);
+            CONFDBGLOG("%s 0x%x", COMMAND_TEXT(cmd_num), p_campgn->StandardWeapons);
             break;
         case MissL_ResearchMods:
             n = 0;
@@ -1166,7 +1166,7 @@ void read_missions_conf_file(int num)
                 n |= (1 << (i-1));
             }
             p_campgn->ResearchMods = n;
-            CONFDBGLOG("%s 0x%lx", COMMAND_TEXT(cmd_num), p_campgn->ResearchMods);
+            CONFDBGLOG("%s 0x%x", COMMAND_TEXT(cmd_num), p_campgn->ResearchMods);
             break;
         case MissL_StandardMods:
             n = 0;
@@ -1182,7 +1182,7 @@ void read_missions_conf_file(int num)
                 n |= (1 << (i-1));
             }
             p_campgn->StandardMods = n;
-            CONFDBGLOG("%s 0x%lx", COMMAND_TEXT(cmd_num), p_campgn->StandardMods);
+            CONFDBGLOG("%s 0x%x", COMMAND_TEXT(cmd_num), p_campgn->StandardMods);
             break;
         case MissL_TextName:
         case MissL_TextId:
@@ -1380,7 +1380,7 @@ void read_missions_conf_file(int num)
                     n |= (1 << (i-1));
                 }
                 p_missi->ResearchWeapons = n;
-                CONFDBGLOG("%s 0x%lx", COMMAND_TEXT(cmd_num), p_missi->ResearchWeapons);
+                CONFDBGLOG("%s 0x%x", COMMAND_TEXT(cmd_num), p_missi->ResearchWeapons);
                 break;
             case MissL_ExtraReward:
                 i = LbIniValueGetNamedEnum(&parser, missions_conf_extra_reward_types);
@@ -1643,7 +1643,7 @@ void read_missions_conf_file(int num)
         } else
         while (!done)
         {
-            long pri;
+            s32 pri;
             struct Objective *p_objectv;
 
             // Get the key, as it holds priority
@@ -1691,7 +1691,7 @@ void read_missions_conf_file(int num)
         } else
         while (!done)
         {
-            long pri;
+            s32 pri;
             struct Objective *p_objectv;
 
             // Get the key, as it holds priority

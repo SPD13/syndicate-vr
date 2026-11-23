@@ -46,7 +46,7 @@ extern ubyte *tmaps_alloc_start;
  * Can be used externally - this memory is not used within tmaps atlas vector.
  */
 extern ubyte *tmaps_extra_buf;
-extern ulong tmaps_extra_len;
+extern u32 tmaps_extra_len;
 
 TbResult alloc_texturemaps(uint tmap_count);
 void free_texturemaps(void);

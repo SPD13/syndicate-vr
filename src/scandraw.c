@@ -50,8 +50,8 @@ enum ScannerArrowModes {
 };
 
 struct scanstr2 {
-    long du;
-    long dv;
+    s32 du;
+    s32 dv;
 };
 
 struct NearestPos {
@@ -971,9 +971,9 @@ static void SCANNER_draw_new_transparent_map(void)
     }
 }
 
-void draw_objective_point(long x, long y, ThingIdx thing, short a4, ubyte colour)
+void draw_objective_point(s32 x, s32 y, ThingIdx thing, short a4, ubyte colour)
 {
-    long ptX, ptY, ptZ;
+    s32 ptX, ptY, ptZ;
 
     if (a4)
         return;
@@ -1473,7 +1473,7 @@ static void scanner_coords_line_clip(int *x1, int *y1, int *x2, int *y2, int sc_
 static void map_coords_to_scanner(int *sc_x, int *sc_y, int sh_x, int sh_y, int bsh_x, int bsh_y)
 {
     int rval_xy, rval_yy, rval_yx, rval_xx, rval_div;
-    long prec_x, prec_y;
+    s32 prec_x, prec_y;
 
     rval_xy = mul_shift16_sign_pad_lo(sh_x, bsh_y);
 
@@ -1721,7 +1721,7 @@ void SCANNER_check_nearest(struct Thing *p_thing, struct NearestPos *p_nearest, 
         return;
 
     int dist_x, dist_y;
-    ulong dist;
+    u32 dist;
     int i;
 
     group_col = 0;
@@ -1885,7 +1885,7 @@ void SCANNER_draw_things_dots(int pos_mx, int pos_mz, int sh_x, int sh_y, int po
     struct Thing *p_thing;
     struct SimpleThing *p_sthing;
     struct NearestPos nearest;
-    long limit;
+    s32 limit;
     short thing;
 
     nearest.dist = 0x7FFFFFFF;
@@ -1925,7 +1925,7 @@ void SCANNER_draw_things_dots(int pos_mx, int pos_mz, int sh_x, int sh_y, int po
     case SCANNER_ARROW_NEAREST_TARGET:
         if ((nearest.dist > range * range) && (nearest.dist != 0x7FFFFFFF))
         {
-            long angle;
+            s32 angle;
             angle = arctan(nearest.x, nearest.y);
             SCANNER_draw_orientation_arrow(pos_x1, pos_y1, range, angle);
         }

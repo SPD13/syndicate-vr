@@ -27,7 +27,7 @@
 # define EXPORT_SYMBOL(sym) STRINGIFY(sym)
 #endif
 
-extern const long add_to_edi[];
+extern const s32 add_to_edi[];
 
 /**
  * whether the subtraction (x-y) of two short ints would overflow
@@ -48,26 +48,26 @@ static inline ubyte __CFADDS__(short x, short y)
 /**
  * whether the addition (x+y) of two long ints would use carry
  */
-static inline ubyte __CFADDL__(long x, long y)
+static inline ubyte __CFADDL__(s32 x, s32 y)
 {
-    return (ulong)(x) > (ulong)(x+y);
+    return (u32)(x) > (u32)(x+y);
 }
 
 /**
  * rotate left unsigned long
  */
-static inline ulong __ROL4__(ulong value, int count)
+static inline u32 __ROL4__(u32 value, int count)
 {
     const uint nbits = 4 * 8;
 
     if (count > 0) {
         count %= nbits;
-        ulong high = value >> (nbits - count);
+        u32 high = value >> (nbits - count);
         value <<= count;
         value |= high;
     } else {
         count = -count % nbits;
-        ulong low = value << (nbits - count);
+        u32 low = value << (nbits - count);
         value >>= count;
         value |= low;
     }

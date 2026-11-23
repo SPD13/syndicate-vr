@@ -41,7 +41,7 @@ short simple_text_char_height(char c)
 
 void draw_simple_text(short x, short y, const char *text, ubyte colour)
 {
-    long scrn_w, scrn_h;
+    s32 scrn_w, scrn_h;
     ubyte *scr;
 
     if (x < 0 || y < 0)

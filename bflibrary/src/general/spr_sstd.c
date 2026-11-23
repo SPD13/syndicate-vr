@@ -27,16 +27,16 @@
 #include "privbflog.h"
 
 /******************************************************************************/
-void LbPixelBlockCopyForward(TbPixel * dst, const TbPixel * src, long len);
+void LbPixelBlockCopyForward(TbPixel * dst, const TbPixel * src, s32 len);
 // The functions below are from colour remap version of the routine - they're used for shadows of sprites
 TbResult LbSpriteDrawRemapUsingScalingUpDataSolidRL(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap);
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap);
 TbResult LbSpriteDrawRemapUsingScalingUpDataSolidLR(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap);
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap);
 TbResult LbSpriteDrawRemapUsingScalingDownDataSolidRL(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap);
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap);
 TbResult LbSpriteDrawRemapUsingScalingDownDataSolidLR(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap);
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap);
 /******************************************************************************/
 
 /**
@@ -52,11 +52,11 @@ TbResult LbSpriteDrawRemapUsingScalingDownDataSolidLR(ubyte *outbuf, int scanlin
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingUpDataTrans1RL(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -73,7 +73,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans1RL(ubyte *outbuf, int scanline, int
         {
             unsigned char *prevdata;
             int xdup, ydup;
-            long *xcurstep;
+            s32 *xcurstep;
             ydup = ycurstep[1];
             if (ycurstep[0]+ydup > outheight)
                 ydup = outheight-ycurstep[0];
@@ -86,7 +86,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans1RL(ubyte *outbuf, int scanline, int
                 out_end = outbuf;
                 while ( 1 )
                 {
-                    long pxlen;
+                    s32 pxlen;
                     pxlen = (signed char)*sprdata;
                     sprdata++;
                     if (pxlen == 0)
@@ -129,7 +129,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans1RL(ubyte *outbuf, int scanline, int
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -159,11 +159,11 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans1RL(ubyte *outbuf, int scanline, int
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingUpDataTrans1LR(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -180,7 +180,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans1LR(ubyte *outbuf, int scanline, int
         {
             unsigned char *prevdata;
             int xdup, ydup;
-            long *xcurstep;
+            s32 *xcurstep;
             ydup = ycurstep[1];
             if (ycurstep[0]+ydup > outheight)
                 ydup = outheight-ycurstep[0];
@@ -193,7 +193,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans1LR(ubyte *outbuf, int scanline, int
                 out_end = outbuf;
                 while ( 1 )
                 {
-                    long pxlen;
+                    s32 pxlen;
                     pxlen = (signed char)*sprdata;
                     sprdata++;
                     if (pxlen == 0)
@@ -236,7 +236,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans1LR(ubyte *outbuf, int scanline, int
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -265,11 +265,11 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans1LR(ubyte *outbuf, int scanline, int
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingUpDataTrans2RL(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -286,7 +286,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans2RL(ubyte *outbuf, int scanline, int
         {
             unsigned char *prevdata;
             int xdup, ydup;
-            long *xcurstep;
+            s32 *xcurstep;
             ydup = ycurstep[1];
             if (ycurstep[0]+ydup > outheight)
                 ydup = outheight-ycurstep[0];
@@ -299,7 +299,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans2RL(ubyte *outbuf, int scanline, int
                 out_end = outbuf;
                 while ( 1 )
                 {
-                    long pxlen;
+                    s32 pxlen;
                     pxlen = (signed char)*sprdata;
                     sprdata++;
                     if (pxlen == 0)
@@ -342,7 +342,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans2RL(ubyte *outbuf, int scanline, int
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -371,11 +371,11 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans2RL(ubyte *outbuf, int scanline, int
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingUpDataTrans2LR(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -392,7 +392,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans2LR(ubyte *outbuf, int scanline, int
         {
             unsigned char *prevdata;
             int xdup, ydup;
-            long *xcurstep;
+            s32 *xcurstep;
             ydup = ycurstep[1];
             if (ycurstep[0]+ydup > outheight)
                 ydup = outheight-ycurstep[0];
@@ -405,7 +405,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans2LR(ubyte *outbuf, int scanline, int
                 out_end = outbuf;
                 while ( 1 )
                 {
-                    long pxlen;
+                    s32 pxlen;
                     pxlen = (signed char)*sprdata;
                     sprdata++;
                     if (pxlen == 0)
@@ -448,7 +448,7 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans2LR(ubyte *outbuf, int scanline, int
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -476,11 +476,11 @@ TbResult LbSpriteDrawUsingScalingUpDataTrans2LR(ubyte *outbuf, int scanline, int
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingUpDataSolidRL(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -499,7 +499,7 @@ TbResult LbSpriteDrawUsingScalingUpDataSolidRL(ubyte *outbuf, int scanline, int 
             int solid_len;
             TbPixel * out_line;
             int xdup, ydup;
-            long *xcurstep;
+            s32 *xcurstep;
             ydup = ycurstep[1];
             if (ycurstep[0]+ydup > outheight)
                 ydup = outheight-ycurstep[0];
@@ -508,7 +508,7 @@ TbResult LbSpriteDrawUsingScalingUpDataSolidRL(ubyte *outbuf, int scanline, int 
             out_end = outbuf;
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -570,7 +570,7 @@ TbResult LbSpriteDrawUsingScalingUpDataSolidRL(ubyte *outbuf, int scanline, int 
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -599,11 +599,11 @@ TbResult LbSpriteDrawUsingScalingUpDataSolidRL(ubyte *outbuf, int scanline, int 
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingUpDataSolidLR(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -622,7 +622,7 @@ TbResult LbSpriteDrawUsingScalingUpDataSolidLR(ubyte *outbuf, int scanline, int 
             int solid_len;
             TbPixel * out_line;
             int xdup, ydup;
-            long *xcurstep;
+            s32 *xcurstep;
             ydup = ycurstep[1];
             if (ycurstep[0]+ydup > outheight)
                 ydup = outheight-ycurstep[0];
@@ -631,7 +631,7 @@ TbResult LbSpriteDrawUsingScalingUpDataSolidLR(ubyte *outbuf, int scanline, int 
             out_end = outbuf;
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -691,7 +691,7 @@ TbResult LbSpriteDrawUsingScalingUpDataSolidLR(ubyte *outbuf, int scanline, int 
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -720,11 +720,11 @@ TbResult LbSpriteDrawUsingScalingUpDataSolidLR(ubyte *outbuf, int scanline, int 
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingDownDataTrans1RL(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -739,13 +739,13 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans1RL(ubyte *outbuf, int scanline, i
     {
         if (ycurstep[1] != 0)
         {
-            long *xcurstep;
+            s32 *xcurstep;
             xcurstep = xstep;
             TbPixel *out_end;
             out_end = outbuf;
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -782,7 +782,7 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans1RL(ubyte *outbuf, int scanline, i
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -811,11 +811,11 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans1RL(ubyte *outbuf, int scanline, i
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingDownDataTrans1LR(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -830,13 +830,13 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans1LR(ubyte *outbuf, int scanline, i
     {
         if (ycurstep[1] != 0)
         {
-            long *xcurstep;
+            s32 *xcurstep;
             xcurstep = xstep;
             TbPixel *out_end;
             out_end = outbuf;
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -873,7 +873,7 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans1LR(ubyte *outbuf, int scanline, i
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -902,11 +902,11 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans1LR(ubyte *outbuf, int scanline, i
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingDownDataTrans2RL(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -921,13 +921,13 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans2RL(ubyte *outbuf, int scanline, i
     {
         if (ycurstep[1] != 0)
         {
-            long *xcurstep;
+            s32 *xcurstep;
             xcurstep = xstep;
             TbPixel *out_end;
             out_end = outbuf;
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -964,7 +964,7 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans2RL(ubyte *outbuf, int scanline, i
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -993,11 +993,11 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans2RL(ubyte *outbuf, int scanline, i
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingDownDataTrans2LR(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap)
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -1012,13 +1012,13 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans2LR(ubyte *outbuf, int scanline, i
     {
         if (ycurstep[1] != 0)
         {
-            long *xcurstep;
+            s32 *xcurstep;
             xcurstep = xstep;
             TbPixel *out_end;
             out_end = outbuf;
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -1055,7 +1055,7 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans2LR(ubyte *outbuf, int scanline, i
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -1083,11 +1083,11 @@ TbResult LbSpriteDrawUsingScalingDownDataTrans2LR(ubyte *outbuf, int scanline, i
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingDownDataSolidRL(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -1102,13 +1102,13 @@ TbResult LbSpriteDrawUsingScalingDownDataSolidRL(ubyte *outbuf, int scanline,
     {
         if (ycurstep[1] != 0)
         {
-            long *xcurstep;
+            s32 *xcurstep;
             xcurstep = xstep;
             TbPixel *out_end;
             out_end = outbuf;
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -1144,7 +1144,7 @@ TbResult LbSpriteDrawUsingScalingDownDataSolidRL(ubyte *outbuf, int scanline,
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -1172,11 +1172,11 @@ TbResult LbSpriteDrawUsingScalingDownDataSolidRL(ubyte *outbuf, int scanline,
  * @return Gives 0 on success.
  */
 TbResult LbSpriteDrawUsingScalingDownDataSolidLR(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite)
 {
     int ystep_delta;
     unsigned char *sprdata;
-    long *ycurstep;
+    s32 *ycurstep;
 
     LOGDBG("drawing");
     ystep_delta = 2;
@@ -1191,13 +1191,13 @@ TbResult LbSpriteDrawUsingScalingDownDataSolidLR(ubyte *outbuf, int scanline,
     {
         if (ycurstep[1] != 0)
         {
-            long *xcurstep;
+            s32 *xcurstep;
             xcurstep = xstep;
             TbPixel *out_end;
             out_end = outbuf;
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -1233,7 +1233,7 @@ TbResult LbSpriteDrawUsingScalingDownDataSolidLR(ubyte *outbuf, int scanline,
         {
             while ( 1 )
             {
-                long pxlen;
+                s32 pxlen;
                 pxlen = (signed char)*sprdata;
                 sprdata++;
                 if (pxlen == 0)
@@ -1249,15 +1249,15 @@ TbResult LbSpriteDrawUsingScalingDownDataSolidLR(ubyte *outbuf, int scanline,
     return 0;
 }
 
-TbResult LbSpriteDrawUsingScalingData(long posx, long posy, const TbSprite *sprite)
+TbResult LbSpriteDrawUsingScalingData(s32 posx, s32 posy, const TbSprite *sprite)
 {
-    long *xstep;
-    long *ystep;
+    s32 *xstep;
+    s32 *ystep;
     int scanline;
 
-    LOGDBG("at (%ld,%ld): drawing", posx, posy);
+    LOGDBG("at (%d,%d): drawing", posx, posy);
     {
-        long sposx, sposy;
+        s32 sposx, sposy;
         sposx = posx;
         sposy = posy;
         scanline = lbDisplay.GraphicsScreenWidth;
@@ -1404,10 +1404,10 @@ TbResult LbSpriteDrawUsingScalingData(long posx, long posy, const TbSprite *spri
     }
 }
 
-TbResult LbSpriteDrawScaled(long xpos, long ypos, const TbSprite *sprite,
-    long dest_width, long dest_height)
+TbResult LbSpriteDrawScaled(s32 xpos, s32 ypos, const TbSprite *sprite,
+    s32 dest_width, s32 dest_height)
 {
-    LOGNO("at (%ld,%ld) size (%ld,%ld)",xpos,ypos,dest_width,dest_height);
+    LOGNO("at (%d,%d) size (%d,%d)",xpos,ypos,dest_width,dest_height);
     if ((dest_width <= 0) || (dest_height <= 0))
       return 1;
     if ((lbDisplay.DrawFlags & Lb_TEXT_UNDERLNSHADOW) != 0)

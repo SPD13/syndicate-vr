@@ -92,7 +92,7 @@ void read_cybmods_conf_file(void)
     TbFileHandle conf_fh;
     TbBool done;
     int i;
-    long k;
+    s32 k;
     int cmd_num;
     struct TbIniParser parser;
     int conf_len;
@@ -116,8 +116,8 @@ void read_cybmods_conf_file(void)
     }
     conf_buf[conf_len] = '\0';
     LbIniParseStart(&parser, conf_buf, conf_len);
-#define CONFWRNLOG(format,args...) LOGWARN("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
-#define CONFDBGLOG(format,args...) LOGDBG("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
+#define CONFWRNLOG(format,args...) LOGWARN("%s(line %u): " format, conf_fname, parser.line_num, ## args)
+#define CONFDBGLOG(format,args...) LOGDBG("%s(line %u): " format, conf_fname, parser.line_num, ## args)
     mods_count = 0;
     // Parse the [common] section of loaded file
     if (LbIniFindSection(&parser, "common") != Lb_SUCCESS) {
@@ -588,7 +588,7 @@ void sanitize_cybmods_fmtver11_flags(union Mod *p_umod)
  * Note that it only works for mods stored as flag-per-mod. The
  * usual way of storage within people is 3bit-per-mod-type.
  */
-ushort cybmodflags_prev_mod(ulong modflags, ushort last_mtype)
+ushort cybmodflags_prev_mod(u32 modflags, ushort last_mtype)
 {
     ushort mtype;
 
@@ -597,7 +597,7 @@ ushort cybmodflags_prev_mod(ulong modflags, ushort last_mtype)
 
     for (mtype = last_mtype - 1; mtype > 0; mtype--)
     {
-        ulong modflg = 1 << (mtype-1);
+        u32 modflg = 1 << (mtype-1);
         if ((modflags & modflg) != 0)
             return mtype;
     }

@@ -55,7 +55,7 @@ extern TbBool MusicInstalled;
 extern TbBool MusicAble;
 extern TbBool MusicActive;
 
-extern long CurrentMusicMasterVolume;
+extern int32_t CurrentMusicMasterVolume;
 
 extern TbBool DisableLoadMusic;
 
@@ -73,11 +73,11 @@ TbBool fm_instrument_file_exists(const char *fname)
 
 sbyte AllocateMusicBankMemory(void)
 {
-    ulong musLen, musDataLen;
+    uint32_t musLen, musDataLen;
 
     {
         TbFileHandle fh;
-        long pos;
+        int32_t pos;
         int len;
 
         len = snprintf(full_music_data_path, sizeof(full_music_data_path),

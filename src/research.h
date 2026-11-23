@@ -38,17 +38,17 @@ struct ResearchInfo
     ushort ModProgress[32][RESEARCH_DAYS_STORED];
     ubyte WeaponDaysDone[32];
     ubyte ModDaysDone[32];
-    long WeaponFunding;
-    long ModFunding;
+    s32 WeaponFunding;
+    s32 ModFunding;
     sbyte Scientists;
     char NumBases;
     /** Currently researched weapon index, weapon type - 1 */
     sbyte CurrentWeapon;
     sbyte CurrentMod;
-    ulong WeaponsAllowed;
-    ulong ModsAllowed;
-    ulong WeaponsCompleted;
-    ulong ModsCompleted;
+    u32 WeaponsAllowed;
+    u32 ModsAllowed;
+    u32 WeaponsCompleted;
+    u32 ModsCompleted;
 };
 
 #pragma pack()
@@ -70,7 +70,7 @@ TbBool is_research_weapon_completed(WeaponType wtype);
 TbBool is_research_weapon_allowed(WeaponType wtype);
 void research_weapon_allow(WeaponType wtype);
 void research_weapon_complete(WeaponType wtype);
-void research_weapon_flags_allow(ulong wpflags);
+void research_weapon_flags_allow(u32 wpflags);
 
 TbBool is_research_cymod_completed(ushort mtype);
 TbBool is_research_cymod_allowed(ushort mtype);

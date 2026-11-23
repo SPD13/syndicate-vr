@@ -60,7 +60,7 @@ int rand(void)
 }
 
 /** Xorshift on 32 bits, also where ulong is longer; the bot uses it too. */
-ulong difftest_fuzz_rand(ulong *p_seed)
+u32 difftest_fuzz_rand(u32 *p_seed)
 {
     u32 x = (u32)*p_seed;
     x ^= x << 13;
@@ -85,8 +85,8 @@ struct DtRegion {
 };
 
 struct DtIgnore {
-    ulong addr;
-    ulong len;
+    u32 addr;
+    u32 len;
 };
 
 /** All difftest state, kept in one struct so that it can be excluded
@@ -99,12 +99,12 @@ struct DiffTestState {
     TbBool fast;
     TbBool fuzzing;
     char fn_name[128];
-    ulong max_compares;
-    ulong min_compares;
-    ulong turn_limit;
-    ulong turns;
-    ulong calls;
-    ulong compares;
+    u32 max_compares;
+    u32 min_compares;
+    u32 turn_limit;
+    u32 turns;
+    u32 calls;
+    u32 compares;
     FILE *log;
     char log_fname[260];
 
@@ -134,8 +134,8 @@ static struct DiffTestState dt;
 /* bflibrary arenas; the struct is private there, so mirror its layout */
 struct DtMemBlock {
     void *Pointer;
-    ulong Selector;
-    ulong Size;
+    u32 Selector;
+    u32 Size;
 };
 extern struct DtMemBlock memory_blocks[256];
 #endif
@@ -149,13 +149,13 @@ static void dt_log(const char *fmt, ...) __attribute__((format(printf,1,2)));
 /** Returns address relative to our image base, which stays the same
  * between runs even when the image is relocated.
  */
-static ulong dt_rva(const void *addr) __attribute__((no_instrument_function));
-static ulong dt_rva(const void *addr)
+static u32 dt_rva(const void *addr) __attribute__((no_instrument_function));
+static u32 dt_rva(const void *addr)
 {
 #if defined(WIN32) || defined(_WIN32)
-    return (ulong)addr - (ulong)GetModuleHandle(NULL);
+    return (u32)addr - (u32)GetModuleHandle(NULL);
 #else
-    return (ulong)addr;
+    return (u32)addr;
 #endif
 }
 
@@ -178,7 +178,7 @@ static void dt_parse_ignores(const char *str)
     while ((str != NULL) && (*str != '\0') && (dt.ignores_num < DT_MAX_IGNORES))
     {
         char *endp;
-        ulong addr, len;
+        u32 addr, len;
         addr = strtoul(str, &endp, 16);
         if (*endp != ':')
             break;
@@ -247,7 +247,7 @@ static void dt_init(void)
     dt_parse_ignores(getenv("SWARS_DIFFTEST_IGNORE"));
 
     if (dt.enabled)
-        dt_log("difftest: start fn=%s max=%lu min=%lu turns=%lu ignores=%d\n",
+        dt_log("difftest: start fn=%s max=%u min=%u turns=%u ignores=%d\n",
           dt.fn_name, dt.max_compares, dt.min_compares, dt.turn_limit,
           dt.ignores_num);
     if (dt.enabled)
@@ -365,7 +365,7 @@ static TbBool dt_ensure_buffers(void)
     dt.pre_buf = malloc(total);
     dt.post_buf = malloc(total);
     if ((dt.pre_buf == NULL) || (dt.post_buf == NULL)) {
-        dt_log("difftest: cannot allocate %lu bytes for snapshots\n", (ulong)total);
+        dt_log("difftest: cannot allocate %u bytes for snapshots\n", (u32)total);
         dt.buf_size = 0;
         dt.enabled = false;
         return false;
@@ -392,7 +392,7 @@ static void dt_restore(const ubyte *buf)
     }
 }
 
-static TbBool dt_is_ignored(ulong addr)
+static TbBool dt_is_ignored(u32 addr)
 {
     int i;
     for (i = 0; i < dt.ignores_num; i++) {
@@ -415,10 +415,10 @@ static void dt_log_bytes(const char *label, const ubyte *p, size_t n)
 /** Compares current state against post-asm buffer; returns amount of
  * differing bytes (not counting ignored ranges).
  */
-static ulong dt_compare(void)
+static u32 dt_compare(void)
 {
     const ubyte *buf = dt.post_buf;
-    ulong diff_bytes = 0;
+    u32 diff_bytes = 0;
     int reported = 0;
     int i;
 
@@ -433,7 +433,7 @@ static ulong dt_compare(void)
             while (pos < len)
             {
                 size_t beg, end;
-                if (cur[pos] == buf[pos] || dt_is_ignored((ulong)(cur + pos))) {
+                if (cur[pos] == buf[pos] || dt_is_ignored((u32)(cur + pos))) {
                     pos++;
                     continue;
                 }
@@ -444,7 +444,7 @@ static ulong dt_compare(void)
                     size_t k, lim = end + 8;
                     TbBool more = false;
                     for (k = end; k < lim && k < len; k++) {
-                        if (cur[k] != buf[k] && !dt_is_ignored((ulong)(cur + k))) {
+                        if (cur[k] != buf[k] && !dt_is_ignored((u32)(cur + k))) {
                             more = true;
                             end = k + 1;
                             break;
@@ -460,9 +460,9 @@ static ulong dt_compare(void)
                 if (reported < DT_MAX_REPORTED_DIFFS) {
                     size_t n = end - beg;
                     if (n > 32) n = 32;
-                    dt_log("  DIFF region=%s addr=0x%08lx rva=0x%08lx off=0x%lx len=%lu\n",
-                      dt.regions[i].name, (ulong)(cur + beg), dt_rva(cur + beg),
-                      (ulong)beg, (ulong)(end - beg));
+                    dt_log("  DIFF region=%s addr=0x%08x rva=0x%08x off=0x%x len=%u\n",
+                      dt.regions[i].name, (u32)(cur + beg), dt_rva(cur + beg),
+                      (u32)beg, (u32)(end - beg));
                     dt_log_bytes("asm", buf + beg, n);
                     dt_log_bytes("  c", cur + beg, n);
                 }
@@ -485,7 +485,7 @@ static void dt_finish(void)
         code = DtExit_UNVERIFIED;
     else
         code = DtExit_PASS;
-    dt_log("difftest: %s fn=%s calls=%lu compared=%lu turns=%lu\n",
+    dt_log("difftest: %s fn=%s calls=%u compared=%u turns=%u\n",
       (code == DtExit_PASS) ? "PASS" : "UNVERIFIED",
       dt.fn_name, dt.calls, dt.compares, dt.turns);
     exit(code);
@@ -505,8 +505,8 @@ int difftest_shadow_begin(const char *name, void *frame)
     if (dt.compares == 0) {
         int i;
         for (i = 0; i < dt.regions_num; i++)
-            dt_log("  region %-8s 0x%08lx len=0x%lx\n", dt.regions[i].name,
-              (ulong)dt.regions[i].ptr, (ulong)dt.regions[i].len);
+            dt_log("  region %-8s 0x%08x len=0x%x\n", dt.regions[i].name,
+              (u32)dt.regions[i].ptr, (u32)dt.regions[i].len);
     }
     dt.in_shadow = true;
     dt.cur_name = name;
@@ -539,7 +539,7 @@ void difftest_shadow_ret(const void *c_ret, size_t ret_len)
 
 void difftest_shadow_end(int *p_active)
 {
-    ulong diff_bytes;
+    u32 diff_bytes;
     TbBool ret_mismatch;
 
     if (!*p_active)
@@ -550,12 +550,12 @@ void difftest_shadow_end(int *p_active)
     ret_mismatch = false;
     if (dt.asm_ret_len > 0) {
         if (!dt.c_ret_set) {
-            dt_log("difftest: %s call %lu: C code returned without DIFFTEST_RETURN()\n",
+            dt_log("difftest: %s call %u: C code returned without DIFFTEST_RETURN()\n",
               dt.cur_name, dt.calls);
             ret_mismatch = true;
         } else if ((dt.asm_ret_len != dt.c_ret_len) ||
           (memcmp(dt.asm_ret, dt.c_ret, dt.asm_ret_len) != 0)) {
-            dt_log("difftest: %s call %lu: RETURN VALUE MISMATCH\n",
+            dt_log("difftest: %s call %u: RETURN VALUE MISMATCH\n",
               dt.cur_name, dt.calls);
             dt_log_bytes("asm", dt.asm_ret, dt.asm_ret_len);
             dt_log_bytes("  c", dt.c_ret, dt.c_ret_len);
@@ -565,7 +565,7 @@ void difftest_shadow_end(int *p_active)
     diff_bytes = dt_compare();
     if (diff_bytes > 0 || ret_mismatch)
     {
-        dt_log("difftest: MISMATCH fn=%s call=%lu compared=%lu turn=%lu diff_bytes=%lu\n",
+        dt_log("difftest: MISMATCH fn=%s call=%u compared=%u turn=%u diff_bytes=%u\n",
           dt.cur_name, dt.calls, dt.compares, dt.turns, diff_bytes);
         exit(DtExit_MISMATCH);
     }
@@ -612,7 +612,7 @@ TbBool difftest_skip_turn_wait(void)
 void difftest_run_fuzz(void)
 {
     const char *s;
-    ulong iters, seed, k;
+    u32 iters, seed, k;
     int i, ran;
 
     s = getenv("SWARS_SMK_COMPARE");
@@ -628,18 +628,18 @@ void difftest_run_fuzz(void)
         snprintf(dt.fn_name, sizeof(dt.fn_name), "*");
     }
     dt.fuzzing = true;
-    dt.max_compares = (ulong)-1;
+    dt.max_compares = (u32)-1;
     ran = 0;
     for (i = 0; difftest_fuzz_cases[i].name != NULL; i++)
     {
-        ulong compares_before;
+        u32 compares_before;
         if (!dt_name_matches(difftest_fuzz_cases[i].name))
             continue;
         seed = 0x2545F491;
         compares_before = dt.compares;
         for (k = 0; k < iters; k++)
             difftest_fuzz_cases[i].func(&seed);
-        dt_log("difftest: fuzz %s PASS iterations=%lu compared=%lu\n",
+        dt_log("difftest: fuzz %s PASS iterations=%u compared=%u\n",
           difftest_fuzz_cases[i].name, iters, dt.compares - compares_before);
         ran++;
     }
@@ -657,7 +657,7 @@ void difftest_run_fuzz(void)
 
 struct DtCovSlot {
     void *fn;
-    ulong count;
+    u32 count;
 };
 
 static struct DtCovSlot *dt_cov;
@@ -673,7 +673,7 @@ static void dt_cov_dump(void)
 {
     const char *fname = getenv("SWARS_COVERAGE");
     FILE *fh;
-    ulong i;
+    u32 i;
 
     if ((dt_cov == NULL) || (fname == NULL))
         return;
@@ -682,14 +682,14 @@ static void dt_cov_dump(void)
         return;
     for (i = 0; i < DT_COV_SLOTS; i++) {
         if (dt_cov[i].fn != NULL)
-            fprintf(fh, "%08lx %lu\n", dt_rva(dt_cov[i].fn), dt_cov[i].count);
+            fprintf(fh, "%08x %u\n", dt_rva(dt_cov[i].fn), dt_cov[i].count);
     }
     fclose(fh);
 }
 
 void __cyg_profile_func_enter(void *this_fn, void *call_site)
 {
-    ulong h;
+    u32 h;
 
     if (!dt_cov_checked) {
         dt_cov_checked = true;
@@ -700,7 +700,7 @@ void __cyg_profile_func_enter(void *this_fn, void *call_site)
     }
     if (dt_cov == NULL)
         return;
-    h = ((ulong)this_fn >> 2) & (DT_COV_SLOTS - 1);
+    h = ((u32)this_fn >> 2) & (DT_COV_SLOTS - 1);
     while ((dt_cov[h].fn != NULL) && (dt_cov[h].fn != this_fn))
         h = (h + 1) & (DT_COV_SLOTS - 1);
     dt_cov[h].fn = this_fn;
@@ -725,8 +725,8 @@ static struct {
     TbBool initialized;
     TbBool enabled;
     TbBool fast;
-    ulong turn_limit;
-    ulong turns;
+    u32 turn_limit;
+    u32 turns;
 } ht;
 
 static void ht_init(void)

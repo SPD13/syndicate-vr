@@ -45,7 +45,7 @@
 TbBool LbIApplyControlCharToDrawSettings(const char **c);
 TbBool LbIApplyControlCharToAlignSettings(const char **c);
 TbBool LbIAlignMethodSet(ushort fdflags);
-TbBool is_wide_charcode(ulong chr);
+TbBool is_wide_charcode(u32 chr);
 
 void AppSpriteDrawDoubleOneColour(const struct TbSprite *p_spr, int x, int y, ubyte col);
 
@@ -58,13 +58,13 @@ void AppSpriteDrawDoubleOneColour(const struct TbSprite *p_spr, int x, int y, ub
  * @param space_len
  */
 void put_down_shdcflshtext_sprites(const char *sbuf, const char *ebuf,
-  long x, long y, long space_len,
+  s32 x, s32 y, s32 space_len,
   short sf_base, short sf_shift)
 {
   const char *c;
   const struct TbSprite *spr;
   ubyte chr;
-  long w,h;
+  s32 w,h;
   for (c=sbuf; c < ebuf; c++)
   {
     short fade_lv;
@@ -115,7 +115,7 @@ void put_down_shdcflshtext_sprites(const char *sbuf, const char *ebuf,
     } else
     if (chr == '\t')
     {
-        w = space_len*(long)lbSpacesPerTab;
+        w = space_len*(s32)lbSpacesPerTab;
         if ((lbDisplay.DrawFlags & Lb_TEXT_UNDERLINE) != 0)
         {
             h = LbTextLineHeight();
@@ -140,13 +140,13 @@ void put_down_shdcflshtext_sprites(const char *sbuf, const char *ebuf,
  * @param units_per_px
  */
 void put_down_shdcflshtext_sprites_resized(const char *sbuf, const char *ebuf,
-  long x, long y, long space_len, int units_per_px,
+  s32 x, s32 y, s32 space_len, int units_per_px,
   short sf_base, short sf_shift)
 {
   const char *c;
   const struct TbSprite *spr;
   ubyte chr;
-  long w,h;
+  s32 w,h;
   for (c=sbuf; c < ebuf; c++)
   {
     short fade_lv;
@@ -198,7 +198,7 @@ void put_down_shdcflshtext_sprites_resized(const char *sbuf, const char *ebuf,
     } else
     if (chr == '\t')
     {
-        w = space_len*(long)lbSpacesPerTab;
+        w = space_len*(s32)lbSpacesPerTab;
         if ((lbDisplay.DrawFlags & Lb_TEXT_UNDERLINE) != 0)
         {
             h = LbTextLineHeight() * units_per_px / 16;
@@ -214,7 +214,7 @@ void put_down_shdcflshtext_sprites_resized(const char *sbuf, const char *ebuf,
 }
 
 void put_down_sf_sprites(const char *sbuf, const char *ebuf,
-  long x, long y, long space_len, int units_per_px, ushort ttl_turns)
+  s32 x, s32 y, s32 space_len, int units_per_px, ushort ttl_turns)
 {
     if (units_per_px == 16)
     {

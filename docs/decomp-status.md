@@ -49,9 +49,17 @@ plan is in `docs/decompilation-agent-plan.md`.
     offsets.
   - `layout_diff.py` compares struct layouts of the two builds;
     `dump_compare.py` compares things dumps of a 32 and 64-bit run.
-- Next: LP64 (Linux, macOS, Android): `long` is 64 bits there, so
-  `long`/`ulong` become `s32`/`u32` (`long_to_fixed.py`, formats by
-  `fix_formats.py`).
+- LP64 (Linux, macOS, Android, where `long` is 64 bits): no `long` or
+  `ulong` in our code any more, `s32`/`u32` instead (`int32_t`/`uint32_t`
+  in bfsoundlib; `long_to_fixed.py`), printf directives without `l`
+  (`long_formats.py`). Only the WildMidi API variables keep `unsigned
+  long`. With no `long` left, struct layouts are the same on LP64 as on
+  64-bit Windows, which the traces verify. The asm of reference
+  functions is `DIFFTEST_ASM(...)`, empty without difftest, as clang
+  rejects x86 register constraints on other targets.
+- Not verified: a Linux or arm64 compile (no WSL, no cross compiler on
+  this PC); game behaviour that depends on the C library (e.g. msvcrt
+  rand() outside the harness) may differ between systems.
 - **Asm-free single player build, 2026-11-22/23** (user goal: no asm in a
   build without difftest; network left aside). Done so far:
   - `thing_expld_s`, `thing_fire_s`, `bflib_vidraw_s` assembled only for

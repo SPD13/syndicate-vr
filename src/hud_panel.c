@@ -845,7 +845,7 @@ TbBool check_scanner_input(void)
  * @param py
  * @param spr_id
  */
-void draw_new_panel_sprite_std(int px, int py, ulong spr_id)
+void draw_new_panel_sprite_std(int px, int py, u32 spr_id)
 {
     struct TbSprite *p_spr;
     ushort drwflags;
@@ -877,7 +877,7 @@ void draw_new_panel_sprite_std(int px, int py, ulong spr_id)
  * @param py
  * @param spr_id
  */
-void draw_new_panel_sprite_scaled_std(int px, int py, ulong spr_id, int dest_width, int dest_height)
+void draw_new_panel_sprite_scaled_std(int px, int py, u32 spr_id, int dest_width, int dest_height)
 {
     struct TbSprite *p_spr;
     ushort drwflags;
@@ -910,7 +910,7 @@ void draw_new_panel_sprite_scaled_std(int px, int py, ulong spr_id, int dest_wid
  * @param py
  * @param spr_id
  */
-void draw_new_panel_sprite_dark(int px, int py, ulong spr_id)
+void draw_new_panel_sprite_dark(int px, int py, u32 spr_id)
 {
     struct TbSprite *p_spr;
     ushort drwflags;
@@ -935,7 +935,7 @@ void draw_new_panel_sprite_dark(int px, int py, ulong spr_id)
  * @param py
  * @param spr_id
  */
-void draw_new_panel_sprite_scaled_dark(int px, int py, ulong spr_id, int dest_width, int dest_height)
+void draw_new_panel_sprite_scaled_dark(int px, int py, u32 spr_id, int dest_width, int dest_height)
 {
     struct TbSprite *p_spr;
     ushort drwflags;
@@ -961,7 +961,7 @@ void draw_new_panel_sprite_scaled_dark(int px, int py, ulong spr_id, int dest_wi
  * @param py
  * @param spr_id
  */
-void draw_new_panel_sprite_prealp(int px, int py, ulong spr_id)
+void draw_new_panel_sprite_prealp(int px, int py, u32 spr_id)
 {
     struct TbSprite *p_spr;
     ushort drwflags;
@@ -1143,10 +1143,10 @@ TbBool draw_panel_pickable_thing_player_targeted(PlayerInfo *p_locplayer)
  * @param current_weapon
  * @return
  */
-int count_weapons_in_flags(int *p_ncarr_below, int *p_ncarr_above, ulong weapons_carried, short current_weapon)
+int count_weapons_in_flags(int *p_ncarr_below, int *p_ncarr_above, u32 weapons_carried, short current_weapon)
 {
     int ncarried, ncarr_below, ncarr_above;
-    ulong wepflags;
+    u32 wepflags;
     WeaponType nwtype;
 
     ncarried = 0;
@@ -1330,13 +1330,13 @@ TbBool panel_mouse_over_weapon(short box_x, short box_y,
  * as draw_weapons_list_prealp(), but update state instead of drawing.
  */
 TbBool update_weapons_list_prealp(PlayerIdx plyr, ushort plagent,
-  ulong weapons_carried, short current_weapon)
+  u32 weapons_carried, short current_weapon)
 {
     struct GamePanel *p_panel;
     ushort nshown;
     WeaponType wtype;
     int nchecked;
-    ulong wepflags;
+    u32 wepflags;
     short cx, cy;
     int ncarried;
     int ncarr_below;
@@ -1395,13 +1395,13 @@ TbBool update_weapons_list_prealp(PlayerIdx plyr, ushort plagent,
     return ret;
 }
 
-void draw_weapons_list_prealp(PlayerIdx plyr, ushort plagent, ulong weapons_carried, short current_weapon)
+void draw_weapons_list_prealp(PlayerIdx plyr, ushort plagent, u32 weapons_carried, short current_weapon)
 {
     struct GamePanel *p_panel;
     ushort nshown;
     WeaponType wtype;
     int nchecked;
-    ulong wepflags;
+    u32 wepflags;
     short cx, cy;
     int ncarried;
     int ncarr_below;
@@ -1547,7 +1547,7 @@ TbBool update_agent_weapons_selection(PlayerIdx plyr, short nagent)
     PlayerInfo *p_player;
     struct Thing *p_agent;
     struct GamePanel *p_panel;
-    ulong wepflags;
+    u32 wepflags;
     ushort panstate;
     int cx, cy;
     WeaponType cur_ready_wep, wtype;
@@ -1631,7 +1631,7 @@ void draw_agent_weapons_selection(PlayerIdx plyr, short nagent)
     PlayerInfo *p_player;
     struct Thing *p_agent;
     struct GamePanel *p_panel;
-    ulong wepflags;
+    u32 wepflags;
     int cx, cy;
     WeaponType cur_ready_wep, wtype;
     ushort plagent;

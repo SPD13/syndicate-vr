@@ -41,7 +41,7 @@ void FontSpacingRestore(struct TbSprite *font, ushort space_bkp);
 /** Altered version of LbFontCharSprite() which returns non-const reference.
  */
 struct TbSprite *AppFontCharSpriteRW(struct TbSprite *font,
-  const ulong chr);
+  const u32 chr);
 
 /******************************************************************************/
 #ifdef __cplusplus

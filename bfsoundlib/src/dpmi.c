@@ -36,7 +36,7 @@ uint16_t alloc_count = 0;
 
 /******************************************************************************/
 
-void *AllocDOSmem(uint16_t *sel, long size)
+void *AllocDOSmem(uint16_t *sel, int32_t size)
 {
 #if defined(DOS)||defined(GO32)
     DOS_Registers r;

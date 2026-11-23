@@ -126,7 +126,7 @@ void packet_rel_position_3d_normalize(short *p_x, short *p_y, short *p_z)
 static DIFFTEST_REF_FUNC void thing_goto_point_rel_asm(struct Thing *p_thing,
   short x, short y, short z)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_thing_goto_point_rel\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z));
 }
@@ -202,7 +202,7 @@ static DIFFTEST_REF_FUNC void thing_goto_point_rel_fast_asm(struct Thing *p_thin
   short x, short y, short z, int plyr)
 {
     int stkargs[] = {plyr};
-    asm volatile (
+    DIFFTEST_ASM(
       "push 0(%4)\n"
       "call ASM_thing_goto_point_rel_fast\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z), "S" (stkargs)
@@ -230,7 +230,7 @@ static DIFFTEST_REF_FUNC void thing_goto_point_fast_asm(struct Thing *p_thing,
   short x, short y, short z, int plyr)
 {
     int stkargs[] = {plyr};
-    asm volatile (
+    DIFFTEST_ASM(
       "push 0(%4)\n"
       "call ASM_thing_goto_point_fast\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z), "S" (stkargs)
@@ -258,7 +258,7 @@ void thing_goto_point_fast(struct Thing *p_thing, short x, short y, short z, int
 static DIFFTEST_REF_FUNC void clear_player_protectors_paths_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_clear_player_protectors_paths\n"
+    DIFFTEST_ASM("call ASM_clear_player_protectors_paths\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -291,7 +291,7 @@ void clear_player_protectors_paths(intptr_t a1, int a2, int a3, int a4)
 static DIFFTEST_REF_FUNC void thing_goto_point_asm(struct Thing *p_thing,
   short x, short y, short z)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_thing_goto_point\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z));
 }
@@ -387,7 +387,7 @@ static DIFFTEST_REF_FUNC void thing_goto_point_on_face_fast_asm(struct Thing *p_
   short x, short z, short face, int plyr)
 {
     int stkargs[] = {plyr};
-    asm volatile (
+    DIFFTEST_ASM(
       "push 0(%4)\n"
       "call ASM_thing_goto_point_on_face_fast\n"
         : : "a" (p_thing), "d" (x), "b" (z), "c" (face), "S" (stkargs)
@@ -414,7 +414,7 @@ void thing_goto_point_on_face_fast(struct Thing *p_thing, short x, short z, shor
 static DIFFTEST_REF_FUNC void find_bezier_nav_point_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_find_bezier_nav_point\n"
+    DIFFTEST_ASM("call ASM_find_bezier_nav_point\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -465,7 +465,7 @@ void find_bezier_nav_point(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
 static DIFFTEST_REF_FUNC void thing_goto_point_on_face_asm(struct Thing *p_thing,
   short x, short z, short face)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_thing_goto_point_on_face\n"
         : : "a" (p_thing), "d" (x), "b" (z), "c" (face));
 }
@@ -571,7 +571,7 @@ void thing_goto_point_on_face(struct Thing *p_thing, short x, short z, short fac
 static DIFFTEST_REF_FUNC ubyte select_new_weapon_asm(ushort index, short dir)
 {
     ubyte ret;
-    asm volatile ("call ASM_select_new_weapon\n"
+    DIFFTEST_ASM("call ASM_select_new_weapon\n"
         : "=a" (ret) : "a" (index), "d" (dir));
     return ret;
 }
@@ -613,7 +613,7 @@ extern struct UnkPlayerGroup unkn_player_groups[8][5];
 
 static DIFFTEST_REF_FUNC void unkn_player_group_add_asm(sbyte a1, ubyte a2)
 {
-    asm volatile ("call ASM_unkn_player_group_add\n"
+    DIFFTEST_ASM("call ASM_unkn_player_group_add\n"
         :  : "a" (a1), "d" (a2));
 }
 
@@ -647,7 +647,7 @@ void unkn_player_group_add(sbyte a1, ubyte a2)
 
 static DIFFTEST_REF_FUNC void unkn_player_group_prot_asm(sbyte a1, ubyte a2)
 {
-    asm volatile ("call ASM_unkn_player_group_prot\n"
+    DIFFTEST_ASM("call ASM_unkn_player_group_prot\n"
         :  : "a" (a1), "d" (a2));
 }
 
@@ -691,7 +691,7 @@ void unkn_player_group_prot(sbyte a1, ubyte a2)
 
 static DIFFTEST_REF_FUNC void peep_change_weapon_asm(struct Thing *p_person)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_peep_change_weapon\n"
         : : "a" (p_person));
 }
@@ -839,7 +839,7 @@ void person_give_all_weapons(struct Thing *p_person)
     for (wtype = WEP_TYPES_COUNT-1; wtype > WEP_NULL; wtype--)
     {
         struct WeaponDef *wdef;
-        ulong wepflg;
+        u32 wepflg;
 
         wdef = &weapon_defs[wtype];
 
@@ -1129,7 +1129,7 @@ extern ubyte player_message_timer[PLAYERS_LIMIT];
 
 static DIFFTEST_REF_FUNC void player_chat_message_add_key_asm(ushort a1, int a2)
 {
-    asm volatile ("call ASM_player_chat_message_add_key\n"
+    DIFFTEST_ASM("call ASM_player_chat_message_add_key\n"
         :  : "a" (a1), "d" (a2));
 }
 

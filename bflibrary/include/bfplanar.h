@@ -27,20 +27,20 @@ extern "C" {
 #endif
 
 struct TbRect {
-  long left;
-  long top;
-  long right;
-  long bottom;
+  s32 left;
+  s32 top;
+  s32 right;
+  s32 bottom;
 };
 
 struct TbPoint {
-  long x;
-  long y;
+  s32 x;
+  s32 y;
 };
 
 /******************************************************************************/
 
-void LbSetRect(struct TbRect *rect, long xLeft, long yTop, long xRight, long yBottom);
+void LbSetRect(struct TbRect *rect, s32 xLeft, s32 yTop, s32 xRight, s32 yBottom);
 
 #ifdef __cplusplus
 }

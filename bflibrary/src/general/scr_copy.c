@@ -20,16 +20,16 @@
 #include "bfscrcopy.h"
 #include "bfscreen.h"
 
-void *LbI_XMemCopy(void *dest, void *source, ulong len);
+void *LbI_XMemCopy(void *dest, void *source, u32 len);
 
-void *LbI_XMemCopyFlip(void *dest, void *source, ulong len);
+void *LbI_XMemCopyFlip(void *dest, void *source, u32 len);
 
-void *LbI_XMemRectCopy(void *dest, void *source, ulong lineLen,
-  ulong width, ulong height);
+void *LbI_XMemRectCopy(void *dest, void *source, u32 lineLen,
+  u32 width, u32 height);
 
 void LbScreenCopyBox(TbPixel *sourceBuf, TbPixel *destBuf,
-  long sourceX, long sourceY, long destX, long destY,
-  ulong width, ulong height)
+  s32 sourceX, s32 sourceY, s32 destX, s32 destY,
+  u32 width, u32 height)
 {
     ubyte *s;
     ubyte *d;

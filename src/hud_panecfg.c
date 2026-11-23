@@ -579,7 +579,7 @@ TbBool read_panel_config(const char *name, ushort styleno, ushort detail)
     TbFileHandle conf_fh;
     TbBool done;
     int i, n;
-    long k, m, p;
+    s32 k, m, p;
     char *conf_buf;
     struct TbIniParser parser;
     char conf_fname[DISKPATH_SIZE];
@@ -605,8 +605,8 @@ TbBool read_panel_config(const char *name, ushort styleno, ushort detail)
     }
     conf_buf[conf_len] = '\0';
     LbIniParseStart(&parser, conf_buf, conf_len);
-#define CONFWRNLOG(format,args...) LOGWARN("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
-#define CONFDBGLOG(format,args...) LOGDBG("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
+#define CONFWRNLOG(format,args...) LOGWARN("%s(line %u): " format, conf_fname, parser.line_num, ## args)
+#define CONFDBGLOG(format,args...) LOGDBG("%s(line %u): " format, conf_fname, parser.line_num, ## args)
     pop_panel_count = 0;
 
     // Parse the [common] section of loaded file

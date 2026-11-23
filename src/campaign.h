@@ -108,10 +108,10 @@ struct Campaign {
     ushort NetscanTextId;
     /** Shift for translated text IDs for all weapon names. */
     ushort WeaponsTextIdShift;
-    ulong ResearchWeapons;
-    ulong StandardWeapons;
-    ulong ResearchMods;
-    ulong StandardMods;
+    u32 ResearchWeapons;
+    u32 StandardWeapons;
+    u32 ResearchMods;
+    u32 StandardMods;
     /** Char marking text translations file names for the campaign. */
     const char *TextFnMk;
     /** Char marking projector file names for the campaign. */
@@ -152,7 +152,7 @@ struct Mission { // sizeof=76
     /** Amount of netscan objectives (mission brief objectives) assigned to this mission. */
     ubyte NetscanObvCount;
     /** Weapons made researchable by completing this mission. */
-    ulong ResearchWeapons;
+    u32 ResearchWeapons;
     /** Type of an extra, unique reward given to the player for mission complete. */
     ubyte ExtraRewardType;
     /** Parameter for the extra unique reward, meaning depends on its type. */

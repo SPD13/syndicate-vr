@@ -110,7 +110,7 @@ ubyte cybmod_skin_level(union Mod *p_umod);
 void set_cybmod_skin_level(union Mod *p_umod, ubyte nmod);
 ubyte cybmod_level(union Mod *p_umod, ubyte mgroup);
 
-ushort cybmodflags_prev_mod(ulong modflags, ushort last_mtype);
+ushort cybmodflags_prev_mod(u32 modflags, ushort last_mtype);
 ushort cybmod_group_type(ushort mtype);
 ushort cybmod_version(ushort mtype);
 ushort cybmod_type(ushort mgroup, ushort mver);

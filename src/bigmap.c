@@ -58,7 +58,7 @@ struct ColColumn *game_col_columns = NULL;
 ushort next_col_column = 1;
 /******************************************************************************/
 
-TbBool map_coords_limit(MapCoord *cor_x, MapCoord *cor_y, MapCoord *cor_z, long map_x, long map_y, long map_z)
+TbBool map_coords_limit(MapCoord *cor_x, MapCoord *cor_y, MapCoord *cor_z, s32 map_x, s32 map_y, s32 map_z)
 {
     TbBool altered;
 
@@ -155,8 +155,8 @@ void refresh_old_my_big_map_format(struct MyMapElement *p_mapel, struct MyMapEle
 void init_search_spiral_steps(void)
 {
     struct MapOffset *sstep;
-    long x,y;
-    long i;
+    s32 x,y;
+    s32 i;
 
     y = 0;
     x = 0;
@@ -210,8 +210,8 @@ void init_search_spiral_steps(void)
 void init_dist_to_spiral_steps(void)
 {
     struct MapOffset *sstep;
-    long i, ssi;
-    ulong dist, distss;
+    s32 i, ssi;
+    u32 dist, distss;
 
     ssi = SPIRAL_STEPS_COUNT-1;
     for (i = MAP_TILE_WIDTH; i > 0; i--)
@@ -267,7 +267,7 @@ static DIFFTEST_REF_FUNC int alt_at_point_asm(short x, short z)
 {
     int ret;
     int dummy_d;
-    asm volatile ("call ASM_alt_at_point\n"
+    DIFFTEST_ASM("call ASM_alt_at_point\n"
         : "=a" (ret), "=d" (dummy_d) : "a" (x), "d" (z));
     return ret;
 }
@@ -406,7 +406,7 @@ int alt_change_at_tile(short tile_x, short tile_z, int *change_xz)
 static DIFFTEST_REF_FUNC int is_this_a_nice_place_for_a_picnic_asm(s32 prc_x, s32 prc_z)
 {
     int ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_is_this_a_nice_place_for_a_picnic\n"
         : "=a" (ret) : "a" (prc_x), "d" (prc_z));
     return ret;
@@ -610,7 +610,7 @@ extern ubyte textwalk_data[];
 static DIFFTEST_REF_FUNC uint sea_texture_asm(int tex)
 {
     uint ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_sea_texture\n"
         : "=a" (ret) : "a" (tex));
     return ret;

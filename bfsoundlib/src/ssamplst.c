@@ -40,7 +40,7 @@ TbBool sample_queue_handle_stopped = 1;
 SNDSAMPLE *sample_queue_handle = NULL;
 
 sbyte CurrentSoundBank = -1;
-long current_sample_queue_count = 0;
+int32_t current_sample_queue_count = 0;
 
 extern TbBool SoundInstalled;
 extern TbBool DisableLoadSounds;
@@ -57,8 +57,8 @@ extern void *SfxData;
 extern void *Sfx;
 extern void *EndSfxs;
 
-extern long largest_dat_size;
-extern long largest_tab_size;
+extern int32_t largest_dat_size;
+extern int32_t largest_tab_size;
 
 /******************************************************************************/
 
@@ -164,7 +164,7 @@ ubyte load_sound_bank(TbFileHandle fh, ubyte bank_tpno)
     LbFileRead(fh, SfxData, 8);
     if (blong(SfxData+0) == RNC_SIGNATURE)
     {
-        long fsize = blong(SfxData+4);
+        int32_t fsize = blong(SfxData+4);
         LbFileRead(fh, SfxData + 8, fsize - 8);
         UnpackM1(SfxData, fsize);
     }
@@ -177,7 +177,7 @@ ubyte load_sound_bank(TbFileHandle fh, ubyte bank_tpno)
     LbFileRead(fh, Sfx, 8);
     if (blong(Sfx+0) == RNC_SIGNATURE)
     {
-        long fsize = blong(Sfx+4);
+        int32_t fsize = blong(Sfx+4);
         LbFileRead(fh, Sfx + 8, fsize - 8);
         UnpackM1(Sfx, fsize);
     }
@@ -195,7 +195,7 @@ ubyte load_sound_bank(TbFileHandle fh, ubyte bank_tpno)
 int LoadSounds(ubyte bank_no)
 {
     TbFileHandle fh;
-    long len, banks_offs;
+    int32_t len, banks_offs;
     ushort tpno;
     ushort banks_per_tpno[9];
 

@@ -45,7 +45,7 @@
 
 TbBool LbIApplyControlCharToDrawSettings(const char **c);
 TbBool LbIAlignMethodSet(ushort fdflags);
-TbBool is_wide_charcode(ulong chr);
+TbBool is_wide_charcode(u32 chr);
 
 /** @internal
  * Puts brightness adjusted text sprites on screen.
@@ -56,12 +56,12 @@ TbBool is_wide_charcode(ulong chr);
  * @param space_len
  */
 void put_down_brigadjtext_sprites(const char *sbuf, const char *ebuf,
-  long x, long y, long space_len, short brig)
+  s32 x, s32 y, s32 space_len, short brig)
 {
   const char *c;
   const struct TbSprite *p_spr;
   ubyte chr;
-  long w,h;
+  s32 w,h;
 
   if (brig > PALETTE_FADE_LEVELS-1)
       brig = PALETTE_FADE_LEVELS-1;
@@ -108,7 +108,7 @@ void put_down_brigadjtext_sprites(const char *sbuf, const char *ebuf,
     } else
     if (chr == '\t')
     {
-        w = space_len*(long)lbSpacesPerTab;
+        w = space_len*(s32)lbSpacesPerTab;
         if ((lbDisplay.DrawFlags & Lb_TEXT_UNDERLINE) != 0)
         {
             h = LbTextLineHeight();
@@ -132,12 +132,12 @@ void put_down_brigadjtext_sprites(const char *sbuf, const char *ebuf,
  * @param units_per_px
  */
 void put_down_brigadjtext_sprites_resized(const char *sbuf, const char *ebuf,
-  long x, long y, long space_len, int units_per_px, short brig)
+  s32 x, s32 y, s32 space_len, int units_per_px, short brig)
 {
   const char *c;
   const struct TbSprite *p_spr;
   ubyte chr;
-  long w,h;
+  s32 w,h;
 
   if (brig > PALETTE_FADE_LEVELS-1)
       brig = PALETTE_FADE_LEVELS-1;
@@ -185,7 +185,7 @@ void put_down_brigadjtext_sprites_resized(const char *sbuf, const char *ebuf,
     } else
     if (chr == '\t')
     {
-        w = space_len*(long)lbSpacesPerTab;
+        w = space_len*(s32)lbSpacesPerTab;
         if ((lbDisplay.DrawFlags & Lb_TEXT_UNDERLINE) != 0)
         {
             h = LbTextLineHeight() * units_per_px / 16;
@@ -200,7 +200,7 @@ void put_down_brigadjtext_sprites_resized(const char *sbuf, const char *ebuf,
 }
 
 void put_down_ba_sprites(const char *sbuf, const char *ebuf,
-  long x, long y, long space_len, int units_per_px, short brig)
+  s32 x, s32 y, s32 space_len, int units_per_px, short brig)
 {
     if (units_per_px == 16)
     {

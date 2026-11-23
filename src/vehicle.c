@@ -305,7 +305,7 @@ const char *vehicle_type_name(ushort vtype)
     return "VEHICLE";
 }
 
-void snprint_vehicle_state(char *buf, ulong buflen, struct Thing *p_thing)
+void snprint_vehicle_state(char *buf, u32 buflen, struct Thing *p_thing)
 {
     char *s;
     //ubyte nparams;
@@ -463,7 +463,7 @@ static DIFFTEST_REF_FUNC int init_unkn1thing_asm(int a1, int a2, int a3, int a4,
     stkargs[1] = a6;
     stkargs[2] = a7;
     stkargs[3] = a8;
-    asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_init_unkn1thing\n"
+    DIFFTEST_ASM("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_init_unkn1thing\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
     return ra;
 }
@@ -524,7 +524,7 @@ int init_unkn1thing(intptr_t a1, int a2, int a3, int a4, int a5, int a6, int a7,
 
 static DIFFTEST_REF_FUNC void mech_unkn_func_09_asm(ThingIdx thing)
 {
-    asm volatile ("call ASM_mech_unkn_func_09\n"
+    DIFFTEST_ASM("call ASM_mech_unkn_func_09\n"
         : : "a" (thing));
 }
 
@@ -777,7 +777,7 @@ ushort veh_passenger_count(struct Thing *p_veh)
 static DIFFTEST_REF_FUNC void VNAV_find_nearnodes_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_VNAV_find_nearnodes\n"
+    DIFFTEST_ASM("call ASM_VNAV_find_nearnodes\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -847,7 +847,7 @@ static DIFFTEST_REF_FUNC void VNAV_qwertyuiop_asm(int a1, int a2, int a3, int a4
     stkargs[1] = a6;
     stkargs[2] = a7;
     stkargs[3] = a8;
-    asm volatile ("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_VNAV_qwertyuiop\n"
+    DIFFTEST_ASM("push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_VNAV_qwertyuiop\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
@@ -926,7 +926,7 @@ static DIFFTEST_REF_FUNC void VNAV_find_start_dropoff_point_asm(int a1, int a2, 
     int stkargs[1];
     int *p_stk = stkargs;
     stkargs[0] = a5;
-    asm volatile ("push 0(%4)\n""call ASM_VNAV_find_start_dropoff_point\n"
+    DIFFTEST_ASM("push 0(%4)\n""call ASM_VNAV_find_start_dropoff_point\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
@@ -984,7 +984,7 @@ int rotate_obj(int a1, int a2, int a3, intptr_t a4);
 
 static DIFFTEST_REF_FUNC void VNAV_unkn_func_207_asm(struct Thing *p_thing)
 {
-    asm volatile ("call ASM_VNAV_unkn_func_207\n"
+    DIFFTEST_ASM("call ASM_VNAV_unkn_func_207\n"
         : : "a" (p_thing));
 }
 
@@ -1135,7 +1135,7 @@ static DIFFTEST_REF_FUNC int check_for_a_vehicle_here_asm(int x, int z,
 {
     int ra = x, rd = z;
     struct Thing *rb = p_vehicle;
-    asm volatile ("call ASM_check_for_a_vehicle_here\n"
+    DIFFTEST_ASM("call ASM_check_for_a_vehicle_here\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
     return ra;
 }
@@ -1224,7 +1224,7 @@ int check_for_a_vehicle_here(int x, int z, struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC int person_poke_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_person_poke\n"
+    DIFFTEST_ASM("call ASM_person_poke\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -1293,7 +1293,7 @@ void person_go_sleep(struct Thing *p_person);
 
 static DIFFTEST_REF_FUNC void person_hit_by_car_asm(struct Thing *p_person, struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_person_hit_by_car\n"
+    DIFFTEST_ASM("call ASM_person_hit_by_car\n"
         : : "a" (p_person), "d" (p_vehicle));
 }
 
@@ -1825,7 +1825,7 @@ TbBool check_vehicle_col(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void start_crashing_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_start_crashing\n"
+    DIFFTEST_ASM("call ASM_start_crashing\n"
         : : "a" (p_vehicle));
 }
 
@@ -1859,7 +1859,7 @@ void start_crashing(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void start_landing_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_start_landing\n"
+    DIFFTEST_ASM("call ASM_start_landing\n"
         : : "a" (p_vehicle));
 }
 
@@ -1882,7 +1882,7 @@ void start_landing(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC int exit_pod_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_exit_pod\n"
+    DIFFTEST_ASM("call ASM_exit_pod\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
     return ra;
 }
@@ -1920,7 +1920,7 @@ int exit_pod(intptr_t a1, int a2, intptr_t a3, int a4)
 static DIFFTEST_REF_FUNC void set_object_flag_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_set_object_flag\n"
+    DIFFTEST_ASM("call ASM_set_object_flag\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -1968,7 +1968,7 @@ void set_object_flag(int a1, int a2, intptr_t a3, int a4)
 
 static DIFFTEST_REF_FUNC void process_shuttle_pod_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_shuttle_pod\n"
+    DIFFTEST_ASM("call ASM_process_shuttle_pod\n"
         : : "a" (p_vehicle));
 }
 
@@ -2020,7 +2020,7 @@ void process_shuttle_pod(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC void explode_thing_object_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_explode_thing_object\n"
+    DIFFTEST_ASM("call ASM_explode_thing_object\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -2163,7 +2163,7 @@ void explode_thing_object(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void init_vehicle_explode_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_init_vehicle_explode\n"
+    DIFFTEST_ASM("call ASM_init_vehicle_explode\n"
         : : "a" (p_vehicle));
 }
 
@@ -2225,7 +2225,7 @@ void init_vehicle_explode(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC void flatten_vehicle_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_flatten_vehicle\n"
+    DIFFTEST_ASM("call ASM_flatten_vehicle\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -2264,7 +2264,7 @@ void flatten_vehicle(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
 static DIFFTEST_REF_FUNC int check_tank_collision_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_check_tank_collision\n"
+    DIFFTEST_ASM("call ASM_check_tank_collision\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -2417,7 +2417,7 @@ int check_tank_collision(intptr_t a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void process_tank_stationary_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_tank_stationary\n"
+    DIFFTEST_ASM("call ASM_process_tank_stationary\n"
         : : "a" (p_vehicle));
 }
 
@@ -2458,7 +2458,7 @@ int do_next_navigate_index(intptr_t a1, int a2, int a3, int a4);
 
 static DIFFTEST_REF_FUNC void process_tank_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_tank\n"
+    DIFFTEST_ASM("call ASM_process_tank\n"
         : : "a" (p_vehicle));
 }
 
@@ -2578,7 +2578,7 @@ void process_tank(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void set_passengers_location_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_set_passengers_location\n"
+    DIFFTEST_ASM("call ASM_set_passengers_location\n"
         : : "a" (p_vehicle));
 }
 
@@ -2618,7 +2618,7 @@ void set_passengers_location(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC void swoosh_veh_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_swoosh_veh\n"
+    DIFFTEST_ASM("call ASM_swoosh_veh\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
 }
 
@@ -2629,7 +2629,7 @@ void swoosh_veh(intptr_t a1, int a2, int a3, int a4)
 
     DIFFTEST_SHADOW(swoosh_veh, swoosh_veh_asm(a1, a2, a3, a4));
     if ((last_swoosh_thing == p_vehicle->ThingOffset) &&
-      ((ulong)(gameturn - last_swoosh_turn) < 150))
+      ((u32)(gameturn - last_swoosh_turn) < 150))
         return;
     if (ingame.TrackThing == p_vehicle->ThingOffset)
         return;
@@ -2659,7 +2659,7 @@ int rotate_obj(int a1, int a2, int a3, intptr_t a4);
 
 static DIFFTEST_REF_FUNC void move_flying_vehicle_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_move_flying_vehicle\n"
+    DIFFTEST_ASM("call ASM_move_flying_vehicle\n"
         : : "a" (p_vehicle));
 }
 
@@ -2801,7 +2801,7 @@ void process_tank_turret(struct Thing *p_tank)
 static DIFFTEST_REF_FUNC int find_next_ship_tnode_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_find_next_ship_tnode\n"
+    DIFFTEST_ASM("call ASM_find_next_ship_tnode\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -2859,7 +2859,7 @@ extern s32 data_1c84f4[];
 
 static DIFFTEST_REF_FUNC void process_ship_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_ship\n"
+    DIFFTEST_ASM("call ASM_process_ship\n"
         : : "a" (p_vehicle));
 }
 
@@ -3039,7 +3039,7 @@ void process_ship(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void process_mech_stationary_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_mech_stationary\n"
+    DIFFTEST_ASM("call ASM_process_mech_stationary\n"
         : : "a" (p_vehicle));
 }
 
@@ -3100,7 +3100,7 @@ void process_mech_stationary(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void process_mech_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_mech\n"
+    DIFFTEST_ASM("call ASM_process_mech\n"
         : : "a" (p_vehicle));
 }
 
@@ -3220,7 +3220,7 @@ void process_mech(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC void matrix_transpose_cp_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
-    asm volatile ("call ASM_matrix_transpose_cp\n"
+    DIFFTEST_ASM("call ASM_matrix_transpose_cp\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "esi", "edi", "cc", "memory");
 }
 
@@ -3251,7 +3251,7 @@ static DIFFTEST_REF_FUNC void mech_unkn_func_20_asm(struct M31 *p_from,
   struct M31 *p_to, s32 div, struct M31 *p_out)
 {
     int ra = (int)(intptr_t)p_from, rd = (int)(intptr_t)p_to, rb = div;
-    asm volatile ("call ASM_mech_unkn_func_20\n"
+    DIFFTEST_ASM("call ASM_mech_unkn_func_20\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+S" (p_out)
         : : "ecx", "edi", "cc", "memory");
 }
@@ -3299,7 +3299,7 @@ void mech_unkn_func_20(struct M31 *p_from, struct M31 *p_to, s32 div,
 static DIFFTEST_REF_FUNC void mech_unkn_func_19_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_mech_unkn_func_19\n"
+    DIFFTEST_ASM("call ASM_mech_unkn_func_19\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -3374,7 +3374,7 @@ void mech_unkn_func_19(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void mech_unkn_func_05_asm(int owntng, int a2, int a3)
 {
-    asm volatile ("call ASM_mech_unkn_func_05\n"
+    DIFFTEST_ASM("call ASM_mech_unkn_func_05\n"
         : : "a" (owntng), "d" (a2), "b" (a3));
 }
 
@@ -3403,7 +3403,7 @@ void mech_unkn_func_05(int owntng, int a2, int a3)
 static DIFFTEST_REF_FUNC int mech_unkn_func_08_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_mech_unkn_func_08\n"
+    DIFFTEST_ASM("call ASM_mech_unkn_func_08\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -3456,7 +3456,7 @@ int mech_unkn_func_08(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
 
 static DIFFTEST_REF_FUNC void process_mech_unknown1_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_mech_unknown1\n"
+    DIFFTEST_ASM("call ASM_process_mech_unknown1\n"
         : : "a" (p_vehicle));
 }
 
@@ -3516,7 +3516,7 @@ void process_mech_unknown1(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC int process_my_crashing_vehicle_asm(struct Thing *p_vehicle)
 {
     int ret;
-    asm volatile ("call ASM_process_my_crashing_vehicle\n"
+    DIFFTEST_ASM("call ASM_process_my_crashing_vehicle\n"
         : "=a" (ret) : "a" (p_vehicle));
     return ret;
 }
@@ -3616,7 +3616,7 @@ int process_my_crashing_vehicle(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC void set_xz_for_unkn3_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_set_xz_for_unkn3\n"
+    DIFFTEST_ASM("call ASM_set_xz_for_unkn3\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -3653,7 +3653,7 @@ void set_xz_for_unkn3(intptr_t a1, intptr_t a2, intptr_t a3, int a4)
 static DIFFTEST_REF_FUNC int train_unkn_st21_exit_func_1_asm(struct Thing *p_vehicle)
 {
     int ret;
-    asm volatile ("call ASM_train_unkn_st21_exit_func_1\n"
+    DIFFTEST_ASM("call ASM_train_unkn_st21_exit_func_1\n"
         : "=a" (ret) : "a" (p_vehicle));
     return ret;
 }
@@ -3694,7 +3694,7 @@ int train_unkn_st21_exit_func_1(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC void thing_unkn_change_speed_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_thing_unkn_change_speed\n"
+    DIFFTEST_ASM("call ASM_thing_unkn_change_speed\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -3722,7 +3722,7 @@ void thing_unkn_change_speed(intptr_t a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void train_unkn_st18_func_1_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_train_unkn_st18_func_1\n"
+    DIFFTEST_ASM("call ASM_train_unkn_st18_func_1\n"
         : : "a" (p_vehicle));
 }
 
@@ -3863,7 +3863,7 @@ void train_unkn_st18_func_1(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void train_unkn_st18_func_2_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_train_unkn_st18_func_2\n"
+    DIFFTEST_ASM("call ASM_train_unkn_st18_func_2\n"
         : : "a" (p_vehicle));
 }
 
@@ -4004,7 +4004,7 @@ void train_unkn_st18_func_2(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void move_vehicle_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_move_vehicle\n"
+    DIFFTEST_ASM("call ASM_move_vehicle\n"
         : : "a" (p_vehicle));
 }
 
@@ -4080,7 +4080,7 @@ void move_vehicle(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC void person_clear_route_and_teleport_to_vehicle_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_person_clear_route_and_teleport_to_vehicle\n"
+    DIFFTEST_ASM("call ASM_person_clear_route_and_teleport_to_vehicle\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
 }
 
@@ -4113,7 +4113,7 @@ static DIFFTEST_REF_FUNC int train_unkn_func_02_asm(int a1, int a2, int a3, int 
     int ra = a1, rd = a2, rb = a3, rc = a4;
     // The asm only sets the low 16 bits of esi before returning it;
     // clear esi so the upper bits of the result are defined.
-    asm volatile ("call ASM_train_unkn_func_02\n"
+    DIFFTEST_ASM("call ASM_train_unkn_func_02\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : "S" (0) : "cc", "memory");
     return ra;
 }
@@ -4182,7 +4182,7 @@ int train_unkn_func_02(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void train_unkn_st20_func_1_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_train_unkn_st20_func_1\n"
+    DIFFTEST_ASM("call ASM_train_unkn_st20_func_1\n"
         : : "a" (p_vehicle));
 }
 
@@ -4251,7 +4251,7 @@ int ariadne_initialise_route(intptr_t a1, int a2, int a3, intptr_t a4);
 static DIFFTEST_REF_FUNC void continue_flying_wander_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_continue_flying_wander\n"
+    DIFFTEST_ASM("call ASM_continue_flying_wander\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -4333,7 +4333,7 @@ void continue_flying_wander(intptr_t a1, int a2, int a3, int a4)
 static DIFFTEST_REF_FUNC int do_next_navigate_index_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_do_next_navigate_index\n"
+    DIFFTEST_ASM("call ASM_do_next_navigate_index\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -4393,7 +4393,7 @@ int flying_alt(intptr_t a1, int a2, int a3, int a4);
 
 static DIFFTEST_REF_FUNC void process_my_flying_vehicle_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_my_flying_vehicle\n"
+    DIFFTEST_ASM("call ASM_process_my_flying_vehicle\n"
         : : "a" (p_vehicle));
 }
 
@@ -4517,7 +4517,7 @@ s32 VNAV_nodedists[5];
 
 static DIFFTEST_REF_FUNC void process_unplacing_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_unplacing\n"
+    DIFFTEST_ASM("call ASM_process_unplacing\n"
         : : "a" (p_vehicle));
 }
 
@@ -4578,7 +4578,7 @@ void process_unplacing(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void process_stop_as_soon_as_you_can_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_stop_as_soon_as_you_can\n"
+    DIFFTEST_ASM("call ASM_process_stop_as_soon_as_you_can\n"
         : : "a" (p_vehicle));
 }
 
@@ -4649,7 +4649,7 @@ void process_stop_as_soon_as_you_can(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC int flying_alt_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_flying_alt\n"
+    DIFFTEST_ASM("call ASM_flying_alt\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -4723,7 +4723,7 @@ static const sbyte quiver[] = {
 
 static DIFFTEST_REF_FUNC void process_hovering_vehicle_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_hovering_vehicle\n"
+    DIFFTEST_ASM("call ASM_process_hovering_vehicle\n"
         : : "a" (p_vehicle));
 }
 
@@ -4753,7 +4753,7 @@ void process_hovering_vehicle(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void process_my_takeoff_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_my_takeoff\n"
+    DIFFTEST_ASM("call ASM_process_my_takeoff\n"
         : : "a" (p_vehicle));
 }
 
@@ -4820,7 +4820,7 @@ void process_my_takeoff(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void process_my_land_vehicle_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_my_land_vehicle\n"
+    DIFFTEST_ASM("call ASM_process_my_land_vehicle\n"
         : : "a" (p_vehicle));
 }
 
@@ -4857,7 +4857,7 @@ void process_my_land_vehicle(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void set_vehicle_alt_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_set_vehicle_alt\n"
+    DIFFTEST_ASM("call ASM_set_vehicle_alt\n"
         : : "a" (p_vehicle));
 }
 
@@ -4888,7 +4888,7 @@ void set_vehicle_alt(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC int check_for_a_moving_vehicle_here_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_check_for_a_moving_vehicle_here\n"
+    DIFFTEST_ASM("call ASM_check_for_a_moving_vehicle_here\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -4974,7 +4974,7 @@ int check_for_a_moving_vehicle_here(int a1, int a2, intptr_t a3, intptr_t a4)
 
 static DIFFTEST_REF_FUNC void process_unstopping_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_unstopping\n"
+    DIFFTEST_ASM("call ASM_process_unstopping\n"
         : : "a" (p_vehicle));
 }
 
@@ -5036,7 +5036,7 @@ void process_unstopping(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void process_stopping_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_stopping\n"
+    DIFFTEST_ASM("call ASM_process_stopping\n"
         : : "a" (p_vehicle));
 }
 
@@ -5107,7 +5107,7 @@ void process_stopping(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void process_vehicle_goto_point_land_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_vehicle_goto_point_land\n"
+    DIFFTEST_ASM("call ASM_process_vehicle_goto_point_land\n"
         : : "a" (p_vehicle));
 }
 
@@ -5137,7 +5137,7 @@ void process_vehicle_goto_point_land(struct Thing *p_vehicle)
 static DIFFTEST_REF_FUNC void scan_max_height_ahead_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_scan_max_height_ahead\n"
+    DIFFTEST_ASM("call ASM_scan_max_height_ahead\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -5200,7 +5200,7 @@ void scan_max_height_ahead(intptr_t a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void process_vehicle_goto_point_fly_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_vehicle_goto_point_fly\n"
+    DIFFTEST_ASM("call ASM_process_vehicle_goto_point_fly\n"
         : : "a" (p_vehicle));
 }
 
@@ -5253,7 +5253,7 @@ void process_vehicle_goto_point_fly(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void process_parked_flyer_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_parked_flyer\n"
+    DIFFTEST_ASM("call ASM_process_parked_flyer\n"
         : : "a" (p_vehicle));
 }
 
@@ -5280,7 +5280,7 @@ void process_parked_flyer(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void init_mech_explode_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_init_mech_explode\n"
+    DIFFTEST_ASM("call ASM_init_mech_explode\n"
         : : "a" (p_vehicle));
 }
 
@@ -5649,9 +5649,9 @@ void process_vehicle(struct Thing *p_vehicle)
     }
 }
 
-void preprogress_trains_turns(ulong nturns)
+void preprogress_trains_turns(u32 nturns)
 {
-    ulong turns;
+    u32 turns;
 
     for (turns = nturns; turns > 0; turns--)
     {

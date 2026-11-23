@@ -137,7 +137,7 @@ TbResult LbGhostTableGenerate(const ubyte *pal, short mix_ratio, const char *fna
 
 TbResult LbGhostTableLoad(const ubyte *pal, short mix_ratio, const char *fname)
 {
-    long len;
+    s32 len;
 
     len = LbFileLoadAt(fname, pixmap.ghost_table);
     lbDisplay.GlassMap = pixmap.ghost_table;
@@ -151,7 +151,7 @@ TbResult LbGhostTableLoad(const ubyte *pal, short mix_ratio, const char *fname)
         if (len == Lb_FAIL) {
             LOGERR("%s: Colour ghosting table loading failed", fname);
         } else {
-            LOGWARN("%s: Loaded colour ghosting table has unexpected size (%ld)", fname, len);
+            LOGWARN("%s: Loaded colour ghosting table has unexpected size (%d)", fname, len);
         }
         return Lb_FAIL;
     }

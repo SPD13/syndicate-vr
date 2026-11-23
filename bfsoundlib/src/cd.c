@@ -68,11 +68,11 @@ TbBool CDTimerActive = false;
 HSNDTIMER CDCount_handle;
 
 ushort CurrentCDTrack;
-ulong TrackLength;
-volatile ulong CDCountdown;
+uint32_t TrackLength;
+volatile uint32_t CDCountdown;
 TbBool is_da_track[CD_TRACKS_MAX_COUNT];
-ulong track_start_sector[CD_TRACKS_MAX_COUNT];
-ulong track_lengths[CD_TRACKS_MAX_COUNT];
+uint32_t track_start_sector[CD_TRACKS_MAX_COUNT];
+uint32_t track_lengths[CD_TRACKS_MAX_COUNT];
 sbyte InitialCDVolume = -1;
 
 OggVorbisStream sound_music_stream;
@@ -145,12 +145,12 @@ TbBool is_daudio_track(ushort trkno)
     return is_da_track[trkno];
 }
 
-ulong GetCDTrackStartSector(ushort trkno)
+uint32_t GetCDTrackStartSector(ushort trkno)
 {
     return track_start_sector[trkno];
 }
 
-ulong GetCDTrackLength(ushort trkno)
+uint32_t GetCDTrackLength(ushort trkno)
 {
     return track_lengths[trkno];
 }
@@ -179,7 +179,7 @@ ushort cd_resume(ushort a1)
     return 0;
 }
 
-ushort cd_play(ushort cd, ulong start, ulong len)
+ushort cd_play(ushort cd, uint32_t start, uint32_t len)
 {
     assert(!"not implemented");
     return 0;
@@ -294,7 +294,7 @@ ushort CountMusicTracks(void)
 
 void PlayCDAudioTrack(ushort trkno)
 {
-    ulong start_sect, len_sect;
+    uint32_t start_sect, len_sect;
     ushort i;
 
     start_sect = GetCDTrackStartSector(trkno);
@@ -303,7 +303,7 @@ void PlayCDAudioTrack(ushort trkno)
     CDCountdown = 5 * (len_sect / 75 / 5) + 5;
     i = GetCDFirst();
     cd_play(i, start_sect, len_sect);
-    SNDLOGSYNC("CDA play", "track %d sect %lu len %lu", (int)trkno, start_sect, len_sect);
+    SNDLOGSYNC("CDA play", "track %d sect %u len %u", (int)trkno, start_sect, len_sect);
 
     CDCount_handle = AIL_register_timer(cbCDCountdown);
     AIL_set_timer_period(CDCount_handle, 5000000);

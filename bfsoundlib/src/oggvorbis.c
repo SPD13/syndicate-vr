@@ -247,12 +247,12 @@ bool ogg_vorbis_stream_update(OggVorbisStream *stream)
 
     for (n = 0; n < SOUND_MUSIC_BUFFERS - queued; n++)
     {
-        long total;
-        long count;
+        int32_t total;
+        int32_t count;
 
         total = 0;
 
-        while (total < (long)sizeof(buffer))
+        while (total < (int32_t)sizeof(buffer))
         {
             count = ov_read(&stream->file, buffer + total,
               sizeof(buffer) - total, big_endian, 2, true, NULL);

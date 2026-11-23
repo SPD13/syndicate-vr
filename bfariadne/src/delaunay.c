@@ -37,7 +37,7 @@ extern const int MOD3[];
 static DIFFTEST_REF_FUNC int optimise_heuristic_asm(int tri, int cor)
 {
     int ret;
-    asm volatile ("call ASM_optimise_heuristic\n"
+    DIFFTEST_ASM("call ASM_optimise_heuristic\n"
         : "=a" (ret) : "a" (tri), "d" (cor));
     return ret;
 }

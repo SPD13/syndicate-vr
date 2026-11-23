@@ -38,6 +38,30 @@ Always use the scripts; they enter MSYS2 by themselves when needed.
 Build only with `-O0` (the scripts do). Many existing inline-asm wrappers
 lack clobber lists and break under optimisation.
 
+## 64-bit (since 2026-11-23)
+
+- `build.sh --x64` builds the 64-bit game (MSYS2 MINGW64, `build/x64`,
+  with the test harness); `build.sh --harness` the 32-bit one without asm.
+  `SWARS_TRACE_BUILD=x64 tools/decomp-agent/statetrace.sh <dir>` traces
+  it; the traces must equal those of the 32-bit build (`diff -r`).
+  `tools/decomp-agent/run_x64.sh [build] [mission] [secs]` runs it.
+- Write code that works with 64-bit pointers and LP64 `long`:
+  - no `long`/`ulong`: use `s32`/`u32` (`int32_t`/`uint32_t` in
+    bfsoundlib) and `%d`/`%u`/`%x` formats; `long` is 64 bits on Linux.
+  - never store a pointer in an int type: raw register arguments that may
+    carry pointers are `intptr_t`, address arithmetic uses `uintptr_t`.
+  - structs read from or written to files keep the file layout: if they
+    hold pointers, convert records at load/save (see `thing_from_record`
+    in lvfiles.c, `LbSpriteTabExpand`); never `sizeof` a struct with a
+    pointer for a file record size.
+- Inline asm of `DIFFTEST_REF_FUNC` reference functions is written
+  `DIFFTEST_ASM(...)` instead of `asm volatile (...)`, so that it exists
+  only in difftest builds (other compilers reject x86 register
+  constraints even in unused functions).
+- `layout_diff.py` lists struct layouts that differ between the 32 and
+  64-bit builds; a build with `-Wconversion` shows pointers passed into
+  narrower ints (`conversion from 'intptr_t' ... to 'int'`).
+
 ## Calling convention of the asm (Watcom register)
 
 - Arguments in `eax`, `edx`, `ebx`, `ecx`, in that order; more arguments
@@ -62,7 +86,7 @@ lack clobber lists and break under optimisation.
    static DIFFTEST_REF_FUNC short get_new_sthing_asm(void)
    {
        short ret;
-       asm volatile ("call ASM_get_new_sthing\n"
+       DIFFTEST_ASM ("call ASM_get_new_sthing\n"
            : "=a" (ret) : );
        return ret;
    }
@@ -90,7 +114,7 @@ lack clobber lists and break under optimisation.
    `.sx` files or `wrappers_game.conf` unless the plan step requires it.
    - Wrappers marked "Routed asm (internal label)" take raw registers
      (`int a1..a4` = eax, edx, ebx, ecx; often more than the asm really
-     uses). Keep that signature, since the conf line must stay as is, and
+     uses; `intptr_t` where they may carry pointers). Keep that signature, since the conf line must stay as is, and
      cast inside, e.g. `struct Thing *p_thing = (struct Thing *)a1;`. Only
      the registers the asm reads matter; the reference function passes
      all of them.

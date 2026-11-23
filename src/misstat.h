@@ -34,10 +34,10 @@ extern "C" {
 struct Thing;
 
 struct MissionStatus { // sizeof=40
-    ulong CityDays;
-    ulong CityHours;
-    ulong Days;
-    ulong Hours;
+    u32 CityDays;
+    u32 CityHours;
+    u32 Days;
+    u32 Hours;
     union {
       struct {
       ushort CivsKilled;
@@ -46,14 +46,14 @@ struct MissionStatus { // sizeof=40
       ushort SecurityPersuaded;
       ushort EnemiesKilled;
       ushort EnemiesPersuaded;
-      ulong CashAtStart;
+      u32 CashAtStart;
       } SP;
       struct {
       /** How many agents of a player were killed by each other player. */
       ushort AgentsKilled[8];
       } MP;
     };
-    ulong Expenditure;
+    u32 Expenditure;
     ubyte HitAccuracy;
     ubyte ObjectivesComplete;
     ubyte AgentsLost;
@@ -64,7 +64,7 @@ struct MissionStatus { // sizeof=40
 /******************************************************************************/
 extern struct MissionStatus mission_status[MISSION_STATUS_LIMIT];
 
-long time_difference(struct SynTime *tm1, struct SynTime *tm2);
+s32 time_difference(struct SynTime *tm1, struct SynTime *tm2);
 
 /** Increase timestamp stored in given SynTime by given amount of days.
  */

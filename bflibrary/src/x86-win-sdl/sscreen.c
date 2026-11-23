@@ -79,7 +79,7 @@ volatile TbBool lbScreenDirectAccessActive = false;
  *
  *  If the values is 1, scaling is disabled.
  */
-long lbMinScreenSurfaceDimension = 1;
+s32 lbMinScreenSurfaceDimension = 1;
 
 /** @internal
  * Screen surface dimensions for scaling
@@ -103,64 +103,64 @@ TbBool lbDoubleBufferingRequested = false;
  * On any try of entering different video BPP, this mode will be emulated. */
 ushort lbEngineBPP = 8;
 
-void *LbI_XMemCopy(void *dest, void *source, ulong len)
+void *LbI_XMemCopy(void *dest, void *source, u32 len)
 {
-    ulong remain;
+    u32 remain;
     ubyte *s;
     ubyte *d;
     s = (ubyte *)source;
     d = (ubyte *)dest;
     for (remain = len >> 2; remain != 0; remain--)
     {
-        *(ulong *)d = *(ulong *)s;
+        *(u32 *)d = *(u32 *)s;
         d += 4;
         s += 4;
     }
     return dest;
 }
 
-void *LbI_XMemCopyFlip(void *dest, void *source, ulong len)
+void *LbI_XMemCopyFlip(void *dest, void *source, u32 len)
 {
-    ulong remain;
+    u32 remain;
     ubyte *s;
     ubyte *d;
     s = (ubyte *)source + len - 4;
     d = (ubyte *)dest;
     for (remain = len >> 2; remain != 0; remain--)
     {
-        ulong v;
+        u32 v;
 
-        v = *(ulong *)s;
+        v = *(u32 *)s;
         v = (v & 0x000000ff) << 24 | (v & 0x0000ff00) << 8 |
             (v & 0x00ff0000) >> 8 | (v & 0xff000000) >> 24;
-        *(ulong *)d = v;
+        *(u32 *)d = v;
         d += 4;
         s -= 4;
     }
     return dest;
 }
 
-void *LbI_XMemCopyAndSet(void *dest, void *source, ulong val, ulong len)
+void *LbI_XMemCopyAndSet(void *dest, void *source, u32 val, u32 len)
 {
-    ulong remain;
+    u32 remain;
     ubyte *s;
     ubyte *d;
     s = (ubyte *)source;
     d = (ubyte *)dest;
     for (remain = len >> 2; remain != 0; remain--)
     {
-        *(ulong *)d = *(ulong *)s;
-        *(ulong *)s = val;
+        *(u32 *)d = *(u32 *)s;
+        *(u32 *)s = val;
         d += 4;
         s += 4;
     }
     return dest;
 }
 
-void *LbI_XMemRectCopy(void *dest, void *source, ulong lineLen,
-  ulong width, ulong height)
+void *LbI_XMemRectCopy(void *dest, void *source, u32 lineLen,
+  u32 width, u32 height)
 {
-    ulong remainH, remainW;
+    u32 remainH, remainW;
     ubyte *s;
     ubyte *d;
     s = (ubyte *)source;
@@ -170,7 +170,7 @@ void *LbI_XMemRectCopy(void *dest, void *source, ulong lineLen,
     {
         for (remainW = width >> 2; remainW != 0; remainW--)
         {
-            *(ulong *)d = *(ulong *)s;
+            *(u32 *)d = *(u32 *)s;
             d += 4;
             s += 4;
         }
@@ -243,7 +243,7 @@ TbResult LbScreenUpdateIcon(void)
 
 #endif
 
-TbResult LbScreenSetMinScreenSurfaceDimension(long dim)
+TbResult LbScreenSetMinScreenSurfaceDimension(s32 dim)
 {
     lbMinScreenSurfaceDimension = dim;
     return Lb_SUCCESS;
@@ -332,10 +332,10 @@ TbResult LbIScreenDrawSurfaceCreate(TbBool set_palette)
     return Lb_SUCCESS;
 }
 
-static void LbIGetScreenModeDimensions(long *mdWidth, long *mdHeight, TbScreenModeInfo *mdinfo)
+static void LbIGetScreenModeDimensions(s32 *mdWidth, s32 *mdHeight, TbScreenModeInfo *mdinfo)
 {
-    long Width, Height;
-    long minD;
+    s32 Width, Height;
+    s32 minD;
 
     Width = mdinfo->Width;
     Height = mdinfo->Height;
@@ -352,11 +352,11 @@ TbResult LbScreenSetupAnyMode(TbScreenMode mode, TbScreenCoord width,
     TbScreenCoord height, ubyte *palette)
 {
     SDL_Surface *prevScreenSurf;
-    long hot_x, hot_y;
-    long mdWidth, mdHeight;
+    s32 hot_x, hot_y;
+    s32 mdWidth, mdHeight;
     const struct TbSprite *msspr;
     TbScreenModeInfo *mdinfo;
-    unsigned long sdlFlags;
+    u32 sdlFlags;
 
     msspr = NULL;
     LbExeReferenceNumber();
@@ -397,7 +397,7 @@ TbResult LbScreenSetupAnyMode(TbScreenMode mode, TbScreenCoord width,
     LbIGetScreenModeDimensions(&mdWidth, &mdHeight, mdinfo);
     lbScreenSurfaceDimensions.Width = mdWidth;
     lbScreenSurfaceDimensions.Height = mdHeight;
-    LOGDBG("screen surface dimensions set to %ldx%ld", mdWidth, mdHeight);
+    LOGDBG("screen surface dimensions set to %dx%d", mdWidth, mdHeight);
 
     // No need for video buffer paging when using SDL
     lbDisplay.VesaIsSetUp = false;
@@ -503,7 +503,7 @@ TbResult LbScreenSetupAnyMode(TbScreenMode mode, TbScreenCoord width,
 TbResult LbScreenClearGraphicsWindow(TbPixel colour)
 {
     TbPixel *ptr;
-    long h;
+    s32 h;
 
     ptr = lbDisplay.GraphicsWindowPtr;
     if (ptr == NULL)
@@ -649,10 +649,10 @@ TbBool LbScreenIsDoubleBufferred(void)
     return ((to_SDLSurf(lbScreenSurface)->flags & SDL_DOUBLEBUF) != 0);
 }
 
-ulong LbScreenSetWScreenInVideo(ulong flag)
+u32 LbScreenSetWScreenInVideo(u32 flag)
 {
-    static ulong cur_flag = 0;
-    ulong prev_flag;
+    static u32 cur_flag = 0;
+    u32 prev_flag;
 
     prev_flag = cur_flag;
     cur_flag = flag;
@@ -665,8 +665,8 @@ ulong LbScreenSetWScreenInVideo(ulong flag)
 TbBool LbHwCheckIsModeAvailable(TbScreenMode mode)
 {
     TbScreenModeInfo *mdinfo;
-    ulong sdlFlags;
-    long mdWidth, mdHeight;
+    u32 sdlFlags;
+    s32 mdWidth, mdHeight;
     int closestBPP;
     TbBool firstSurfaceOk, secondSurfaceOk;
 
@@ -725,38 +725,38 @@ TbBool LbHwCheckIsModeAvailable(TbScreenMode mode)
     return firstSurfaceOk && secondSurfaceOk;
 }
 
-static void LbI_SDL_BlitScaled_to8bpp(long src_w, long src_h, long src_scanln,
-  ubyte *src_buf, long dst_w, long dst_h, long dst_scanln, ubyte *dst_buf)
+static void LbI_SDL_BlitScaled_to8bpp(s32 src_w, s32 src_h, s32 src_scanln,
+  ubyte *src_buf, s32 dst_w, s32 dst_h, s32 dst_scanln, ubyte *dst_buf)
 {
     // denominator of a (source) pixel's fraction part
-    const long denom_i = 2 * dst_h;
-    const long denom_j = 2 * dst_w;
+    const s32 denom_i = 2 * dst_h;
+    const s32 denom_j = 2 * dst_w;
 
     // number of whole units in each (source) step
-    const long dsrc_i = 2 * src_h / denom_i;
-    const long dsrc_j = 2 * src_w / denom_j;
+    const s32 dsrc_i = 2 * src_h / denom_i;
+    const s32 dsrc_j = 2 * src_w / denom_j;
 
     // numerator of fractional part of each (source) step
-    const long dsrc_num_i = (2 * src_h) - dsrc_i * denom_i;
-    const long dsrc_num_j = (2 * src_w) - dsrc_j * denom_j;
+    const s32 dsrc_num_i = (2 * src_h) - dsrc_i * denom_i;
+    const s32 dsrc_num_j = (2 * src_w) - dsrc_j * denom_j;
 
     // number of whole units in a (source) half-step
-    const long halfdsrc_i = src_h / denom_i;
-    const long halfdsrc_j = src_w / denom_j;
+    const s32 halfdsrc_i = src_h / denom_i;
+    const s32 halfdsrc_j = src_w / denom_j;
 
-    long dst_offset = 0;
-    long src_offset = halfdsrc_i * src_w + halfdsrc_j;
+    s32 dst_offset = 0;
+    s32 src_offset = halfdsrc_i * src_w + halfdsrc_j;
 
     // start at fractional part of each (source) half-step
-    long src_num_i =  src_h - halfdsrc_i * denom_i;
-    long src_num_j = src_w - halfdsrc_j * denom_j;
+    s32 src_num_i =  src_h - halfdsrc_i * denom_i;
+    s32 src_num_j = src_w - halfdsrc_j * denom_j;
 
-    for (long i = 0; i != dst_h; ++i) {
+    for (s32 i = 0; i != dst_h; ++i) {
         if (src_num_i > denom_i) {
             src_num_i -= denom_i;
             src_offset += src_scanln;
         }
-        for (long j = 0; j != dst_w; ++j) {
+        for (s32 j = 0; j != dst_w; ++j) {
             if (src_num_j > denom_j) {
                 src_num_j -= denom_j;
                 ++src_offset;
@@ -772,46 +772,46 @@ static void LbI_SDL_BlitScaled_to8bpp(long src_w, long src_h, long src_scanln,
     }
 }
 
-static void LbI_SDL_BlitScaled_totcbpp(long src_w, long src_h, long src_scanln,
-  ubyte *src_buf, SDL_Color *pal, long rshift, long gshift, long bshift,
-  long dst_w, long dst_h, long dst_scanln, long dst_bpp, ubyte *dst_buf)
+static void LbI_SDL_BlitScaled_totcbpp(s32 src_w, s32 src_h, s32 src_scanln,
+  ubyte *src_buf, SDL_Color *pal, s32 rshift, s32 gshift, s32 bshift,
+  s32 dst_w, s32 dst_h, s32 dst_scanln, s32 dst_bpp, ubyte *dst_buf)
 {
     // denominator of a (source) pixel's fraction part
-    const long denom_i = 2 * dst_h;
-    const long denom_j = 2 * dst_w;
+    const s32 denom_i = 2 * dst_h;
+    const s32 denom_j = 2 * dst_w;
 
     // number of whole units in each (source) step
-    const long dsrc_i = 2 * src_h / denom_i;
-    const long dsrc_j = 2 * src_w / denom_j;
+    const s32 dsrc_i = 2 * src_h / denom_i;
+    const s32 dsrc_j = 2 * src_w / denom_j;
 
     // numerator of fractional part of each (source) step
-    const long dsrc_num_i = (2 * src_h) - dsrc_i * denom_i;
-    const long dsrc_num_j = (2 * src_w) - dsrc_j * denom_j;
+    const s32 dsrc_num_i = (2 * src_h) - dsrc_i * denom_i;
+    const s32 dsrc_num_j = (2 * src_w) - dsrc_j * denom_j;
 
     // number of whole units in a (source) half-step
-    const long halfdsrc_i = src_h / denom_i;
-    const long halfdsrc_j = src_w / denom_j;
+    const s32 halfdsrc_i = src_h / denom_i;
+    const s32 halfdsrc_j = src_w / denom_j;
 
-    long dst_offset = 0;
-    long src_offset = halfdsrc_i * src_w + halfdsrc_j;
+    s32 dst_offset = 0;
+    s32 src_offset = halfdsrc_i * src_w + halfdsrc_j;
 
     // start at fractional part of each (source) half-step
-    long src_num_i =  src_h - halfdsrc_i * denom_i;
-    long src_num_j = src_w - halfdsrc_j * denom_j;
+    s32 src_num_i =  src_h - halfdsrc_i * denom_i;
+    s32 src_num_j = src_w - halfdsrc_j * denom_j;
 
-    for (long i = 0; i != dst_h; ++i) {
+    for (s32 i = 0; i != dst_h; ++i) {
         if (src_num_i > denom_i) {
             src_num_i -= denom_i;
             src_offset += src_scanln;
         }
-        for (long j = 0; j != dst_w; ++j) {
+        for (s32 j = 0; j != dst_w; ++j) {
             SDL_Color c;
             if (src_num_j > denom_j) {
                 src_num_j -= denom_j;
                 ++src_offset;
             }
             c = pal[src_buf[src_offset]];
-            *((long *)(dst_buf+dst_offset)) = (c.r << rshift) + (c.g << gshift) + (c.b << bshift);
+            *((s32 *)(dst_buf+dst_offset)) = (c.r << rshift) + (c.g << gshift) + (c.b << bshift);
             dst_offset += dst_bpp;
             src_offset += dsrc_j;
             src_num_j += dsrc_num_j;
@@ -841,9 +841,9 @@ static inline TbBool LbI_SDL_BlitAreasOfSameSize(const SDL_Surface *src, const S
 int LbI_SDL_BlitScaled(SDL_Surface *src, const SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect)
 {
     ubyte *src_buf, *dst_buf;
-    long dst_bpp;
-    long src_x, src_y, dst_x, dst_y;
-    long src_w, src_h, dst_w, dst_h;
+    s32 dst_bpp;
+    s32 src_x, src_y, dst_x, dst_y;
+    s32 src_w, src_h, dst_w, dst_h;
 
     // shortcircuit for 1:1
     if (LbI_SDL_BlitAreasOfSameSize(src, srcrect, dst, dstrect))
@@ -884,7 +884,7 @@ int LbI_SDL_BlitScaled(SDL_Surface *src, const SDL_Rect *srcrect, SDL_Surface *d
     // Make sure destination range is valid (only on writable surface area)
     // If rect coords are negative, cut to 0 and adjust source area acordingly
     if (dst_x < 0) {
-        long src_dt, dst_dt;
+        s32 src_dt, dst_dt;
         dst_dt = -dst_x;
         src_dt = src_w * dst_dt / dst_w;
         src_x += src_dt;
@@ -893,7 +893,7 @@ int LbI_SDL_BlitScaled(SDL_Surface *src, const SDL_Rect *srcrect, SDL_Surface *d
         dst_x = 0;
     }
     if (dst_y < 0) {
-        long src_dt, dst_dt;
+        s32 src_dt, dst_dt;
         dst_dt = -dst_y;
         src_dt = src_h * dst_dt / dst_h;
         src_y += src_dt;
@@ -903,14 +903,14 @@ int LbI_SDL_BlitScaled(SDL_Surface *src, const SDL_Rect *srcrect, SDL_Surface *d
     }
     // If rect coords are above surface size, cut to that size and adjust source acordingly
     if (dst_x + dst_w > dst->w) {
-        long src_dt, dst_dt;
+        s32 src_dt, dst_dt;
         dst_dt = dst_x + dst_w - dst->w;
         src_dt = src_w * dst_dt / dst_w;
         src_w -= src_dt;
         dst_w -= dst_dt;
     }
     if (dst_y + dst_h > dst->h) {
-        long src_dt, dst_dt;
+        s32 src_dt, dst_dt;
         dst_dt = dst_y + dst_h - dst->h;
         src_dt = src_h * dst_dt / dst_h;
         src_h -= src_dt;
@@ -1049,8 +1049,8 @@ TbResult LbScreenSwapClear(TbPixel colour)
     return ret;
 }
 
-TbResult LbScreenSwapBox(ubyte *sourceBuf, long sourceX, long sourceY,
-  long destX, long destY, ulong width, ulong height)
+TbResult LbScreenSwapBox(ubyte *sourceBuf, s32 sourceX, s32 sourceY,
+  s32 destX, s32 destY, u32 width, u32 height)
 {
     TbResult ret;
     int blresult;
@@ -1063,8 +1063,8 @@ TbResult LbScreenSwapBox(ubyte *sourceBuf, long sourceX, long sourceY,
     ret = LbScreenLock();
     // If WScreen is application-controlled buffer, copy it to SDL surface
     if (ret == Lb_SUCCESS) {
-        ulong sourcePos = sourceY * lbDisplay.GraphicsScreenWidth + sourceX;
-        ulong destPos = destY * lbDisplay.GraphicsScreenWidth + destX;
+        u32 sourcePos = sourceY * lbDisplay.GraphicsScreenWidth + sourceX;
+        u32 destPos = destY * lbDisplay.GraphicsScreenWidth + destX;
 
         LbI_XMemRectCopy(lbDisplay.WScreen + sourcePos, sourceBuf + destPos,
           lbDisplay.GraphicsScreenWidth, width, height);
@@ -1103,19 +1103,19 @@ TbResult LbScreenSwapBox(ubyte *sourceBuf, long sourceX, long sourceY,
     return ret;
 }
 
-TbResult LbScreenSwapBoxClear(ubyte *sourceBuf, long sourceX, long sourceY,
-  long destX, long destY, ulong width, ulong height, ubyte colour)
+TbResult LbScreenSwapBoxClear(ubyte *sourceBuf, s32 sourceX, s32 sourceY,
+  s32 destX, s32 destY, u32 width, u32 height, ubyte colour)
 {
     assert(!"not implemented, as is never used");
     return Lb_FAIL;
 }
 
-static void LbI_ScreenDrawHLineDirect(long X1, long Y1, long X2, long Y2)
+static void LbI_ScreenDrawHLineDirect(s32 X1, s32 Y1, s32 X2, s32 Y2)
 {
     ubyte *ptr;
     ubyte *ptrEnd;
-    long xBeg, xEnd;
-    long width, shiftX, shiftY;
+    s32 xBeg, xEnd;
+    s32 width, shiftX, shiftY;
 
     LOGDBG("starting");
     assert(!lbDisplay.VesaIsSetUp); // video mem paging not supported with SDL
@@ -1142,13 +1142,13 @@ static void LbI_ScreenDrawHLineDirect(long X1, long Y1, long X2, long Y2)
     }
 }
 
-static void LbI_ScreenDrawVLineDirect(long X1, long Y1, long X2, long Y2)
+static void LbI_ScreenDrawVLineDirect(s32 X1, s32 Y1, s32 X2, s32 Y2)
 {
     ubyte *ptr;
     ubyte *ptrEnd;
-    long yBeg, yEnd;
-    long height, shiftY;
-    long delta;
+    s32 yBeg, yEnd;
+    s32 height, shiftY;
+    s32 delta;
 
     LOGDBG("starting");
     assert(!lbDisplay.VesaIsSetUp); // video mem paging not supported with SDL
@@ -1174,7 +1174,7 @@ static void LbI_ScreenDrawVLineDirect(long X1, long Y1, long X2, long Y2)
     }
 }
 
-TbResult LbScreenDrawHVLineDirect(long X1, long Y1, long X2, long Y2)
+TbResult LbScreenDrawHVLineDirect(s32 X1, s32 Y1, s32 X2, s32 Y2)
 {
     CLIP_START_END_COORDS(X1, X2, lbDisplay.GraphicsWindowWidth);
     CLIP_START_END_COORDS(Y1, Y2, lbDisplay.GraphicsWindowHeight);

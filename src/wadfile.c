@@ -117,7 +117,7 @@ int load_file_wad(const char *filename, const char *wadfile, void *outbuf)
     struct WADIndexEntry fentry;
     TbFileHandle fh;
     TbResult ret;
-    long nread;
+    s32 nread;
 
     ret = wadfile_format_entfile_name(locstr, filename);
     if (ret != Lb_SUCCESS)

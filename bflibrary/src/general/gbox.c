@@ -21,7 +21,7 @@
 #include "bfscreen.h"
 #include "bfline.h"
 
-TbResult LbDrawBox(long X, long Y, long Width, long Height, TbPixel colour)
+TbResult LbDrawBox(s32 X, s32 Y, s32 Width, s32 Height, TbPixel colour)
 {
     if (lbDisplay.DrawFlags & Lb_SPRITE_OUTLINE)
     {
@@ -41,9 +41,9 @@ TbResult LbDrawBox(long X, long Y, long Width, long Height, TbPixel colour)
     return Lb_SUCCESS;
 }
 
-TbResult LbDrawBoxCoords(long X1, long Y1, long X2, long Y2, TbPixel colour)
+TbResult LbDrawBoxCoords(s32 X1, s32 Y1, s32 X2, s32 Y2, TbPixel colour)
 {
-    long XX, YY;
+    s32 XX, YY;
 
     XX = X2;
     YY = Y2;

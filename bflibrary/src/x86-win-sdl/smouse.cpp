@@ -75,11 +75,11 @@ TbResult LbMouseOnEndSwap(void)
     return Lb_SUCCESS;
 }
 
-TbResult LbMouseChangeSpriteOffset(long hot_x, long hot_y)
+TbResult LbMouseChangeSpriteOffset(s32 hot_x, s32 hot_y)
 {
     if (!lbMouseInstalled)
         return Lb_FAIL;
-    LOGDBG("setting hs (%ld,%ld)", hot_x, hot_y);
+    LOGDBG("setting hs (%d,%d)", hot_x, hot_y);
 
     if (!pointerHandler.SetPointerOffset(-hot_x, -hot_y))
         return Lb_FAIL;
@@ -87,7 +87,7 @@ TbResult LbMouseChangeSpriteOffset(long hot_x, long hot_y)
     return Lb_SUCCESS;
 }
 
-TbResult LbMouseGetSpriteOffset(long *hot_x, long *hot_y)
+TbResult LbMouseGetSpriteOffset(s32 *hot_x, s32 *hot_y)
 {
     struct TbPoint *hotspot;
 
@@ -117,7 +117,7 @@ TbResult LbMouseChangeSprite(const struct TbSprite *pointer_spr)
     return Lb_SUCCESS;
 }
 
-TbResult LbMouseChangeMoveRatio(long ratio_x, long ratio_y)
+TbResult LbMouseChangeMoveRatio(s32 ratio_x, s32 ratio_y)
 {
     if ((ratio_x < -32 * NORMAL_MOUSE_MOVE_RATIO) ||
       (ratio_x > 32 * NORMAL_MOUSE_MOVE_RATIO) || (ratio_x == 0))
@@ -126,7 +126,7 @@ TbResult LbMouseChangeMoveRatio(long ratio_x, long ratio_y)
       (ratio_y > 32 * NORMAL_MOUSE_MOVE_RATIO) || (ratio_y == 0))
         return Lb_FAIL;
 
-    LOGSYNC("new ratio %ldx%ld", ratio_x, ratio_y);
+    LOGSYNC("new ratio %dx%d", ratio_x, ratio_y);
 
 #if defined(LB_ENABLE_MOUSE_MOVE_RATIO)
     lbDisplay.MouseMoveRatioX = ratio_x;
@@ -163,7 +163,7 @@ TbBool LbMouseIsInstalled(void)
 
 TbResult LbMouseSetup(const struct TbSprite *pointer_spr, int ratio_x, int ratio_y)
 {
-    long x,y;
+    s32 x,y;
 
     if (lbMouseInstalled)
         LbMouseSuspend();
@@ -232,7 +232,7 @@ TbResult LbMouseSuspend(void)
     return Lb_SUCCESS;
 }
 
-TbResult LbMouseSetWindow(long x, long y, long width, long height)
+TbResult LbMouseSetWindow(s32 x, s32 y, s32 width, s32 height)
 {
     if (!lbMouseInstalled)
         return Lb_FAIL;
@@ -243,7 +243,7 @@ TbResult LbMouseSetWindow(long x, long y, long width, long height)
     return Lb_SUCCESS;
 }
 
-TbResult LbMouseSetPosition(long x, long y)
+TbResult LbMouseSetPosition(s32 x, s32 y)
 {
     if (!lbMouseInstalled)
         return Lb_FAIL;
@@ -273,8 +273,8 @@ void MouseToScreen(struct TbPoint *pos)
 {
     // Static variables for storing last mouse coordinates; needed
     // because lbDisplay.MMouseX/MMouseY coords are scaled
-    static long mx = 0;
-    static long my = 0;
+    static s32 mx = 0;
+    static s32 my = 0;
     struct TbRect clip;
     struct TbPoint orig;
 
@@ -287,9 +287,9 @@ void MouseToScreen(struct TbPoint *pos)
       orig.y = pos->y;
 #if defined(LB_ENABLE_MOUSE_MOVE_RATIO)
       pos->x = lbDisplay.MMouseX + ((pos->x - mx) *
-        (long)lbDisplay.MouseMoveRatioX) / NORMAL_MOUSE_MOVE_RATIO;
+        (s32)lbDisplay.MouseMoveRatioX) / NORMAL_MOUSE_MOVE_RATIO;
       pos->y = lbDisplay.MMouseY + ((pos->y - my) *
-        (long)lbDisplay.MouseMoveRatioY) / NORMAL_MOUSE_MOVE_RATIO;
+        (s32)lbDisplay.MouseMoveRatioY) / NORMAL_MOUSE_MOVE_RATIO;
 #else
       pos->x = lbDisplay.MMouseX + (pos->x - mx);
       pos->y = lbDisplay.MMouseY + (pos->y - my);
@@ -311,9 +311,9 @@ void MouseToScreen(struct TbPoint *pos)
       orig.y = pos->y;
 #if defined(LB_ENABLE_MOUSE_MOVE_RATIO)
       pos->x = mx + ((pos->x - mx) *
-        (long)lbDisplay.MouseMoveRatioX) / NORMAL_MOUSE_MOVE_RATIO;
+        (s32)lbDisplay.MouseMoveRatioX) / NORMAL_MOUSE_MOVE_RATIO;
       pos->y = my + ((pos->y - my) *
-        (long)lbDisplay.MouseMoveRatioY) / NORMAL_MOUSE_MOVE_RATIO;
+        (s32)lbDisplay.MouseMoveRatioY) / NORMAL_MOUSE_MOVE_RATIO;
 #endif
       mx = orig.x;
       my = orig.y;
@@ -329,7 +329,7 @@ void MouseToScreen(struct TbPoint *pos)
     if (lbScreenSurfaceDimensions.Height != clip.bottom)
         pos->y = (pos->y * clip.bottom) / lbScreenSurfaceDimensions.Height;
 
-    LOGNO("before (%ld,%ld) after (%ld,%ld)", orig.x, orig.y, pos->x, pos->y);
+    LOGNO("before (%d,%d) after (%d,%d)", orig.x, orig.y, pos->x, pos->y);
 }
 
 /**

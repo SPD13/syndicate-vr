@@ -59,7 +59,7 @@ short get_next_player_agent(ushort player);
 
 static TbBool bot_tried = false;
 static TbBool bot_on = false;
-static ulong bot_seed;
+static u32 bot_seed;
 static FILE *bot_log = NULL;
 /** BAT billboard area (map tiles) and minigame state, asm data from bat.c */
 extern int bat_unknvalA_min;
@@ -73,7 +73,7 @@ static ThingIdx bot_tp_vehicle = 0;
 /** Agent sent to the BAT billboard area. */
 static ThingIdx bot_bat_agent = 0;
 
-static ulong bot_rand(ulong range)
+static u32 bot_rand(u32 range)
 {
     return difftest_fuzz_rand(&bot_seed) % range;
 }
@@ -124,7 +124,7 @@ static TbBool bot_cheat_allowed(void)
     return true;
 }
 
-static int bot_dist(struct Thing *p_agent, long x, long z)
+static int bot_dist(struct Thing *p_agent, s32 x, s32 z)
 {
     return abs(PRCCOORD_TO_MAPCOORD(p_agent->X - x)) +
       abs(PRCCOORD_TO_MAPCOORD(p_agent->Z - z));
@@ -276,7 +276,7 @@ static TbBool bot_face_centre(short face, struct Thing *p_agent, short *p_x, sho
     struct SingleObject *p_sobj;
     short pts[4];
     int i, npts;
-    long x, y, z;
+    s32 x, y, z;
 
     if (face < 0) {
         struct SingleObjectFace4 *p_face4 = &game_object_faces4[-face];
@@ -362,7 +362,7 @@ static short bot_pick_face(struct Thing *p_agent, short *p_x, short *p_y, short 
 static short bot_bezier_face(struct Thing *p_agent, short *p_x, short *p_y, short *p_z)
 {
     short best;
-    long best_dist;
+    s32 best_dist;
     int i;
 
     best = 0;
@@ -372,7 +372,7 @@ static short bot_bezier_face(struct Thing *p_agent, short *p_x, short *p_y, shor
         struct SingleObjectFace4 *p_face4;
         struct Thing *p_building;
         short x, y, z;
-        long dist;
+        s32 dist;
 
         p_face4 = &game_object_faces4[i];
         p_building = &things[(ushort)game_objects[p_face4->Object].ThingNo];
@@ -970,8 +970,8 @@ void difftest_bot_turn(void)
 
     bot_decide(p_pckt);
     if ((bot_log != NULL) && ((p_pckt->Action & ~PActF_All) != PAct_NONE)) {
-        fprintf(bot_log, "turn %lu: %s (0x%02x) data=%d x=%d y=%d z=%d\n",
-          (ulong)gameturn, get_packet_action_name(p_pckt->Action & ~PActF_All),
+        fprintf(bot_log, "turn %u: %s (0x%02x) data=%d x=%d y=%d z=%d\n",
+          (u32)gameturn, get_packet_action_name(p_pckt->Action & ~PActF_All),
           (uint)(p_pckt->Action & ~PActF_All), (int)p_pckt->Data, (int)p_pckt->X, (int)p_pckt->Y, (int)p_pckt->Z);
         fflush(bot_log);
     }

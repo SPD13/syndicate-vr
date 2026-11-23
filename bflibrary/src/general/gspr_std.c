@@ -25,21 +25,21 @@
 #include "bfscreen.h"
 #include "privbflog.h"
 
-TbResult LbSpriteDrawPrepare(TbSpriteDrawData *spd, long x, long y, const TbSprite *spr)
+TbResult LbSpriteDrawPrepare(TbSpriteDrawData *spd, s32 x, s32 y, const TbSprite *spr)
 {
     if (spr == NULL)
     {
-        LOGWARN("at (%ld,%ld): NULL sprite", x, y);
+        LOGWARN("at (%d,%d): NULL sprite", x, y);
         return Lb_FAIL;
     }
     if ((spr->SWidth < 1) || (spr->SHeight < 1))
     {
-        LOGDBG("at (%ld,%ld): zero size sprite (%d,%d)", x, y, spr->SWidth, spr->SHeight);
+        LOGDBG("at (%d,%d): zero size sprite (%d,%d)", x, y, spr->SWidth, spr->SHeight);
         return Lb_OK;
     }
     if ((lbDisplay.GraphicsWindowWidth == 0) || (lbDisplay.GraphicsWindowHeight == 0))
     {
-        LOGERR("at (%ld,%ld): invalid graphics window dimensions", x, y);
+        LOGERR("at (%d,%d): invalid graphics window dimensions", x, y);
         return Lb_FAIL;
     }
     x += lbDisplay.GraphicsWindowX;
@@ -106,7 +106,7 @@ TbResult LbSpriteDrawPrepare(TbSpriteDrawData *spd, long x, long y, const TbSpri
     spd->Wd = right - left;
     spd->sp = (char *)spr->Data;
     LOGNO("sprite coords X=%d...%d Y=%d...%d data=%08x", left, right, top, btm, spd->sp);
-    long htIndex;
+    s32 htIndex;
     if ( top )
     {
         htIndex = top;
@@ -126,7 +126,7 @@ TbResult LbSpriteDrawPrepare(TbSpriteDrawData *spd, long x, long y, const TbSpri
             }
         }
     }
-    LOGNO("at (%ld,%ld): drawing sprite of size (%d,%d)", x, y, (int)spd->Ht, (int)spd->Wd);
+    LOGNO("at (%d,%d): drawing sprite of size (%d,%d)", x, y, (int)spd->Ht, (int)spd->Wd);
     if ((lbDisplay.DrawFlags & Lb_SPRITE_FLIP_HORIZ) != 0)
     {
         spd->r += spd->Wd - 1;
@@ -380,7 +380,7 @@ static inline TbResult LbSpriteDrawTranspr(const char *sp, short sprWd, short sp
     int nextRowDelta, short left, const TbBool mirror)
 {
     unsigned char *nextRow;
-    long htIndex;
+    s32 htIndex;
     nextRow = &(r[nextRowDelta]);
     htIndex = sprHt;
     // For all lines of the sprite
@@ -483,7 +483,7 @@ static inline TbResult LbSpriteDrawSolid(const char *sp,short sprWd,short sprHt,
     int nextRowDelta,short left,const TbBool mirror)
 {
     unsigned char *nextRow;
-    long htIndex;
+    s32 htIndex;
     nextRow = &(r[nextRowDelta]);
     htIndex = sprHt;
     // For all lines of the sprite
@@ -579,7 +579,7 @@ static inline TbResult LbSpriteDrawFastCpy(const char *sp,short sprWd,short sprH
     int nextRowDelta,short left,const TbBool mirror)
 {
     unsigned char *nextRow;
-    long htIndex;
+    s32 htIndex;
     nextRow = &(r[nextRowDelta]);
     htIndex = sprHt;
     // For all lines of the sprite
@@ -603,12 +603,12 @@ static inline TbResult LbSpriteDrawFastCpy(const char *sp,short sprWd,short sprH
     return Lb_SUCCESS;
 }
 
-TbResult LbSpriteDraw(long x, long y, const TbSprite *spr)
+TbResult LbSpriteDraw(s32 x, s32 y, const TbSprite *spr)
 {
     TbSpriteDrawData spd;
     TbResult ret;
 
-    LOGNO("at (%ld,%ld)", x, y);
+    LOGNO("at (%d,%d)", x, y);
     ret = LbSpriteDrawPrepare(&spd, x, y, spr);
     if (ret != Lb_SUCCESS)
         return ret;

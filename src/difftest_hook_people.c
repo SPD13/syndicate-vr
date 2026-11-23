@@ -121,10 +121,10 @@ static TbBool hp_pick_match(struct Thing *p_thing, int kind)
 /** The n-th (modulo their count) person matching kind, in the order of
  * the used things list; 0 if none.
  */
-static ThingIdx hp_pick_person(ulong n, int kind)
+static ThingIdx hp_pick_person(u32 n, int kind)
 {
     ThingIdx thing;
-    ulong count, k;
+    u32 count, k;
 
     count = 0;
     for (thing = things_used_head; thing > 0; thing = things[thing].LinkChild)
@@ -182,7 +182,7 @@ static TbBool hp_face_centre(short face, struct Thing *p_agent, short *p_x, shor
     struct SingleObject *p_sobj;
     short pts[4];
     int i, npts;
-    long x, z;
+    s32 x, z;
 
     if (face < 0) {
         struct SingleObjectFace4 *p_face4 = &game_object_faces4[-face];
@@ -232,7 +232,7 @@ static short hp_pick_face(struct Thing *p_agent, short *p_x, short *p_z)
     nfaces = (next_object_face3 - 1) + (next_object_face4 - 1);
     if (nfaces <= 0)
         return 0;
-    start = (int)((gameturn * 7919UL) % (ulong)nfaces);
+    start = (int)((gameturn * 7919u) % (u32)nfaces);
     for (k = 0; k < nfaces; k++)
     {
         int idx = (start + k) % nfaces;
@@ -454,14 +454,14 @@ static TbBool mech_prims_ok = false;
 static TbBool hp_prims_load(struct HpPrims *p_prims)
 {
     TbFileHandle fh;
-    long firstval;
+    s32 firstval;
     TbBool ok;
 
     fh = LbFileOpen(primvehobj_fname, Lb_FILE_MODE_READ_ONLY);
     if (fh == INVALID_FILE)
         return false;
     firstval = 0;
-    LbFileRead(fh, &firstval, sizeof(long));
+    LbFileRead(fh, &firstval, sizeof(s32));
     ok = (firstval != 1);
     if (ok)
     {

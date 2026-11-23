@@ -55,9 +55,9 @@ struct SF_DATA {
 
 struct SF_INFO {
     short no_sample_packets;  /**< Number of packets of sound sample to stream */
-    long sample_seek;         /**< Start file location of sound sample */
-    long preset_seek;         /**< Address of preset_seek location */
-    long preset_read_size;    /**< Number of bytes from preset_seek to allocate and read */
+    int32_t sample_seek;         /**< Start file location of sound sample */
+    int32_t preset_seek;         /**< Address of preset_seek location */
+    int32_t preset_read_size;    /**< Number of bytes from preset_seek to allocate and read */
 };
 
 /******************************************************************************/
@@ -71,7 +71,7 @@ extern TbBool Awe32SoundfontLoaded;
  * @param mdidrv pointer to MSS MIDI driver
  * @return Total RAM on card or ERROR (-1)
  */
-long AWEGetTotalRAM(MDI_DRIVER *mdidrv);
+int32_t AWEGetTotalRAM(MDI_DRIVER *mdidrv);
 
 /**
  * Defines the way that memory on the AWE32 will be partitioned.
@@ -82,7 +82,7 @@ long AWEGetTotalRAM(MDI_DRIVER *mdidrv);
  * @param memMap Array of partition sizes
  * @return Gives OK (0) or ERROR (-1)
  */
-int AWEDefMemMap(MDI_DRIVER *mdidrv, short part_cnt, long *memMap, uint16_t memMap_sel);
+int AWEDefMemMap(MDI_DRIVER *mdidrv, short part_cnt, int32_t *memMap, uint16_t memMap_sel);
 
 /**
  * Uses header to retrieve pertinent info about a Sound Font.

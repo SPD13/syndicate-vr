@@ -47,7 +47,7 @@ void draw_chartxy_axis_y_values(int x, int y, int height, int ax_min, int ax_max
     {
         int twidth;
         const char *text;
-        ulong spr_id;
+        u32 spr_id;
         struct TbSprite *spr;
 
         lbDisplay.DrawFlags = 0;
@@ -78,7 +78,7 @@ void draw_chartxy_axis_x_values(int x, int y, int width, int ax_min, int ax_max,
     {
         int twidth;
         const char *text;
-        ulong spr_id;
+        u32 spr_id;
         struct TbSprite *spr;
         int final_x;
 
@@ -116,7 +116,7 @@ void draw_chartxy_axis_y_grid(int x, int y, int width, int height, int tot_value
     cy = y;
     for (i = 0; i < tot_values; i++)
     {
-        ulong spr_id;
+        u32 spr_id;
 
         lbDisplay.DrawFlags = Lb_SPRITE_TRANSPAR4;
         draw_line_purple_list(x + 1, cy, x + width, cy, height + 7);
@@ -156,7 +156,7 @@ void draw_chartxy_axis_x_grid(int x, int y, int width, int height, int tot_value
     cx = x;
     for (i = 0; i < tot_values; i++)
     {
-        ulong spr_id;
+        u32 spr_id;
 
         cx += width / tot_values;
         lbDisplay.DrawFlags = Lb_SPRITE_TRANSPAR4;

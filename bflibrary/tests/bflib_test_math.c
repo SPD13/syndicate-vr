@@ -38,8 +38,8 @@ TbResult MockZeroBaseInitialise(void)
  */
 TbBool test_sqrtl(void)
 {
-    ulong m;
-    ulong x;
+    u32 m;
+    u32 x;
 
     if (MockZeroBaseInitialise() != Lb_SUCCESS) {
         LOGERR("bullfrog library initialization failed");
@@ -48,12 +48,12 @@ TbBool test_sqrtl(void)
     m = 1;
     x = 0;
     while (x+m > x) { /* repeat until we are at overflow */
-        long sr1, sr2;
+        s32 sr1, sr2;
         sr1 = LbSqrL(x);
         sr2 = sqrt(x);
 
         if (sr1 != sr2) {
-            LOGERR("LbSqrL(%ld) != %ld", sr1, sr2);
+            LOGERR("LbSqrL(%d) != %d", sr1, sr2);
             return false;
         }
 

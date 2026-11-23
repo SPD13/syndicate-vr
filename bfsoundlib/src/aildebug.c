@@ -282,7 +282,7 @@ HSNDTIMER AIL_register_timer(AILTIMERCB fn)
     timer = AIL2OAL_API_register_timer(fn);
 
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "Result = %ld\n", timer);
+        fprintf(AIL_debugfile, "Result = %d\n", timer);
     AIL_indent--;
 
     return timer;
@@ -292,7 +292,7 @@ void AIL_release_timer_handle(HSNDTIMER timer)
 {
     AIL_indent++;
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "%s(%ld)\n", __func__, (long)timer);
+        fprintf(AIL_debugfile, "%s(%d)\n", __func__, (int32_t)timer);
 
     AIL2OAL_API_release_timer_handle(timer);
 
@@ -307,7 +307,7 @@ void *AIL_set_timer_user(HSNDTIMER timer, void *user_data)
 
     AIL_indent++;
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "%s(%ld, 0x%p)\n", __func__, timer, user_data);
+        fprintf(AIL_debugfile, "%s(%d, 0x%p)\n", __func__, timer, user_data);
 
     prev_data = AIL2OAL_API_set_timer_user(timer, user_data);
 
@@ -480,7 +480,7 @@ void AIL_set_sample_user_data(SNDSAMPLE *s, uint32_t index, intptr_t value)
 {
     AIL_indent++;
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "%s(0x%p, %u, %d)\n", __func__, s, index, value);
+        fprintf(AIL_debugfile, "%s(0x%p, %u, %d)\n", __func__, s, index, (int)value);
 
     AIL2OAL_API_set_sample_user_data(s, index, value);
 
@@ -988,7 +988,7 @@ void AIL_set_sequence_user_data(SNDSEQUENCE *seq, uint32_t index, intptr_t value
 {
     AIL_indent++;
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "%s(0x%p, %d, %d)\n", __func__, seq, index, value);
+        fprintf(AIL_debugfile, "%s(0x%p, %d, %d)\n", __func__, seq, index, (int)value);
 
     AIL2OAL_API_set_sequence_user_data(seq, index, value);
 
@@ -1008,7 +1008,7 @@ intptr_t AIL_sequence_user_data(SNDSEQUENCE *seq, uint32_t index)
     result = AIL2OAL_API_sequence_user_data(seq, index);
 
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "Result = 0x%X\n", result);
+        fprintf(AIL_debugfile, "Result = 0x%X\n", (unsigned int)result);
     AIL_indent--;
 
     return result;
@@ -1080,7 +1080,7 @@ void AIL_set_timer_frequency(HSNDTIMER timer, uint32_t hertz)
 {
     AIL_indent++;
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "%s(%ld, %u)\n", __func__, timer, hertz);
+        fprintf(AIL_debugfile, "%s(%d, %u)\n", __func__, timer, hertz);
 
     AIL2OAL_API_set_timer_frequency(timer, hertz);
 
@@ -1093,7 +1093,7 @@ void AIL_set_timer_period(HSNDTIMER timer, uint32_t usec)
 {
     AIL_indent++;
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "%s(%ld, %u)\n", __func__, timer, usec);
+        fprintf(AIL_debugfile, "%s(%d, %u)\n", __func__, timer, usec);
 
     AIL2OAL_API_set_timer_period(timer, usec);
 
@@ -1106,7 +1106,7 @@ void AIL_start_timer(HSNDTIMER timer)
 {
     AIL_indent++;
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "%s(%ld)\n", __func__, timer);
+        fprintf(AIL_debugfile, "%s(%d)\n", __func__, timer);
 
     AIL2OAL_API_start_timer(timer);
 
@@ -1132,7 +1132,7 @@ void AIL_stop_timer(HSNDTIMER timer)
 {
     AIL_indent++;
     if (AIL_debug && (AIL_indent == 1 || AIL_sys_debug))
-        fprintf(AIL_debugfile, "%s(%ld)\n", __func__, timer);
+        fprintf(AIL_debugfile, "%s(%d)\n", __func__, timer);
 
     AIL2OAL_API_stop_timer(timer);
 

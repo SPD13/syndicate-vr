@@ -28,7 +28,7 @@ ubyte *vec_tmap[VEC_TMAP_LIMIT] = {0};
 
 ubyte *tmaps_alloc_start = NULL;
 ubyte *tmaps_extra_buf = NULL;
-ulong tmaps_extra_len = 0;
+u32 tmaps_extra_len = 0;
 
 /******************************************************************************/
 

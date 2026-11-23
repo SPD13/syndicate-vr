@@ -32,14 +32,14 @@
 GameTurn gameturn = 0;
 GameTurn prev_gameturn = 0;
 
-ulong turns_delta = 0;
+u32 turns_delta = 0;
 
 short frameskip = 0;
 
 GameTurn drawturn = 1;
 
-ulong curr_tick_time = 0;
-ulong prev_tick_time = 0;
+u32 curr_tick_time = 0;
+u32 prev_tick_time = 0;
 
 // TODO implement separate turns per second, when drawing frames will get separated from game loop
 ushort game_num_fps = 16;
@@ -48,7 +48,7 @@ ushort fifties_per_gameturn = 3;
 
 /******************************************************************************/
 
-void render_clock_set_turn(ulong turn)
+void render_clock_set_turn(u32 turn)
 {
     render_anim_turn = (u32)turn << RENDER_ANIM_TURN_SHIFT;
 }
@@ -123,8 +123,8 @@ void wait_next_gameturn(void)
         sleep_end = curr_time;
     // If we missed the normal sleep target (ie. there was a slowdown), reset the value and do not sleep
     if ((sleep_end < curr_time) || (sleep_end > curr_time + 1000/game_num_fps)) {
-        LOGNO("missed FPS target, last frame time %ld too far from current %ld",
-          (ulong)sleep_end, (ulong)curr_time);
+        LOGNO("missed FPS target, last frame time %d too far from current %d",
+          (u32)sleep_end, (u32)curr_time);
         sleep_end = curr_time;
     }
     LbSleepUntil(sleep_end);
@@ -143,12 +143,12 @@ TbBool display_needs_redraw_this_turn(void)
 
 void update_tick_time(void)
 {
-    ulong tick_time = clock();
+    u32 tick_time = clock();
     tick_time = tick_time / 100;
     curr_tick_time = tick_time;
     if (tick_time != prev_tick_time)
     {
-        ulong tmp;
+        u32 tmp;
         tmp = gameturn - prev_gameturn;
         prev_gameturn = gameturn;
         turns_delta = tmp;

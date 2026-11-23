@@ -54,7 +54,7 @@ struct Animation animations[2];
 uint embanim_current_frame_number(ubyte anislot)
 {
     struct Animation *p_anim;
-    ulong k;
+    u32 k;
 
     assert(anislot < AniSl_SLOTS_COUNT);
 
@@ -383,7 +383,7 @@ void embanim_set_weapon_model_file(ubyte anislot, ubyte wtype)
 {
     struct Animation *p_anim;
     PathInfo *pinfo;
-    ulong k;
+    u32 k;
 
     assert(anislot < AniSl_SLOTS_COUNT);
 
@@ -399,7 +399,7 @@ void embanim_set_cybmod_model_file(ubyte anislot, ubyte mtype)
 {
     struct Animation *p_anim;
     PathInfo *pinfo;
-    ulong k;
+    u32 k;
 
     k = anim_slots[anislot];
     p_anim = &animations[k];

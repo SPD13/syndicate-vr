@@ -63,7 +63,7 @@ static TbBool vehicle_has_player_agent(struct Thing *p_vehicle)
 /** Map coordinate a little away from the given one, in a direction which
  * changes every few turns; kept inside the map.
  */
-static void hook_target_near(short *p_x, short *p_z, s32 x, s32 z, ulong step)
+static void hook_target_near(short *p_x, short *p_z, s32 x, s32 z, u32 step)
 {
     switch (step & 3)
     {

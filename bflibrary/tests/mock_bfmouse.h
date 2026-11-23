@@ -31,8 +31,8 @@ struct TbPoint;
 
 TbBool MockMouseIsInstalled(void);
 TbResult MockMouseChangeSprite(const struct TbSprite *pointer_spr);
-TbResult MockMouseChangeSpriteOffset(long hot_x, long hot_y);
-TbResult MockMouseGetSpriteOffset(long *hot_x, long *hot_y);
+TbResult MockMouseChangeSpriteOffset(s32 hot_x, s32 hot_y);
+TbResult MockMouseGetSpriteOffset(s32 *hot_x, s32 *hot_y);
 
 #ifdef __cplusplus
 };

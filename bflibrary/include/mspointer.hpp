@@ -41,7 +41,7 @@ class LbI_PointerHandler {
      * increasing values go through dimensions of the sprite, to one pixel after.
      * If the cursor is placed during this call, it will be properly redrawn.
      */
-    void SetHotspot(long x, long y);
+    void SetHotspot(s32 x, s32 y);
 
     /** Initialize the pointer state with given structures.
      *
@@ -73,16 +73,16 @@ class LbI_PointerHandler {
     struct TbPoint *position;
     struct TbPoint *spr_offset;
     struct TbRect spr_clip_rect;
-    long draw_pos_x;
-    long draw_pos_y;
+    s32 draw_pos_x;
+    s32 draw_pos_y;
     bool initialised;
     bool field_1054;
     const struct TbSprite *sprite;
     LbSemaphore sema_rel;
     };
 
-extern long cursor_xsteps_array[];
-extern long cursor_ysteps_array[];
+extern s32 cursor_xsteps_array[];
+extern s32 cursor_ysteps_array[];
 
 #endif // BFLIBRARY_MSPOINTER_H_
 /******************************************************************************/

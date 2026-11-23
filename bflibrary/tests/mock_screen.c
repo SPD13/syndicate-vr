@@ -28,7 +28,7 @@
 #include "bfutility.h"
 #include "bftstlog.h"
 
-extern long lbMinScreenSurfaceDimension;
+extern s32 lbMinScreenSurfaceDimension;
 
 
 TbResult MockScreenFindVideoModes(void)
@@ -54,8 +54,8 @@ TbBool MockScreenIsModeAvailable(TbScreenMode mode)
 TbResult MockScreenSetupAnyMode(TbScreenMode mode, TbScreenCoord width,
     TbScreenCoord height, ubyte *palette)
 {
-    long hot_x, hot_y;
-    long mdWidth, mdHeight;
+    s32 hot_x, hot_y;
+    s32 mdWidth, mdHeight;
     const struct TbSprite *msspr;
     TbScreenModeInfo *mdinfo;
 
@@ -91,7 +91,7 @@ TbResult MockScreenSetupAnyMode(TbScreenMode mode, TbScreenCoord width,
     mdWidth = mdinfo->Width;
     mdHeight = mdinfo->Height;
     {
-        const long minD = min(mdWidth, mdHeight);
+        const s32 minD = min(mdWidth, mdHeight);
         if (minD != 0 && minD < lbMinScreenSurfaceDimension) {
             mdWidth = lbScreenSurfaceDimensions.Width =
                 lbMinScreenSurfaceDimension * mdWidth / minD;
@@ -99,7 +99,7 @@ TbResult MockScreenSetupAnyMode(TbScreenMode mode, TbScreenCoord width,
                 lbMinScreenSurfaceDimension * mdHeight / minD;
         }
     }
-    LOGDBG("screen surface dimensions set to %ldx%ld", mdWidth, mdHeight);
+    LOGDBG("screen surface dimensions set to %dx%d", mdWidth, mdHeight);
     lbDisplay.VesaIsSetUp = false;
 
     lbScreenSurface = lbDrawSurface = (OSSurfaceHandle)malloc(mdWidth *

@@ -26,10 +26,10 @@
 
 #define DOUBLE_UNDERLINE_BOUND 16
 
-long LbGetJustifiedCharPosX(long startx, long all_chars_width,
-  long spr_width, long mul_width, ushort fdflags)
+s32 LbGetJustifiedCharPosX(s32 startx, s32 all_chars_width,
+  s32 spr_width, s32 mul_width, ushort fdflags)
 {
-    long justifyx;
+    s32 justifyx;
     if ((fdflags & Lb_TEXT_HALIGN_LEFT) != 0)
     {
         return startx;
@@ -53,18 +53,18 @@ long LbGetJustifiedCharPosX(long startx, long all_chars_width,
     return startx;
 }
 
-long LbGetJustifiedCharPosY(long starty, long all_lines_height,
-  long spr_height, ushort fdflags)
+s32 LbGetJustifiedCharPosY(s32 starty, s32 all_lines_height,
+  s32 spr_height, ushort fdflags)
 {
     // No vertical justification supported - so the decision is simple
     return starty;
 }
 
-long LbGetJustifiedCharWidth(long all_chars_width, long spr_width,
-  long words_count, int units_per_px, ushort fdflags)
+s32 LbGetJustifiedCharWidth(s32 all_chars_width, s32 spr_width,
+  s32 words_count, int units_per_px, ushort fdflags)
 {
-    long justifyx;
-    long space_width;
+    s32 justifyx;
+    s32 space_width;
     if ((fdflags & Lb_TEXT_HALIGN_JUSTIFY) != 0)
     {
         space_width = LbTextCharWidth(' ') * units_per_px / 16;
@@ -77,22 +77,22 @@ long LbGetJustifiedCharWidth(long all_chars_width, long spr_width,
     return spr_width;
 }
 
-long LbGetJustifiedCharHeight(long all_lines_height, long spr_height,
-  long lines_count, ushort fdflags)
+s32 LbGetJustifiedCharHeight(s32 all_lines_height, s32 spr_height,
+  s32 lines_count, ushort fdflags)
 {
     // No vertical justification supported - so the decision is simple
     return spr_height;
 }
 
-void LbDrawCharUnderline(long pos_x, long pos_y, long width, long height,
+void LbDrawCharUnderline(s32 pos_x, s32 pos_y, s32 width, s32 height,
   TbPixel draw_colr, TbPixel shadow_colr)
 {
-    long w,h;
+    s32 w,h;
     h = height;
     w = width;
     // Draw shadow
     if ((lbDisplay.DrawFlags & Lb_TEXT_UNDERLNSHADOW) != 0) {
-        long shadow_x;
+        s32 shadow_x;
         shadow_x = pos_x+1;
         if (height > 2*DOUBLE_UNDERLINE_BOUND)
             shadow_x++;
@@ -112,27 +112,27 @@ void LbDrawCharUnderline(long pos_x, long pos_y, long width, long height,
     }
 }
 
-long LbTextLineHeight(void)
+s32 LbTextLineHeight(void)
 {
     return LbSprFontCharHeight(lbFontPtr, 'W');
 }
 
-long LbTextHeight(const char *text)
+s32 LbTextHeight(const char *text)
 {
     return LbSprFontCharHeight(lbFontPtr, 'W');
 }
 
-long LbTextCharWidth(const ulong chr)
+s32 LbTextCharWidth(const u32 chr)
 {
     return LbSprFontCharWidth(lbFontPtr,(ubyte)chr);
 }
 
-long LbTextCharHeight(const ulong chr)
+s32 LbTextCharHeight(const u32 chr)
 {
     return LbSprFontCharHeight(lbFontPtr,(ubyte)chr);
 }
 
-long LbSprFontCharWidth(const struct TbSprite *font, const ulong chr)
+s32 LbSprFontCharWidth(const struct TbSprite *font, const u32 chr)
 {
     const struct TbSprite *spr;
 
@@ -142,7 +142,7 @@ long LbSprFontCharWidth(const struct TbSprite *font, const ulong chr)
     return spr->SWidth;
 }
 
-long LbSprFontCharHeight(const struct TbSprite *font, const ulong chr)
+s32 LbSprFontCharHeight(const struct TbSprite *font, const u32 chr)
 {
   const struct TbSprite *spr;
   spr = LbFontCharSprite(font, chr);
@@ -152,7 +152,7 @@ long LbSprFontCharHeight(const struct TbSprite *font, const ulong chr)
 }
 
 const struct TbSprite *LbFontCharSprite(const struct TbSprite *font,
-  const ulong chr)
+  const u32 chr)
 {
     if (font == NULL)
         return NULL;

@@ -27,7 +27,7 @@
 TbResult LbCrossPaletteLutGen(ubyte *cross_lut, const ubyte *src_palette,
   const ubyte *dst_palette)
 {
-    long i;
+    s32 i;
     ubyte *o;
     const ubyte *s;
 
@@ -42,12 +42,12 @@ TbResult LbCrossPaletteLutGen(ubyte *cross_lut, const ubyte *src_palette,
     return Lb_SUCCESS;
 }
 
-TbResult LbBufferHistogram(ulong *hist, const TbPixel *buf, ulong buf_len)
+TbResult LbBufferHistogram(u32 *hist, const TbPixel *buf, u32 buf_len)
 {
-    ulong i;
+    u32 i;
     const ubyte *b;
 
-    LbMemorySet(hist, 0, sizeof(ulong) * 256);
+    LbMemorySet(hist, 0, sizeof(u32) * 256);
     b = buf;
     for (i = 0; i < buf_len; i++)
     {
@@ -58,20 +58,20 @@ TbResult LbBufferHistogram(ulong *hist, const TbPixel *buf, ulong buf_len)
 }
 
 short LbImageBuffersMaxDifference(const TbPixel *buf1, const ubyte *pal1,
-  const TbPixel *buf2, const ubyte *pal2, ulong buf_len, ulong *pos)
+  const TbPixel *buf2, const ubyte *pal2, u32 buf_len, u32 *pos)
 {
-    ulong i;
+    u32 i;
     TbBool *already_map;
-    long maxdiff = 0;
-    ulong maxpos = 0;
+    s32 maxdiff = 0;
+    u32 maxpos = 0;
 
     already_map = LbMemoryAlloc(256 * 256 * sizeof(TbBool));
     LbMemorySet(already_map, 0, 256 * 256 * sizeof(TbBool));
 
     for (i = 0; i < buf_len; i++)
     {
-        ulong k;
-        long curdiff;
+        u32 k;
+        s32 curdiff;
         const ubyte *p1;
         const ubyte *p2;
 

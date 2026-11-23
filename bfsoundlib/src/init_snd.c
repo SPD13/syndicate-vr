@@ -39,22 +39,22 @@
 #pragma pack(1)
 
 struct SoundBankSizes {
-    long DatSize;
-    long TabSize;
+    int32_t DatSize;
+    int32_t TabSize;
 };
 
 #pragma pack()
 /******************************************************************************/
 
 TbBool SixteenBit = true;
-ulong SampleRate = 0;
+uint32_t SampleRate = 0;
 
 void *Sfx;
 void *EndSfxs;
 void *SfxData;
 
-long largest_dat_size = 0;
-long largest_tab_size = 0;
+int32_t largest_dat_size = 0;
+int32_t largest_tab_size = 0;
 char full_sound_data_path[224];
 struct SoundBankSizes sound_bank_size_info[9];
 
@@ -70,9 +70,9 @@ extern TbBool SoundActive;
 extern ushort SoundType;
 extern char SoundDataPath[144];
 
-extern ulong MaxNumberOfSamples;
+extern uint32_t MaxNumberOfSamples;
 extern TbBool StereoSound;
-extern long CurrentSoundMasterVolume;
+extern int32_t CurrentSoundMasterVolume;
 
 extern struct SampleInfo sample_id[32];
 extern struct SampleInfo *end_sample_id;
@@ -173,9 +173,9 @@ int SetSoundBitsAndRate(ushort snd_type)
 int AllocateSoundBankMemory(ushort snd_type)
 {
     TbFileHandle fh;
-    long len;
+    int32_t len;
     ushort tpno;
-    long dat_size, tab_size;
+    int32_t dat_size, tab_size;
 
     sprintf(full_sound_data_path, "%s/sound.dat", SoundDataPath);
     fh = LbFileOpen(full_sound_data_path, Lb_FILE_MODE_READ_ONLY);
@@ -202,7 +202,7 @@ int AllocateSoundBankMemory(ushort snd_type)
     }
 
     SfxData = LbMemoryAlloc(dat_size + 256);
-    SNDLOGSYNC("Sound bank", "Sound Data size = %ld", dat_size + 256);
+    SNDLOGSYNC("Sound bank", "Sound Data size = %d", dat_size + 256);
     Sfx = LbMemoryAlloc(tab_size + 256);
 
     if ((SfxData == NULL) ||  (Sfx == NULL)) {

@@ -111,7 +111,7 @@ static inline TbResult load_sprites_with_detail(ubyte *p_dat, ubyte **pp_dat_end
   short styleno, short detail)
 {
     char locstr[DISKPATH_SIZE];
-    long len;
+    s32 len;
     TbResult ret;
 
     sprintf(locstr, "%s/%s%hd-%hd.tab", dir, name, styleno, detail);
@@ -529,7 +529,7 @@ void reset_sprites_small2_font(void)
 TbResult load_multicolor_sprites(const char *dir)
 {
     char locstr[DISKPATH_SIZE];
-    long len;
+    s32 len;
     TbResult ret;
 
     ret = Lb_OK;

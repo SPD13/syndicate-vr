@@ -106,7 +106,7 @@ TbBool triangle_contained_within_rect_coords(TrTriangId tri,
 
 /** Computes surface area of the given triangle.
  */
-long triangle_area1(TrTriangId tri);
+s32 triangle_area1(TrTriangId tri);
 
 /** Returns if given coords can divide triangle into same areas.
  *

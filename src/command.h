@@ -330,7 +330,7 @@ enum PersonCommandFlags
 struct CommandDef {
     const char *CmdName;
     void *vefify;
-    ulong Flags;
+    u32 Flags;
 };
 
 struct Command
@@ -348,7 +348,7 @@ struct Command
   short Time;
   short MyThing; /**< Index of the Thing which has this Command assigned. Unused - could be repurposed. */
   short Parent; /**< Index of the previous Command in a chain. Unused - could be repurposed. */
-  ulong Flags;
+  u32 Flags;
   short field_1C;
   short field_1E;
 };
@@ -362,7 +362,7 @@ extern ushort next_command;
 extern ubyte execute_commands;
 
 const char *command_codename(ushort cmd);
-void snprint_command(char *buf, ulong buflen, ushort cmd);
+void snprint_command(char *buf, u32 buflen, ushort cmd);
 TbBool is_command_any_until(struct Command *p_cmd);
 
 void init_commands(void);

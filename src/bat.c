@@ -422,7 +422,7 @@ static const ubyte BAT_font_question[5] = {0x07, 0x01, 0x03, 0x00, 0x02};
 
 static DIFFTEST_REF_FUNC void BAT_draw_char_asm(int x, int y, char chr, ubyte col)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_BAT_draw_char\n"
         : : "a" (x), "d" (y), "b" (chr), "c" (col));
 }
@@ -574,7 +574,7 @@ static void BAT_bricks_clear(void)
 static DIFFTEST_REF_FUNC void BAT_unknsub_28_asm(int a1, int a2)
 {
     int ra = a1, rd = a2;
-    asm volatile ("call ASM_BAT_unknsub_28\n"
+    DIFFTEST_ASM("call ASM_BAT_unknsub_28\n"
         : "+a" (ra), "+d" (rd) : : "cc", "memory");
 }
 
@@ -642,7 +642,7 @@ void BAT_unknsub_28(int a1, int a2)
 
 static DIFFTEST_REF_FUNC void BAT_unknsub_22_asm(void)
 {
-    asm volatile ("call ASM_BAT_unknsub_22\n"
+    DIFFTEST_ASM("call ASM_BAT_unknsub_22\n"
         :  :  : "eax" );
 }
 
@@ -1029,7 +1029,7 @@ int BAT_unknsub_27(void)
 
 static DIFFTEST_REF_FUNC void BAT_unknsub_21_asm(void)
 {
-    asm volatile ("call ASM_BAT_unknsub_21\n"
+    DIFFTEST_ASM("call ASM_BAT_unknsub_21\n"
         :  :  : "eax" );
 }
 
@@ -1128,7 +1128,7 @@ void BAT_unknsub_21(void)
 
 static DIFFTEST_REF_FUNC void breakout_play_sub1_asm(void)
 {
-    asm volatile ("call ASM_breakout_play_sub1\n"
+    DIFFTEST_ASM("call ASM_breakout_play_sub1\n"
         :  :  : "eax" );
 }
 
@@ -1264,7 +1264,7 @@ void breakout_play_sub1(void)
 
 static DIFFTEST_REF_FUNC void breakout_play_sub2_asm(void)
 {
-    asm volatile ("call ASM_breakout_play_sub2\n"
+    DIFFTEST_ASM("call ASM_breakout_play_sub2\n"
         :  :  : "eax" );
 }
 
@@ -1299,7 +1299,7 @@ void breakout_play_sub2(void)
 static DIFFTEST_REF_FUNC void BAT_bricks_load_asm(int a1)
 {
     int ra = a1;
-    asm volatile ("call ASM_BAT_bricks_load\n"
+    DIFFTEST_ASM("call ASM_BAT_bricks_load\n"
         : "+a" (ra) : : "cc", "memory");
 }
 
@@ -1490,7 +1490,7 @@ void BAT_play(void)
 
 static DIFFTEST_REF_FUNC void BAT_unknsub_20_asm(int a1, int a2, int a3, int a4, ubyte *p_screen)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "push %4\n"
       "call ASM_BAT_unknsub_20\n"
         : : "a" (a1), "d" (a2), "b" (a3), "c" (a4), "g" (p_screen));

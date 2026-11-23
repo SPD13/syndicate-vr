@@ -30,8 +30,8 @@ extern "C" {
 
 struct WADIndexEntry {
     char Filename[12];
-    ulong Offset;
-    ulong Length;
+    u32 Offset;
+    u32 Length;
 };
 
 #pragma pack()

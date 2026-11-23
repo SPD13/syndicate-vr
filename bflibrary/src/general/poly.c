@@ -43,10 +43,10 @@ ubyte *vec_screen;
 ubyte *vec_map;
 ubyte *vec_pal;
 
-long vec_screen_width;
+s32 vec_screen_width;
 
-long vec_window_width;
-long vec_window_height;
+s32 vec_window_width;
+s32 vec_window_height;
 
 ubyte *dither_map;
 ubyte *dither_end;
@@ -57,9 +57,9 @@ TbPixel vec_colour = 112;
 ubyte vec_mode;
 
 // Static variables used only inside draw_gpoly().
-long gpoly_mode;
+s32 gpoly_mode;
 
-const long add_to_edi[] = {
+const s32 add_to_edi[] = {
   0,-15,-14,-13,-12,-11,-10, -9, -8, -7, -6, -5, -4, -3, -2, -1,
 };
 
@@ -77,9 +77,9 @@ void trig(struct PolyPoint *point_a, struct PolyPoint *point_b,
     TbClockMSec start_tm = LbTimerClock();
 #endif
 
-    LOGNO("Pa(%ld,%ld,%ld)", point_a->X, point_a->Y, point_a->S);
-    LOGNO("Pb(%ld,%ld,%ld)", point_b->X, point_b->Y, point_b->S);
-    LOGNO("Pc(%ld,%ld,%ld)", point_c->X, point_c->Y, point_c->S);
+    LOGNO("Pa(%d,%d,%d)", point_a->X, point_a->Y, point_a->S);
+    LOGNO("Pb(%d,%d,%d)", point_b->X, point_b->Y, point_b->S);
+    LOGNO("Pc(%d,%d,%d)", point_c->X, point_c->Y, point_c->S);
 
     opt_a = point_a;
     opt_b = point_b;
@@ -231,7 +231,7 @@ void trig(struct PolyPoint *point_a, struct PolyPoint *point_b,
 #if defined(LB_POLY_RENDER_TIME_CHECK)
     exec_tm = LbTimerClock() - start_tm;
     if (exec_tm > 10) {
-       LOGWARN("Pa(%ld,%ld,%ld) Pb(%ld,%ld,%ld) Pc(%ld,%ld,%ld) mode %d exec time %d ms",
+       LOGWARN("Pa(%d,%d,%d) Pb(%d,%d,%d) Pc(%d,%d,%d) mode %d exec time %d ms",
         point_a->X, point_a->Y, point_a->S, point_b->X, point_b->Y, point_b->S,
         point_c->X, point_c->Y, point_c->S,(int)vec_mode, (int)exec_tm);
     }
@@ -251,9 +251,9 @@ void draw_gpoly(struct PolyPoint *point_a, struct PolyPoint *point_b, struct Pol
              || point_b->X > vec_window_width
              || point_c->X > vec_window_width;
 
-    LOGNO("Pa(%ld,%ld,%ld)", point_a->X, point_a->Y, point_a->S);
-    LOGNO("Pb(%ld,%ld,%ld)", point_b->X, point_b->Y, point_b->S);
-    LOGNO("Pc(%ld,%ld,%ld)", point_c->X, point_c->Y, point_c->S);
+    LOGNO("Pa(%d,%d,%d)", point_a->X, point_a->Y, point_a->S);
+    LOGNO("Pb(%d,%d,%d)", point_b->X, point_b->Y, point_b->S);
+    LOGNO("Pc(%d,%d,%d)", point_c->X, point_c->Y, point_c->S);
 
     start_type = gpoly_reorder_input_points(&point_a, &point_b, &point_c);
     if (start_type == RendStart_NO)
@@ -332,8 +332,8 @@ void poly_line(struct PolyPoint *point_a, struct PolyPoint *point_b)
     short chk_y;
     short dt_x;
 
-    LOGNO("Pa(%ld,%ld,%ld)", point_a->X, point_a->Y, point_a->S);
-    LOGNO("Pb(%ld,%ld,%ld)", point_b->X, point_b->Y, point_b->S);
+    LOGNO("Pa(%d,%d,%d)", point_a->X, point_a->Y, point_a->S);
+    LOGNO("Pb(%d,%d,%d)", point_b->X, point_b->Y, point_b->S);
 
     x1 = point_a->X;
     y1 = point_a->Y;
@@ -540,7 +540,7 @@ void poly_line(struct PolyPoint *point_a, struct PolyPoint *point_b)
 }
 
 void setup_vecs(ubyte *screenbuf, ubyte *nvec_map,
-  ulong line_len, ulong width, ulong height)
+  u32 line_len, u32 width, u32 height)
 {
     if (line_len > 0)
         vec_screen_width = line_len;

@@ -102,7 +102,7 @@ extern u32 text_buf_pos;
 extern char *memload_wep_mod_desc_text;
 #define memload_wep_mod_desc_text_len 32768
 
-void snprint_dh_time_duration(char *out, ulong outlen, long ndays, short nhours);
+void snprint_dh_time_duration(char *out, u32 outlen, s32 ndays, short nhours);
 
 /** Converts any kind of text pointer to a global text pointer.
  *

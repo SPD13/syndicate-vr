@@ -49,10 +49,10 @@ struct WarFlag { // sizeof=40
   */
   u32 Truce;
   ubyte Guardians[8];
-  long ugfld_24;
-  long ugfld_28;
-  long ugfld_32;
-  long ugfld_36;
+  s32 ugfld_24;
+  s32 ugfld_28;
+  s32 ugfld_32;
+  s32 ugfld_36;
 };
 
 enum GroupActionStormingFlags {

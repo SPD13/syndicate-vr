@@ -72,18 +72,18 @@ typedef unsigned char ThingClass;
 /** Type which stores thing model. */
 typedef unsigned char ThingModel;
 
-typedef long HitPoints;
+typedef s32 HitPoints;
 /** Level number within a campaign. */
-typedef long LevelNumber;
+typedef s32 LevelNumber;
 /** Identifier of a national text string. */
 typedef int TextStringId;
 
 /** Distance between map coordinates in full resolution. */
-typedef long MapCoordDelta;
+typedef s32 MapCoordDelta;
 /** Map subtile coordinate. Every slab consists of 3x3 subtiles. */
-typedef long MapSubtlCoord;
+typedef s32 MapSubtlCoord;
 /** Distance between map subtiles. */
-typedef long MapSubtlDelta;
+typedef s32 MapSubtlDelta;
 /** Map slab coordinate. Slab is a cubic part of map with specific content. */
 /** Movement speed on objects in the game. */
 typedef short MoveSpeed;

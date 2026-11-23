@@ -138,7 +138,7 @@ extern ushort next_mission_netscan_objective;
 extern struct NetscanObjective netscan_objectives[NETSCAN_OBJECTIVES_MAX_COUNT];
 extern ubyte netscan_objectives_count;
 
-int add_used_objective(long mapno, long levelno);
+int add_used_objective(s32 mapno, s32 levelno);
 
 TbBool objective_target_is_to_be_acquired(struct Objective *p_objectv);
 TbBool objective_target_is_ally(struct Objective *p_objectv);
@@ -190,12 +190,12 @@ ubyte mem_group_arrived(ushort group, short x, short y, short z,
  */
 ubyte fix_single_objective(struct Objective *p_objectv, ushort objectv, const char *srctext);
 
-void save_objective_chain_conf(TbFileHandle fh, ushort objectv_head, char *buf, ulong buflen);
-int parse_next_used_objective(const char *buf, long buflen, long pri, long mapno, long levelno);
+void save_objective_chain_conf(TbFileHandle fh, ushort objectv_head, char *buf, u32 buflen);
+int parse_next_used_objective(const char *buf, s32 buflen, s32 pri, s32 mapno, s32 levelno);
 
 void save_netscan_objectives_conf(TbFileHandle fh, struct NetscanObjective *nsobv_arr,
-  ushort nsobv_count, char *buf, ulong buflen);
-int parse_next_netscan_objective(const char *buf, long buflen, long nsobv);
+  ushort nsobv_count, char *buf, u32 buflen);
+int parse_next_netscan_objective(const char *buf, s32 buflen, s32 nsobv);
 int load_netscan_objectives_bin(struct NetscanObjective *nsobv_arr, ubyte mapno, ubyte level);
 void load_netscan_objectives(ubyte mapno, ubyte level);
 TbResult load_objectives_text(void);
@@ -208,7 +208,7 @@ TbBool screen_objective_text_set_failed(void);
  */
 void draw_objective(ushort objectv, ubyte flag);
 
-void snprint_objective(char *buf, ulong buflen, struct Objective *p_objectv, ushort objectv);
+void snprint_objective(char *buf, u32 buflen, struct Objective *p_objectv, ushort objectv);
 /******************************************************************************/
 #ifdef __cplusplus
 }

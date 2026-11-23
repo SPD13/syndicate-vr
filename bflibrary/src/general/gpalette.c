@@ -28,9 +28,9 @@
 #include "bfbox.h"
 #include "bftext.h"
 
-typedef long (*ColourDistanceFunc)(ubyte r1, ubyte g1, ubyte b1, ubyte r2, ubyte g2, ubyte b2);
+typedef s32 (*ColourDistanceFunc)(ubyte r1, ubyte g1, ubyte b1, ubyte r2, ubyte g2, ubyte b2);
 
-long fade_count;
+s32 fade_count;
 ubyte fade_from_pal[PALETTE_8b_SIZE];
 ubyte fade_to_pal[PALETTE_8b_SIZE];
 TbBool fade_started = false;
@@ -124,23 +124,23 @@ static ubyte LbColourIntensity(ubyte r, ubyte g, ubyte b)
 /** @internal
  *  Get colour distance using the simplest box method.
  */
-long LbColourDistanceBox(ubyte r1, ubyte g1, ubyte b1,
+s32 LbColourDistanceBox(ubyte r1, ubyte g1, ubyte b1,
   ubyte r2, ubyte g2, ubyte b2)
 {
-    long dr, dg, db;
-    dr = abs(r2 - (long)r1);
-    dg = abs(g2 - (long)g1);
-    db = abs(b2 - (long)b1);
+    s32 dr, dg, db;
+    dr = abs(r2 - (s32)r1);
+    dg = abs(g2 - (s32)g1);
+    db = abs(b2 - (s32)b1);
     return dr + dg + db;
 }
 
-long LbColourDistanceLinearSq(ubyte r1, ubyte g1, ubyte b1,
+s32 LbColourDistanceLinearSq(ubyte r1, ubyte g1, ubyte b1,
   ubyte r2, ubyte g2, ubyte b2)
 {
-    long dr, dg, db;
-    dr = (r2 - (long)r1) * (r2 - (long)r1);
-    dg = (g2 - (long)g1) * (g2 - (long)g1);
-    db = (b2 - (long)b1) * (b2 - (long)b1);
+    s32 dr, dg, db;
+    dr = (r2 - (s32)r1) * (r2 - (s32)r1);
+    dg = (g2 - (s32)g1) * (g2 - (s32)g1);
+    db = (b2 - (s32)b1) * (b2 - (s32)b1);
     return dr + dg + db;
 }
 
@@ -149,15 +149,15 @@ long LbColourDistanceLinearSq(ubyte r1, ubyte g1, ubyte b1,
  * While way less accurate than CIELAB deltaE, this provides more of
  * perception-based difference.
  */
-long LbColourDistanceWagedSq(ubyte r1, ubyte g1, ubyte b1,
+s32 LbColourDistanceWagedSq(ubyte r1, ubyte g1, ubyte b1,
   ubyte r2, ubyte g2, ubyte b2)
 {
-    long dr, dg, db;
+    s32 dr, dg, db;
     // RGB factors are 0.30 0.59 0.11;
     // here we convert them to squared 8-bit multiplier
-    dr = (r2 - (long)r1) * (r2 - (long)r1) * 23;
-    dg = (g2 - (long)g1) * (g2 - (long)g1) * 89;
-    db = (b2 - (long)b1) * (b2 - (long)b1) * 3;
+    dr = (r2 - (s32)r1) * (r2 - (s32)r1) * 23;
+    dg = (g2 - (s32)g1) * (g2 - (s32)g1) * 89;
+    db = (b2 - (s32)b1) * (b2 - (s32)b1) * 3;
     return (dr + dg + db) >> 2;
 }
 
@@ -165,15 +165,15 @@ long LbColourDistanceWagedSq(ubyte r1, ubyte g1, ubyte b1,
  * Get colour distance by computing waged squares of coordinates,
  * with non-squared wages.
  */
-long LbColourDistanceHalfWagedSq(ubyte r1, ubyte g1, ubyte b1,
+s32 LbColourDistanceHalfWagedSq(ubyte r1, ubyte g1, ubyte b1,
   ubyte r2, ubyte g2, ubyte b2)
 {
-    long dr, dg, db;
+    s32 dr, dg, db;
     // RGB factors are 0.30 0.59 0.11;
     // here we convert them to squared 8-bit multiplier
-    dr = (r2 - (long)r1) * (r2 - (long)r1) * 77;
-    dg = (g2 - (long)g1) * (g2 - (long)g1) * 151;
-    db = (b2 - (long)b1) * (b2 - (long)b1) * 28;
+    dr = (r2 - (s32)r1) * (r2 - (s32)r1) * 77;
+    dg = (g2 - (s32)g1) * (g2 - (s32)g1) * 151;
+    db = (b2 - (s32)b1) * (b2 - (s32)b1) * 28;
     return (dr + dg + db) >> 5;
 }
 
@@ -190,7 +190,7 @@ static inline TbPixel LbPaletteFindColourUsingDistanceFunc(const ubyte *pal,
     c = pal;
     for (i = 0; i < PALETTE_8b_COLORS; i++)
     {
-        long curr_delta;
+        s32 curr_delta;
         curr_delta = primaryDistance(c[0], c[1], c[2], r, g, b);
         if (min_delta > curr_delta)
         {
@@ -210,7 +210,7 @@ static inline TbPixel LbPaletteFindColourUsingDistanceFunc(const ubyte *pal,
     c = pal;
     for (i = 0; i < PALETTE_8b_COLORS; i++)
     {
-        long curr_delta;
+        s32 curr_delta;
         curr_delta = primaryDistance(c[0], c[1], c[2], r, g, b);
         if (min_delta == curr_delta)
         {
@@ -228,7 +228,7 @@ static inline TbPixel LbPaletteFindColourUsingDistanceFunc(const ubyte *pal,
     min_delta = 999999;
     for (i = 0; i < n; i++)
     {
-        long curr_delta;
+        s32 curr_delta;
         c = &pal[3 * tmcol[i]];
         curr_delta = secondaryDistance(c[0], c[1], c[2], r, g, b);
         if (min_delta > curr_delta) {
@@ -242,7 +242,7 @@ static inline TbPixel LbPaletteFindColourUsingDistanceFunc(const ubyte *pal,
     o = tmcol;
     for (i = 0; i < n; i++)
     {
-        long curr_delta;
+        s32 curr_delta;
         c = &pal[3 * tmcol[i]];
         curr_delta = secondaryDistance(c[0], c[1], c[2], r, g, b);
         if (min_delta == curr_delta)
@@ -291,13 +291,13 @@ TbPixel LbPaletteFindColour(const ubyte *pal, ubyte r, ubyte g, ubyte b)
       LbColourDistanceLinearSq, LbColourDistanceBox);
 }
 
-TbResult LbPaletteDraw(long X, long Y,
-  ulong Width, ulong Height, ushort Flags)
+TbResult LbPaletteDraw(s32 X, s32 Y,
+  u32 Width, u32 Height, ushort Flags)
 {
     char buf[16];
-    long nrow, ncol;
-    long curX, curY;
-    ulong bkp_DrawFlags;
+    s32 nrow, ncol;
+    s32 curX, curY;
+    u32 bkp_DrawFlags;
     TbPixel bkp_DrawColour;
     TbPixel colour;
 

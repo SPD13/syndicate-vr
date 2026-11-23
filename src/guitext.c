@@ -42,10 +42,10 @@ ushort cybmod_text_index[MOD_TYPES_COUNT] = {0};
 
 u32 text_buf_pos = 0;
 
-void snprint_dh_time_duration(char *out, ulong outlen, long ndays, short nhours)
+void snprint_dh_time_duration(char *out, u32 outlen, s32 ndays, short nhours)
 {
-    ulong days_strid;
-    ulong hours_strid;
+    u32 days_strid;
+    u32 hours_strid;
     if (ndays == 1) {
         days_strid = 625;
     } else {
@@ -57,7 +57,7 @@ void snprint_dh_time_duration(char *out, ulong outlen, long ndays, short nhours)
         hours_strid = 628;
     }
 
-    snprintf(out, outlen, "%ld %s %hd %s", ndays, gui_strings[days_strid], nhours, gui_strings[hours_strid]);
+    snprintf(out, outlen, "%d %s %hd %s", ndays, gui_strings[days_strid], nhours, gui_strings[hours_strid]);
 }
 
 const char *loctext_to_gtext(const char *ltext)

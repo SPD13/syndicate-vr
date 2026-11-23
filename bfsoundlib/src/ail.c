@@ -367,7 +367,7 @@ AIL_DRIVER *AIL2OAL_API_install_driver(const uint8_t *driver_image, uint32_t n_b
     // Link driver into INT 66H chain after current ISR
     drvr->VHDR->prev_ISR = (uintptr_t)AIL_get_real_vect(0x66);
 
-    AIL_set_real_vect(0x66, (void *)(drvr->VHDR->this_ISR + drvr->seg));
+    AIL_set_real_vect(0x66, (void *)(uintptr_t)(drvr->VHDR->this_ISR + drvr->seg));
 
     // Initialize destructor vector and high-level descriptor to NULL
     drvr->destructor = NULL;

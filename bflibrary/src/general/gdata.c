@@ -82,22 +82,22 @@ short LbDataLoad(struct TbLoadFiles *load_file)
             return -100;
     } else
     {
-        long slength = LbFileLengthRnc(fname);
-        long mlength;
+        s32 slength = LbFileLengthRnc(fname);
+        s32 mlength;
         TbBool sprite_tab;
-        LOGDBG("%s: filelength %ld", fname, slength);
+        LOGDBG("%s: filelength %d", fname, slength);
         load_file->SLength = slength;
         if (slength <= 0)
             return -101;
         // Sprite tables take more memory than in the file with 64-bit pointers
         sprite_tab = (strlen(fname) > 4) && (strcasecmp(fname + strlen(fname) - 4, ".tab") == 0);
-        mlength = sprite_tab ? (long)LB_SPRITE_TAB_MEM_SIZE(slength) : slength;
+        mlength = sprite_tab ? (s32)LB_SPRITE_TAB_MEM_SIZE(slength) : slength;
         if (mlength < slength)
             mlength = slength;
         *(load_file->Start) = alloc_func(mlength + 512);
         if ((*(load_file->Start)) == NULL)
             return -100;
-        if (LbFileLoadAt(fname, *(load_file->Start)) != (long)load_file->SLength)
+        if (LbFileLoadAt(fname, *(load_file->Start)) != (s32)load_file->SLength)
         {
             *(load_file->Start) = 0;
             if (load_file->SEnd != NULL)

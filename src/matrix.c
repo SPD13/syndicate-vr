@@ -106,7 +106,7 @@ void matrix_rotate_roll_copy(const struct M33 *p_src, struct M33 *p_dst,
 static DIFFTEST_REF_FUNC void rotate_object_axis_asm(struct M33 *p_base,
   short xangle, short yangle, short zangle)
 {
-    asm volatile ("call ASM_rotate_object_axis\n"
+    DIFFTEST_ASM("call ASM_rotate_object_axis\n"
         : : "a" (p_base), "d" (xangle), "b" (yangle), "c" (zangle));
 }
 
@@ -167,7 +167,7 @@ void rotate_object_axis(struct M33 *p_base, short xangle, short yangle, short za
 static DIFFTEST_REF_FUNC void vec_cross_prod_asm(struct M31 *vecr,
   struct M31 *vec1, struct M31 *vec2)
 {
-    asm volatile ("call ASM_vec_cross_prod\n"
+    DIFFTEST_ASM("call ASM_vec_cross_prod\n"
         : : "a" (vecr), "d" (vec1), "b" (vec2));
 }
 
@@ -184,7 +184,7 @@ void vec_cross_prod(struct M31 *vecr, struct M31 *vec1, struct M31 *vec2)
 static DIFFTEST_REF_FUNC void object_vec_normalisation_asm(struct M33 *vec,
   ubyte col)
 {
-    asm volatile ("call ASM_object_vec_normalisation\n"
+    DIFFTEST_ASM("call ASM_object_vec_normalisation\n"
         : : "a" (vec), "d" (col));
 }
 

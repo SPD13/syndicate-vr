@@ -80,10 +80,10 @@ void sfx_apply_cdvolume(void);
 void fill_ail_sample_ids(void);
 void monitor_all_samples(void);
 
-struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
-  ulong volume, ulong pan, ulong pitch, sbyte loop_count, ubyte type);
+struct SampleInfo *play_sample_using_heap(u32 bank_id, short smptbl_id,
+  u32 volume, u32 pan, u32 pitch, sbyte loop_count, ubyte type);
 
-void stop_sample_using_heap(long source_id, ulong sample_number);
+void stop_sample_using_heap(s32 source_id, u32 sample_number);
 void play_dist_sample(struct Thing *p_thing, ushort smptbl_id, ushort vol, ushort pan, int pitch, int loop, ubyte type);
 int play_dist_speech(struct Thing *p_thing, ushort samp, ushort vol, ushort pan, int pitch, int loop, ubyte type);
 void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vol, ushort pan, int pitch, int loop, ubyte type);

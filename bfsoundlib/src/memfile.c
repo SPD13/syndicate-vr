@@ -37,11 +37,11 @@ int32_t AIL_MEM_alloc_DOS(uint32_t n_paras, void **protected_ptr,
     if (ptr == NULL)
         return 0;
 
-    *segment_far_ptr = ((uint32_t)ptr >> 4) << 16;
+    *segment_far_ptr = ((uint32_t)(uintptr_t)ptr >> 4) << 16;
     *protected_ptr = ptr;
     *selector = 0x4D0;
-    AIL_VMM_lock_range((void *)(*segment_far_ptr >> 12),
-        (void *)((*segment_far_ptr >> 12) + 16 * n_paras - 1));
+    AIL_VMM_lock_range((void *)(uintptr_t)(*segment_far_ptr >> 12),
+        (void *)(uintptr_t)((*segment_far_ptr >> 12) + 16 * n_paras - 1));
     return 1;
 }
 

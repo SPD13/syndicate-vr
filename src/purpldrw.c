@@ -1684,7 +1684,7 @@ void draw_flic_purple_list(void (*fn)())
     p_pditem->Type = PuDT_FLIC;
 }
 
-void draw_noise_box_purple_list(int x, int y, ulong width, ulong height)
+void draw_noise_box_purple_list(int x, int y, u32 width, u32 height)
 {
     struct PurpleDrawItem *p_pditem;
 

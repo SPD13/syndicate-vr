@@ -21,12 +21,12 @@
 
 ubyte *lbVesaData;
 
-TbResult LbVesaGetGran(long mode)
+TbResult LbVesaGetGran(s32 mode)
 {
     return Lb_FAIL;
 }
 
-TbResult LbVesaSetMode(long mode)
+TbResult LbVesaSetMode(s32 mode)
 {
     return Lb_FAIL;
 }
@@ -41,7 +41,7 @@ TbResult LbVesaGetInfo(void)
     return Lb_FAIL;
 }
 
-TbBool LbVesaIsModeAvailable(long mode)
+TbBool LbVesaIsModeAvailable(s32 mode)
 {
     /* low level access to VESA modes not available with SDL */
     return false;

@@ -74,13 +74,13 @@ ubyte brief_citymap_content = BriCtM_AUTO_SCANNER;
 
 /** Amount of cities available in brief of a selected mail message.
  */
-long mail_num_active_cities = 0;
+s32 mail_num_active_cities = 0;
 
 char *mission_briefing_text = NULL;
 
 char brief_netscan_cost_text[20];
 
-long dword_1C47E0 = 0;
+s32 dword_1C47E0 = 0;
 ubyte byte_1C47E4 = 0;
 short word_1C47E6 = 0;
 short word_1C47E8 = 0;

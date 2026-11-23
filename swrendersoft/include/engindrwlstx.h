@@ -157,7 +157,7 @@ void draw_floor_tile1a(ushort tl);
 void draw_floor_tile1b(ushort tl);
 
 void set_nuclear_shade_point(s32 x, s32 y, s32 z);
-void set_nuclear_shade_timer(ulong tmval);
+void set_nuclear_shade_timer(u32 tmval);
 
 void draw_drawitem_1(ushort dihead);
 void draw_drawitem_2(ushort dihead);

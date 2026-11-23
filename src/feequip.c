@@ -220,7 +220,7 @@ ubyte do_equip_offer_buy_weapon(ubyte click)
 
     if (selected_agent != 4)
     {
-        long cost;
+        s32 cost;
         short plagent;
         TbBool added;
 
@@ -243,7 +243,7 @@ ubyte do_equip_offer_buy_weapon(ubyte click)
     }
     else
     {
-        long cost;
+        s32 cost;
         short plagent;
         TbBool added;
 

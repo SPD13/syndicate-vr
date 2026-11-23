@@ -23,7 +23,7 @@
 /******************************************************************************/
 
 struct TbSprite *AppFontCharSpriteRW(struct TbSprite *font,
-  const ulong chr)
+  const u32 chr)
 {
     if (font == NULL)
         return NULL;

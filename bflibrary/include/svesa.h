@@ -31,14 +31,14 @@ extern "C" {
 
 extern ubyte *lbVesaData;
 
-TbResult LbVesaGetGran(long mode);
-TbResult LbVesaSetMode(long mode);
+TbResult LbVesaGetGran(s32 mode);
+TbResult LbVesaSetMode(s32 mode);
 TbResult LbVesaSetPage(ushort pageNo);
 TbResult LbVesaGetInfo(void);
 
 /** Checks if a VESA mode with given flags is available.
  */
-TbBool LbVesaIsModeAvailable(long mode);
+TbBool LbVesaIsModeAvailable(s32 mode);
 
 #ifdef __cplusplus
 };

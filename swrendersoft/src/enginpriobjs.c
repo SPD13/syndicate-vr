@@ -55,13 +55,13 @@ ushort old_next_object, old_next_object_face3, old_next_object_point,
 
 void read_primveh_obj(const char *fname, int a2)
 {
-    long firstval;
+    s32 firstval;
     TbFileHandle fh;
 
     fh = LbFileOpen(fname, Lb_FILE_MODE_READ_ONLY);
     if (fh == INVALID_FILE)
         return;
-    LbFileRead(fh, &firstval, sizeof(long));
+    LbFileRead(fh, &firstval, sizeof(s32));
     if (firstval != 1)
     {
       LbFileRead(fh, &next_prim_object_point, sizeof(ushort));

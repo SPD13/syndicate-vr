@@ -163,7 +163,7 @@ extern const struct Direction angle_direction[];
  *
  * @return Returns if the coordinates were altered (or would have been altered if not NULL).
  */
-TbBool map_coords_limit(MapCoord *cor_x, MapCoord *cor_y, MapCoord *cor_z, long map_x, long map_y, long map_z);
+TbBool map_coords_limit(MapCoord *cor_x, MapCoord *cor_y, MapCoord *cor_z, s32 map_x, s32 map_y, s32 map_z);
 
 void clear_mapwho_on_whole_map(void);
 void refresh_old_my_big_map_format(struct MyMapElement *p_mapel,

@@ -52,9 +52,9 @@ ushort kbkeys[GKey_KEYS_COUNT];
 JoyButtonSet jskeys[GKey_KEYS_COUNT];
 ubyte ctl_joystick_type = JTyp_NONE;
 
-ulong buffered_keys[KEYBOARD_BUFFER_SIZE];
-ulong buffered_keys_read_index;
-ulong buffered_keys_write_index;
+u32 buffered_keys[KEYBOARD_BUFFER_SIZE];
+u32 buffered_keys_read_index;
+u32 buffered_keys_write_index;
 
 ubyte keyboard_mode_direct = 0;
 
@@ -379,7 +379,7 @@ void sprint_gamekey_combination_joy(char *ostr, GameKey gkey)
 
 static void add_key_to_buffer(ubyte key)
 {
-    ulong new_write_index;
+    u32 new_write_index;
 
     buffered_keys[buffered_keys_write_index] = key;
 
@@ -389,9 +389,9 @@ static void add_key_to_buffer(ubyte key)
         buffered_keys_write_index = new_write_index;
 }
 
-ulong next_buffered_key(void)
+u32 next_buffered_key(void)
 {
-    ulong key;
+    u32 key;
 
     if (buffered_keys_read_index == buffered_keys_write_index)
         return 0;
@@ -436,7 +436,7 @@ void init_buffered_keys(void)
 static DIFFTEST_REF_FUNC TbBool user_read_value_asm(char *buf, ubyte len, ubyte type)
 {
     TbBool ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_user_read_value\n"
         : "=a" (ret) : "a" (buf), "d" (len), "b" (type));
     return ret;
@@ -444,7 +444,7 @@ static DIFFTEST_REF_FUNC TbBool user_read_value_asm(char *buf, ubyte len, ubyte 
 
 TbBool user_read_value(char *buf, ubyte len, ubyte type)
 {
-    ulong key;
+    u32 key;
     ubyte slen;
     ubyte c, ch;
 

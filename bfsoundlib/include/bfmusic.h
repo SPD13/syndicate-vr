@@ -29,14 +29,14 @@ extern "C" {
 #pragma pack(1)
 
 struct MusicBankSizes {
-    ulong mbs0;
-    ulong mbs1;
-    ulong mbs2;
-    ulong mbs3;
-    ulong mbs4;
-    ulong mbs5;
-    ulong mbs6;
-    ulong mbs7;
+    uint32_t mbs0;
+    uint32_t mbs1;
+    uint32_t mbs2;
+    uint32_t mbs3;
+    uint32_t mbs4;
+    uint32_t mbs5;
+    uint32_t mbs6;
+    uint32_t mbs7;
 };
 
 /** Song entry of a music bank, as in the file (32 bytes).

@@ -144,9 +144,9 @@ extern struct LoginControl login_control[4];
 
 extern ubyte exit_game;
 
-extern long unkn01_downcount;
-extern long unkn01_pos_x;
-extern long unkn01_pos_y;
+extern s32 unkn01_downcount;
+extern s32 unkn01_pos_x;
+extern s32 unkn01_pos_y;
 
 extern ushort current_map;
 extern short current_level;
@@ -164,7 +164,7 @@ extern ubyte screentype;
 extern sbyte mission_result;
 
 extern ubyte net_player_teams[8];
-extern long dword_153194;
+extern s32 dword_153194;
 
 extern ubyte group_factions[8];
 extern ubyte start_into_mission;
@@ -205,7 +205,7 @@ void srm_reset_research(void);
 void net_new_game_prepare(void);
 void change_current_map(ushort mapno);
 
-TbBool player_try_spend_money(long cost);
+TbBool player_try_spend_money(s32 cost);
 void campaign_new_game_prepare(void);
 
 void update_danger_music(ubyte a1);

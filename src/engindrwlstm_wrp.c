@@ -1292,7 +1292,7 @@ int mech_unkn_func_13(struct M33 *p_mat1, struct M33 *p_mat2)
     // Decompose row0 into yaw/pitch angles
     len_xz = LbSqrL(p_mat1->R[0][0] * p_mat1->R[0][0]
       + p_mat1->R[0][2] * p_mat1->R[0][2]);
-    len_full = LbSqrL((ulong)(p_mat1->R[0][0] * p_mat1->R[0][0]
+    len_full = LbSqrL((u32)(p_mat1->R[0][0] * p_mat1->R[0][0]
       + p_mat1->R[0][1] * p_mat1->R[0][1]
       + p_mat1->R[0][2] * p_mat1->R[0][2]));
 

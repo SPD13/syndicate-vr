@@ -20,11 +20,13 @@
 #ifndef BFLIBRARY_BFEXE_KEY_H_
 #define BFLIBRARY_BFEXE_KEY_H_
 
+#include "bftypes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-unsigned long LbExeReferenceNumber(void);
+u32 LbExeReferenceNumber(void);
 
 #ifdef __cplusplus
 };

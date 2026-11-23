@@ -58,7 +58,7 @@ extern "C" {
 
 typedef char *PCHAR,*LPCH,*PCH,*NPSTR,*LPSTR,*PSTR;
 typedef const char *LPCCH,*PCSTR,*LPCSTR;
-typedef unsigned long DWORD;
+typedef u32 DWORD;
 typedef int WINBOOL,*PWINBOOL,*LPWINBOOL;
 #define BOOL WINBOOL
 typedef void *PVOID,*LPVOID;
@@ -94,9 +94,9 @@ TbBool LbFileExists(const char *fname)
     return access(fname, F_OK) == 0;
 }
 
-long LbFilePosition(TbFileHandle fhandle)
+s32 LbFilePosition(TbFileHandle fhandle)
 {
-    long result;
+    s32 result;
 #if defined(WIN32)||defined(DOS)||defined(GO32)
     result = tell(fhandle);
 #else
@@ -169,7 +169,7 @@ TbFileHandle LbFileOpen(const char *fname, const TbFileOpenMode accmode)
 #endif
         break;
   }
-  LOGSYNC("out handle = %ld, errno = %d", rc, errno);
+  LOGSYNC("out handle = %d, errno = %d", rc, errno);
   return rc; // sopen returns -1 on fail, which is equal to our INVALID_FILE
 }
 
@@ -187,7 +187,7 @@ TbBool LbFileEof(TbFileHandle fhandle)
     return false;
 }
 
-TbResult LbFileSeek(TbFileHandle fhandle, long offset, TbFileSeekMode origin)
+TbResult LbFileSeek(TbFileHandle fhandle, s32 offset, TbFileSeekMode origin)
 {
   int rc;
   switch (origin)
@@ -208,7 +208,7 @@ TbResult LbFileSeek(TbFileHandle fhandle, long offset, TbFileSeekMode origin)
   return rc;
 }
 
-long LbFileRead(TbFileHandle fhandle, void *buffer, unsigned long len)
+s32 LbFileRead(TbFileHandle fhandle, void *buffer, u32 len)
 {
   int result;
   //'read' returns (-1) on error
@@ -216,9 +216,9 @@ long LbFileRead(TbFileHandle fhandle, void *buffer, unsigned long len)
   return result;
 }
 
-long LbFileWrite(TbFileHandle fhandle, const void *buffer, const unsigned long len)
+s32 LbFileWrite(TbFileHandle fhandle, const void *buffer, const u32 len)
 {
-  long result;
+  s32 result;
   result = write(fhandle, buffer, len);
   return result;
 }
@@ -228,7 +228,7 @@ TbBool LbFileFlush(TbFileHandle fhandle)
 #if defined(WIN32)
     int result;
     // Crappy Windows has its own
-    result = FlushFileBuffers((HANDLE)fhandle);
+    result = FlushFileBuffers((HANDLE)(intptr_t)fhandle);
     // It returns 'invalid handle' error sometimes for no reason.. so disabling this error
     if (result != 0)
         return 1;
@@ -245,9 +245,9 @@ TbBool LbFileFlush(TbFileHandle fhandle)
 #endif
 }
 
-long LbFileLengthHandle(TbFileHandle fhandle)
+s32 LbFileLengthHandle(TbFileHandle fhandle)
 {
-    long result;
+    s32 result;
 #if defined(WIN32)||defined(DOS)||defined(GO32)
     result = filelength(fhandle);
 #else
@@ -258,9 +258,9 @@ long LbFileLengthHandle(TbFileHandle fhandle)
     return result;
 }
 
-long LbFileLength(const char *fname)
+s32 LbFileLength(const char *fname)
 {
-    long result;
+    s32 result;
 #if defined(WIN32)||defined(DOS)||defined(GO32)
     TbFileHandle fhandle;
 

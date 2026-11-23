@@ -34,7 +34,7 @@ class MouseStateHandler pointerHandler;
  * @param x,y Coorditates to adjust.
  * @return Returns true if the coordinates have changed.
  */
-int adjust_point(long *x, long *y)
+int adjust_point(s32 *x, s32 *y)
 {
     return false;
 }
@@ -88,9 +88,9 @@ struct TbPoint *MouseStateHandler::GetPosition(void)
     return &mspos;
 }
 
-bool MouseStateHandler::SetMousePosition(long x, long y)
+bool MouseStateHandler::SetMousePosition(s32 x, s32 y)
 {
-    long mx,my;
+    s32 mx,my;
     LbSemaLock semlock(&semaphore,0);
     if (!semlock.Lock(true))
       return false;
@@ -110,10 +110,10 @@ bool MouseStateHandler::SetMousePosition(long x, long y)
     return true;
 }
 
-bool MouseStateHandler::SetPosition(long x, long y)
+bool MouseStateHandler::SetPosition(s32 x, s32 y)
 {
-    long prev_x,prev_y;
-    long mx,my;
+    s32 prev_x,prev_y;
+    s32 mx,my;
     if (!this->installed)
       return false;
     // Clip coordinates to our mouse window
@@ -155,7 +155,7 @@ bool MouseStateHandler::SetPosition(long x, long y)
     return true;
 }
 
-bool MouseStateHandler::SetMouseWindow(long x, long y,long width, long height)
+bool MouseStateHandler::SetMouseWindow(s32 x, s32 y,s32 width, s32 height)
 {
     LbSemaLock semlock(&semaphore,0);
     if (!semlock.Lock(true))
@@ -215,7 +215,7 @@ bool MouseStateHandler::SetPointer(const struct TbSprite *spr, struct TbPoint *p
     return true;
 }
 
-bool MouseStateHandler::SetMousePointerAndOffset(const struct TbSprite *mouseSprite, long x, long y)
+bool MouseStateHandler::SetMousePointerAndOffset(const struct TbSprite *mouseSprite, s32 x, s32 y)
 {
     struct TbPoint point;
     LbSemaLock semlock(&semaphore,0);
@@ -253,7 +253,7 @@ bool MouseStateHandler::SetMousePointer(const struct TbSprite *mouseSprite)
     return true;
 }
 
-bool MouseStateHandler::SetPointerOffset(long x, long y)
+bool MouseStateHandler::SetPointerOffset(s32 x, s32 y)
 {
     LbSemaLock semlock(&semaphore,0);
     if (!semlock.Lock(true))

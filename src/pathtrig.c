@@ -137,7 +137,7 @@ void unkn_path_func_001(struct Thing *p_thing, ubyte a2)
 }
 
 //TODO temp copy of static func
-static sbyte path_compare_multiplications(long mul1a, long mul1b, long mul2a, long mul2b)
+static sbyte path_compare_multiplications(s32 mul1a, s32 mul1b, s32 mul2a, s32 mul2b)
 {
     long long mul1,mul2;
     mul1 = (long long)mul1a * (long long)mul1b;
@@ -152,7 +152,7 @@ static sbyte path_compare_multiplications(long mul1a, long mul1b, long mul2a, lo
 static DIFFTEST_REF_FUNC TbBool triangle_contains8_asm(int tri, int x, int y)
 {
     TbBool ret;
-    asm volatile ("call ASM_triangle_contains8\n"
+    DIFFTEST_ASM("call ASM_triangle_contains8\n"
         : "=a" (ret) : "a" (tri), "d" (x), "b" (y));
     return ret;
 }
@@ -189,7 +189,7 @@ TbBool triangle_contains8(int tri, int x, int y)
 static DIFFTEST_REF_FUNC int pointed_at8_asm(TrFineCoord pt_x, TrFineCoord pt_y, int *r_tri, int *r_cor)
 {
     int ret;
-    asm volatile ("call ASM_pointed_at8\n"
+    DIFFTEST_ASM("call ASM_pointed_at8\n"
         : "=a" (ret) : "a" (pt_x), "d" (pt_y), "b" (r_tri), "c" (r_cor));
     return ret;
 }
@@ -347,7 +347,7 @@ int triangle_find8(TrFineCoord pt_x, TrFineCoord pt_y)
 static DIFFTEST_REF_FUNC int triangle_findSE8_asm(int x, int y)
 {
     int ret;
-    asm volatile ("call ASM_triangle_findSE8\n"
+    DIFFTEST_ASM("call ASM_triangle_findSE8\n"
         : "=a" (ret) : "a" (x), "d" (y));
     return ret;
 }
@@ -405,7 +405,7 @@ int triangle_findSE8(int x, int y)
 static DIFFTEST_REF_FUNC void fill_concave_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_fill_concave\n"
+    DIFFTEST_ASM("call ASM_fill_concave\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -466,7 +466,7 @@ void fill_concave(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void make_edge_asm(int x1, int y1, int x2, int y2)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_make_edge\n"
         : : "a" (x1), "d" (y1), "b" (x2), "c" (y2));
 }
@@ -572,7 +572,7 @@ static DIFFTEST_REF_FUNC int edge_find_asm(int x1, int y1, int x2, int y2, int *
     stkargs[0] = (int)(intptr_t)ntri1;
     stkargs[1] = (int)(intptr_t)ncor1;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_edge_find\n"
@@ -658,7 +658,7 @@ static DIFFTEST_REF_FUNC TbBool two4_line_intersection_asm(int x1, int y1,
     stkargs[2] = (int)(intptr_t)x4;
     stkargs[3] = (int)(intptr_t)y4;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 12(%5)\n"
       "push 8(%5)\n"
       "push 4(%5)\n"
@@ -789,7 +789,7 @@ TbBool point_find(TrCoord pt_x, TrCoord pt_y, int *r_tri, int *r_cor)
 static DIFFTEST_REF_FUNC int point_quad_status_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_point_quad_status\n"
+    DIFFTEST_ASM("call ASM_point_quad_status\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -891,7 +891,7 @@ static DIFFTEST_REF_FUNC void func_81db4_asm(int a1, int a2, int a3, int a4, int
     int *p_stk = stkargs;
     stkargs[0] = a5;
     stkargs[1] = a6;
-    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_func_81db4\n"
+    DIFFTEST_ASM("push 4(%4)\n""push 0(%4)\n""call ASM_func_81db4\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
@@ -950,7 +950,7 @@ static DIFFTEST_REF_FUNC void line_intersect8_asm(int a1, int a2, int a3, int a4
     stkargs[3] = a8;
     stkargs[4] = a9;
     stkargs[5] = a10;
-    asm volatile ("push 20(%4)\n""push 16(%4)\n""push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_line_intersect8\n"
+    DIFFTEST_ASM("push 20(%4)\n""push 16(%4)\n""push 12(%4)\n""push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_line_intersect8\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
@@ -1000,7 +1000,7 @@ void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int
 
 static DIFFTEST_REF_FUNC void make_clip_list_asm(int x1, int y1, int x2, int y2)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_make_clip_list\n"
         : : "a" (x1), "d" (y1), "b" (x2), "c" (y2));
 }
@@ -1122,7 +1122,7 @@ void make_clip_list(int x1, int y1, int x2, int y2)
 
 static DIFFTEST_REF_FUNC void make_clipped_edges_asm(int en1, int en2)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_make_clipped_edges\n"
         : : "a" (en1), "d" (en2));
 }
@@ -1197,7 +1197,7 @@ void thin_wall(int x1, int y1, int x2, int y2, ubyte en1, ubyte en2)
 static DIFFTEST_REF_FUNC int triangle_route_do_unkn7_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_triangle_route_do_unkn7\n"
+    DIFFTEST_ASM("call ASM_triangle_route_do_unkn7\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -1450,7 +1450,7 @@ static DIFFTEST_REF_FUNC s32 ma_triangle_route_4_asm(int triA, int triB, s32 *p_
 {
     s32 ret;
     int rd = triB, rb = (int)(intptr_t)p_treert, rc = 0;
-    asm volatile ("call ASM_ma_triangle_route_4\n"
+    DIFFTEST_ASM("call ASM_ma_triangle_route_4\n"
         : "=a" (ret), "+d" (rd), "+b" (rb), "+c" (rc) : "a" (triA) : "cc", "memory");
     return ret;
 }
@@ -1509,7 +1509,7 @@ s32 ma_triangle_route_4(int triA, int triB, s32 *p_treert)
 static DIFFTEST_REF_FUNC int fov_region_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_fov_region\n"
+    DIFFTEST_ASM("call ASM_fov_region\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -1559,7 +1559,7 @@ static DIFFTEST_REF_FUNC int edge_points8_asm(int a1, int a2, int a3, int a4, in
     int *p_stk = stkargs;
     stkargs[0] = a5;
     stkargs[1] = a6;
-    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_edge_points8\n"
+    DIFFTEST_ASM("push 4(%4)\n""push 0(%4)\n""call ASM_edge_points8\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
     return ra;
 }
@@ -1624,7 +1624,7 @@ static DIFFTEST_REF_FUNC s32 route_to_path_asm(int ax8, int ay8, int bx8, int by
     stkargs[2] = (int)(intptr_t)p_path;
     stkargs[3] = (int)(intptr_t)p_len2;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 12(%5)\n"
       "push 8(%5)\n"
       "push 4(%5)\n"
@@ -1826,7 +1826,7 @@ void path_init8_unkn3(struct Path *p_path, int ax8, int ay8, int bx8, int by8, i
 static DIFFTEST_REF_FUNC int unused_func_115_asm(int X1, int Z1, int X2, int Z2)
 {
     int ret;
-    asm volatile ("call ASM_unused_func_115\n"
+    DIFFTEST_ASM("call ASM_unused_func_115\n"
         : "=a" (ret) : "a" (X1), "d" (Z1), "b" (X2), "c" (Z2));
     return ret;
 }
@@ -1887,7 +1887,7 @@ int unused_func_115(int X1, int Z1, int X2, int Z2)
 static DIFFTEST_REF_FUNC int func_5cff0_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_func_5cff0\n"
+    DIFFTEST_ASM("call ASM_func_5cff0\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -1932,7 +1932,7 @@ int func_5cff0(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
 static DIFFTEST_REF_FUNC short collide_coords_asm(short *p_X, short *p_Y, short *p_Z)
 {
     int ra = (int)(intptr_t)p_X, rd = (int)(intptr_t)p_Y, rb = (int)(intptr_t)p_Z;
-    asm volatile ("call ASM_collide_coords\n"
+    DIFFTEST_ASM("call ASM_collide_coords\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
     return (short)ra;
 }
@@ -2506,7 +2506,7 @@ void triangulation_init_edges(void)
 
 static DIFFTEST_REF_FUNC void triangulation_allocate_asm(int tgnNo, int maxTrigs)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_triangulation_allocate\n"
         : : "a" (tgnNo), "d" (maxTrigs));
 }
@@ -3708,7 +3708,7 @@ void generate_thin_paths(void)
 static DIFFTEST_REF_FUNC int func_5fcf4_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_func_5fcf4\n"
+    DIFFTEST_ASM("call ASM_func_5fcf4\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -3753,7 +3753,7 @@ int func_5fcf4(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void triangulation_unkn_func_002_asm(int x1, int z1, int x2, int z2)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_triangulation_unkn_func_002\n"
         : : "a" (x1), "d" (z1), "b" (x2), "c" (z2));
 }

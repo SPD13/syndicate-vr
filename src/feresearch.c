@@ -383,9 +383,9 @@ ubyte show_unkn21_box(struct ScreenTextBox *p_box)
       || (!research_on_weapons && research.CurrentMod != -1))
     {
         if (research_on_weapons)
-            sprintf(locstr, "%ld", research.WeaponFunding);
+            sprintf(locstr, "%d", research.WeaponFunding);
         else
-            sprintf(locstr, "%ld", research.ModFunding);
+            sprintf(locstr, "%d", research.ModFunding);
         text = loctext_to_gtext(locstr);
         tx_width = LbTextStringWidth(text);
         scr_x = (100 - tx_width - 5) >> 1;

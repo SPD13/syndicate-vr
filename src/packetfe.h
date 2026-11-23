@@ -81,12 +81,12 @@ struct NetworkPlayerUWepMod {
 };
 
 struct NetworkPlayerUMissInit {
-  ulong Seed;
+  u32 Seed;
   short GameMode;
 };
 
 struct NetworkPlayerUUnkn {
-    long npfield_1;
+    s32 npfield_1;
     sbyte npfield_5;
     sbyte npfield_6;
     sbyte npfield_7;
@@ -100,7 +100,7 @@ struct NetworkPlayerUUnkn {
     sbyte npfield_12;
     sbyte npfield_13;
     sbyte npfield_14;
-    long npfield_15;
+    s32 npfield_15;
 };
 
 struct NetworkPlayer { // sizeof=26

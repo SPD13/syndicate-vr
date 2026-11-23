@@ -79,7 +79,7 @@ void tnode_all_unlink_thing(ThingIdx thing)
 static DIFFTEST_REF_FUNC int good_node_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
-    asm volatile ("call ASM_good_node\n"
+    DIFFTEST_ASM("call ASM_good_node\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "cc", "memory");
     return ra;
 }
@@ -126,7 +126,7 @@ int good_node(int a1, intptr_t a2, int a3)
 static DIFFTEST_REF_FUNC short get_next_tnode_asm(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
 {
     short ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_get_next_tnode\n"
         : "=a" (ret) : "a" (p_vehicle), "d" (p_tnode));
     return ret;
@@ -267,7 +267,7 @@ short get_next_tnode(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
 static DIFFTEST_REF_FUNC int VNAV_renavigate_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_VNAV_renavigate\n"
+    DIFFTEST_ASM("call ASM_VNAV_renavigate\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -353,7 +353,7 @@ int VNAV_renavigate(intptr_t a1, intptr_t a2, int a3, int a4)
 static DIFFTEST_REF_FUNC int VNAV_there_asm(int a1)
 {
     int ra = a1;
-    asm volatile ("call ASM_VNAV_there\n"
+    DIFFTEST_ASM("call ASM_VNAV_there\n"
         : "+a" (ra) : : "edx", "ebx", "ecx", "esi", "edi", "cc", "memory");
     return ra;
 }
@@ -372,7 +372,7 @@ int VNAV_there(intptr_t a1)
 static DIFFTEST_REF_FUNC int VNAV_turn_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
-    asm volatile ("call ASM_VNAV_turn\n"
+    DIFFTEST_ASM("call ASM_VNAV_turn\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "esi", "edi", "cc", "memory");
     return ra;
 }
@@ -400,7 +400,7 @@ int VNAV_turn(intptr_t a1, intptr_t a2, intptr_t a3)
 
 static DIFFTEST_REF_FUNC void process_next_vnav_turn_asm(struct Thing *p_vehicle)
 {
-    asm volatile ("call ASM_process_next_vnav_turn\n"
+    DIFFTEST_ASM("call ASM_process_next_vnav_turn\n"
         : : "a" (p_vehicle));
 }
 
@@ -751,7 +751,7 @@ void update_vehicle_elevation(struct Thing *p_vehicle, short statn)
         p_vehicle->U.UVehicle.AngleX -= 4;
 }
 
-void update_vehicle_speed_and_direction(struct Thing *p_vehicle, int tndt_x, int tndt_z, long nxdist_sq)
+void update_vehicle_speed_and_direction(struct Thing *p_vehicle, int tndt_x, int tndt_z, s32 nxdist_sq)
 {
     short angleY, angDY;
 
@@ -902,7 +902,7 @@ void vehicle_workplace_states_finish(struct Thing *p_vehicle)
 
 static DIFFTEST_REF_FUNC void VNAV_process_bezier_asm(struct Thing *p_road)
 {
-    asm volatile ("call ASM_VNAV_process_bezier\n"
+    DIFFTEST_ASM("call ASM_VNAV_process_bezier\n"
         : : "a" (p_road));
 }
 
@@ -985,9 +985,9 @@ void VNAV_process_bezier(struct Thing *p_road)
     }
 }
 
-void VNAV_preprocess_bezier_turns(ulong nturns)
+void VNAV_preprocess_bezier_turns(u32 nturns)
 {
-    ulong turns;
+    u32 turns;
 
     for (turns = nturns; turns > 0; turns--)
     {
@@ -1012,7 +1012,7 @@ void VNAV_preprocess_bezier_turns(ulong nturns)
 
 static DIFFTEST_REF_FUNC void VNAV_init_new_traffic_system_asm(void)
 {
-    asm volatile ("call ASM_VNAV_init_new_traffic_system\n"
+    DIFFTEST_ASM("call ASM_VNAV_init_new_traffic_system\n"
         :  :  : "eax" );
 }
 
@@ -1173,7 +1173,7 @@ s32 data_1dd91c;
 
 static DIFFTEST_REF_FUNC void traffic_unkn_func_01_asm(void)
 {
-    asm volatile ("call ASM_traffic_unkn_func_01\n"
+    DIFFTEST_ASM("call ASM_traffic_unkn_func_01\n"
         :  :  : "eax" );
 }
 

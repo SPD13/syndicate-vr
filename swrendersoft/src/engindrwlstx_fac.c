@@ -382,7 +382,7 @@ void set_nuclear_shade_point(s32 x, s32 y, s32 z)
     engn_nuclear_shade_timer = 0;
 }
 
-void set_nuclear_shade_timer(ulong tmval)
+void set_nuclear_shade_timer(u32 tmval)
 {
     engn_nuclear_shade_timer = tmval;
 }

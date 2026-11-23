@@ -270,10 +270,10 @@ void start_landing(struct Thing *p_vehicle);
 
 int check_for_a_vehicle_here(int x, int z, struct Thing *p_vehicle);
 
-void preprogress_trains_turns(ulong nturns);
+void preprogress_trains_turns(u32 nturns);
 
 const char *vehicle_type_name(ushort vtype);
-void snprint_vehicle_state(char *buf, ulong buflen, struct Thing *p_thing);
+void snprint_vehicle_state(char *buf, u32 buflen, struct Thing *p_thing);
 
 int vehicle_hit_by_bullet(struct Thing *p_vehicle, short hp,
   int vx, int vy, int vz, struct Thing *p_attacker, ushort type);

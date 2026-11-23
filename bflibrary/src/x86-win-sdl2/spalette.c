@@ -52,7 +52,7 @@ TbResult LbPaletteSet(const ubyte *palette)
     unsigned char * bufColors;
     SDL_Color * destColors;
     const unsigned char * srcColors;
-    unsigned long i;
+    u32 i;
     TbResult ret;
 
     LOGDBG("starting");

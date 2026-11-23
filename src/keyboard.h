@@ -148,7 +148,7 @@ extern ubyte joy_types_available[];
 
 void init_buffered_keys(void);
 void reset_buffered_keys(void);
-ulong next_buffered_key(void);
+u32 next_buffered_key(void);
 TbBool user_read_value(char *buf, ubyte len, ubyte type);
 
 void input(void);

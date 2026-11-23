@@ -384,7 +384,7 @@ void net_player_update_from_progress_packet(int plyr)
         }
         if ((net_game_play_flags & NGPF_Unkn08) != 0)
         {
-            long credits;
+            s32 credits;
 
           credits = p_netplyr->U.Progress.Credits;
           if (credits >= 0) {

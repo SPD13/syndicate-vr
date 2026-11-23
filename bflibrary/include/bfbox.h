@@ -32,14 +32,14 @@ extern "C" {
  * exceed the current graphics window.
  * This function honors DrawFlags.
  */
-TbResult LbDrawBox(long X, long Y, long Width, long Height, TbPixel colour);
+TbResult LbDrawBox(s32 X, s32 Y, s32 Width, s32 Height, TbPixel colour);
 
 /** Draw clipped box on graphics window with given coords and colour.
  *
  * High level function, after some coords manipulation internally calls
  * LbDrawBox() to perform the drawing.
  */
-TbResult LbDrawBoxCoords(long X1, long Y1, long X2, long Y2, TbPixel colour);
+TbResult LbDrawBoxCoords(s32 X1, s32 Y1, s32 X2, s32 Y2, TbPixel colour);
 
 /** Draw box on graphics window with given coords, dimensions and colour.
  *
@@ -47,7 +47,7 @@ TbResult LbDrawBoxCoords(long X1, long Y1, long X2, long Y2, TbPixel colour);
  * because they are not verified to bounds.
  * This function honors some DrawFlags.
  */
-TbResult LbDrawBoxNoClip(long destX, long destY, ulong width, ulong height,
+TbResult LbDrawBoxNoClip(s32 destX, s32 destY, u32 width, u32 height,
   TbPixel colour);
 
 /** Draw clipped box on graphics window with given coords, dimensions and colour.
@@ -56,7 +56,7 @@ TbResult LbDrawBoxNoClip(long destX, long destY, ulong width, ulong height,
  * exceed the current graphics window.
  * This function honors some DrawFlags.
  */
-TbResult LbDrawBoxClip(long destX, long destY, ulong width, ulong height,
+TbResult LbDrawBoxClip(s32 destX, s32 destY, u32 width, u32 height,
   TbPixel colour);
 
 #ifdef __cplusplus

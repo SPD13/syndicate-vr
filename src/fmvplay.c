@@ -42,7 +42,7 @@ u32 smack_malloc_used_tot = 0;
 
 /******************************************************************************/
 
-void sprint_fmv_filename(ushort vid_type, char *fnbuf, ulong buflen)
+void sprint_fmv_filename(ushort vid_type, char *fnbuf, u32 buflen)
 {
     const char *fname;
     PathInfo *pinfo;

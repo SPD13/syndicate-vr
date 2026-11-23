@@ -145,8 +145,8 @@ struct InGame {
     ubyte AutoResearch;
     ubyte GameOver;
     struct Scanner Scanner; // offset=0x0C
-    long Credits; // offset=0x473 (on original Scanner struct)
-    ulong fld_unkC4B;	// offset=0x477
+    s32 Credits; // offset=0x473 (on original Scanner struct)
+    u32 fld_unkC4B;	// offset=0x477
     short MissionEndFade;
     short MissionStatus;
     u32 Flags;
@@ -165,7 +165,7 @@ struct InGame {
     short LowerMemoryUse;
     short fld_unkC8B;
     short fld_unkC8D[2];
-    long fld_unkC91;
+    s32 fld_unkC91;
     ushort TrackX;
     ushort TrackZ;
     short TrackThing;
@@ -191,8 +191,8 @@ struct InGame {
     ubyte InNetGame_UNSURE;
     ubyte fld_unkCBA[5];
     ushort UserFlags;
-    long CashAtStart;
-    long Expenditure;
+    s32 CashAtStart;
+    s32 Expenditure;
 };
 
 #pragma pack()

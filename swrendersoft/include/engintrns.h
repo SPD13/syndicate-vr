@@ -37,10 +37,10 @@ struct EnginePoint {
   long TMapX;
   long TMapY;
   long Shade;*/
-  long X3d;
-  long Y3d;
-  long Z3d;
-  long DistSqr;
+  s32 X3d;
+  s32 Y3d;
+  s32 Z3d;
+  s32 DistSqr;
   short EPUnkn24;
   ubyte Flags; // TODO check if it is ushort
 };

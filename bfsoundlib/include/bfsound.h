@@ -32,11 +32,11 @@ struct SNDSAMPLE;
 
 struct SampleInfo {
   struct SNDSAMPLE *SampleHandle;
-  long SampleVolume;
+  int32_t SampleVolume;
   ushort SamplePitch;
   ushort SamplePan;
   ushort FadeToVolume;
-  ulong SourceID;
+  uint32_t SourceID;
   short SampleNumber;
   ubyte FadeState;
   ubyte FadeStopFlag;

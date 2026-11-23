@@ -30,44 +30,44 @@ struct TbSprite;
 
 /** Computes standard height of a line of text, in currently set font.
  */
-long LbTextLineHeight(void);
+s32 LbTextLineHeight(void);
 
 /** Computes height of a line of text, in currently set font.
  */
-long LbTextHeight(const char *text);
+s32 LbTextHeight(const char *text);
 
 /**
  * Computes width of a single character in current font.
  * For characters that do not have a sprite (like tab), returns 0.
  * The currently set font is used for the computations.
  */
-long LbTextCharWidth(const ulong chr);
+s32 LbTextCharWidth(const u32 chr);
 
 /**
  * Computes height of a single character in current font.
  * For characters that do not have a sprite (like tab), returns 0.
  * The currently set font is used for the computations.
  */
-long LbTextCharHeight(const ulong chr);
+s32 LbTextCharHeight(const u32 chr);
 
 /**
  * Computes width of a single character in given font.
  * For characters that do not have a sprite (like tab), returns 0.
  */
-long LbSprFontCharWidth(const struct TbSprite *font, const ulong chr);
+s32 LbSprFontCharWidth(const struct TbSprite *font, const u32 chr);
 
 /**
  * Computes height of a single character in given font.
  * For characters that do not have a sprite (like tab), returns 0.
  */
-long LbSprFontCharHeight(const struct TbSprite *font, const ulong chr);
+s32 LbSprFontCharHeight(const struct TbSprite *font, const u32 chr);
 
 /**
  * Returns sprite of a single character in given font.
  * For characters that do not have a sprite, returns NULL.
  */
 const struct TbSprite *LbFontCharSprite(const struct TbSprite *font,
-  const ulong chr);
+  const u32 chr);
 
 /**
  * Draws an underline below the character.
@@ -78,36 +78,36 @@ const struct TbSprite *LbFontCharSprite(const struct TbSprite *font,
  * @param draw_colr
  * @param shadow_colr
  */
-void LbDrawCharUnderline(long pos_x, long pos_y, long width, long height,
+void LbDrawCharUnderline(s32 pos_x, s32 pos_y, s32 width, s32 height,
   TbPixel draw_colr, TbPixel shadow_colr);
 
 /**
  * Returns X coordinate for a text character on screen.
  * Takes into account the current text window and justification settings.
  */
-long LbGetJustifiedCharPosX(long startx, long all_chars_width,
-  long spr_width, long mul_width, ushort fdflags);
+s32 LbGetJustifiedCharPosX(s32 startx, s32 all_chars_width,
+  s32 spr_width, s32 mul_width, ushort fdflags);
 
 /**
  * Returns Y coordinate for a text character on screen.
  * Takes into account the current text window and justification settings.
  */
-long LbGetJustifiedCharPosY(long starty, long all_lines_height,
-  long spr_height, ushort fdflags);
+s32 LbGetJustifiedCharPosY(s32 starty, s32 all_lines_height,
+  s32 spr_height, ushort fdflags);
 
 /**
  * Returns width for an empty space between words in text on screen.
  * Takes into account the current text window and justification settings.
  */
-long LbGetJustifiedCharWidth(long all_chars_width,
-  long spr_width, long words_count, int units_per_px, ushort fdflags);
+s32 LbGetJustifiedCharWidth(s32 all_chars_width,
+  s32 spr_width, s32 words_count, int units_per_px, ushort fdflags);
 
 /**
  * Returns height for an empty space between lines in text on screen.
  * Takes into account the current text window and justification settings.
  */
-long LbGetJustifiedCharHeight(long all_lines_height,
-  long spr_height, long lines_count, ushort fdflags);
+s32 LbGetJustifiedCharHeight(s32 all_lines_height,
+  s32 spr_height, s32 lines_count, ushort fdflags);
 
 #ifdef __cplusplus
 };

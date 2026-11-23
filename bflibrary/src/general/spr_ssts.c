@@ -29,7 +29,7 @@
 #include "privbflog.h"
 
 void LbSpriteDrawRemapUsingScalingSub1(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -37,7 +37,7 @@ void LbSpriteDrawRemapUsingScalingSub1(ubyte *outbuf, int scanline,
   ubyte *v258;
   ubyte *v259;
   ubyte *v260;
-  long *v261;
+  s32 *v261;
   int v262;
   int v263;
   ubyte *v264;
@@ -76,7 +76,7 @@ void LbSpriteDrawRemapUsingScalingSub1(ubyte *outbuf, int scanline,
   int v297;
   ubyte *v298;
   int v299;
-  long *v304;
+  s32 *v304;
   ubyte *v316;
   int v328;
   int v336;
@@ -93,11 +93,11 @@ void LbSpriteDrawRemapUsingScalingSub1(ubyte *outbuf, int scanline,
         do
         {
           v328 = h;
-          v353 = *((ulong *)ystep + 1);
+          v353 = *((u32 *)ystep + 1);
           if ( v353 )
           {
             v316 = outbuf;
-            v336 = *((ulong *)ystep + 1);
+            v336 = *((u32 *)ystep + 1);
             v304 = ystep;
             v261 = xstep;
             while ( 1 )
@@ -183,76 +183,76 @@ LABEL_559:
                     v361 = v266;
                     if ( v265 )
                     {
-                      if ( !((ulong)v266 & 3) )
+                      if ( !((uintptr_t)v266 & 3) )
                         goto LABEL_560;
                       v267 = *v264++;
                       *v266++ = v267;
                       if ( --v265 )
                       {
-                        if ( !((ulong)v266 & 3) )
+                        if ( !((uintptr_t)v266 & 3) )
                           goto LABEL_560;
                         v268 = *v264++;
                         *v266++ = v268;
                         if ( --v265 )
                         {
-                          if ( !((ulong)v266 & 3) || (v269 = *v264, ++v264, *v266 = v269, ++v266, --v265, v265) )
+                          if ( !((uintptr_t)v266 & 3) || (v269 = *v264, ++v264, *v266 = v269, ++v266, --v265, v265) )
                           {
 LABEL_560:
                             v365 = v265;
                             for ( i = v265 >> 2; i; i = v284 - 1 )
                             {
-                              v271 = *(ulong *)v264;
+                              v271 = *(u32 *)v264;
                               v264 += 4;
-                              *(ulong *)v266 = v271;
+                              *(u32 *)v266 = v271;
                               v266 += 4;
                               v272 = i - 1;
                               if ( !v272 )
                                 break;
-                              v273 = *(ulong *)v264;
+                              v273 = *(u32 *)v264;
                               v264 += 4;
-                              *(ulong *)v266 = v273;
+                              *(u32 *)v266 = v273;
                               v266 += 4;
                               v274 = v272 - 1;
                               if ( !v274 )
                                 break;
-                              v275 = *(ulong *)v264;
+                              v275 = *(u32 *)v264;
                               v264 += 4;
-                              *(ulong *)v266 = v275;
+                              *(u32 *)v266 = v275;
                               v266 += 4;
                               v276 = v274 - 1;
                               if ( !v276 )
                                 break;
-                              v277 = *(ulong *)v264;
+                              v277 = *(u32 *)v264;
                               v264 += 4;
-                              *(ulong *)v266 = v277;
+                              *(u32 *)v266 = v277;
                               v266 += 4;
                               v278 = v276 - 1;
                               if ( !v278 )
                                 break;
-                              v279 = *(ulong *)v264;
+                              v279 = *(u32 *)v264;
                               v264 += 4;
-                              *(ulong *)v266 = v279;
+                              *(u32 *)v266 = v279;
                               v266 += 4;
                               v280 = v278 - 1;
                               if ( !v280 )
                                 break;
-                              v281 = *(ulong *)v264;
+                              v281 = *(u32 *)v264;
                               v264 += 4;
-                              *(ulong *)v266 = v281;
+                              *(u32 *)v266 = v281;
                               v266 += 4;
                               v282 = v280 - 1;
                               if ( !v282 )
                                 break;
-                              v283 = *(ulong *)v264;
+                              v283 = *(u32 *)v264;
                               v264 += 4;
-                              *(ulong *)v266 = v283;
+                              *(u32 *)v266 = v283;
                               v266 += 4;
                               v284 = v282 - 1;
                               if ( !v284 )
                                 break;
-                              v285 = *(ulong *)v264;
+                              v285 = *(u32 *)v264;
                               v264 += 4;
-                              *(ulong *)v266 = v285;
+                              *(u32 *)v266 = v285;
                               v266 += 4;
                             }
                             if ( v365 & 3 )
@@ -335,7 +335,7 @@ LABEL_560:
 }
 
 void LbSpriteDrawRemapUsingScalingSub2(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -343,7 +343,7 @@ void LbSpriteDrawRemapUsingScalingSub2(ubyte *outbuf, int scanline,
   ubyte *v216;
   ubyte *v217;
   ubyte *v218;
-  long *v219;
+  s32 *v219;
   int v220;
   char *v221;
   int v222;
@@ -381,7 +381,7 @@ void LbSpriteDrawRemapUsingScalingSub2(ubyte *outbuf, int scanline,
   int v254;
   ubyte *v255;
   int v256;
-  long *v303;
+  s32 *v303;
   ubyte *v315;
   int v327;
   int v335;
@@ -397,11 +397,11 @@ void LbSpriteDrawRemapUsingScalingSub2(ubyte *outbuf, int scanline,
         do
         {
           v327 = h;
-          v352 = *((ulong *)ystep + 1);
+          v352 = *((u32 *)ystep + 1);
           if ( v352 )
           {
             v315 = outbuf;
-            v335 = *((ulong *)ystep + 1);
+            v335 = *((u32 *)ystep + 1);
             v303 = ystep;
             v219 = xstep;
             while ( 1 )
@@ -483,76 +483,76 @@ LABEL_561:
                     v360 = v223;
                     if ( v222 )
                     {
-                      if ( !((ulong)v223 & 3) )
+                      if ( !((uintptr_t)v223 & 3) )
                         goto LABEL_562;
                       v224 = *v221++;
                       *v223++ = v224;
                       if ( --v222 )
                       {
-                        if ( !((ulong)v223 & 3) )
+                        if ( !((uintptr_t)v223 & 3) )
                           goto LABEL_562;
                         v225 = *v221++;
                         *v223++ = v225;
                         if ( --v222 )
                         {
-                          if ( !((ulong)v223 & 3) || (v226 = *v221, ++v221, *v223 = v226, ++v223, --v222, v222) )
+                          if ( !((uintptr_t)v223 & 3) || (v226 = *v221, ++v221, *v223 = v226, ++v223, --v222, v222) )
                           {
 LABEL_562:
                             v364 = v222;
                             for ( j = v222 >> 2; j; j = v241 - 1 )
                             {
-                              v228 = *(ulong *)v221;
+                              v228 = *(u32 *)v221;
                               v221 += 4;
-                              *(ulong *)v223 = v228;
+                              *(u32 *)v223 = v228;
                               v223 += 4;
                               v229 = j - 1;
                               if ( !v229 )
                                 break;
-                              v230 = *(ulong *)v221;
+                              v230 = *(u32 *)v221;
                               v221 += 4;
-                              *(ulong *)v223 = v230;
+                              *(u32 *)v223 = v230;
                               v223 += 4;
                               v231 = v229 - 1;
                               if ( !v231 )
                                 break;
-                              v232 = *(ulong *)v221;
+                              v232 = *(u32 *)v221;
                               v221 += 4;
-                              *(ulong *)v223 = v232;
+                              *(u32 *)v223 = v232;
                               v223 += 4;
                               v233 = v231 - 1;
                               if ( !v233 )
                                 break;
-                              v234 = *(ulong *)v221;
+                              v234 = *(u32 *)v221;
                               v221 += 4;
-                              *(ulong *)v223 = v234;
+                              *(u32 *)v223 = v234;
                               v223 += 4;
                               v235 = v233 - 1;
                               if ( !v235 )
                                 break;
-                              v236 = *(ulong *)v221;
+                              v236 = *(u32 *)v221;
                               v221 += 4;
-                              *(ulong *)v223 = v236;
+                              *(u32 *)v223 = v236;
                               v223 += 4;
                               v237 = v235 - 1;
                               if ( !v237 )
                                 break;
-                              v238 = *(ulong *)v221;
+                              v238 = *(u32 *)v221;
                               v221 += 4;
-                              *(ulong *)v223 = v238;
+                              *(u32 *)v223 = v238;
                               v223 += 4;
                               v239 = v237 - 1;
                               if ( !v239 )
                                 break;
-                              v240 = *(ulong *)v221;
+                              v240 = *(u32 *)v221;
                               v221 += 4;
-                              *(ulong *)v223 = v240;
+                              *(u32 *)v223 = v240;
                               v223 += 4;
                               v241 = v239 - 1;
                               if ( !v241 )
                                 break;
-                              v242 = *(ulong *)v221;
+                              v242 = *(u32 *)v221;
                               v221 += 4;
-                              *(ulong *)v223 = v242;
+                              *(u32 *)v223 = v242;
                               v223 += 4;
                             }
                             if ( v364 & 3 )
@@ -635,7 +635,7 @@ LABEL_562:
 }
 
 void LbSpriteDrawRemapUsingScalingSub3(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -643,7 +643,7 @@ void LbSpriteDrawRemapUsingScalingSub3(ubyte *outbuf, int scanline,
   ubyte *v200;
   ubyte *v201;
   ubyte *v202;
-  long *v204;
+  s32 *v204;
   ubyte v205;
   int v206;
   int v207;
@@ -788,7 +788,7 @@ void LbSpriteDrawRemapUsingScalingSub3(ubyte *outbuf, int scanline,
 }
 
 void LbSpriteDrawRemapUsingScalingSub4(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -796,7 +796,7 @@ void LbSpriteDrawRemapUsingScalingSub4(ubyte *outbuf, int scanline,
   ubyte *v185;
   ubyte *v186;
   ubyte *v187;
-  long *v189;
+  s32 *v189;
   ubyte v190;
   int v191;
   int v192;
@@ -810,7 +810,7 @@ void LbSpriteDrawRemapUsingScalingSub4(ubyte *outbuf, int scanline,
   ubyte *v313;
   ubyte *v329;
   int v333;
-    long *ycurstep;
+    s32 *ycurstep;
 
   v8 = sprite->Data;
     ycurstep = ystep;
@@ -943,7 +943,7 @@ void LbSpriteDrawRemapUsingScalingSub4(ubyte *outbuf, int scanline,
 }
 
 void LbSpriteDrawRemapUsingScalingSub5(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -951,7 +951,7 @@ void LbSpriteDrawRemapUsingScalingSub5(ubyte *outbuf, int scanline,
   ubyte *v144;
   ubyte *v145;
   ubyte *v146;
-  long *v147;
+  s32 *v147;
   int v148;
   int v149;
   ubyte *v150;
@@ -989,7 +989,7 @@ void LbSpriteDrawRemapUsingScalingSub5(ubyte *outbuf, int scanline,
   int v182;
   ubyte *v183;
   int v184;
-  long *v302;
+  s32 *v302;
   ubyte *v312;
   int v324;
   int v332;
@@ -1094,78 +1094,78 @@ LABEL_563:
                   v359 = v152;
                   if ( v151 )
                   {
-                    if ( !((ulong)v152 & 3) )
+                    if ( !((uintptr_t)v152 & 3) )
                       goto LABEL_564;
                     v153 = *v150++;
                     *v152++ = v153;
                     v152++;
                     if ( --v151 )
                     {
-                      if ( !((ulong)v152 & 3) )
+                      if ( !((uintptr_t)v152 & 3) )
                         goto LABEL_564;
                       v154 = *v150++;
                       *v152 = v154;
                       v152++;
                       if ( --v151 )
                       {
-                        if ( !((ulong)v152 & 3) || (v155 = *v150, ++v150, *(ubyte *)v152 = v155, ++v152, --v151, v151) )
+                        if ( !((uintptr_t)v152 & 3) || (v155 = *v150, ++v150, *(ubyte *)v152 = v155, ++v152, --v151, v151) )
                         {
 LABEL_564:
                           v363 = v151;
                           for ( k = v151 >> 2; k; k = v170 - 1 )
                           {
-                            v157 = *(ulong *)v150;
+                            v157 = *(u32 *)v150;
                             v150 += 4;
-                            *(ulong *)v152 = v157;
+                            *(u32 *)v152 = v157;
                             v152 += 4;
                             v158 = k - 1;
                             if ( !v158 )
                               break;
-                            v159 = *(ulong *)v150;
+                            v159 = *(u32 *)v150;
                             v150 += 4;
-                            *(ulong *)v152 = v159;
+                            *(u32 *)v152 = v159;
                             v152 += 4;
                             v160 = v158 - 1;
                             if ( !v160 )
                               break;
-                            v161 = *(ulong *)v150;
+                            v161 = *(u32 *)v150;
                             v150 += 4;
-                            *(ulong *)v152 = v161;
+                            *(u32 *)v152 = v161;
                             v152 += 4;
                             v162 = v160 - 1;
                             if ( !v162 )
                               break;
-                            v163 = *(ulong *)v150;
+                            v163 = *(u32 *)v150;
                             v150 += 4;
-                            *(ulong *)v152 = v163;
+                            *(u32 *)v152 = v163;
                             v152 += 4;
                             v164 = v162 - 1;
                             if ( !v164 )
                               break;
-                            v165 = *(ulong *)v150;
+                            v165 = *(u32 *)v150;
                             v150 += 4;
-                            *(ulong *)v152 = v165;
+                            *(u32 *)v152 = v165;
                             v152 += 4;
                             v166 = v164 - 1;
                             if ( !v166 )
                               break;
-                            v167 = *(ulong *)v150;
+                            v167 = *(u32 *)v150;
                             v150 += 4;
-                            *(ulong *)v152 = v167;
+                            *(u32 *)v152 = v167;
                             v152 += 4;
                             v168 = v166 - 1;
                             if ( !v168 )
                               break;
-                            v169 = *(ulong *)v150;
+                            v169 = *(u32 *)v150;
                             v150 += 4;
-                            *(ulong *)v152 = v169;
+                            *(u32 *)v152 = v169;
                             v152 += 4;
                             v170 = v168 - 1;
                             if ( !v170 )
                               break;
-                            v171 = *(ulong *)v150;
+                            v171 = *(u32 *)v150;
                             v150 += 4;
-                            *(ulong *)v152 = v171;
+                            *(u32 *)v152 = v171;
                             v152 += 4;
                           }
                           if ( v363 & 3 )
@@ -1248,7 +1248,7 @@ LABEL_564:
 }
 
 void LbSpriteDrawRemapUsingScalingSub6(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -1256,7 +1256,7 @@ void LbSpriteDrawRemapUsingScalingSub6(ubyte *outbuf, int scanline,
   ubyte *v103;
   ubyte *v104;
   ubyte *v105;
-  long *v106;
+  s32 *v106;
   int v107;
   char *v108;
   int v109;
@@ -1293,7 +1293,7 @@ void LbSpriteDrawRemapUsingScalingSub6(ubyte *outbuf, int scanline,
   int v140;
   ubyte *v141;
   int v142;
-  long *v301;
+  s32 *v301;
   ubyte *v311;
   int v323;
   int v331;
@@ -1309,11 +1309,11 @@ void LbSpriteDrawRemapUsingScalingSub6(ubyte *outbuf, int scanline,
       do
       {
         v323 = h;
-        v350 = *((ulong *)ystep + 1);
+        v350 = *((u32 *)ystep + 1);
         if ( v350 )
         {
           v311 = outbuf;
-          v331 = *((ulong *)ystep + 1);
+          v331 = *((u32 *)ystep + 1);
           v301 = ystep;
           v106 = xstep;
           while ( 1 )
@@ -1393,78 +1393,78 @@ LABEL_565:
                   v358 = v110;
                   if ( v109 )
                   {
-                    if ( !((ulong)v110 & 3) )
+                    if ( !((uintptr_t)v110 & 3) )
                       goto LABEL_566;
                     v111 = *v108++;
                     *v110 = v111;
                     v110++;
                     if ( --v109 )
                     {
-                      if ( !((ulong)v110 & 3) )
+                      if ( !((uintptr_t)v110 & 3) )
                         goto LABEL_566;
                       v112 = *v108++;
                       *v110 = v112;
                       v110++;
                       if ( --v109 )
                       {
-                        if ( !((ulong)v110 & 3) || (v113 = *v108, ++v108, *v110 = v113, ++v110, --v109, v109) )
+                        if ( !((uintptr_t)v110 & 3) || (v113 = *v108, ++v108, *v110 = v113, ++v110, --v109, v109) )
                         {
 LABEL_566:
                           v362 = v109;
                           for ( l = v109 >> 2; l; l = v128 - 1 )
                           {
-                            v115 = *(ulong *)v108;
+                            v115 = *(u32 *)v108;
                             v108 += 4;
-                            *(ulong *)v110 = v115;
+                            *(u32 *)v110 = v115;
                             v110 += 4;
                             v116 = l - 1;
                             if ( !v116 )
                               break;
-                            v117 = *(ulong *)v108;
+                            v117 = *(u32 *)v108;
                             v108 += 4;
-                            *(ulong *)v110 = v117;
+                            *(u32 *)v110 = v117;
                             v110 += 4;
                             v118 = v116 - 1;
                             if ( !v118 )
                               break;
-                            v119 = *(ulong *)v108;
+                            v119 = *(u32 *)v108;
                             v108 += 4;
-                            *(ulong *)v110 = v119;
+                            *(u32 *)v110 = v119;
                             v110 += 4;
                             v120 = v118 - 1;
                             if ( !v120 )
                               break;
-                            v121 = *(ulong *)v108;
+                            v121 = *(u32 *)v108;
                             v108 += 4;
-                            *(ulong *)v110 = v121;
+                            *(u32 *)v110 = v121;
                             v110 += 4;
                             v122 = v120 - 1;
                             if ( !v122 )
                               break;
-                            v123 = *(ulong *)v108;
+                            v123 = *(u32 *)v108;
                             v108 += 4;
-                            *(ulong *)v110 = v123;
+                            *(u32 *)v110 = v123;
                             v110 += 4;
                             v124 = v122 - 1;
                             if ( !v124 )
                               break;
-                            v125 = *(ulong *)v108;
+                            v125 = *(u32 *)v108;
                             v108 += 4;
-                            *(ulong *)v110 = v125;
+                            *(u32 *)v110 = v125;
                             v110 += 4;
                             v126 = v124 - 1;
                             if ( !v126 )
                               break;
-                            v127 = *(ulong *)v108;
+                            v127 = *(u32 *)v108;
                             v108 += 4;
-                            *(ulong *)v110 = v127;
+                            *(u32 *)v110 = v127;
                             v110 += 4;
                             v128 = v126 - 1;
                             if ( !v128 )
                               break;
-                            v129 = *(ulong *)v108;
+                            v129 = *(u32 *)v108;
                             v108 += 4;
-                            *(ulong *)v110 = v129;
+                            *(u32 *)v110 = v129;
                             v110 += 4;
                           }
                           if ( v362 & 3 )
@@ -1547,7 +1547,7 @@ LABEL_566:
 }
 
 void LbSpriteDrawRemapUsingScalingSub7(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -1555,7 +1555,7 @@ void LbSpriteDrawRemapUsingScalingSub7(ubyte *outbuf, int scanline,
   ubyte *v88;
   ubyte *v89;
   ubyte *v90;
-  long *v91;
+  s32 *v91;
   ubyte v92;
   int v93;
   int v94;
@@ -1573,7 +1573,7 @@ void LbSpriteDrawRemapUsingScalingSub7(ubyte *outbuf, int scanline,
   v8 = sprite->Data;
       do
       {
-        if ( *((ulong *)ystep + 1) )
+        if ( *((u32 *)ystep + 1) )
         {
           v310 = outbuf;
           v322 = h;
@@ -1731,7 +1731,7 @@ LABEL_219:
 }
 
 void LbSpriteDrawRemapUsingScalingSub08(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -1739,7 +1739,7 @@ void LbSpriteDrawRemapUsingScalingSub08(ubyte *outbuf, int scanline,
   ubyte *v73;
   ubyte *v74;
   ubyte *v75;
-  long *v76;
+  s32 *v76;
   ubyte v77;
   int v78;
   int v79;
@@ -1757,7 +1757,7 @@ void LbSpriteDrawRemapUsingScalingSub08(ubyte *outbuf, int scanline,
   v8 = sprite->Data;
       do
       {
-        if ( *((ulong *)ystep + 1) )
+        if ( *((u32 *)ystep + 1) )
         {
           v309 = outbuf;
           v321 = h;
@@ -1915,7 +1915,7 @@ LABEL_181:
 }
 
 void LbSpriteDrawRemapUsingScalingSub09(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -1923,7 +1923,7 @@ void LbSpriteDrawRemapUsingScalingSub09(ubyte *outbuf, int scanline,
   ubyte *v58;
   ubyte *v59;
   ubyte *v60;
-  long *v61;
+  s32 *v61;
   ubyte v62;
   int v63;
   int v64;
@@ -1941,7 +1941,7 @@ void LbSpriteDrawRemapUsingScalingSub09(ubyte *outbuf, int scanline,
   v8 = sprite->Data;
       do
       {
-        if ( *((ulong *)ystep + 1) )
+        if ( *((u32 *)ystep + 1) )
         {
           v308 = outbuf;
           v320 = h;
@@ -2099,7 +2099,7 @@ LABEL_142:
 }
 
 void LbSpriteDrawRemapUsingScalingSub10(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -2107,7 +2107,7 @@ void LbSpriteDrawRemapUsingScalingSub10(ubyte *outbuf, int scanline,
   ubyte *v43;
   ubyte *v44;
   ubyte *v45;
-  long *v46;
+  s32 *v46;
   ubyte v47;
   int v48;
   int v49;
@@ -2282,13 +2282,13 @@ LABEL_104:
 }
 
 void LbSpriteDrawRemapUsingScalingSub11(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
   ubyte v27;
   ubyte *v28;
-  long *v31;
+  s32 *v31;
   ubyte v32;
   ubyte v33;
   ubyte v34;
@@ -2306,7 +2306,7 @@ void LbSpriteDrawRemapUsingScalingSub11(ubyte *outbuf, int scanline,
   v8 = sprite->Data;
     do
     {
-      if ( *((ulong *)ystep + 1) )
+      if ( *((u32 *)ystep + 1) )
       {
         v306 = outbuf;
         v318 = h;
@@ -2447,7 +2447,7 @@ LABEL_65:
 }
 
 void LbSpriteDrawRemapUsingScalingSub12(ubyte *outbuf, int scanline,
-  int outheight, long *xstep, long *ystep, const TbSprite *sprite, const TbPixel *cmap, long v339)
+  int outheight, s32 *xstep, s32 *ystep, const TbSprite *sprite, const TbPixel *cmap, s32 v339)
 {
   int h;
   ubyte *v8;
@@ -2455,7 +2455,7 @@ void LbSpriteDrawRemapUsingScalingSub12(ubyte *outbuf, int scanline,
   ubyte *v13;
   ubyte *v14;
   ubyte *v15;
-  long *v16;
+  s32 *v16;
   ubyte v17;
   ubyte v18;
   ubyte v25;
@@ -2467,7 +2467,7 @@ void LbSpriteDrawRemapUsingScalingSub12(ubyte *outbuf, int scanline,
   v8 = sprite->Data;
     do
     {
-      if ( *((ulong *)ystep + 1) )
+      if ( *((u32 *)ystep + 1) )
       {
         v305 = outbuf;
         v317 = h;
@@ -2609,17 +2609,17 @@ LABEL_27:
     while ( h );
 }
 
-TbResult DrawSpriteWthShadowUsingScalingData(long posx, long posy, const TbSprite *sprite)
+TbResult DrawSpriteWthShadowUsingScalingData(s32 posx, s32 posy, const TbSprite *sprite)
 {
   int scanline;
-  long *ystep;
-  long *xstep;
-  long v339;
+  s32 *ystep;
+  s32 *xstep;
+  s32 v339;
 
     //TODO set this in higher level function instead, when possible
     render_alpha = lbSpriteReMapPtr;
     assert(render_alpha != NULL);
-    LOGNO("at (%ld,%ld): drawing", posx, posy);
+    LOGNO("at (%d,%d): drawing", posx, posy);
 
   {
     scanline = lbDisplay.GraphicsScreenWidth;

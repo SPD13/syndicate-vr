@@ -28,27 +28,27 @@
 
 // The functions below are from standard version of the routine - reused here
 TbResult LbSpriteDrawUsingScalingUpDataTrans1RL(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap);
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap);
 TbResult LbSpriteDrawUsingScalingUpDataTrans1LR(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap);
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap);
 TbResult LbSpriteDrawUsingScalingDownDataTrans1RL(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap);
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap);
 TbResult LbSpriteDrawUsingScalingDownDataTrans1LR(ubyte *outbuf, int scanline, int outheight,
-  long *xstep, long *ystep, const TbSprite *sprite, const unsigned char *transmap);
+  s32 *xstep, s32 *ystep, const TbSprite *sprite, const unsigned char *transmap);
 
 
-TbResult DrawAlphaSpriteUsingScalingData(long posx, long posy, const TbSprite *sprite)
+TbResult DrawAlphaSpriteUsingScalingData(s32 posx, s32 posy, const TbSprite *sprite)
 {
-    long *xstep;
-    long *ystep;
+    s32 *xstep;
+    s32 *ystep;
     int scanline;
 
-    LOGNO("at (%ld,%ld): drawing", posx, posy);
+    LOGNO("at (%d,%d): drawing", posx, posy);
     //TODO set this in higher level function instead, when possible
     render_alpha = lbSpriteReMapPtr;
     assert(render_alpha != NULL);
     {
-        long sposx, sposy;
+        s32 sposx, sposy;
         sposx = posx;
         sposy = posy;
         scanline = lbDisplay.GraphicsScreenWidth;

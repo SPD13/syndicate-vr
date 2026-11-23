@@ -160,7 +160,7 @@ short find_unused_group_id(TbBool largest)
 {
     ThingIdx thing;
     short group;
-    ulong used_groups;
+    u32 used_groups;
     struct Thing *p_thing;
 
     used_groups = 0;
@@ -434,7 +434,7 @@ TbBool all_group_persuaded(ushort group)
 static DIFFTEST_REF_FUNC ubyte all_group_arrived_asm(ushort group, short x, short y, short z, int radius)
 {
     ubyte ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "push %5\n"
       "call ASM_all_group_arrived\n"
         : "=a" (ret) : "a" (group), "d" (x), "b" (y), "c" (z), "g" (radius));
@@ -876,7 +876,7 @@ ushort make_group_into_players(ushort group, ushort plyr, ushort max_agent, shor
 {
     struct Thing *p_person;
     ushort plagent, high_tier;
-    ulong n;
+    u32 n;
 
     p_person = NULL;
     plagent = 0;

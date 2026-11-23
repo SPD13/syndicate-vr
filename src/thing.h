@@ -249,13 +249,13 @@ struct TngUObject
     short TNode;
     short Cost;
     short Shite;
-    ulong BHeight;
+    u32 BHeight;
     ushort Turn;
     ushort TurnPadOnPS;
     short tnode[4];  /**< Thing offs=0x90 */
     ubyte player_in_me;
     ubyte unkn_4D;
-    ulong DrawTurn; // set within draw_thing_object() for a building
+    u32 DrawTurn; // set within draw_thing_object() for a building
     short tnode_50[4];
 };
 
@@ -475,14 +475,14 @@ struct Thing { // sizeof=168
     ubyte SubType;
     ubyte Type;
     short State;
-    ulong Flag;
+    u32 Flag;
     short LinkSame;
     short LinkSameGroup;
     short Radius;
     ThingIdx ThingOffset;
-    long X;
-    long Y;
-    long Z;
+    s32 X;
+    s32 Y;
+    s32 Z;
     short Frame;
     /** For things represented by a sprite, starting frame of animation.
      * For objects, 3D model selection.
@@ -573,16 +573,16 @@ struct SimpleThing // sizeof=60
     ubyte SubType;
     ubyte Type;
     short State;
-    ulong Flag;
+    u32 Flag;
     short LinkSame;
     /** Object index, or range.
      */
     short Object;
     short Radius;
     ThingIdx ThingOffset;
-    long X;
-    long Y;
-    long Z;
+    s32 X;
+    s32 Y;
+    s32 Z;
     short Frame;
     short StartFrame;
     short Timer1;
@@ -611,7 +611,7 @@ struct ThingOldV9 { // sizeof=216
     ubyte SubType;
     ubyte Type;
     short State; // pos=10
-    ulong Flag;
+    u32 Flag;
     /* Since fmtver=4, this and all previous fields confirmed to match
      * file layout in final release (from Pre-Alpha Demo code analysis
      * and from comparative analysis of binary data in level files).
@@ -640,9 +640,9 @@ struct ThingOldV9 { // sizeof=216
         ubyte EffectNumbObjects;
     };
     ubyte TngUnkn23;
-    long X;
-    long Y;
-    long Z;
+    s32 X;
+    s32 Y;
+    s32 Z;
     /* Since fmtver=4, most types have `Frame`, only Object type GATE reuses it
      * for `MinY[0]` (from Pre-Alpha Demo code analysis).
      */
@@ -688,11 +688,11 @@ struct ThingOldV9 { // sizeof=216
      * of binary data in level files).
      */
     union {
-        long VX;
+        s32 VX;
         short ObjectRaiseDY[2];
     };
-    long VY;
-    long VZ;
+    s32 VY;
+    s32 VZ;
     /* Since fmtver=4, `AngleX` for Vehicle and MGun (from Pre-Alpha Demo code
      * analysis). Stamina is only here in fmtver=12 files - does not seem to
      * exist in 9-11 (from comparative analysis of binary data in level files).
@@ -837,7 +837,7 @@ struct ThingOldV9 { // sizeof=216
      */
     short PersonMaxShieldEnergy;
     short TngUnkn118;
-    long  TngUnkn120;
+    s32  TngUnkn120;
     short TngUnkn124; // pos=124
     ushort TngUnkn126;
     union { // pos=128
@@ -879,7 +879,7 @@ struct ThingOldV9 { // sizeof=216
     /** Pointer to a Thing being targeted by this one; cleared during load.
      * Confirmed since fmtver=4 (from Pre-Alpha Demo code analysis).
      */
-    ulong PTarget; // pos=152
+    u32 PTarget; // pos=152
     short TngUnkn156; // pos=156
     /* Assumed to be `OnFace` for Person, no proof.
      */
@@ -991,11 +991,11 @@ const char *thing_type_name(ubyte tngtype, ubyte subtype);
 
 /** Fill buffer with function-like declaration of thing properties.
  */
-void snprint_thing(char *buf, ulong buflen, struct Thing *p_thing);
+void snprint_thing(char *buf, u32 buflen, struct Thing *p_thing);
 
 /** Fill buffer with function-like declaration of simple thing properties.
  */
-void snprint_sthing(char *buf, ulong buflen, struct SimpleThing *p_sthing);
+void snprint_sthing(char *buf, u32 buflen, struct SimpleThing *p_sthing);
 
 /** Returns if given type represents SimpleThing rather than a full featured Thing.
  */

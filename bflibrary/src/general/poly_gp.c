@@ -28,7 +28,7 @@
 
 #define PITCH_SH VEC_MAP_PITCH_SH
 
-const long gpoly_reptable[] = {
+const s32 gpoly_reptable[] = {
          0x0,0x7FFFFFFF,0x3FFFFFFF,0x2AAAAAAA,0x1FFFFFFF,0x19999999,0x15555555,0x12492492,
   0x0FFFFFFF,0x0E38E38E,0x0CCCCCCC,0x0BA2E8BA,0x0AAAAAAA, 0x9D89D89, 0x9249249, 0x8888888,
    0x7FFFFFF, 0x7878787, 0x71C71C7, 0x6BCA1AF, 0x6666666, 0x6186186, 0x5D1745D, 0x590B216,
@@ -63,7 +63,7 @@ const long gpoly_reptable[] = {
    0x0842108, 0x0839930, 0x083126E, 0x0828CBF, 0x0820820, 0x081848D, 0x0810204, 0x0808080,
          0x0,       0x0 };
 
-const long gpoly_divtable[][64] = {
+const s32 gpoly_divtable[][64] = {
    {-8388607,-8388607,-8388607,-8388607,-8388607,-8388607,-8388607,-8388607,
     -8388607,-8388607,-8388607,-8388607,-8388607,-8388607,-8388607,-8388607,
     -8388607,-8388607,-8388607,-8388607,-8388607,-8388607,-8388607,-8388607,
@@ -335,9 +335,9 @@ static inline ubyte __CFADDB__(sbyte x, sbyte y)
 /**
  * whether the addition (x+y) of two long ints would use carry
  */
-static inline ubyte __CFADDL__(long x, long y)
+static inline ubyte __CFADDL__(s32 x, s32 y)
 {
-    return (ulong)(x) > (ulong)(x+y);
+    return (u32)(x) > (u32)(x+y);
 }
 
 /**
@@ -351,9 +351,9 @@ static inline ubyte __CFSUBB__(sbyte x, sbyte y)
 /**
  * whether the subtraction (x-y) of two long ints would use carry
  */
-static inline ubyte __CFSUBL__(long x, long y)
+static inline ubyte __CFSUBL__(s32 x, s32 y)
 {
-    return (ulong)(x) < (ulong)(y);
+    return (u32)(x) < (u32)(y);
 }
 
 static int gpoly_mul_rot_1(int a1, int a2)

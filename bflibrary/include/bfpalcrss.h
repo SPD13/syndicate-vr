@@ -41,10 +41,10 @@ TbResult LbCrossPaletteLutGen(ubyte *cross_lut, const ubyte *src_palette,
  * @param buf Input data.
  * @param buf_len Length of the input data.
  */
-TbResult LbBufferHistogram(ulong *hist, const TbPixel *buf, ulong buf_len);
+TbResult LbBufferHistogram(u32 *hist, const TbPixel *buf, u32 buf_len);
 
 short LbImageBuffersMaxDifference(const TbPixel *buf1, const ubyte *pal1,
-  const TbPixel *buf2, const ubyte *pal2, ulong buf_len, ulong *pos);
+  const TbPixel *buf2, const ubyte *pal2, u32 buf_len, u32 *pos);
 
 #ifdef __cplusplus
 };

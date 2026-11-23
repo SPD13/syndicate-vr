@@ -52,7 +52,7 @@ static void palette_from_png(ubyte *pal, const png_color *pngpal, ushort num)
 }
 
 TbResult LbPngRead(FILE *img_fh, ubyte *out_buffer,
-  ulong *width, ulong *height, ubyte *pal)
+  u32 *width, u32 *height, ubyte *pal)
 {
     png_structp png = NULL;
     png_infop info = NULL;
@@ -148,7 +148,7 @@ err: // handle error and cleanup heap allocation
 }
 
 TbResult LbPngLoad(const char *fname, TbPixel *out_buffer,
-  ulong *width, ulong *height, ubyte *pal)
+  u32 *width, u32 *height, ubyte *pal)
 {
 #if LB_FILENAME_TRANSFORM
     char real_fname[FILENAME_MAX];
@@ -176,7 +176,7 @@ TbResult LbPngLoad(const char *fname, TbPixel *out_buffer,
 }
 
 TbResult LbPngWrite(FILE *img_fh, const ubyte *inp_buffer,
-  ulong width, ulong height, const ubyte *pal)
+  u32 width, u32 height, const ubyte *pal)
 {
     png_structp png = NULL;
     png_infop info = NULL;
@@ -245,7 +245,7 @@ err: // handle error and cleanup heap allocation
 }
 
 TbResult LbPngSave(const char *fname, const TbPixel *inp_buffer,
-  ulong width, ulong height, const ubyte *pal, TbBool force_fname)
+  u32 width, u32 height, const ubyte *pal, TbBool force_fname)
 {
     char full_fname[FILENAME_MAX];
 #if LB_FILENAME_TRANSFORM

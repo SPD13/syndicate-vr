@@ -159,15 +159,15 @@ ushort game_level_unique_id = 0;
 ubyte game_level_unkn1[40];
 ubyte game_level_unkn2[40];
 
-ulong stored_g3d_next_object;
-ulong stored_g3d_next_object_face3;
-ulong stored_g3d_next_object_face4;
-ulong stored_g3d_next_object_point;
-ulong stored_g3d_next_normal;
-ulong stored_g3d_next_face_texture;
-ulong stored_g3d_next_floor_texture;
-ulong stored_g3d_next_local_mat;
-ulong stored_global3d_inuse;
+u32 stored_g3d_next_object;
+u32 stored_g3d_next_object_face3;
+u32 stored_g3d_next_object_face4;
+u32 stored_g3d_next_object_point;
+u32 stored_g3d_next_normal;
+u32 stored_g3d_next_face_texture;
+u32 stored_g3d_next_floor_texture;
+u32 stored_g3d_next_local_mat;
+u32 stored_global3d_inuse;
 
 extern struct QuickLoad quick_load_pc[19];
 
@@ -285,7 +285,7 @@ TbBool is_level_stored_sthing(struct SimpleThing *p_sthing)
     return false;
 }
 
-ulong load_level_pc_handle(TbFileHandle lev_fh)
+u32 load_level_pc_handle(TbFileHandle lev_fh)
 {
     u32 fmtver;
     TbBool mech_initialized;
@@ -306,7 +306,7 @@ ulong load_level_pc_handle(TbFileHandle lev_fh)
         count = 0;
         LbFileRead(lev_fh, &count, 2);
 
-        LOGSYNC("Level fmtver=%lu n_things=%hd", fmtver, count);
+        LOGSYNC("Level fmtver=%u n_things=%hd", fmtver, count);
         for (i = 0; i < count; i++)
         {
             short angle;
@@ -471,7 +471,7 @@ ulong load_level_pc_handle(TbFileHandle lev_fh)
     LbFileRead(lev_fh, &next_command, sizeof(ushort));
     limit = get_memory_ptr_allocated_count((void **)&game_commands);
     if ((limit >= 0) && (next_command > limit)) {
-        LOGERR("Restricting \"%s\", wanted %d, limit %ld", "game_commands", (int)next_command, limit);
+        LOGERR("Restricting \"%s\", wanted %d, limit %d", "game_commands", (int)next_command, limit);
         next_command = limit;
     }
     assert(sizeof(struct Command) == 32);
@@ -506,11 +506,11 @@ ulong load_level_pc_handle(TbFileHandle lev_fh)
         LbFileRead(lev_fh, &unkn3de_len, sizeof(ushort));
         LbFileRead(lev_fh, engine_mem_alloc_ptr + engine_mem_alloc_size - 32000, unkn3de_len);
     }
-    LOGSYNC("Level fmtver=%lu n_command=%hu word_1531E0=%hu unkn3de_len=%hu",
-      (ulong)fmtver, next_command, word_1531E0, unkn3de_len);
+    LOGSYNC("Level fmtver=%u n_command=%hu word_1531E0=%hu unkn3de_len=%hu",
+      (u32)fmtver, next_command, word_1531E0, unkn3de_len);
     if (fmtver >= 4)
     {
-        ulong count;
+        u32 count;
         ThingIdx thing;
 
         count = 0;
@@ -664,7 +664,7 @@ void save_level_pc_handle(TbFileHandle lev_fh)
         LbFileWrite(lev_fh, &count, 2);
 
         i = 0;
-        LOGSYNC("Level fmtver=%lu n_things=%hd", (ulong)fmtver, count);
+        LOGSYNC("Level fmtver=%u n_things=%hd", (u32)fmtver, count);
         for (thing = things_used_head; thing > 0; thing = p_thing->LinkChild)
         {
             p_thing = &things[thing];
@@ -718,7 +718,7 @@ void save_level_pc_handle(TbFileHandle lev_fh)
         LbFileWrite(lev_fh, &count, 2);
 
         i = 0;
-        LOGSYNC("Level fmtver=%lu n_sthings=%hd", (ulong)fmtver, count);
+        LOGSYNC("Level fmtver=%u n_sthings=%hd", (u32)fmtver, count);
         for (thing = sthings_used_head; thing < 0; thing = p_sthing->LinkChild)
         {
             p_sthing = &sthings[thing];
@@ -925,8 +925,8 @@ void fix_level_indexes(short missi, u32 fmtver, ubyte reload, TbBool deep)
     ushort objectv;
     ThingIdx thing;
 
-    LOGSYNC("Fixing mission %d fmtver %lu reload %d deep %d",
-      (int)missi, (ulong)fmtver, (int)reload, (int)deep);
+    LOGSYNC("Fixing mission %d fmtver %u reload %d deep %d",
+      (int)missi, (u32)fmtver, (int)reload, (int)deep);
     fix_thing_commands_indexes(deep);
 
     for (objectv = 1; objectv < next_used_lvl_objective; objectv++)
@@ -974,7 +974,7 @@ void fix_level_indexes(short missi, u32 fmtver, ubyte reload, TbBool deep)
 static DIFFTEST_REF_FUNC int is_animating_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_is_animating\n"
+    DIFFTEST_ASM("call ASM_is_animating\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -1004,7 +1004,7 @@ int is_animating(int a1, int a2, int a3, int a4)
 static DIFFTEST_REF_FUNC int map_things_unkn_func_04_asm(short subtype)
 {
     int ret;
-    asm volatile ("call ASM_map_things_unkn_func_04\n"
+    DIFFTEST_ASM("call ASM_map_things_unkn_func_04\n"
         : "=a" (ret) : "a" (subtype));
     return ret;
 }
@@ -1734,7 +1734,7 @@ void save_mad_pc_handle(TbFileHandle mad_fh)
     //TODO finish the save implementation
 }
 
-void load_mad_pc_buffer(ubyte *mad_ptr, long rdsize)
+void load_mad_pc_buffer(ubyte *mad_ptr, s32 rdsize)
 {
     short shut_h;
     u32 fmtver;
@@ -1745,7 +1745,7 @@ void load_mad_pc_buffer(ubyte *mad_ptr, long rdsize)
     mad_ptr += 4;
 
     if (fmtver != 1) {
-        LOGWARN("Unexpected MAD version %lu", (ulong)fmtver);
+        LOGWARN("Unexpected MAD version %u", (u32)fmtver);
     }
 
     // Set amounts of quick_load array items
@@ -1926,7 +1926,7 @@ TbResult load_map_mad(ushort mapno)
 {
     char mad_fname[DISKPATH_SIZE];
     PathInfo *pinfo;
-    long fsize;
+    s32 fsize;
 
     next_local_mat = 1;
 

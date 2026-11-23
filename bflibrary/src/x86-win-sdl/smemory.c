@@ -45,7 +45,7 @@
 #endif
 #define WINAPI __stdcall
 
-typedef unsigned long DWORD;
+typedef u32 DWORD;
 
 typedef struct _MEMORYSTATUS {
     DWORD dwLength;
@@ -86,8 +86,8 @@ typedef struct mem_block mem_block;
 struct mem_block
 {
     void    *Pointer;
-    ulong Selector;
-    ulong Size;
+    u32 Selector;
+    u32 Size;
 };
 
 typedef struct mem_arena mem_arena;
@@ -95,7 +95,7 @@ typedef struct mem_arena mem_arena;
 struct mem_arena
 {
     void    *Pointer;
-    ulong Size;
+    u32 Size;
     mem_arena *Child;
     mem_arena *Parent;
     ubyte  Used;
@@ -165,7 +165,7 @@ TbBool split_arena(mem_arena *arena, size_t size)
     mem_arena *curarena;
     ubyte sect;
     mem_arena *charena;
-    ulong n;
+    u32 n;
 
     if (size == arena->Size) {
         arena->Used = 1;
@@ -237,10 +237,10 @@ void delete_arena(mem_arena *arena)
 void * LbMemoryAllocLow(TbMemSize size)
 {
     void *ptr;
-    unsigned long algn_size;
+    u32 algn_size;
 #if LB_MEMORY_ARENAS
     mem_arena *curarena;
-    unsigned long last_size;
+    u32 last_size;
     mem_arena *splarena;
     int sect;
 #endif
@@ -266,7 +266,7 @@ void * LbMemoryAllocLow(TbMemSize size)
         }
     }
     if (splarena == NULL || !split_arena(splarena, algn_size)) {
-        LOGERR("failed memory allocation of %lu bytes", (ulong)size);
+        LOGERR("failed memory allocation of %u bytes", (u32)size);
         ptr = NULL;
     } else {
         ptr = splarena->Pointer;
@@ -284,10 +284,10 @@ void * LbMemoryAllocLow(TbMemSize size)
 void * LbMemoryAlloc(TbMemSize size)
 {
     void *ptr;
-    unsigned long algn_size;
+    u32 algn_size;
 #if LB_MEMORY_ARENAS
     mem_arena *curarena;
-    unsigned long last_size;
+    u32 last_size;
     mem_arena *splarena;
     int sect;
 #endif
@@ -323,7 +323,7 @@ void * LbMemoryAlloc(TbMemSize size)
     LbMemoryCheck();
     if (ptr != NULL)
         memset(ptr, 0, algn_size);
-    LOGNO("memory allocation of %lu bytes ptr=0x%p", algn_size, ptr);
+    LOGNO("memory allocation of %u bytes ptr=0x%p", algn_size, ptr);
     return ptr;
 }
 
@@ -474,10 +474,10 @@ TbResult LbMemoryReset(void)
 
 TbResult LbMemoryGrow(void **ptr, TbMemSize size)
 {
-    unsigned long algn_size;
+    u32 algn_size;
 #if LB_MEMORY_ARENAS
     mem_arena *chlarena;
-    unsigned long join_size;
+    u32 join_size;
     mem_arena *curarena;
     TbBool found;
 
@@ -531,7 +531,7 @@ TbResult LbMemoryGrow(void **ptr, TbMemSize size)
 
 TbResult LbMemoryShrink(void **ptr, TbMemSize size)
 {
-    unsigned long algn_size;
+    u32 algn_size;
 #if LB_MEMORY_ARENAS
     mem_arena *curarena;
     TbBool found;

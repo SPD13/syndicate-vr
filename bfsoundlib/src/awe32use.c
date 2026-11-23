@@ -35,7 +35,7 @@ uint16_t awe_data_sel = 0;
 
 /******************************************************************************/
 
-long AWEGetTotalRAM(MDI_DRIVER *mdidrv)
+int32_t AWEGetTotalRAM(MDI_DRIVER *mdidrv)
 {
     VDI_CALL regs;
 
@@ -48,7 +48,7 @@ long AWEGetTotalRAM(MDI_DRIVER *mdidrv)
         return -1;
 }
 
-int AWEDefMemMap(MDI_DRIVER *mdidrv, short part_cnt, long *memMap, uint16_t memMap_sel)
+int AWEDefMemMap(MDI_DRIVER *mdidrv, short part_cnt, int32_t *memMap, uint16_t memMap_sel)
 {
     VDI_CALL regs;
 

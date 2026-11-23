@@ -224,19 +224,19 @@ char session_name[20] = "SWARA";
 
 char user_name[50] = "TEMP";
 
-long dword_153194 = 0x100;
+s32 dword_153194 = 0x100;
 
 ushort word_1531E0 = 1;
 
-ulong stored_l3d_next_object;
-ulong stored_l3d_next_object_face3;
-ulong stored_l3d_next_object_face4;
-ulong stored_l3d_next_object_point;
-ulong stored_l3d_next_normal;
-ulong stored_l3d_next_face_texture;
-ulong stored_l3d_next_floor_texture;
-ulong stored_l3d_next_local_mat;
-ulong stored_level3d_inuse;
+u32 stored_l3d_next_object;
+u32 stored_l3d_next_object_face3;
+u32 stored_l3d_next_object_face4;
+u32 stored_l3d_next_object_point;
+u32 stored_l3d_next_normal;
+u32 stored_l3d_next_face_texture;
+u32 stored_l3d_next_floor_texture;
+u32 stored_l3d_next_local_mat;
+u32 stored_level3d_inuse;
 
 TbPixel linear_vec_pal[PALETTE_8b_COLORS];
 
@@ -250,7 +250,7 @@ u32 active_flags_general_unkn01 = 0;
 ubyte mouse_sprite_anim_frame;
 ushort replay_intro_timer = 0;
 
-extern long dword_1DDECC;
+extern s32 dword_1DDECC;
 extern ushort data_1c8468;
 
 extern struct GamePanel unknstrct7_arr2[];
@@ -373,7 +373,7 @@ extern unsigned short const lbArcTanFactors[];
 static DIFFTEST_REF_FUNC short arctan_asm(int dx, int dz)
 {
     short ret;
-    asm volatile ("call ASM_arctan\n"
+    DIFFTEST_ASM("call ASM_arctan\n"
         : "=a" (ret) : "a" (dx), "d" (dz));
     return ret;
 }
@@ -531,7 +531,7 @@ void load_prim_quad(void)
 
 static DIFFTEST_REF_FUNC void bang_set_detail_asm(int a1)
 {
-    asm volatile ("call ASM_bang_set_detail\n"
+    DIFFTEST_ASM("call ASM_bang_set_detail\n"
         : : "a" (a1));
 }
 
@@ -605,9 +605,9 @@ void debug_trace_setup(int place)
 
 /** Remains of some Bf debug stuff.
  */
-void debug_trace_turn_bound(ulong turn)
+void debug_trace_turn_bound(u32 turn)
 {
-    LOGDBG("turn %lu", turn);
+    LOGDBG("turn %u", turn);
 }
 
 /** NOOP func which compiler merged from several functions.
@@ -856,7 +856,7 @@ void load_level_wrap(short level, short missi, ubyte reload)
 
 static DIFFTEST_REF_FUNC void update_map_thing_and_traffic_refs_asm(void)
 {
-    asm volatile ("call ASM_update_map_thing_and_traffic_refs\n"
+    DIFFTEST_ASM("call ASM_update_map_thing_and_traffic_refs\n"
         :  :  : "eax" );
 }
 
@@ -974,7 +974,7 @@ void update_map_thing_and_traffic_refs(void)
 
 static DIFFTEST_REF_FUNC void unkn_lights_processing_asm(void)
 {
-    asm volatile ("call ASM_unkn_lights_processing\n"
+    DIFFTEST_ASM("call ASM_unkn_lights_processing\n"
         :  :  : "eax" );
 }
 
@@ -1136,7 +1136,7 @@ void check_mouse_overvehicle(struct Thing *p_thing, ubyte target_assign)
 static DIFFTEST_REF_FUNC int can_the_tank_run_over_asm(int a1, int a2)
 {
     int ra = a1, rd = a2;
-    asm volatile ("call ASM_can_the_tank_run_over\n"
+    DIFFTEST_ASM("call ASM_can_the_tank_run_over\n"
         : "+a" (ra), "+d" (rd) : : "ebx", "ecx", "esi", "edi", "cc", "memory");
     return ra;
 }
@@ -1182,7 +1182,7 @@ extern struct MapCreater map_craters[];
 
 static DIFFTEST_REF_FUNC void process_map_crater_asm(int crater)
 {
-    asm volatile ("call ASM_process_map_crater\n"
+    DIFFTEST_ASM("call ASM_process_map_crater\n"
         : : "a" (crater) : "cc", "memory");
 }
 
@@ -1494,7 +1494,7 @@ next_tile:
 
 static DIFFTEST_REF_FUNC void process_map_craters_asm(void)
 {
-    asm volatile ("call ASM_process_map_craters\n"
+    DIFFTEST_ASM("call ASM_process_map_craters\n"
         :  :  : "eax" );
 }
 
@@ -1787,7 +1787,7 @@ void init_syndwars(void)
 
 static DIFFTEST_REF_FUNC void setup_host_sub6_asm(void)
 {
-    asm volatile ("call ASM_setup_host_sub6\n"
+    DIFFTEST_ASM("call ASM_setup_host_sub6\n"
         :  :  : "eax" );
 }
 
@@ -1971,9 +1971,9 @@ void unkn_truce_groups(void)
     net_player_colors_reassign();
 }
 
-void blind_progress_game(ulong nturns)
+void blind_progress_game(u32 nturns)
 {
-    ulong n;
+    u32 n;
 
     for (n = 0; n < nturns; n++)
     {
@@ -1989,7 +1989,7 @@ void blind_progress_game(ulong nturns)
 static DIFFTEST_REF_FUNC void unkn_obj_faces4_lights_func_10_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_unkn_obj_faces4_lights_func_10\n"
+    DIFFTEST_ASM("call ASM_unkn_obj_faces4_lights_func_10\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -2087,7 +2087,7 @@ void unkn_obj_faces4_lights_func_10(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void map_lights_update_asm(void)
 {
-    asm volatile ("call ASM_map_lights_update\n"
+    DIFFTEST_ASM("call ASM_map_lights_update\n"
         :  :  : "eax" );
 }
 
@@ -2226,7 +2226,7 @@ void map_lights_update(void)
 static DIFFTEST_REF_FUNC int train_related_func_01_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_train_related_func_01\n"
+    DIFFTEST_ASM("call ASM_train_related_func_01\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -2267,7 +2267,7 @@ int train_related_func_01(intptr_t a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void func_74934_asm(void)
 {
-    asm volatile ("call ASM_func_74934\n"
+    DIFFTEST_ASM("call ASM_func_74934\n"
         :  :  : "eax" );
 }
 
@@ -2320,7 +2320,7 @@ void func_74934(void)
 static DIFFTEST_REF_FUNC void rotate_texture_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_rotate_texture\n"
+    DIFFTEST_ASM("call ASM_rotate_texture\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -2379,7 +2379,7 @@ extern short data_1c4300;
 
 static DIFFTEST_REF_FUNC void init_crater_textures_asm(void)
 {
-    asm volatile ("call ASM_init_crater_textures\n"
+    DIFFTEST_ASM("call ASM_init_crater_textures\n"
         :  :  : "eax" );
     return;
 }
@@ -2471,7 +2471,7 @@ void init_crater_textures(void)
 static DIFFTEST_REF_FUNC int calc_object_height_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_calc_object_height\n"
+    DIFFTEST_ASM("call ASM_calc_object_height\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
     return ra;
 }
@@ -2502,7 +2502,7 @@ int calc_object_height(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void find_the_tall_buildings_asm(void)
 {
-    asm volatile ("call ASM_find_the_tall_buildings\n"
+    DIFFTEST_ASM("call ASM_find_the_tall_buildings\n"
         :  :  : "eax" );
     return;
 }
@@ -2546,7 +2546,7 @@ void find_the_tall_buildings(void)
  */
 static DIFFTEST_REF_FUNC void nullsub_7_asm(void)
 {
-    asm volatile ("call ASM_nullsub_7\n"
+    DIFFTEST_ASM("call ASM_nullsub_7\n"
         :  : : "cc", "memory");
 }
 
@@ -2563,7 +2563,7 @@ void nullsub_7(void)
 static DIFFTEST_REF_FUNC void create_unkn_building_subtp27_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_create_unkn_building_subtp27\n"
+    DIFFTEST_ASM("call ASM_create_unkn_building_subtp27\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -2597,7 +2597,7 @@ void create_unkn_building_subtp27(int a1, int a2, int a3, int a4)
 static DIFFTEST_REF_FUNC int func_4225c_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_func_4225c\n"
+    DIFFTEST_ASM("call ASM_func_4225c\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -2635,9 +2635,9 @@ extern ushort word_1C83E8;
 /* Variables of the asm data (swars_data.c), for builds without the asm;
  * difftest builds take the byte layout of the asm from that file. */
 s32 dword_152E38[5] = {-1, -1, -1, -1, -1};
-long unkn01_downcount;
-long unkn01_pos_x;
-long unkn01_pos_y;
+s32 unkn01_downcount;
+s32 unkn01_pos_x;
+s32 unkn01_pos_y;
 short data_1c42fe;
 short data_1c4300;
 ubyte map_crater_first;
@@ -2654,7 +2654,7 @@ struct Thing *find_unused_train_track(void);
 static DIFFTEST_REF_FUNC int create_train_carriage_asm(short cor_dx, short cor_dy, short cor_dz, short otype)
 {
     int ret;
-    asm volatile ("call ASM_create_train_carriage\n"
+    DIFFTEST_ASM("call ASM_create_train_carriage\n"
         : "=a" (ret) : "a" (cor_dx), "d" (cor_dy), "b" (cor_dz), "c" (otype));
     return ret;
 }
@@ -2726,7 +2726,7 @@ int create_train_carriage(short cor_dx, short cor_dy, short cor_dz, short otype)
 static DIFFTEST_REF_FUNC struct Thing *find_unused_train_track_asm(void)
 {
     struct Thing *ret;
-    asm volatile ("call ASM_find_unused_train_track\n"
+    DIFFTEST_ASM("call ASM_find_unused_train_track\n"
         : "=a" (ret) : );
     return ret;
 }
@@ -2817,7 +2817,7 @@ void create_train_for_each_track(void)
 
 static DIFFTEST_REF_FUNC void init_my_paths_asm(void)
 {
-    asm volatile ("call ASM_init_my_paths\n"
+    DIFFTEST_ASM("call ASM_init_my_paths\n"
         :  :  : "eax" );
 }
 
@@ -3488,8 +3488,8 @@ void preprogress_game_turns(void)
     ubyte bkp_execute_commands;
 
     p_missi = &mission_list[ingame.CurrentMission];
-    LOGSYNC("PreProcess %d turns for mission %d, starting at %lu",
-      (int)p_missi->PreProcess, (int)ingame.CurrentMission, (ulong)gameturn);
+    LOGSYNC("PreProcess %d turns for mission %d, starting at %u",
+      (int)p_missi->PreProcess, (int)ingame.CurrentMission, (u32)gameturn);
 
     // Stopping things update would make the preprocess ineffective
     bkp_ingame_flags = ingame.Flags;
@@ -3568,8 +3568,8 @@ void init_player(void)
 
 void randomize_playable_groups_order(void)
 {
-    static long incrementing_nubers[] = {0, 1, 2, 3, 4, 5, 6, 7,};
-    array_elements_in_random_order(level_def.PlayableGroups, incrementing_nubers, long, 8);
+    static s32 incrementing_nubers[] = {0, 1, 2, 3, 4, 5, 6, 7,};
+    array_elements_in_random_order(level_def.PlayableGroups, incrementing_nubers, s32, 8);
 }
 
 void init_game(ubyte reload)
@@ -3705,7 +3705,7 @@ void compound_mission_immediate_start_next(void)
 static DIFFTEST_REF_FUNC short test_single_mission_asm(short missi)
 {
     short ret;
-    asm volatile ("call ASM_test_single_mission\n"
+    DIFFTEST_ASM("call ASM_test_single_mission\n"
         : "=a" (ret) : "a" (missi));
     return ret;
 }
@@ -3812,7 +3812,7 @@ short test_single_mission(short missi)
 
 static DIFFTEST_REF_FUNC void post_process_blips_asm(void)
 {
-    asm volatile ("call ASM_post_process_blips\n"
+    DIFFTEST_ASM("call ASM_post_process_blips\n"
         :  :  : "eax" );
 }
 
@@ -3948,7 +3948,7 @@ short test_missions(ubyte flag)
 
 void create_tables_file_from_fade(void)
 {
-    long len;
+    s32 len;
     int i, k;
     unsigned char *curbuf;
     // Note that the input file is not normally available with the game
@@ -4432,7 +4432,7 @@ void show_game_engine(void)
 TbResult clear_vecs_screen(TbPixel colour)
 {
     TbPixel *ptr;
-    long h;
+    s32 h;
 
     ptr = vec_screen;
     if (ptr == NULL)
@@ -4792,9 +4792,9 @@ void mission_over_update_players(void)
     cryo_update_agents_from_player(p_locplayer);
 }
 
-ulong calculate_cash_gain_from_persuaded_person(struct Thing *p_person)
+u32 calculate_cash_gain_from_persuaded_person(struct Thing *p_person)
 {
-    ulong credits;
+    u32 credits;
 
     credits = 0;
     credits += person_type_get_persuasion_credit(p_person->SubType);
@@ -4803,9 +4803,9 @@ ulong calculate_cash_gain_from_persuaded_person(struct Thing *p_person)
     return credits;
 }
 
-ulong mission_over_calculate_cash_gain_from_persuaded_crowd(ushort tgroup)
+u32 mission_over_calculate_cash_gain_from_persuaded_crowd(ushort tgroup)
 {
-    ulong credits;
+    u32 credits;
     struct Thing *p_person;
     ThingIdx person;
     short i;
@@ -4862,9 +4862,9 @@ void mission_over_gain_persuaded_crowd_rewards(void)
     mission_over_gain_personnel_from_persuaded_crowd();
 }
 
-ulong mission_over_calculate_player_cash_gain_from_items(void)
+u32 mission_over_calculate_player_cash_gain_from_items(void)
 {
-    ulong credits;
+    u32 credits;
     short sthing;
     struct SimpleThing *p_sthing;
 
@@ -4903,7 +4903,7 @@ ulong mission_over_calculate_player_cash_gain_from_items(void)
 
 void update_player_cash(void)
 {
-    ulong credits;
+    u32 credits;
 
     credits = mission_over_calculate_player_cash_gain_from_items();
     ingame.Credits += credits;
@@ -5334,7 +5334,7 @@ void mission_over(void)
         set_mission_state_using_state_slot(missi, mstate);
     }
 
-    long cr_award;
+    s32 cr_award;
     short email;
 
     switch (mstate)
@@ -5386,7 +5386,7 @@ void mission_over(void)
         play_smacker(MPly_GameOver);
 }
 
-TbBool player_try_spend_money(long cost)
+TbBool player_try_spend_money(s32 cost)
 {
     if (ingame.Credits - cost < 0)
         return false;
@@ -5535,7 +5535,7 @@ void init_screen_boxes(void)
 
 static DIFFTEST_REF_FUNC void move_camera_asm(int x, int y, int z)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_move_camera\n"
         : : "a" (x), "d" (y), "b" (z));
 }
@@ -5577,7 +5577,7 @@ void move_camera(int x, int y, int z)
 
 static DIFFTEST_REF_FUNC void track_player_asm(int thing)
 {
-    asm volatile ("call ASM_track_player\n"
+    DIFFTEST_ASM("call ASM_track_player\n"
         : : "a" (thing));
 }
 
@@ -5610,7 +5610,7 @@ void track_player(int thing)
 
 static DIFFTEST_REF_FUNC void track_angle_asm(void)
 {
-    asm volatile ("call ASM_track_angle\n"
+    DIFFTEST_ASM("call ASM_track_angle\n"
         :  :  : "eax" );
 }
 
@@ -5715,7 +5715,7 @@ void do_scroll_map(void)
     PlayerInfo *p_locplayer;
     s32 engn_xc_orig, engn_zc_orig;
     ushort ctlmode;
-    long abase, angle;
+    s32 abase, angle;
     int dx, dy, dz;
     int dampr;
 
@@ -6768,7 +6768,7 @@ void show_menu_screen_st0(void)
     sprintf(net_unkn2_text, "01234567890");
 
     {
-        long pos = 0;
+        s32 pos = 0;
         hotspot_buffer = (struct ScreenPoint *)((ubyte *)scratch_malloc_mem + pos);
         pos += hotspot_buffer_len;
 
@@ -7452,7 +7452,7 @@ void show_game_screen(void)
 
     if (execute_commands)
     {
-        long tmp;
+        s32 tmp;
         gamep_unknval_16 = nav_stats__ThisTurn;
         nav_stats__ThisTurn = 0;
         gamep_unknval_12++;
@@ -7838,7 +7838,7 @@ void game_process_orbital_station_explode(void)
     if (unkn01_downcount > 0)
     {
         unkn01_downcount--;
-        LOGDBG("unkn01_downcount = %ld", unkn01_downcount);
+        LOGDBG("unkn01_downcount = %d", unkn01_downcount);
         if (unkn01_downcount == 40) {
             mapwho_unkn01(unkn01_pos_x, unkn01_pos_y);
         }
@@ -7908,7 +7908,7 @@ static void statetrace_turn(void)
             h = (h ^ w) * 16777619u;
         }
     }
-    fprintf(fp, "%lu %08x %08lx\n", (ulong)gameturn, (uint)h, (ulong)lbSeed);
+    fprintf(fp, "%u %08x %08x\n", (u32)gameturn, (uint)h, (u32)lbSeed);
     fflush(fp);
     if ((getenv("SWARS_STATETRACE_DUMP") != NULL) &&
       (strtoul(getenv("SWARS_STATETRACE_DUMP"), NULL, 0) == gameturn))
@@ -7947,7 +7947,7 @@ void game_process(void)
         if (keyboard_mode_direct)
             input_char = LbKeyboard();
         if (ingame.DisplayMode == DpM_PURPLEMNU) {
-            LOGDBG("id=%d  trial alloc = %d turn %lu", 0, triangulation, gameturn);
+            LOGDBG("id=%d  trial alloc = %d turn %u", 0, triangulation, gameturn);
         }
         input();
         update_tick_time();

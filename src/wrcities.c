@@ -274,7 +274,7 @@ void read_cities_conf_file(void)
     TbFileHandle conf_fh;
     TbBool done;
     int i, n;
-    long k;
+    s32 k;
     struct TbIniParser parser;
     int conf_len;
     int city_id;
@@ -297,8 +297,8 @@ void read_cities_conf_file(void)
     }
     conf_buf[conf_len] = '\0';
     LbIniParseStart(&parser, conf_buf, conf_len);
-#define CONFWRNLOG(format,args...) LOGWARN("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
-#define CONFDBGLOG(format,args...) LOGDBG("%s(line %lu): " format, conf_fname, parser.line_num, ## args)
+#define CONFWRNLOG(format,args...) LOGWARN("%s(line %u): " format, conf_fname, parser.line_num, ## args)
+#define CONFDBGLOG(format,args...) LOGDBG("%s(line %u): " format, conf_fname, parser.line_num, ## args)
     num_cities = 0;
 
     // Parse the [common] section of loaded file
@@ -458,7 +458,7 @@ void recount_city_credit_reward(ubyte city)
  */
 TbBool is_mission_active_in_city(ushort missi, ushort city)
 {
-    ulong TotalReward;
+    u32 TotalReward;
 
     // The CashReward x1000 indicates credits automatically gained after mission
     TotalReward = mission_list[missi].CashReward * 1000;

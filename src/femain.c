@@ -909,7 +909,7 @@ static void global_credits_box_draw(void)
     my_set_text_window(cx + 1, cy + 1, 119, global_top_bar_box.Height - 2);
 
     // Divide locstr into two parts: store credits in first, leading zeros in second
-    sprintf(locstr, "%ld", ingame.Credits);
+    sprintf(locstr, "%d", ingame.Credits);
 
     // Fill leading zeros; drawn separately as these are half transparent
     usedlen = strlen(locstr) + 1;
@@ -1059,7 +1059,7 @@ void show_mission_loading_screen(void)
     reload_background();
     play_sample_using_heap(0, 118, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3);
 
-    ulong finished = 0; // Amount of frames after the drawing animation finished
+    u32 finished = 0; // Amount of frames after the drawing animation finished
     do
     {
         memcpy(lbDisplay.WScreen, back_buffer, lbDisplay.GraphicsScreenWidth * lbDisplay.GraphicsScreenHeight);

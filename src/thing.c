@@ -341,7 +341,7 @@ struct Thing *effective_owner_of_thing(struct Thing *p_thing)
 static DIFFTEST_REF_FUNC ubyte on_mapwho_asm(struct Thing *p_thing)
 {
     ubyte ret;
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_on_mapwho\n"
         : "=a" (ret) : "a" (p_thing));
     return ret;
@@ -372,7 +372,7 @@ ubyte on_mapwho(struct Thing *p_thing)
 
 static DIFFTEST_REF_FUNC void move_mapwho_asm(struct Thing *p_thing, int x, int y, int z)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_move_mapwho\n"
         : : "a" (p_thing), "d" (x), "b" (y), "c" (z));
 }
@@ -423,7 +423,7 @@ void move_mapwho(struct Thing *p_thing, int x, int y, int z)
 
 static DIFFTEST_REF_FUNC void init_just_things_asm(void)
 {
-    asm volatile ("call ASM_init_just_things\n"
+    DIFFTEST_ASM("call ASM_init_just_things\n"
         :  :  : "eax" );
 }
 
@@ -486,7 +486,7 @@ void init_things(void)
 static DIFFTEST_REF_FUNC void quick_light_unkn_func_07_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_quick_light_unkn_func_07\n"
+    DIFFTEST_ASM("call ASM_quick_light_unkn_func_07\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -579,7 +579,7 @@ void quick_light_unkn_func_07(int a1, int a2, int a3, int a4)
 static DIFFTEST_REF_FUNC void quick_light_unkn_func_09_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_quick_light_unkn_func_09\n"
+    DIFFTEST_ASM("call ASM_quick_light_unkn_func_09\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -626,7 +626,7 @@ void quick_light_unkn_func_09(intptr_t a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void quick_light_unkn_func_04_asm(short a1, int a2, short a3, short a4)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_quick_light_unkn_func_04\n"
         : : "a" (a1), "d" (a2), "b" (a3), "c" (a4));
     return;
@@ -720,7 +720,7 @@ static DIFFTEST_REF_FUNC void quick_light_unkn_func_06_asm(int a1, int a2, int a
     stkargs[0] = a5;
     stkargs[1] = a6;
     stkargs[2] = a7;
-    asm volatile ("push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_quick_light_unkn_func_06\n"
+    DIFFTEST_ASM("push 8(%4)\n""push 4(%4)\n""push 0(%4)\n""call ASM_quick_light_unkn_func_06\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
@@ -885,7 +885,7 @@ static DIFFTEST_REF_FUNC void quick_light_unkn_func_08_asm(int a1, int a2, int a
     int *p_stk = stkargs;
     stkargs[0] = a5;
     stkargs[1] = a6;
-    asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_quick_light_unkn_func_08\n"
+    DIFFTEST_ASM("push 4(%4)\n""push 0(%4)\n""call ASM_quick_light_unkn_func_08\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
@@ -950,7 +950,7 @@ void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
 static DIFFTEST_REF_FUNC void quick_light_unkn_func_05_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_quick_light_unkn_func_05\n"
+    DIFFTEST_ASM("call ASM_quick_light_unkn_func_05\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -1036,7 +1036,7 @@ static DIFFTEST_REF_FUNC void apply_full_light_asm(short lx, short lz, ushort b,
     int stkargs[1];
     int *p_stk = stkargs;
     stkargs[0] = lid;
-    asm volatile ("push 0(%4)\n""call ASM_apply_full_light\n"
+    DIFFTEST_ASM("push 0(%4)\n""call ASM_apply_full_light\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
@@ -1120,7 +1120,7 @@ static DIFFTEST_REF_FUNC int process_things_mines_explode_asm(int affected_max)
     ushort saved = *p_orig_used_head;
     *p_orig_used_head = (ushort)sthings_used_head;
 #endif
-    asm volatile ("call ASM_process_things_mines_explode\n"
+    DIFFTEST_ASM("call ASM_process_things_mines_explode\n"
         : "=a" (ret) : "a" (affected_max) : "cc", "memory");
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
     *p_orig_used_head = saved;
@@ -1184,7 +1184,7 @@ static DIFFTEST_REF_FUNC void process_things_unkn_sub2_asm(int tech_lv, int got_
     ushort saved = *p_orig_used_head;
     *p_orig_used_head = (ushort)sthings_used_head;
 #endif
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_things_unkn_sub2\n"
         : : "a" (tech_lv), "d" (got_many) : "cc", "memory");
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
@@ -1323,7 +1323,7 @@ void process_things_unkn_sub2(int tech_lv, int got_many)
 static DIFFTEST_REF_FUNC int process_things_bang_asm(int affected_max)
 {
     int ret;
-    asm volatile ("call ASM_process_things_bang\n"
+    DIFFTEST_ASM("call ASM_process_things_bang\n"
         : "=a" (ret) : "a" (affected_max));
     return ret;
 }
@@ -1374,7 +1374,7 @@ int process_things_bang(int affected_max)
 static DIFFTEST_REF_FUNC void light_cmd_unkn_func_06_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_light_cmd_unkn_func_06\n"
+    DIFFTEST_ASM("call ASM_light_cmd_unkn_func_06\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -1442,7 +1442,7 @@ void light_cmd_unkn_func_06(intptr_t a1, int a2, int a3, int a4)
 static DIFFTEST_REF_FUNC int light_cmd_unkn_func_05_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_light_cmd_unkn_func_05\n"
+    DIFFTEST_ASM("call ASM_light_cmd_unkn_func_05\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -1491,7 +1491,7 @@ int light_cmd_unkn_func_05(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void unkn_update_lights_asm(void)
 {
-    asm volatile ("call ASM_unkn_update_lights\n"
+    DIFFTEST_ASM("call ASM_unkn_update_lights\n"
         :  :  : "eax" );
     return;
 }
@@ -1747,7 +1747,7 @@ int recalc_rocket_direction(struct Thing *p_rocket)
 
 static DIFFTEST_REF_FUNC void process_rocket_asm(struct Thing *p_rocket)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_rocket\n"
         : : "a" (p_rocket));
 }
@@ -2022,7 +2022,7 @@ finish:
 
 static DIFFTEST_REF_FUNC void process_laser_guided_asm(struct Thing *p_laser)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_laser_guided\n"
         : : "a" (p_laser));
 }
@@ -2086,7 +2086,7 @@ ThingIdx aquire_target(struct Thing *p_gun);
 
 static DIFFTEST_REF_FUNC void process_c_iff_asm(struct Thing *p_mine)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_c_iff\n"
         : : "a" (p_mine));
 }
@@ -2140,7 +2140,7 @@ struct SimpleThing *create_growing_e_strand(int x, int y, int z,
 static DIFFTEST_REF_FUNC void init_electricity_bomb_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_init_electricity_bomb\n"
+    DIFFTEST_ASM("call ASM_init_electricity_bomb\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -2172,7 +2172,7 @@ struct SimpleThing *init_nuclear_bomb(MapCoord x, MapCoord y, MapCoord z);
 
 static DIFFTEST_REF_FUNC void process_mine_asm(struct SimpleThing *p_mine)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_mine\n"
         : : "a" (p_mine));
 }
@@ -2409,7 +2409,7 @@ void process_grenade(struct Thing *p_grenade)
 
 static DIFFTEST_REF_FUNC void process_laser_elec_asm(struct Thing *p_elec)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_laser_elec\n"
         : : "a" (p_elec));
 }
@@ -2531,7 +2531,7 @@ void process_unkn35(struct Thing *p_thing)
 
 static DIFFTEST_REF_FUNC void process_laser_asm(struct Thing *p_laser)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_laser\n"
         : : "a" (p_laser));
 }
@@ -2588,7 +2588,7 @@ static DIFFTEST_REF_FUNC struct SimpleThing *create_growing_e_strand_asm(int x, 
     stkargs[0] = (int)(intptr_t)health;
     stkargs[1] = (int)(intptr_t)owner;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%4)\n"
       "push 0(%4)\n"
       "call ASM_create_growing_e_strand\n"
@@ -2661,7 +2661,7 @@ struct SimpleThing *create_growing_e_strand(int x, int y, int z,
 
 static DIFFTEST_REF_FUNC void create_another_strand_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_create_another_strand\n"
         : : "a" (p_sthing));
 }
@@ -2779,7 +2779,7 @@ void create_another_strand(struct SimpleThing *p_sthing)
 
 static DIFFTEST_REF_FUNC void process_electric_strand_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_electric_strand\n"
         : : "a" (p_sthing));
 }
@@ -2836,7 +2836,7 @@ void process_electric_strand(struct SimpleThing *p_sthing)
 
 static DIFFTEST_REF_FUNC void process_canister_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_canister\n"
         : : "a" (p_sthing));
 }
@@ -2921,7 +2921,7 @@ void process_canister(struct SimpleThing *p_sthing)
 
 static DIFFTEST_REF_FUNC void process_stasis_pod_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_stasis_pod\n"
         : : "a" (p_sthing));
 }
@@ -2933,7 +2933,7 @@ static DIFFTEST_REF_FUNC void set_dist_volume_asm(struct SimpleThing *p_sthing,
 {
     int a1 = (int)(intptr_t)p_sthing, a2 = smptbl_id, a3 = vol;
 
-    asm volatile ("call ASM_set_dist_volume\n"
+    DIFFTEST_ASM("call ASM_set_dist_volume\n"
         : "+a" (a1), "+d" (a2), "+b" (a3) : : "memory", "cc");
 }
 
@@ -3025,7 +3025,7 @@ void process_stasis_pod(struct SimpleThing *p_sthing)
 
 static DIFFTEST_REF_FUNC void find_and_stasis_asm(struct SimpleThing *p_stasis, int radius)
 {
-    asm volatile ("call ASM_find_and_stasis\n"
+    DIFFTEST_ASM("call ASM_find_and_stasis\n"
         :  : "a" (p_stasis), "d" (radius));
 }
 
@@ -3144,7 +3144,7 @@ void find_and_time_travel(struct SimpleThing *p_sthing)
 
 static DIFFTEST_REF_FUNC void process_time_pod_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_time_pod\n"
         : : "a" (p_sthing));
 }
@@ -3201,7 +3201,7 @@ int move_smapwho(intptr_t a1, intptr_t a2, int a3, intptr_t a4);
 
 static DIFFTEST_REF_FUNC void process_soul_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_soul\n"
         : : "a" (p_sthing));
 }
@@ -3282,7 +3282,7 @@ void process_soul(struct SimpleThing *p_sthing)
 static DIFFTEST_REF_FUNC int get_some_phwoar_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
-    asm volatile ("call ASM_get_some_phwoar\n"
+    DIFFTEST_ASM("call ASM_get_some_phwoar\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
     return ra;
 }
@@ -3308,7 +3308,7 @@ int get_some_phwoar(int a1, int a2, int a3)
 static DIFFTEST_REF_FUNC void give_some_phwoar_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
-    asm volatile ("call ASM_give_some_phwoar\n"
+    DIFFTEST_ASM("call ASM_give_some_phwoar\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
 }
 
@@ -3332,7 +3332,7 @@ void give_some_phwoar(int a1, int a2, int a3)
 static DIFFTEST_REF_FUNC void give_some_shrapnel_asm(int a1, int a2, int a3)
 {
     int ra = a1, rd = a2, rb = a3;
-    asm volatile ("call ASM_give_some_shrapnel\n"
+    DIFFTEST_ASM("call ASM_give_some_shrapnel\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
 }
 
@@ -3350,7 +3350,7 @@ void give_some_shrapnel(int a1, int a2, int a3)
 
 static DIFFTEST_REF_FUNC void process_bang_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_bang\n"
         : : "a" (p_sthing));
 }
@@ -3719,7 +3719,7 @@ void snap_razor_wire(intptr_t a1, int a2, int a3, int a4);
 
 static DIFFTEST_REF_FUNC void FIRE_process_flame_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_FIRE_process_flame\n"
         : : "a" (p_sthing));
 }
@@ -4086,7 +4086,7 @@ void FIRE_finish_flame(struct SimpleThing *p_sthing, ThingIdx thing)
 static DIFFTEST_REF_FUNC int move_smapwho_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_move_smapwho\n"
+    DIFFTEST_ASM("call ASM_move_smapwho\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -4137,7 +4137,7 @@ int move_smapwho(intptr_t a1, intptr_t a2, int a3, intptr_t a4)
 
 static DIFFTEST_REF_FUNC void process_spark_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_spark\n"
         : : "a" (p_sthing));
 }
@@ -4173,7 +4173,7 @@ void process_spark(struct SimpleThing *p_sthing)
 static DIFFTEST_REF_FUNC void apply_texture_to_face_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_apply_texture_to_face\n"
+    DIFFTEST_ASM("call ASM_apply_texture_to_face\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
 }
 
@@ -4210,7 +4210,7 @@ void apply_texture_to_face(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void process_intelligent_door_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_intelligent_door\n"
         : : "a" (p_sthing));
 }
@@ -4298,7 +4298,7 @@ void process_unkn58(struct SimpleThing *p_sthing)
 static DIFFTEST_REF_FUNC ubyte napalm_person_asm(struct Thing *p_person, ushort multi)
 {
     ubyte ret;
-    asm volatile ("call ASM_napalm_person\n"
+    DIFFTEST_ASM("call ASM_napalm_person\n"
         : "=a" (ret) : "a" (p_person), "d" (multi));
     return ret;
 }
@@ -4377,7 +4377,7 @@ ubyte napalm_person(struct Thing *p_person, ushort multi)
 static DIFFTEST_REF_FUNC void person_go_insane_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_person_go_insane\n"
+    DIFFTEST_ASM("call ASM_person_go_insane\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
 }
 
@@ -4409,7 +4409,7 @@ static void napalm_flame_person_killed_add_to_stats(struct Thing *p_person,
 
 static DIFFTEST_REF_FUNC void process_drift_smoke_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_drift_smoke\n"
         : : "a" (p_sthing), "d" (thing_item));
 }
@@ -4541,7 +4541,7 @@ void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
 
 static DIFFTEST_REF_FUNC void process_mushroom_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_mushroom\n"
         : : "a" (p_sthing), "d" (thing_item));
 }
@@ -4585,7 +4585,7 @@ void process_mushroom(struct SimpleThing *p_sthing, ThingIdx thing_item)
 
 static DIFFTEST_REF_FUNC void process_special_drift_smoke_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_special_drift_smoke\n"
         : : "a" (p_sthing), "d" (thing_item));
 }
@@ -4635,7 +4635,7 @@ void process_special_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_it
 
 static DIFFTEST_REF_FUNC void process_napalm_flame_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_napalm_flame\n"
         : : "a" (p_sthing), "d" (thing_item));
 }
@@ -4809,7 +4809,7 @@ void process_napalm_flame(struct SimpleThing *p_sthing, ThingIdx thing_item)
 
 static DIFFTEST_REF_FUNC void process_flame1_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_flame1\n"
         : : "a" (p_sthing));
 }
@@ -4875,7 +4875,7 @@ void process_flame1(struct SimpleThing *p_sthing)
 
 static DIFFTEST_REF_FUNC void process_splash_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_splash\n"
         : : "a" (p_sthing));
 }
@@ -4963,7 +4963,7 @@ void process_scale_effect(struct SimpleThing *p_sthing, ThingIdx thing_item)
 
 static DIFFTEST_REF_FUNC void test_stuff_asm(int x, int y, int z, ushort owner)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_test_stuff\n"
         : : "a" (x), "d" (y), "b" (z), "c" ((int)owner));
 }
@@ -5013,7 +5013,7 @@ void test_stuff(int x, int y, int z, ushort owner)
 static DIFFTEST_REF_FUNC void do_explode_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_do_explode\n"
+    DIFFTEST_ASM("call ASM_do_explode\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -5091,7 +5091,7 @@ void do_explode(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void process_nuclear_bomb_asm(struct SimpleThing *p_sthing, ThingIdx thing_item)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_nuclear_bomb\n"
         : : "a" (p_sthing), "d" (thing_item));
 }
@@ -5192,7 +5192,7 @@ void process_nuclear_bomb(struct SimpleThing *p_sthing, ThingIdx thing_item)
 
 static DIFFTEST_REF_FUNC void process_smoke_generator_asm(struct SimpleThing *p_sthing)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_process_smoke_generator\n"
         : : "a" (p_sthing));
 }
@@ -5641,7 +5641,7 @@ const char *thing_type_name(ubyte tngtype, ubyte subtype)
     return thing_type_names[tngtype];
 }
 
-void snprint_thing(char *buf, ulong buflen, struct Thing *p_thing)
+void snprint_thing(char *buf, u32 buflen, struct Thing *p_thing)
 {
     char *s;
     ubyte nparams;
@@ -5667,7 +5667,7 @@ void snprint_thing(char *buf, ulong buflen, struct Thing *p_thing)
     }
     if (p_thing->Flag != 0) {
         if (nparams) { sprintf(s, ", "); s += strlen(s); }
-        sprintf(s, "Flag(0x%lx)", p_thing->Flag);
+        sprintf(s, "Flag(0x%x)", p_thing->Flag);
         s += strlen(s);
         nparams++;
     }
@@ -5682,7 +5682,7 @@ void snprint_thing(char *buf, ulong buflen, struct Thing *p_thing)
     snprintf(s, buflen - (s-buf), " )");
 }
 
-void snprint_sthing(char *buf, ulong buflen, struct SimpleThing *p_sthing)
+void snprint_sthing(char *buf, u32 buflen, struct SimpleThing *p_sthing)
 {
     char *s;
     ubyte nparams;
@@ -5702,7 +5702,7 @@ void snprint_sthing(char *buf, ulong buflen, struct SimpleThing *p_sthing)
     }
     if (p_sthing->Flag != 0) {
         if (nparams) { sprintf(s, ", "); s += strlen(s); }
-        sprintf(s, "Flag(0x%lx)", p_sthing->Flag);
+        sprintf(s, "Flag(0x%x)", p_sthing->Flag);
         s += strlen(s);
         nparams++;
     }
@@ -5740,7 +5740,7 @@ TbBool thing_is_pickup_item(ThingIdx thing)
 static DIFFTEST_REF_FUNC TbResult delete_node_asm(struct Thing *p_thing)
 {
     TbResult ret;
-    asm volatile ("call ASM_delete_node\n"
+    DIFFTEST_ASM("call ASM_delete_node\n"
         : "=a" (ret) : "a" (p_thing));
     return ret;
 }
@@ -5780,7 +5780,7 @@ TbResult delete_node(struct Thing *p_thing)
 static DIFFTEST_REF_FUNC TbResult delete_snode_asm(struct SimpleThing *p_sthing)
 {
     TbResult ret;
-    asm volatile ("call ASM_delete_snode\n"
+    DIFFTEST_ASM("call ASM_delete_snode\n"
         : "=a" (ret) : "a" (p_sthing));
     return ret;
 }
@@ -5808,7 +5808,7 @@ TbResult delete_snode(struct SimpleThing *p_sthing)
 
 static DIFFTEST_REF_FUNC void add_node_thing_asm(ThingIdx new_thing)
 {
-    asm volatile ("call ASM_add_node_thing\n"
+    DIFFTEST_ASM("call ASM_add_node_thing\n"
         : : "a" (new_thing));
 }
 
@@ -5842,7 +5842,7 @@ void add_node_thing(ThingIdx new_thing)
 static DIFFTEST_REF_FUNC short get_new_thing_asm(void)
 {
     short ret;
-    asm volatile ("call ASM_get_new_thing\n"
+    DIFFTEST_ASM("call ASM_get_new_thing\n"
         : "=a" (ret) : );
     return ret;
 }
@@ -5853,7 +5853,7 @@ static DIFFTEST_REF_FUNC short get_new_thing_asm(void)
 static DIFFTEST_REF_FUNC int get_new_thing_with_index_asm(ThingIdx thing)
 {
     int ret;
-    asm volatile ("call ASM_get_new_thing_with_index\n"
+    DIFFTEST_ASM("call ASM_get_new_thing_with_index\n"
         : "=a" (ret) : "a" (thing) : "cc", "memory");
     return ret;
 }
@@ -5933,7 +5933,7 @@ short get_new_thing(void)
 
 static DIFFTEST_REF_FUNC void remove_thing_asm(short tngno)
 {
-    asm volatile ("call ASM_remove_thing\n"
+    DIFFTEST_ASM("call ASM_remove_thing\n"
         : : "a" (tngno));
 }
 
@@ -5964,7 +5964,7 @@ void remove_thing(short tngno)
 
 static DIFFTEST_REF_FUNC void add_node_sthing_asm(ThingIdx new_thing)
 {
-    asm volatile ("call ASM_add_node_sthing\n"
+    DIFFTEST_ASM("call ASM_add_node_sthing\n"
         : : "a" (new_thing));
 }
 
@@ -5996,7 +5996,7 @@ void add_node_sthing(ThingIdx new_thing)
 static DIFFTEST_REF_FUNC short get_new_sthing_asm(void)
 {
     short ret;
-    asm volatile ("call ASM_get_new_sthing\n"
+    DIFFTEST_ASM("call ASM_get_new_sthing\n"
         : "=a" (ret) : );
     return ret;
 }
@@ -6028,7 +6028,7 @@ short get_new_sthing(void)
 
 static DIFFTEST_REF_FUNC void remove_sthing_asm(short tngno)
 {
-    asm volatile ("call ASM_remove_sthing\n"
+    DIFFTEST_ASM("call ASM_remove_sthing\n"
         : : "a" (tngno));
 }
 
@@ -6283,7 +6283,7 @@ short get_thing_same_type_head(short ttype, short subtype)
 
 static DIFFTEST_REF_FUNC void new_thing_traffic_clone_asm(struct SimpleThing *p_clsthing)
 {
-    asm volatile ("call ASM_new_thing_traffic_clone\n"
+    DIFFTEST_ASM("call ASM_new_thing_traffic_clone\n"
         : : "a" (p_clsthing));
 }
 
@@ -6651,7 +6651,7 @@ static DIFFTEST_REF_FUNC struct SimpleThing *create_item_asm(int x, int y,
 
     stkargs[0] = (u32)subtype;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 0(%4)\n"
       "call ASM_create_item\n"
         : "=a" (ret), "+d" (edx), "+b" (ebx), "+c" (ecx)
@@ -6739,7 +6739,7 @@ static DIFFTEST_REF_FUNC struct SimpleThing *create_scale_effect_asm(int x,
 
     stkargs[0] = (s32)timer;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 0(%4)\n"
       "call ASM_create_scale_effect\n"
         : "=a" (ret), "+d" (edx), "+b" (ebx), "+c" (ecx)
@@ -6795,7 +6795,7 @@ static DIFFTEST_REF_FUNC struct SimpleThing *create_sound_effect_asm(int x,
     stkargs[0] = (int)(intptr_t)vol;
     stkargs[1] = (int)(intptr_t)loop;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 4(%4)\n"
       "push 0(%4)\n"
       "call ASM_create_sound_effect\n"
@@ -6850,7 +6850,7 @@ static DIFFTEST_REF_FUNC struct SimpleThing *create_stasis_pod_asm(MapCoord x,
 
     stkargs[0] = (int)(intptr_t)p_owner;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 0(%4)\n"
       "call ASM_create_stasis_pod\n"
         : "=a" (ret), "+d" (edx), "+b" (ebx), "+c" (ecx)
@@ -6946,7 +6946,7 @@ static DIFFTEST_REF_FUNC struct SimpleThing *create_electric_strand_asm(
     stkargs[1] = (int)(intptr_t)z2;
     stkargs[2] = (int)(intptr_t)sound;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 8(%4)\n"
       "push 4(%4)\n"
       "push 0(%4)\n"

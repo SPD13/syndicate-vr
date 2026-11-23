@@ -80,8 +80,8 @@ struct HeapMgrHeader {
  * which now only references it, so that builds without difftest need no
  * sound asm at all.
  */
-long sound_heap_size;
-long dword_1DDECC;
+s32 sound_heap_size;
+s32 dword_1DDECC;
 struct SampleTable *sound_heap_memory;
 /** Sample type per sample info slot, built by monitor_all_samples()
  * (data_1dded8 in the asm). */
@@ -89,7 +89,7 @@ ubyte sound_sample_types[0x190];
 u32 ail_sample_ids[20];
 TbFileHandle sound_file = INVALID_FILE;
 struct HeapMgrHeader *hmhead;
-long samples_in_bank;
+s32 samples_in_bank;
 struct SampleTable *sample_table;
 
 short startscr_samplevol;
@@ -138,7 +138,7 @@ void sfx_apply_cdvolume(void)
 static DIFFTEST_REF_FUNC int heapmgr_add_item_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_heapmgr_add_item\n"
+    DIFFTEST_ASM("call ASM_heapmgr_add_item\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -222,7 +222,7 @@ struct HeapMgrHandle *heapmgr_add_item(struct HeapMgrHeader *p_hmhead, s32 size,
 static DIFFTEST_REF_FUNC ushort heapmgr_free_handle_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_heapmgr_free_handle\n"
+    DIFFTEST_ASM("call ASM_heapmgr_free_handle\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return (ushort)ra;
 }
@@ -302,7 +302,7 @@ ushort heapmgr_free_handle(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle 
 static DIFFTEST_REF_FUNC int heapmgr_free_oldest_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_heapmgr_free_oldest\n"
+    DIFFTEST_ASM("call ASM_heapmgr_free_oldest\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
     return ra;
 }
@@ -339,7 +339,7 @@ int heapmgr_free_oldest(struct HeapMgrHeader *p_hmhead, int a2, int a3, int a4)
 static DIFFTEST_REF_FUNC void heapmgr_make_newest_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_heapmgr_make_newest\n"
+    DIFFTEST_ASM("call ASM_heapmgr_make_newest\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -375,8 +375,8 @@ void heapmgr_make_newest(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p
 
 
 
-static DIFFTEST_REF_FUNC struct SampleInfo *play_sample_using_heap_asm(ulong bank_id,
-  short smptbl_id, ulong volume, ulong pan, ulong pitch, sbyte loop_count, ubyte stype)
+static DIFFTEST_REF_FUNC struct SampleInfo *play_sample_using_heap_asm(u32 bank_id,
+  short smptbl_id, u32 volume, u32 pan, u32 pitch, sbyte loop_count, ubyte stype)
 {
     int ra = (int)bank_id, rd = (int)smptbl_id, rb = (int)volume, rc = (int)pan;
     // Pushed through a register holding them: a "g" operand may be placed
@@ -387,7 +387,7 @@ static DIFFTEST_REF_FUNC struct SampleInfo *play_sample_using_heap_asm(ulong ban
     stkargs[1] = (int)(intptr_t)loop_count;
     stkargs[2] = (int)(intptr_t)stype;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 8(%4)\n"
       "push 4(%4)\n"
       "push 0(%4)\n"
@@ -403,8 +403,8 @@ static DIFFTEST_REF_FUNC struct SampleInfo *play_sample_using_heap_asm(ulong ban
  * tries). Marks the played sample (UserFlag 0x01) and locks its heap handle
  * (flags 0x06 at 0x08).
  */
-struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
-  ulong volume, ulong pan, ulong pitch, sbyte loop_count, ubyte stype)
+struct SampleInfo *play_sample_using_heap(u32 bank_id, short smptbl_id,
+  u32 volume, u32 pan, u32 pitch, sbyte loop_count, ubyte stype)
 {
     struct SampleTable *p_smptbl;
     struct SampleInfo *p_sinfo;
@@ -464,9 +464,9 @@ struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
     DIFFTEST_RETURN(p_sinfo);
 }
 
-static DIFFTEST_REF_FUNC void stop_sample_using_heap_asm(long source_id, ulong sample_number)
+static DIFFTEST_REF_FUNC void stop_sample_using_heap_asm(s32 source_id, u32 sample_number)
 {
-    asm volatile (
+    DIFFTEST_ASM(
       "call ASM_stop_sample_using_heap\n"
         : "+a" (source_id), "+d" (sample_number) : : "cc", "memory");
 }
@@ -475,7 +475,7 @@ static DIFFTEST_REF_FUNC void stop_sample_using_heap_asm(long source_id, ulong s
  * still plays the sample, clears the lock flags (0x06 at 0x08) of its heap
  * handle.
  */
-void stop_sample_using_heap(long source_id, ulong sample_number)
+void stop_sample_using_heap(s32 source_id, u32 sample_number)
 {
     struct SampleInfo *p_last;
     struct SampleInfo *p_sinfo;
@@ -526,7 +526,7 @@ void play_disk_sample(short id, ushort sample, short vol,
 static DIFFTEST_REF_FUNC int snd_unkn3_find_stop_sample_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_snd_unkn3_find_stop_sample\n"
+    DIFFTEST_ASM("call ASM_snd_unkn3_find_stop_sample\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
 }
@@ -587,7 +587,7 @@ static DIFFTEST_REF_FUNC void play_dist_sample_asm(struct Thing *p_thing,
     stkargs[1] = (int)(intptr_t)loop;
     stkargs[2] = (int)(intptr_t)stype;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 8(%4)\n"
       "push 4(%4)\n"
       "push 0(%4)\n"
@@ -674,7 +674,7 @@ static DIFFTEST_REF_FUNC void play_dist_ssample_asm(struct SimpleThing *p_sthing
     stkargs[1] = (int)(intptr_t)loop;
     stkargs[2] = (int)(intptr_t)stype;
 
-    asm volatile (
+    DIFFTEST_ASM(
       "push 8(%4)\n"
       "push 4(%4)\n"
       "push 0(%4)\n"
@@ -753,7 +753,7 @@ void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vo
 
 static DIFFTEST_REF_FUNC void stop_looped_weapon_sample_asm(struct Thing *p_person, short weapon)
 {
-    asm volatile ("call ASM_stop_looped_weapon_sample\n"
+    DIFFTEST_ASM("call ASM_stop_looped_weapon_sample\n"
         : : "a" (p_person), "d" (weapon) : "cc", "memory");
 }
 
@@ -798,7 +798,7 @@ void stop_looped_weapon_sample(struct Thing *p_person, short weapon)
 //TODO better name?
 static DIFFTEST_REF_FUNC void fill_ail_sample_ids_asm(void)
 {
-    asm volatile ("call ASM_fill_ail_sample_ids\n"
+    DIFFTEST_ASM("call ASM_fill_ail_sample_ids\n"
         :  :  : "eax", "cc", "memory" );
 }
 
@@ -824,7 +824,7 @@ void fill_ail_sample_ids(void)
 
 static DIFFTEST_REF_FUNC void monitor_all_samples_asm(void)
 {
-    asm volatile ("call ASM_monitor_all_samples\n"
+    DIFFTEST_ASM("call ASM_monitor_all_samples\n"
         :  :  : "eax", "cc", "memory" );
 }
 
@@ -947,7 +947,7 @@ void monitor_all_samples(void)
 
 static DIFFTEST_REF_FUNC void snd_unkn1_volume_all_samples_asm(void)
 {
-    asm volatile ("call ASM_snd_unkn1_volume_all_samples\n"
+    DIFFTEST_ASM("call ASM_snd_unkn1_volume_all_samples\n"
         :  :  : "eax", "cc", "memory" );
 }
 
@@ -1020,13 +1020,13 @@ int setup_heap_manager(struct SampleTable *smptable, size_t smptb_len,
 {
     TbFileHandle fh;
     ubyte tpno;
-    long totlen;
-    long pos;
+    s32 totlen;
+    s32 pos;
     struct SampleTable *smptb;
     size_t tab_smptb_len;
     struct BfSoundBankHead *sbh;
     int i;
-    long smptb_len_diff;
+    s32 smptb_len_diff;
     ubyte *p_smptb_end;
     struct BfSoundBankHead sbharr[9];
     struct BfSfxInfo sfxi;
@@ -1119,7 +1119,7 @@ void setup_heaps(short setup_cmd, const char *lang)
 {
     char locstr[DISKPATH_SIZE];
     PathInfo *pinfo;
-    long sz;
+    s32 sz;
     unsigned int n;
 
     if ((ingame.Flags & GamF_Unkn00020000) == 0)
@@ -1187,7 +1187,7 @@ void setup_heaps(short setup_cmd, const char *lang)
 static DIFFTEST_REF_FUNC void heapmgr_defrag_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
-    asm volatile ("call ASM_heapmgr_defrag\n"
+    DIFFTEST_ASM("call ASM_heapmgr_defrag\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
@@ -1231,7 +1231,7 @@ void heapmgr_defrag(struct HeapMgrHeader *p_hmhead, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC void process_sound_heap_asm(void)
 {
-    asm volatile ("call ASM_process_sound_heap\n"
+    DIFFTEST_ASM("call ASM_process_sound_heap\n"
         :  :  : "eax", "cc", "memory" );
 }
 

@@ -73,7 +73,7 @@ void triangulation_initialize(void)
 
 static DIFFTEST_REF_FUNC void triangulation_select_asm(int trglno)
 {
-    asm volatile ("call ASM_triangulation_select\n"
+    DIFFTEST_ASM("call ASM_triangulation_select\n"
         : : "a" (trglno));
 }
 

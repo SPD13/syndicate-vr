@@ -28,8 +28,8 @@
 
 extern "C" {
 extern volatile TbBool lbPointerAdvancedDraw;
-long PointerDraw(long x, long y, const struct TbSprite *spr, TbPixel *outbuf,
-  unsigned long scanline);
+s32 PointerDraw(s32 x, s32 y, const struct TbSprite *spr, TbPixel *outbuf,
+  u32 scanline);
 }
 
 // Methods
@@ -52,9 +52,9 @@ LbI_PointerHandler::~LbI_PointerHandler(void)
     Release();
 }
 
-void LbI_PointerHandler::SetHotspot(long x, long y)
+void LbI_PointerHandler::SetHotspot(s32 x, s32 y)
 {
-    long prev_x,prev_y;
+    s32 prev_x,prev_y;
     LbSemaLock semlock(&sema_rel,0);
     semlock.Lock(true);
     if (this->initialised)
@@ -107,9 +107,9 @@ void LbI_PointerHandler::Initialise(const struct TbSprite *spr,
     void *surfbuf;
     TbPixel *buf;
     TbResult ret;
-    long i;
+    s32 i;
     int dstwidth, dstheight;
-    unsigned long flags;
+    u32 flags;
 
     Release();
     LbSemaLock semlock(&sema_rel,0);
@@ -156,7 +156,7 @@ void LbI_PointerHandler::Initialise(const struct TbSprite *spr,
 
 void LbI_PointerHandler::Draw(bool a1)
 {
-    unsigned long flags;
+    u32 flags;
     flags = SSBlt_FLAG10 | SSBlt_TO_SCREEN | SSBlt_TRANSPRN;
     if ( a1 )
       flags |= SSBlt_FLAG2;
@@ -165,7 +165,7 @@ void LbI_PointerHandler::Draw(bool a1)
 
 void LbI_PointerHandler::Backup(bool a1)
 {
-    unsigned long flags;
+    u32 flags;
     flags = SSBlt_FLAG10;
     if ( a1 )
       flags |= SSBlt_FLAG2;
@@ -175,7 +175,7 @@ void LbI_PointerHandler::Backup(bool a1)
 
 void LbI_PointerHandler::Undraw(bool a1)
 {
-    unsigned long flags;
+    u32 flags;
     flags = SSBlt_FLAG10 | SSBlt_TO_SCREEN;
     if ( a1 )
       flags |= SSBlt_FLAG2;

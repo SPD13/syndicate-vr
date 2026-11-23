@@ -34,7 +34,7 @@ extern "C" {
  * @param size Memory block size in bytes.
  * @return protected mode pointer to the allocated block, NULL if failed.
  */
-void *AllocDOSmem(uint16_t *sel, long size);
+void *AllocDOSmem(uint16_t *sel, int32_t size);
 
 /** Frees a memory block allocated by AllocDOSmem().
  *

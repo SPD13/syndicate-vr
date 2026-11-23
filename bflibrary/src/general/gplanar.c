@@ -21,7 +21,7 @@
 
 /******************************************************************************/
 
-void LbSetRect(struct TbRect *rect, long xLeft, long yTop, long xRight, long yBottom)
+void LbSetRect(struct TbRect *rect, s32 xLeft, s32 yTop, s32 xRight, s32 yBottom)
 {
     if (rect == NULL)
         return;

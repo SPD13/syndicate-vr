@@ -503,7 +503,7 @@ extern struct ScreenTextBox cryo_agent_list_box;
 
 static DIFFTEST_REF_FUNC void remove_agent_asm(ubyte cryo_no)
 {
-    asm volatile ("call ASM_remove_agent\n"
+    DIFFTEST_ASM("call ASM_remove_agent\n"
         : : "a" (cryo_no));
 }
 
@@ -550,13 +550,13 @@ void remove_agent(ubyte cryo_no)
     local_player_no = plyr;
 }
 
-static DIFFTEST_REF_FUNC void add_agent_asm(ulong weapons, ushort mods)
+static DIFFTEST_REF_FUNC void add_agent_asm(u32 weapons, ushort mods)
 {
-    asm volatile ("call ASM_add_agent\n"
+    DIFFTEST_ASM("call ASM_add_agent\n"
         : : "a" (weapons), "d" (mods));
 }
 
-void add_agent(ulong weapons, ushort mods)
+void add_agent(u32 weapons, ushort mods)
 {
     u32 wflags;
     u32 wbit;
@@ -924,7 +924,7 @@ int place_default_player(PlayerIdx plyr, TbBool replace)
 
 void place_single_player(void)
 {
-    ulong n;
+    u32 n;
     ushort nagents, pl_agents, pl_group;
 
     nagents = player_agents_place_in_mission_count(local_player_no);

@@ -31,13 +31,13 @@
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
 
 /** Random value with random magnitude, to cover small and large numbers. */
-static long fuzz_int(ulong *p_seed)
+static s32 fuzz_int(u32 *p_seed)
 {
-    ulong v = difftest_fuzz_rand(p_seed);
-    return (long)(v >> (difftest_fuzz_rand(p_seed) % 32));
+    u32 v = difftest_fuzz_rand(p_seed);
+    return (s32)(v >> (difftest_fuzz_rand(p_seed) % 32));
 }
 
-static void fuzz_vec_cross_prod(ulong *p_seed)
+static void fuzz_vec_cross_prod(u32 *p_seed)
 {
     struct M31 vecr, vec1, vec2;
     int i;
@@ -62,7 +62,7 @@ static void fuzz_vec_cross_prod(ulong *p_seed)
     }
 }
 
-static void fuzz_arctan(ulong *p_seed)
+static void fuzz_arctan(u32 *p_seed)
 {
     int dx, dz;
 
@@ -80,7 +80,7 @@ static void fuzz_arctan(ulong *p_seed)
     arctan(dx, dz);
 }
 
-static void fuzz_object_vec_normalisation(ulong *p_seed)
+static void fuzz_object_vec_normalisation(u32 *p_seed)
 {
     struct M33 mat;
     int row, col;
@@ -91,7 +91,7 @@ static void fuzz_object_vec_normalisation(ulong *p_seed)
     object_vec_normalisation(&mat, difftest_fuzz_rand(p_seed) % 3);
 }
 
-static void fuzz_rotate_object_axis(ulong *p_seed)
+static void fuzz_rotate_object_axis(u32 *p_seed)
 {
     struct M33 mat;
     short angle[3];
@@ -124,7 +124,7 @@ static void fuzz_rotate_object_axis(ulong *p_seed)
 
 ubyte check_person_within(struct Command *p_cmd, int x, int z);
 
-static void fuzz_check_person_within(ulong *p_seed)
+static void fuzz_check_person_within(u32 *p_seed)
 {
     struct Command cmd;
     int x, z;
@@ -150,7 +150,7 @@ static void fuzz_check_person_within(ulong *p_seed)
 ubyte check_big_point_triangle(int x, int y, int ux, int uy, int vx, int vy,
   int wx, int wy);
 
-static void fuzz_check_big_point_triangle(ulong *p_seed)
+static void fuzz_check_big_point_triangle(u32 *p_seed)
 {
     int v[8];
     int i;
@@ -177,7 +177,7 @@ static void fuzz_check_big_point_triangle(ulong *p_seed)
     check_big_point_triangle(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
 }
 
-static void fuzz_two4_line_intersection(ulong *p_seed)
+static void fuzz_two4_line_intersection(u32 *p_seed)
 {
     int v[8];
     int i;
@@ -215,7 +215,7 @@ static void fuzz_two4_line_intersection(ulong *p_seed)
     two4_line_intersection(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
 }
 
-static void fuzz_fov_region(ulong *p_seed)
+static void fuzz_fov_region(u32 *p_seed)
 {
     s32 p[6];
     int x, y;
@@ -259,7 +259,7 @@ static void fuzz_fov_region(ulong *p_seed)
 
 void VNAV_qwertyuiop(intptr_t a1, intptr_t a2, int a3, int a4, int a5, int a6, int a7, int a8);
 
-static void fuzz_VNAV_qwertyuiop(ulong *p_seed)
+static void fuzz_VNAV_qwertyuiop(u32 *p_seed)
 {
     s32 dist, frac;
     int v[6];
@@ -297,7 +297,7 @@ static void fuzz_VNAV_qwertyuiop(ulong *p_seed)
 
 void matrix_transpose_cp(intptr_t a1, intptr_t a2, intptr_t a3);
 
-static void fuzz_matrix_transpose_cp(ulong *p_seed)
+static void fuzz_matrix_transpose_cp(u32 *p_seed)
 {
     s32 dst[9], src[9];
     int i;
@@ -316,7 +316,7 @@ static void fuzz_matrix_transpose_cp(ulong *p_seed)
 void mech_unkn_func_20(struct M31 *p_from, struct M31 *p_to, s32 div,
   struct M31 *p_out);
 
-static void fuzz_mech_unkn_func_20(ulong *p_seed)
+static void fuzz_mech_unkn_func_20(u32 *p_seed)
 {
     struct M31 from, to, out;
     s32 div;
@@ -345,7 +345,7 @@ static void fuzz_mech_unkn_func_20(ulong *p_seed)
 
 int func_5cff0(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4);
 
-static void fuzz_func_5cff0(ulong *p_seed)
+static void fuzz_func_5cff0(u32 *p_seed)
 {
     short x, z;
     s32 pts[4];
@@ -372,7 +372,7 @@ static void fuzz_func_5cff0(ulong *p_seed)
 void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
   int a8, intptr_t a9, intptr_t a10);
 
-static void fuzz_line_intersect8(ulong *p_seed)
+static void fuzz_line_intersect8(u32 *p_seed)
 {
     int v[8];
     s32 out_x, out_z;
@@ -405,14 +405,14 @@ static void fuzz_line_intersect8(ulong *p_seed)
 }
 
 void save_crypto_make_hashtable(ubyte simple_salt);
-ulong save_crypto_transform1(ubyte a1);
-ulong save_crypto_transform2(ubyte a1);
-ulong save_crypto_transform3(ubyte a1);
+u32 save_crypto_transform1(ubyte a1);
+u32 save_crypto_transform2(ubyte a1);
+u32 save_crypto_transform3(ubyte a1);
 
 /** Makes the save crypto tables from a random salt, then draws keys as
  * save_crypto_docrypt() does. Covers all four save_crypto functions.
  */
-static void fuzz_save_crypto(ulong *p_seed)
+static void fuzz_save_crypto(u32 *p_seed)
 {
     int i;
 
@@ -440,7 +440,7 @@ static void fuzz_save_crypto(ulong *p_seed)
  * specially (backslash escapes, line ends, spaces), with a random login
  * name, which the escapes insert.
  */
-static void fuzz_my_preprocess_text(ulong *p_seed)
+static void fuzz_my_preprocess_text(u32 *p_seed)
 {
     // No 'l'/'L': the asm finds the login name end through the address of
     // net_host_player_no, which no longer precedes login_name in the port
@@ -463,7 +463,7 @@ static void fuzz_my_preprocess_text(ulong *p_seed)
 void nullsub_7(void);
 
 /** An empty function; the case only makes the difftest call it. */
-static void fuzz_nullsub_7(ulong *p_seed)
+static void fuzz_nullsub_7(u32 *p_seed)
 {
     nullsub_7();
 }

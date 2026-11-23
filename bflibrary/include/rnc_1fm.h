@@ -20,6 +20,8 @@
 #ifndef RNC_1FM_H_
 #define RNC_1FM_H_
 
+#include "bftypes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,12 +55,12 @@ extern "C" {
 #define RNC_HEADER_LEN 18
 
 #ifndef COMPRESSOR
-long rnc_unpack(void *packed, void *unpacked, unsigned int flags);
+s32 rnc_unpack(void *packed, void *unpacked, unsigned int flags);
 #else
-long rnc_unpack(void *packed, void *unpacked, unsigned int flags, long *leeway);
+s32 rnc_unpack(void *packed, void *unpacked, unsigned int flags, s32 *leeway);
 #endif
-const char *rnc_error(long errcode);
-long rnc_crc(void *data, unsigned long len);
+const char *rnc_error(s32 errcode);
+s32 rnc_crc(void *data, u32 len);
 
 /** Decompresses RNC memory buffer, writing in place of compressed data.
  *
@@ -66,7 +68,7 @@ long rnc_crc(void *data, unsigned long len);
  * @param bufsize Size of the output buffer; in most cases you want it
  *   to be large enough to fit the whole decompressed file.
  */
-long UnpackM1(unsigned char *buffer, unsigned long bufsize);
+s32 UnpackM1(unsigned char *buffer, u32 bufsize);
 
 #ifdef __cplusplus
 }

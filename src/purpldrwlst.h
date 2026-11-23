@@ -52,13 +52,13 @@ struct SRect {
 };
 
 struct DITrig { // sizeof=48
-	ulong *vlcbuf[2];
-	long vlcid;
+	u32 *vlcbuf[2];
+	s32 vlcid;
 	ushort *imgbuf;
 	struct SRect rect[2];
-	long rectid; // offs=0x20
+	s32 rectid; // offs=0x20
 	struct SRect slice;
-	long isdone; // offs=0x2C
+	s32 isdone; // offs=0x2C
 };
 
 struct DITriangle {

@@ -27,7 +27,7 @@
 #include "bfsound.h"
 #include "aildebug.h"
 /******************************************************************************/
-long sample_fade_handle = 0;
+int32_t sample_fade_handle = 0;
 
 TbBool volatile samples_currently_fading = false;
 TbBool volatile switch_off_sample_fade_timer = false;
@@ -43,7 +43,7 @@ extern struct SampleInfo *end_sample_id;
 
 /******************************************************************************/
 
-struct SampleInfo *FindSampleInfoSrcSmpNotDone(long source_id, short smp_id);
+struct SampleInfo *FindSampleInfoSrcSmpNotDone(int32_t source_id, short smp_id);
 
 void cbfadesample(void *user_data)
 {
@@ -152,7 +152,7 @@ void cbfadesample(void *user_data)
     }
 }
 
-void FadeSample(long source_id, short smp_id, ushort to_volume, ubyte step, ubyte stop)
+void FadeSample(int32_t source_id, short smp_id, ushort to_volume, ubyte step, ubyte stop)
 {
     struct SampleInfo *p_smpinf;
 

@@ -29,7 +29,7 @@ extern "C" {
 #pragma pack(1)
 
 struct sound_timer_inf {
-    ulong handle;
+    uint32_t handle;
     ubyte used;
 };
 

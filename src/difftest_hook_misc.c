@@ -74,14 +74,14 @@ void BAT_unknsub_28(int a1, int a2);
 
 /* Campaign roster */
 extern struct ScreenTextBox cryo_agent_list_box;
-void add_agent(ulong weapons, ushort mods);
+void add_agent(u32 weapons, ushort mods);
 void remove_agent(ubyte cryo_no);
 
 /* Buffered keyboard input (keyboard.c) */
 #define HK_KEYBOARD_BUFFER_SIZE 16
-extern ulong buffered_keys[HK_KEYBOARD_BUFFER_SIZE];
-extern ulong buffered_keys_read_index;
-extern ulong buffered_keys_write_index;
+extern u32 buffered_keys[HK_KEYBOARD_BUFFER_SIZE];
+extern u32 buffered_keys_read_index;
+extern u32 buffered_keys_write_index;
 
 /******************************************************************************/
 
@@ -161,7 +161,7 @@ static void hook_cryo_turn(void)
     static struct ScreenTextBox saved_box;
     PlayerInfo *p_locplayer;
     struct Thing *p_agent;
-    ulong saved_wep_allowed;
+    u32 saved_wep_allowed;
     ubyte saved_mission_agents;
     ubyte cryo_no;
 
@@ -218,7 +218,7 @@ static void hook_typing_turn(void)
     key = 0;
     if ((gameturn & 3) == 0)
     {
-        ulong new_write;
+        u32 new_write;
 
         key = keys[n % sizeof(keys)];
         n++;

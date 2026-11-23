@@ -28,8 +28,8 @@ extern "C" {
 /******************************************************************************/
 
 /******************************************************************************/
-extern ulong curr_tick_time;
-extern ulong prev_tick_time;
+extern u32 curr_tick_time;
+extern u32 prev_tick_time;
 extern GameTurn gameturn;
 extern GameTurn prev_gameturn;
 
@@ -42,7 +42,7 @@ extern GameTurn prev_gameturn;
  * one frame from the next.
  */
 extern GameTurn drawturn;
-extern ulong turns_delta;
+extern u32 turns_delta;
 extern ushort fifties_per_gameturn;
 
 /** Amount of frames per second drawn by the game, and also aount of game
@@ -63,7 +63,7 @@ void render_clock_next_frame(u32 anim_turn_incr);
 /** Places the animation clock on the given animation turn, on a mission or
  * the outro starting.
  */
-void render_clock_set_turn(ulong turn);
+void render_clock_set_turn(u32 turn);
 
 /**
  * Handles game speed control inputs.

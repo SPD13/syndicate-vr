@@ -25,9 +25,9 @@ const unsigned char exe_key[] = {
     0xE9, 0x2A, 0x80, 0x0C5,
 };
 
-unsigned long LbExeReferenceNumber(void)
+u32 LbExeReferenceNumber(void)
 {
-    return *(unsigned long *)&exe_key[4];
+    return *(u32 *)&exe_key[4];
 }
 
 

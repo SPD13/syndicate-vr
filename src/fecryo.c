@@ -317,7 +317,7 @@ ubyte do_equip_offer_buy_cybmod(ubyte click)
 
     if (selected_agent != 4)
     {
-        long cost;
+        s32 cost;
         short nagent;
         TbBool added;
 
@@ -341,7 +341,7 @@ ubyte do_equip_offer_buy_cybmod(ubyte click)
     }
     else
     {
-        long cost;
+        s32 cost;
         short nagent;
         TbBool added;
 
@@ -492,7 +492,7 @@ void cryo_cyborg_part_buf_clear(ubyte part)
 void cryo_cyborg_part_buf_blokey_bkgnd_load(void)
 {
     TbPixel *p_partbuf;
-    long len;
+    s32 len;
     short h, scanln;
     ubyte part;
 
@@ -519,7 +519,7 @@ void cryo_cyborg_part_buf_blokey_static_load(ubyte *p_mods_arr, ubyte part)
 {
     TbPixel *p_scratch;
     TbPixel *p_partbuf;
-    long len;
+    s32 len;
     short h, scanln;
 
     p_scratch = embanim_type_get_output_buffer(AniSl_SCRATCH);

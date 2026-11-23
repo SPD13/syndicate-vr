@@ -187,19 +187,19 @@ void draw_mission_stats_vals_static(struct ScreenBox *box,
     y += sepheight;
 
     // Income
-    snprintf(locstr, sizeof(locstr), "%ld C", p_rep->Income);
+    snprintf(locstr, sizeof(locstr), "%d C", p_rep->Income);
     text = loctext_to_gtext(locstr);
     draw_text_purple_list2(x, y, text, 0);
     y += lnheight;
 
     // Expenditure
-    snprintf(locstr, sizeof(locstr), "%ld C", p_rep->Expenditure);
+    snprintf(locstr, sizeof(locstr), "%d C", p_rep->Expenditure);
     text = loctext_to_gtext(locstr);
     draw_text_purple_list2(x, y, text, 0);
     y += lnheight;
 }
 
-void snprint_concat_comma_separated_weapons_list(char *out, ushort outlen, ulong weapons)
+void snprint_concat_comma_separated_weapons_list(char *out, ushort outlen, u32 weapons)
 {
     WeaponType wtype;
 
@@ -226,7 +226,7 @@ void snprint_concat_comma_separated_weapons_list(char *out, ushort outlen, ulong
     }
 }
 
-void snprint_concat_comma_separated_cybmods_list(char *out, ushort outlen, ulong cybmods)
+void snprint_concat_comma_separated_cybmods_list(char *out, ushort outlen, u32 cybmods)
 {
     ushort mtype;
     ushort pos;
@@ -347,7 +347,7 @@ void debrief_report_fill(struct DebriefReport *p_rep)
     p_rep->Status = ingame.MissionStatus;
     p_rep->Income = (ingame.Credits + ingame.Expenditure) - ingame.CashAtStart;
     p_rep->Expenditure = ingame.Expenditure;
-    LOGSYNC("Research completed wep=0x%lx mod=0x%lx", new_weapons_researched, new_mods_researched);
+    LOGSYNC("Research completed wep=0x%x mod=0x%x", new_weapons_researched, new_mods_researched);
     p_rep->WeaponsResearched = new_weapons_researched;
     p_rep->ModsResearched = new_mods_researched;
     p_rep->ScientistsLost = scientists_lost;

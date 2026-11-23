@@ -32,14 +32,14 @@ extern "C" {
 #define SPRITE_SCALING_XSTEPS max(MAX_SUPPORTED_SPRITE_DIM,MAX_SUPPORTED_SCREEN_WIDTH)
 #define SPRITE_SCALING_YSTEPS max(MAX_SUPPORTED_SPRITE_DIM,MAX_SUPPORTED_SCREEN_HEIGHT)
 
-extern long xsteps_array[];
-extern long ysteps_array[];
+extern s32 xsteps_array[];
+extern s32 ysteps_array[];
 
-extern long alpha_xsteps_array[];
-extern long alpha_ysteps_array[];
+extern s32 alpha_xsteps_array[];
+extern s32 alpha_ysteps_array[];
 
-extern long scale_up;
-extern long alpha_scale_up;
+extern s32 scale_up;
+extern s32 alpha_scale_up;
 
 extern TbPixel *render_ghost;
 extern TbPixel *render_alpha;
@@ -55,9 +55,9 @@ extern TbPixel *render_alpha;
  * @param dwidth Width which the sprite should have on destination buffer.
  * @param gwidth Graphics buffer visible window line width.
  */
-void LbSpriteSetScalingWidthClippedArray(long * xsteps_arr, long x, long swidth, long dwidth, long gwidth);
-void LbSpriteSetScalingWidthSimpleArray(long * xsteps_arr, long x, long swidth, long dwidth);
-void LbSpriteClearScalingWidthArray(long * xsteps_arr, long swidth);
+void LbSpriteSetScalingWidthClippedArray(s32 * xsteps_arr, s32 x, s32 swidth, s32 dwidth, s32 gwidth);
+void LbSpriteSetScalingWidthSimpleArray(s32 * xsteps_arr, s32 x, s32 swidth, s32 dwidth);
+void LbSpriteClearScalingWidthArray(s32 * xsteps_arr, s32 swidth);
 
 /**
  * Sets Y scaling array for drawing scaled sprites.
@@ -69,11 +69,11 @@ void LbSpriteClearScalingWidthArray(long * xsteps_arr, long swidth);
  * @param dheight Height which the sprite should have on destination buffer.
  * @param gheight Graphics buffer visible window lines count.
  */
-void LbSpriteSetScalingHeightClippedArray(long * ysteps_arr, long y, long sheight, long dheight, long gheight);
-void LbSpriteSetScalingHeightSimpleArray(long * ysteps_arr, long y, long sheight, long dheight);
-void LbSpriteClearScalingHeightArray(long * ysteps_arr, long sheight);
+void LbSpriteSetScalingHeightClippedArray(s32 * ysteps_arr, s32 y, s32 sheight, s32 dheight, s32 gheight);
+void LbSpriteSetScalingHeightSimpleArray(s32 * ysteps_arr, s32 y, s32 sheight, s32 dheight);
+void LbSpriteClearScalingHeightArray(s32 * ysteps_arr, s32 sheight);
 
-void LbPixelBlockCopyForward(TbPixel * dst, const TbPixel * src, long len);
+void LbPixelBlockCopyForward(TbPixel * dst, const TbPixel * src, s32 len);
 
 #ifdef __cplusplus
 };

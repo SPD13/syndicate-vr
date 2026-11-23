@@ -28,7 +28,7 @@
 #include "privrdlog.h"
 /******************************************************************************/
 
-long gpoly_pro_enable_mode_ofs;
+s32 gpoly_pro_enable_mode_ofs;
 
 /******************************************************************************/
 void gpoly_enable_pentium_pro(TbBool state)

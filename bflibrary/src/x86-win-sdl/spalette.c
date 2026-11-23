@@ -53,7 +53,7 @@ TbResult LbPaletteSet(const ubyte *palette)
     SDL_Color * destColors;
     const unsigned char * srcColors;
     TbScreenModeInfo *mdinfo;
-    unsigned long i;
+    u32 i;
     TbResult ret;
 
     LOGDBG("starting");
