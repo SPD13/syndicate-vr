@@ -245,11 +245,47 @@ struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
     return ret;
 }
 
-void stop_sample_using_heap(long source_id, ulong sample_number)
+static DIFFTEST_REF_FUNC void stop_sample_using_heap_asm(long source_id, ulong sample_number)
 {
     asm volatile (
       "call ASM_stop_sample_using_heap\n"
-        : : "a" (source_id), "d" (sample_number));
+        : "+a" (source_id), "+d" (sample_number) : : "cc", "memory");
+}
+
+/** Stops a sample from the heap-backed sample table. If no other source
+ * still plays the sample, clears the lock flags (0x06 at 0x08) of its heap
+ * handle.
+ */
+void stop_sample_using_heap(long source_id, ulong sample_number)
+{
+    struct SampleInfo *p_last;
+    struct SampleInfo *p_sinfo;
+    struct HeapMgrHandle *p_hmhandle;
+    short smp_id;
+
+    DIFFTEST_SHADOW(stop_sample_using_heap, stop_sample_using_heap_asm(source_id, sample_number));
+    if ((ingame.Flags & GamF_Unkn00020000) == 0)
+        return;
+    smp_id = (short)sample_number;
+    StopSample(source_id, smp_id);
+    p_last = GetLastSampleInfoStructure();
+    for (p_sinfo = GetFirstSampleInfoStructure(); p_sinfo < p_last; p_sinfo++)
+    {
+        if (p_sinfo->SampleNumber != smp_id)
+            continue;
+        if (p_sinfo->SampleHandle == NULL)
+            continue;
+        if ((p_sinfo->UserFlag & 0x01) == 0)
+            continue;
+        if (IsSamplePlaying(0, 0, p_sinfo->SampleHandle))
+            break;
+    }
+    if (p_sinfo < p_last)
+        return;
+    p_hmhandle = sample_table[smp_id].hmhandle;
+    if (p_hmhandle == NULL)
+        return;
+    p_hmhandle->field_0[8] &= ~0x06;
 }
 
 int play_dist_speech(struct Thing *p_thing, ushort speech_no, ushort vol,
