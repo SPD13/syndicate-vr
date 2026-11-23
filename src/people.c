@@ -2701,7 +2701,7 @@ void person_init_drop_special(struct Thing *p_person, ThingIdx item)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void path_init8_tank(int a1, int a2, int a3, int a4, int a5, int a6)
+static DIFFTEST_REF_FUNC void path_init8_tank_asm(int a1, int a2, int a3, int a4, int a5, int a6)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     int stkargs[2];
@@ -2710,6 +2710,70 @@ void path_init8_tank(int a1, int a2, int a3, int a4, int a5, int a6)
     stkargs[1] = a6;
     asm volatile ("push 4(%4)\n""push 0(%4)\n""call ASM_path_init8_tank\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
+}
+
+extern s32 tree_Ax8;
+extern s32 tree_Ay8;
+extern s32 tree_Bx8;
+extern s32 tree_By8;
+extern s32 tree_altA;
+extern s32 tree_altB;
+extern s32 tree_triA;
+extern s32 tree_triB;
+extern s32 tree_routelen;
+extern s32 tree_routecost;
+extern s32 tree_route[3000];
+
+int triangle_findSE8(int x, int y);
+int ma_triangle_route_5(int a1, int a2, int a3, int a4);
+s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
+  s32 treert_len, struct Path *p_path, int *p_len2);
+
+/** Initializes a tank path from (ax8,ay8) to (bx8,by8), routing through
+ * the triangulation with ma_triangle_route_5().
+ * Arguments: a1 = struct Path *, a2..a5 = ax8, ay8, bx8, by8; a6 unused.
+ */
+void path_init8_tank(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+    struct Path *p_path = (struct Path *)a1;
+    int ax8 = a2, ay8 = a3, bx8 = a4, by8 = a5;
+    struct TrTriangle *p_tri;
+    int len2;
+    s32 triB;
+    s32 ret;
+
+    DIFFTEST_SHADOW(path_init8_tank, path_init8_tank_asm(a1, a2, a3, a4, a5, a6));
+
+    tree_Ax8 = ax8;
+    p_path->ax8 = ax8;
+    tree_Ay8 = ay8;
+    p_path->ay8 = ay8;
+    tree_Bx8 = bx8;
+    p_path->bx8 = bx8;
+    tree_By8 = by8;
+    tree_routelen = -1;
+    p_path->by8 = by8;
+    p_path->PathLength = 0;
+
+    tree_triA = triangle_findSE8(ax8, ay8);
+    triB = triangle_findSE8(bx8, by8);
+    // TODO the asm reads the triangles even when a find returned -1
+    p_tri = &triangulation[0].Triangles[tree_triA];
+    tree_altA = (sbyte)p_tri->solid;
+    p_tri = &triangulation[0].Triangles[triB];
+    tree_triB = triB;
+    tree_altB = (sbyte)p_tri->solid;
+    if (tree_triA == -1 || triB == -1)
+        return;
+
+    ret = ma_triangle_route_5(tree_triA, triB, (int)(intptr_t)tree_route,
+      (int)(intptr_t)&tree_routecost);
+    tree_routelen = ret;
+    if (ret == -1)
+        return;
+
+    p_path->PathLength = route_to_path(ax8, ay8, bx8, by8, tree_route, ret,
+      p_path, &len2);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
