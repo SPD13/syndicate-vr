@@ -6,7 +6,6 @@ MKW = $(PYTHON) $(top_srcdir)/util/mkwrappers
 syndwarsfx_SOURCES = \
 	bflib_vidraw.c \
 	bflib_vidraw.h \
-	bflib_vidraw_s.sx \
 	../bfariadne/include/trfringe.h \
 	../bfariadne/src/trfringe.c \
 	../bfariadne/include/triangls.h \
@@ -199,12 +198,10 @@ syndwarsfx_SOURCES = \
 	thing.h \
 	thing_expld.c \
 	thing_expld.h \
-	thing_expld_s.sx \
 	thing_search.c \
 	thing_search.h \
 	thing_fire.c \
 	thing_fire.h \
-	thing_fire_s.sx \
 	thing_debug.c \
 	thing_onface.h \
 	thing_onface.c \
@@ -245,8 +242,11 @@ syndwarsfx_RCFLAGS = \
 # The asm of remade functions is kept only as the difftest reference
 if ENABLE_DIFFTEST
 syndwarsfx_SOURCES += \
+	bflib_vidraw_s.sx \
 	sound_smp_s.sx \
-	sound_heap_s.sx
+	sound_heap_s.sx \
+	thing_expld_s.sx \
+	thing_fire_s.sx
 endif
 
 if HAS_WINDRES
