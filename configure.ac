@@ -82,15 +82,17 @@ AC_PROG_SED # `sed` is used in Makefile for packaging shared libraries on Window
 
 # Checks for target platform config.
 
+# The game itself is C; only the original asm kept for difftest and the DOS
+# network needs a 32-bit x86 target (checked once the options are known).
 AC_MSG_CHECKING([if we are compiling for an i386 processor])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([
   asm ("pushl \$0x0; pop %eax");
 ])], [
-  AC_MSG_RESULT([yes])
+  have_i386=yes
 ], [
-  AC_MSG_RESULT([no])
-  AC_MSG_FAILURE([SyndWarsFX will only run on i386 processors])
+  have_i386=no
 ])
+AC_MSG_RESULT([$have_i386])
 
 AC_MSG_CHECKING([if C symbols need an underscore])
 AC_LINK_IFELSE([AC_LANG_SOURCE([
@@ -215,6 +217,14 @@ AS_IF([test "x$enable_difftest" = "xyes"], [
 ])
 AM_CONDITIONAL([ENABLE_DIFFTEST], [test "x$enable_difftest" = "xyes"])
 
+AC_ARG_ENABLE([test-harness],
+  AS_HELP_STRING([--enable-test-harness],
+    [build the game-run test harness (bot, turn limit, fixed seed, state trace) without the asm @<:@default=no@:>@]),
+  [enable_test_harness=$enableval], [enable_test_harness=no])
+AS_IF([test "x$enable_test_harness" = "xyes"], [
+  AC_DEFINE([ENABLE_TEST_HARNESS], [1], [Define to build the game-run test harness])
+])
+
 AC_ARG_ENABLE([dos-network],
   AS_HELP_STRING([--enable-dos-network],
     [build the original DOS network services (IPX, serial, RADICA) asm @<:@default=no@:>@]),
@@ -224,6 +234,11 @@ AS_IF([test "x$enable_dos_network" = "xyes"], [
 ])
 AM_CONDITIONAL([DOS_NETWORK], [test "x$enable_dos_network" = "xyes"])
 AM_CONDITIONAL([ASM_WRAPPERS], [test "x$enable_difftest" = "xyes" -o "x$enable_dos_network" = "xyes"])
+AS_IF([test "x$enable_difftest" = "xyes" -o "x$enable_dos_network" = "xyes"], [
+  AS_IF([test "$have_i386" != "yes"], [
+    AC_MSG_FAILURE([--enable-difftest and --enable-dos-network assemble 32-bit x86 code; they need an i386 target])
+  ])
+])
 
 # libraries from within this project are only built after `make` is executed
 AC_SUBST(BFLIBRARY_LIBS, "-L\"\$(top_builddir)/lib\" -lbullfrog")

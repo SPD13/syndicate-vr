@@ -68,6 +68,18 @@ extern "C" {
 #endif
 /******************************************************************************/
 
+/** The game-run harness: scripted bot and hooks (difftest_bot.c,
+ * difftest_hook_*.c), turn limit, fast turns, fixed seed, own rand() and
+ * the state trace. It is portable C, built with --enable-difftest and with
+ * --enable-test-harness, which needs no asm, so that builds for other
+ * targets (64-bit) can be compared with the 32-bit one turn by turn.
+ */
+#if (defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST) ||     (defined(ENABLE_TEST_HARNESS) && ENABLE_TEST_HARNESS)
+#define DIFFTEST_HARNESS 1
+#else
+#define DIFFTEST_HARNESS 0
+#endif
+
 /** Exit codes of a difftest run. */
 enum DiffTestExitCodes {
     DtExit_PASS = 0,

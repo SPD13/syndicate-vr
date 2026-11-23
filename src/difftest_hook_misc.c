@@ -22,7 +22,7 @@
 /******************************************************************************/
 #include "difftest.h"
 
-#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+#if DIFFTEST_HARNESS
 
 #include <string.h>
 #include "bfkeybd.h"

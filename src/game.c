@@ -3448,7 +3448,7 @@ void init_random_seed(void)
     else
     {
         lbSeed = time(0);
-#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+#if DIFFTEST_HARNESS
         // fixed seed, for comparing whole runs of two builds
         if (getenv("SWARS_SEED") != NULL)
             lbSeed = strtoul(getenv("SWARS_SEED"), NULL, 0);
@@ -7837,7 +7837,7 @@ void game_process_orbital_station_explode(void)
     }
 }
 
-#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+#if DIFFTEST_HARNESS
 /** Writes a hash of the things memory and the random seed each turn to the
  * file named by $SWARS_STATETRACE, so that two builds can be compared turn
  * by turn (e.g. after routing asm through C wrappers). PTarget, the only
@@ -7863,24 +7863,32 @@ static void statetrace_turn(void)
     beg = (const u32 *)((ubyte *)sthings - STHINGS_LIMIT * sizeof(struct SimpleThing));
     end = (const u32 *)((ubyte *)things + THINGS_LIMIT * sizeof(struct Thing));
     h = 2166136261u;
-    for (p = beg; p < end; p++)
+    for (p = beg; p < (const u32 *)things; p++)
+        h = (h ^ *p) * 16777619u;
+    // Things word by word as in the 32-bit layout: the pointer PTarget is
+    // one word whatever its size, so 32 and 64-bit builds hash the same
+    for (thing = 0; thing < THINGS_LIMIT; thing++)
     {
-        u32 w = *p;
-        if (p >= (const u32 *)things)
+        const ubyte *p_base = (const ubyte *)&things[thing];
+        size_t off;
+
+        for (off = 0; off < sizeof(struct Thing); off += 4)
         {
-            ulong off = (ubyte *)p - (ubyte *)things;
-            if (off % sizeof(struct Thing) == offsetof(struct Thing, PTarget)) {
-                struct Thing *p_target = (struct Thing *)w;
-                thing = things[off / sizeof(struct Thing)].PTarget - things;
-                w = (p_target == NULL) ? 0xFFFFFFFFu : (u32)thing;
+            u32 w;
+            if (off == offsetof(struct Thing, PTarget)) {
+                struct Thing *p_target = things[thing].PTarget;
+                w = (p_target == NULL) ? 0xFFFFFFFFu : (u32)(ThingIdx)(p_target - things);
+                off += sizeof(p_target) - 4;
+            } else {
+                memcpy(&w, p_base + off, sizeof(w));
             }
             // Frame and its Timer1 advance when the thing is drawn, and
             // drawing depends on timing; keep StartFrame and StartTimer1
-            if ((off % sizeof(struct Thing) == offsetof(struct Thing, Frame)) ||
-              (off % sizeof(struct Thing) == offsetof(struct Thing, Timer1)))
+            if ((off == offsetof(struct Thing, Frame)) ||
+              (off == offsetof(struct Thing, Timer1)))
                 w &= 0xFFFF0000u;
+            h = (h ^ w) * 16777619u;
         }
-        h = (h ^ w) * 16777619u;
     }
     fprintf(fp, "%lu %08x %08lx\n", (ulong)gameturn, (uint)h, (ulong)lbSeed);
     fflush(fp);
@@ -7892,7 +7900,7 @@ static void statetrace_turn(void)
         snprintf(fname, sizeof(fname), "%s.dump", getenv("SWARS_STATETRACE"));
         dfp = fopen(fname, "wb");
         if (dfp != NULL) {
-            ulong lo = (ulong)beg;
+            u32 lo = (u32)(uintptr_t)beg;
             fwrite(&lo, sizeof(lo), 1, dfp);
             fwrite(beg, 1, (ubyte *)end - (ubyte *)beg, dfp);
             fclose(dfp);

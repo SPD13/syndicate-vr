@@ -35,7 +35,7 @@
 
 /******************************************************************************/
 
-#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+#if DIFFTEST_HARNESS
 
 /* Not declared in the headers. */
 short find_station_platform(short x, short z);

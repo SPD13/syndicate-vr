@@ -50,7 +50,7 @@
 /* Not in a header; the agent cycling key uses it (plyr_usrinp.c) */
 short get_next_player_agent(ushort player);
 
-#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+#if DIFFTEST_HARNESS
 
 /** Game turns between bot packets. */
 #define BOT_TURN_INTERVAL 6

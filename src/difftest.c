@@ -7,7 +7,8 @@
  *     Shadow execution: snapshot writable state, run asm, save result,
  *     restore snapshot, run C, compare both results byte for byte.
  * @par Comment:
- *     See difftest.h for usage. Only active with --enable-difftest.
+ *     See difftest.h for usage. Only active with --enable-difftest;
+ *     --enable-test-harness has the turn limit and rand() only.
  * @author   SyndicateVR decomp agent
  * @date     06 Nov 2026
  * @par  Copying and copyrights:
@@ -29,6 +30,46 @@
 # include <windows.h>
 #endif
 /******************************************************************************/
+
+#if DIFFTEST_HARNESS
+/** The C library rand() state, here instead of in msvcrt.dll.
+ *
+ * msvcrt keeps the rand() state in per-thread data that is not part of our
+ * image, so the snapshots missed it: the C run continued the sequence after
+ * the asm run's draws. In difftest builds rand() and srand() are defined
+ * here, with the msvcrt algorithm and initial state, so the state lives in
+ * our .data and is saved, restored and compared like other game state.
+ * The asm reaches rand() through ac_rand, which calls this one too.
+ * Harness builds without difftest use it as well, so that runs give the
+ * same draws on every target and C library.
+ */
+static u32 dt_holdrand = 1;
+
+void srand(unsigned int seed) __attribute__((no_instrument_function));
+int rand(void) __attribute__((no_instrument_function));
+
+void srand(unsigned int seed)
+{
+    dt_holdrand = seed;
+}
+
+int rand(void)
+{
+    dt_holdrand = dt_holdrand * 214013u + 2531011u;
+    return (int)((dt_holdrand >> 16) & 0x7FFF);
+}
+
+/** Xorshift on 32 bits, also where ulong is longer; the bot uses it too. */
+ulong difftest_fuzz_rand(ulong *p_seed)
+{
+    u32 x = (u32)*p_seed;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *p_seed = x;
+    return x;
+}
+#endif
 
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
 
@@ -149,31 +190,6 @@ static void dt_parse_ignores(const char *str)
     }
 }
 
-/** The C library rand() state, here instead of in msvcrt.dll.
- *
- * msvcrt keeps the rand() state in per-thread data that is not part of our
- * image, so the snapshots missed it: the C run continued the sequence after
- * the asm run's draws. In difftest builds rand() and srand() are defined
- * here, with the msvcrt algorithm and initial state, so the state lives in
- * our .data and is saved, restored and compared like other game state.
- * The asm reaches rand() through ac_rand, which calls this one too.
- */
-static ulong dt_holdrand = 1;
-
-void srand(unsigned int seed) __attribute__((no_instrument_function));
-int rand(void) __attribute__((no_instrument_function));
-
-void srand(unsigned int seed)
-{
-    dt_holdrand = seed;
-}
-
-int rand(void)
-{
-    dt_holdrand = dt_holdrand * 214013UL + 2531011UL;
-    return (int)((dt_holdrand >> 16) & 0x7FFF);
-}
-
 /** Checks that rand() gives the same sequence as msvcrt's own. */
 static void dt_check_rand(void)
 {
@@ -181,7 +197,7 @@ static void dt_check_rand(void)
     HMODULE crt = GetModuleHandle("msvcrt.dll");
     void (*crt_srand)(unsigned int);
     int (*crt_rand)(void);
-    ulong saved;
+    u32 saved;
     int i, bad;
 
     if (crt == NULL)
@@ -592,15 +608,6 @@ TbBool difftest_skip_turn_wait(void)
 /******************************************************************************/
 /* Random-input tests of pure functions */
 
-ulong difftest_fuzz_rand(ulong *p_seed)
-{
-    ulong x = *p_seed;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    *p_seed = x;
-    return x;
-}
 
 void difftest_run_fuzz(void)
 {
@@ -710,6 +717,49 @@ void difftest_add_region(const char *name, void *ptr, size_t len)
 {
 }
 
+#if DIFFTEST_HARNESS
+/** Turn limit and fast turns of harness builds without difftest; same
+ * variables and exit code as a difftest run of a function never called.
+ */
+static struct {
+    TbBool initialized;
+    TbBool enabled;
+    TbBool fast;
+    ulong turn_limit;
+    ulong turns;
+} ht;
+
+static void ht_init(void)
+{
+    const char *s;
+
+    if (ht.initialized)
+        return;
+    ht.initialized = true;
+    s = getenv("SWARS_DIFFTEST_FN");
+    ht.enabled = (s != NULL) && (*s != ' ');
+    s = getenv("SWARS_DIFFTEST_TURNS");
+    ht.turn_limit = (s != NULL) ? strtoul(s, NULL, 0) : 0;
+    s = getenv("SWARS_DIFFTEST_FAST");
+    ht.fast = (s != NULL) && (*s != ' ') && (*s != '0');
+}
+
+void difftest_game_turn(void)
+{
+    ht_init();
+    if (!ht.enabled)
+        return;
+    ht.turns++;
+    if ((ht.turn_limit > 0) && (ht.turns >= ht.turn_limit))
+        exit(DtExit_UNVERIFIED);
+}
+
+TbBool difftest_skip_turn_wait(void)
+{
+    ht_init();
+    return ht.enabled && ht.fast;
+}
+#else
 void difftest_game_turn(void)
 {
 }
@@ -718,6 +768,7 @@ TbBool difftest_skip_turn_wait(void)
 {
     return false;
 }
+#endif
 
 void difftest_run_fuzz(void)
 {

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Whole-game state trace of the mission scenarios, for comparing builds.
 # Usage: tools/decomp-agent/statetrace.sh <outdir> [scenario ...]
-# Runs build/difftest of this worktree with no function shadowed and writes
+# Runs build/difftest (or $SWARS_TRACE_BUILD) of this worktree with no function shadowed and writes
 # <outdir>/<scenario>.trace: one line per turn with a hash of the things
 # memory and the random seed. Two builds behave the same on these scenarios
 # when `diff -r` of their outdirs is empty. Used to check routing changes,
@@ -18,9 +18,12 @@ TURNS="${SWARS_DIFFTEST_TURNS:-1500}"
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 COMMON="$(git -C "$REPO" rev-parse --path-format=absolute --git-common-dir)"
 GAMEDATA="${SWARS_GAMEDATA:-$(dirname "$(dirname "$COMMON")")/gamedata}"
-EXE="$REPO/build/difftest/src/syndwarsfx.exe"
-[ -f "$EXE" ] || EXE="$REPO/build/difftest/src/syndwarsfx"
-if [ ! -f "$EXE" ]; then echo "ERROR: no difftest build at $EXE"; exit 1; fi
+# SWARS_TRACE_BUILD: build/ folder to run, default difftest; harness and
+# x64 (build.sh --harness/--x64) have the trace without the asm
+BUILD="${SWARS_TRACE_BUILD:-difftest}"
+EXE="$REPO/build/$BUILD/src/syndwarsfx.exe"
+[ -f "$EXE" ] || EXE="$REPO/build/$BUILD/src/syndwarsfx"
+if [ ! -f "$EXE" ]; then echo "ERROR: no $BUILD build at $EXE"; exit 1; fi
 for d in "$GAMEDATA"/*.dll; do
     [ -f "$d" ] && [ ! -f "$(dirname "$EXE")/$(basename "$d")" ] && cp "$d" "$(dirname "$EXE")/"
 done

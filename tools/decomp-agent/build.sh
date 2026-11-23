@@ -1,10 +1,18 @@
 #!/bin/bash
-# Build syndwarsfx (32-bit, MSYS2 MINGW32 or Linux -m32).
-# Usage: tools/decomp-agent/build.sh [--check] [--reconf] [--difftest|--coverage]
+# Build syndwarsfx (32-bit, MSYS2 MINGW32 or Linux -m32; 64-bit with --x64).
+# Usage: tools/decomp-agent/build.sh [--check] [--reconf] [--difftest|--coverage|--dos-network|--harness|--x64]
 #   Builds into <repo>/build/release (or build/difftest with --difftest).
-# On Windows, re-run inside MSYS2 MINGW32 when called from another shell
-if [ "${MSYSTEM:-}" != "MINGW32" ] && [ -x /c/msys64/usr/bin/bash ]; then
-    exec "$(dirname "$0")/msys.sh" "$(printf "%q " "$0" "$@")"
+# --harness: 32-bit, with the game-run test harness and no asm (build/harness).
+# --x64: 64-bit (MSYS2 MINGW64, or native gcc on Linux), with the test
+#   harness, into build/x64; its DLLs are copied next to the exe, so that it
+#   does not pick the 32-bit ones of the game data folder.
+WANT_SYS=MINGW32
+for a in "$@"; do [ "$a" = "--x64" ] && WANT_SYS=MINGW64; done
+# On Windows, re-run inside MSYS2 when called from another shell (Git Bash
+# sets MSYSTEM too; only an MSYS2 shell has pacman)
+if { [ "${MSYSTEM:-}" != "$WANT_SYS" ] || ! command -v pacman >/dev/null; } \
+        && [ -x /c/msys64/usr/bin/bash ]; then
+    SWARS_MSYSTEM=$WANT_SYS exec "$(dirname "$0")/msys.sh" "$(printf "%q " "$0" "$@")"
 fi
 set -e
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -19,6 +27,8 @@ for a in "$@"; do
     --difftest) VARIANT=difftest; EXTRA_CONF="--enable-difftest" ;;
     --coverage) VARIANT=coverage; EXTRA_CONF="--enable-difftest"; EXTRA_CFLAGS="-finstrument-functions" ;;
     --dos-network) VARIANT=dosnet; EXTRA_CONF="--enable-dos-network" ;;
+    --harness) VARIANT=harness; EXTRA_CONF="--enable-test-harness" ;;
+    --x64) VARIANT=x64; EXTRA_CONF="--enable-test-harness" ;;
     *) echo "unknown arg $a" >&2; exit 2 ;;
     esac
 done
@@ -34,6 +44,7 @@ fi
 mkdir -p "$BDIR"; cd "$BDIR"
 if [ $RECONF -eq 1 ] || [ ! -f Makefile ]; then
     FL="-m32 -fno-PIC -fno-PIE"
+    [ "$VARIANT" = x64 ] && FL=""
     CC="ccache gcc"; command -v ccache >/dev/null || CC=gcc
     CC="$CC" CFLAGS="$FL -g" CXXFLAGS="$FL -g" LDFLAGS="$FL" \
         "$REPO/configure" --prefix=/ --disable-lb-wscreen-control $EXTRA_CONF \
@@ -58,6 +69,9 @@ if [ -n "$EXTRA_CFLAGS" ]; then
         echo "BUILD FAILED (full log: $BDIR/make.log)"; exit 1
     fi
     touch src/.extra_cflags
+fi
+if [ "$VARIANT" = x64 ] && command -v ldd >/dev/null && [ -f src/syndwarsfx.exe ]; then
+    ldd src/syndwarsfx.exe | awk '$3 ~ /^\/mingw64\// {print $3}' | xargs -r cp -u -t src/
 fi
 echo "BUILD OK: $BDIR/src/syndwarsfx.exe"
 if [ $CHECK -eq 1 ]; then

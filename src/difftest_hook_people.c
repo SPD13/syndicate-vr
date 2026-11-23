@@ -61,7 +61,7 @@ int process_things_bang(int affected_max);
 extern s32 unkn_mech_var11;
 extern const char *primvehobj_fname;
 
-#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+#if DIFFTEST_HARNESS
 
 /** Mech slots in unkn_mech_arr3 (MECH_OWNER_LIMIT in vehicle.c). */
 #define HP_MECH_SLOTS 8
