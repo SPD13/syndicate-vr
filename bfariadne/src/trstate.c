@@ -21,6 +21,7 @@
 
 #include <limits.h>
 #include <stdlib.h>
+#include "difftest.h"
 #include "trstate.h"
 #include "trlog.h"
 /******************************************************************************/
@@ -64,10 +65,26 @@ void triangulation_initialize(void)
     triangulation_initied = 1;
 }
 
-void triangulation_select(int trglno)
+static DIFFTEST_REF_FUNC void triangulation_select_asm(int trglno)
 {
     asm volatile ("call ASM_triangulation_select\n"
         : : "a" (trglno));
+}
+
+void triangulation_select(int trglno)
+{
+    DIFFTEST_SHADOW(triangulation_select, triangulation_select_asm(trglno));
+    if (selected_triangulation_no == trglno)
+        return;
+    // The original also formats a debug message "tri id %d=%d triangulation_select"
+    // with trglno and the first field of triangulation[trglno] into a local
+    // buffer which is never used; skipped.
+    // Store the working copy back into the previously selected slot
+    if (selected_triangulation_no != -1)
+        triangulation[selected_triangulation_no] = triangulation[0];
+    selected_triangulation_no = trglno;
+    // Load the newly selected triangulation into the working slot 0
+    triangulation[0] = triangulation[trglno];
 }
 
 void triangulation_clear_enter_into_solid(void)
