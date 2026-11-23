@@ -748,11 +748,129 @@ void fill_ail_sample_ids(void)
     }
 }
 
-void monitor_all_samples(void)
+static DIFFTEST_REF_FUNC void monitor_all_samples_asm(void)
 {
     asm volatile ("call ASM_monitor_all_samples\n"
-        :  :  : "eax" );
-    return;
+        :  :  : "eax", "cc", "memory" );
+}
+
+void monitor_all_samples(void)
+{
+    struct SampleInfo *p_smpinfo;
+    struct SampleInfo *p_last;
+    struct Thing *p_thing;
+    ubyte *p_smp_type;
+    u32 i;
+    s32 sc_vol;
+
+    DIFFTEST_SHADOW(monitor_all_samples, monitor_all_samples_asm());
+    if ((ingame.Flags & GamF_Unkn00020000) == 0)
+        return;
+    // Per-sample type table (data_1dded8) is not exported from the asm;
+    // it directly follows the 4-byte sound_heap_memory.
+    p_smp_type = (ubyte *)&sound_heap_memory + 4;
+    memset(p_smp_type, 0, 0x18f);
+
+    p_thing = NULL;
+    sc_vol = 0;
+    p_smpinfo = GetFirstSampleInfoStructure();
+    p_last = GetLastSampleInfoStructure();
+    for (i = 0; p_smpinfo <= p_last; p_smpinfo++, i++)
+    {
+        short source_id;
+        s32 smp_id;
+        s32 dx, dz;
+        s32 adx, adz;
+        s32 dist;
+        s32 sc_pan;
+
+        if (*(u32 *)p_smpinfo != ail_sample_ids[(ushort)i])
+            continue;
+        if (!IsSamplePlaying(0, 0, p_smpinfo->SampleHandle))
+            continue;
+        source_id = (short)p_smpinfo->SourceID;
+        if (source_id > 0)
+            p_thing = &things[source_id];
+        else if (source_id < 0)
+            p_thing = (struct Thing *)&sthings[source_id];
+
+        smp_id = p_smpinfo->SampleNumber;
+        if (smp_id != 9999)
+            p_smp_type[smp_id]++;
+        // The asm also sprintf()s a debug line into a local buffer here,
+        // which is never used; omitted.
+
+        if (source_id == 0 || source_id == 9999)
+            continue;
+
+        dx = (p_thing->X >> 8) - engn_xc;
+        dz = (p_thing->Z >> 8) - engn_zc;
+        {
+            int rx, ry, rz;
+            s32 dy;
+            rx = dx;
+            rz = dz;
+            ry = 0; // uninitialised in the asm; unused by local_to_worldr()
+            local_to_worldr(&rx, &ry, &rz);
+            dy = rx >> 3;
+            if (dy > 0x39c)
+                sc_pan = 0x6f;
+            else if (dy < -0x39c)
+                sc_pan = 0x10;
+            else
+                sc_pan = (dy >> 4) + 0x4a;
+            if (sc_pan < 0x10)
+                sc_pan = 0x10;
+            else if (sc_pan > 0x6f)
+                sc_pan = 0x6f;
+        }
+
+        adx = abs(dx);
+        adz = abs(dz);
+        if (adx > adz)
+            dist = adx + (adz >> 1);
+        else
+            dist = adz + (adx >> 1);
+
+        if (dist < 0xa00)
+            sc_vol = (0x7f * 0x7f) >> 7;
+        else if (dist >= 0x1a00)
+            sc_vol = 0;
+        else
+            sc_vol = ((0x7f - ((dist - 0xa00) >> 5)) * 0x7f) >> 7;
+
+        if ((p_thing->Flag & TngF_StationrSht) != 0)
+        {
+            if (smp_id == 0x34 || smp_id == 7)
+                sc_vol = 0;
+        }
+
+        if ((sc_vol < 5) || ((p_smp_type[smp_id] > 3) &&
+          ((p_thing->Flag & TngF_PlayerAgent) == 0)))
+        {
+            if (smp_id == 0x2c || smp_id == 0x38)
+            {
+                if (p_smp_type[smp_id] <= 3)
+                    continue;
+            }
+            stop_sample_using_heap(source_id, smp_id);
+            continue;
+        }
+
+        if (sc_vol > 0x7f)
+            sc_vol = 0x7f;
+        if (p_thing->Type == TT_VEHICLE)
+        {
+            SetSamplePitch(source_id, smp_id,
+              (short)((p_thing->Speed >> 6) + 100));
+            SetSampleVolume(source_id, smp_id, (short)(sc_vol >> 1));
+        }
+        else
+        {
+            SetSampleVolume(source_id, smp_id, (short)sc_vol);
+        }
+        SetSamplePan(source_id, smp_id, (ushort)sc_pan);
+    }
 }
 
 static DIFFTEST_REF_FUNC void snd_unkn1_volume_all_samples_asm(void)
