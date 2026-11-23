@@ -586,8 +586,8 @@ void play_dist_sample(struct Thing *p_thing, ushort smptbl_id, ushort vol,
       sc_pan, (ushort)pitch, (sbyte)loop, stype);
 }
 
-void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vol,
-  ushort pan, int pitch, int loop, ubyte stype)
+static DIFFTEST_REF_FUNC void play_dist_ssample_asm(struct SimpleThing *p_sthing,
+  ushort smptbl_id, ushort vol, ushort pan, int pitch, int loop, ubyte stype)
 {
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
@@ -604,6 +604,76 @@ void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vo
       "call ASM_play_dist_ssample\n"
         : : "a" (p_sthing), "d" (smptbl_id), "b" (vol), "c" (pan), "S" (stkargs)
         : "cc", "memory");
+}
+
+void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vol,
+  ushort pan, int pitch, int loop, ubyte stype)
+{
+    ubyte *p_smp_type;
+    s32 dx, dy, dz;
+    s32 adx, adz;
+    s32 dist;
+    s32 sc_pan;
+    s32 sc_vol;
+
+    DIFFTEST_SHADOW(play_dist_ssample, play_dist_ssample_asm(p_sthing,
+      smptbl_id, vol, pan, pitch, loop, stype));
+    // Per-sample type table (data_1dded8) is not exported from the asm;
+    // it directly follows the 4-byte sound_heap_memory.
+    p_smp_type = (ubyte *)&sound_heap_memory + 4;
+
+    // Range check as in the asm: sthings[-STHINGS_LIMIT] .. sthings[0]
+    if (((ubyte *)p_sthing < (ubyte *)&sthings[-STHINGS_LIMIT]) ||
+      ((ubyte *)p_sthing > (ubyte *)sthings))
+        return;
+
+    // The asm does not use the pan argument; pan is computed from position
+    dx = (p_sthing->X >> 8) - engn_xc;
+    dz = (p_sthing->Z >> 8) - engn_zc;
+    {
+        int rx, ry, rz;
+        rx = dx;
+        rz = dz;
+        ry = 0; // uninitialised in the asm; unused by local_to_worldr()
+        local_to_worldr(&rx, &ry, &rz);
+        dy = rx >> 3;
+    }
+    if (dy > 0x39c)
+        sc_pan = 0x6f;
+    else if (dy < -0x39c)
+        sc_pan = 0x10;
+    else
+        sc_pan = (dy >> 4) + 0x4a;
+    if (sc_pan < 0x10)
+        sc_pan = 0x10;
+    else if (sc_pan > 0x6f)
+        sc_pan = 0x6f;
+
+    adx = abs(dx);
+    adz = abs(dz);
+    if (adz < adx)
+        dist = adx + (adz >> 1);
+    else
+        dist = adz + (adx >> 1);
+
+    if (dist < 0xa00)
+        sc_vol = ((s32)vol * 127) >> 7;
+    else if (dist >= 0x1a00)
+        sc_vol = 0;
+    else
+        sc_vol = ((127 - ((dist - 0xa00) >> 5)) * (s32)vol) >> 7;
+
+    if ((sc_vol <= 5) && (vol != 0))
+        return;
+
+    if (p_smp_type[smptbl_id] > 2)
+    {
+        if ((short)snd_unkn3_find_stop_sample(smptbl_id, (ushort)sc_vol,
+          sc_vol, sc_pan) == 0)
+            return;
+    }
+    play_sample_using_heap(p_sthing->ThingOffset, (short)smptbl_id, sc_vol,
+      sc_pan, (ushort)pitch, (sbyte)loop, stype);
 }
 
 static DIFFTEST_REF_FUNC void stop_looped_weapon_sample_asm(struct Thing *p_person, short weapon)
