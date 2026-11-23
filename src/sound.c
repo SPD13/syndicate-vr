@@ -397,10 +397,48 @@ void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vo
         : "cc", "memory");
 }
 
-void stop_looped_weapon_sample(struct Thing *p_person, short weapon)
+static DIFFTEST_REF_FUNC void stop_looped_weapon_sample_asm(struct Thing *p_person, short weapon)
 {
     asm volatile ("call ASM_stop_looped_weapon_sample\n"
-        : : "a" (p_person), "d" (weapon));
+        : : "a" (p_person), "d" (weapon) : "cc", "memory");
+}
+
+void stop_looped_weapon_sample(struct Thing *p_person, short weapon)
+{
+    ushort plagent;
+
+    DIFFTEST_SHADOW(stop_looped_weapon_sample,
+      stop_looped_weapon_sample_asm(p_person, weapon));
+    if ((p_person->Flag2 & TgF2_Unkn0200) == 0)
+        return;
+
+    switch ((ushort)weapon)
+    {
+    case 1:
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+            plagent = p_person->U.UPerson.ComCur & 3;
+        else
+            plagent = 0;
+        ReleaseLoopedSample(p_person->ThingOffset, (short)(0x50 + plagent));
+        p_person->Flag2 &= ~TgF2_Unkn0200;
+        break;
+    case 2:
+        if ((p_person->Flag & TngF_PlayerAgent) != 0)
+            plagent = p_person->U.UPerson.ComCur & 3;
+        else
+            plagent = 0;
+        ReleaseLoopedSample(p_person->ThingOffset, (short)(0x54 + plagent));
+        play_dist_sample(p_person, 0x58 + (p_person->U.UPerson.ComCur & 3),
+          0x7f, 0x40, 100, 0, 1);
+        p_person->Flag2 &= ~TgF2_Unkn0200;
+        break;
+    case 8:
+        ReleaseLoopedSample(p_person->ThingOffset, 0x0e);
+        p_person->Flag2 &= ~TgF2_Unkn0200;
+        break;
+    default:
+        break;
+    }
 }
 
 //TODO better name?
