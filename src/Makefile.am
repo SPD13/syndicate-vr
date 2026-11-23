@@ -27,6 +27,8 @@ syndwarsfx_SOURCES = \
 	../bfsmacklib/include/smack2ail.h \
 	../bfsmacklib/src/smack2ail.c \
 	../bfsmacklib/src/smailfile.c \
+	../bfsmacklib/include/smkdec.h \
+	../bfsmacklib/src/smkdec.c \
 	../bfsmacklib/src/bfsmacklib_s.sx \
 	config.h \
 	bmbang.c \

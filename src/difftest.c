@@ -608,6 +608,11 @@ void difftest_run_fuzz(void)
     ulong iters, seed, k;
     int i, ran;
 
+    s = getenv("SWARS_SMK_COMPARE");
+    if ((s != NULL) && (*s != '\0')) {
+        extern int smack_compare_files(const char *list);
+        exit(smack_compare_files(s) ? DtExit_MISMATCH : DtExit_PASS);
+    }
     dt_init();
     s = getenv("SWARS_DIFFTEST_ITERS");
     iters = (s != NULL) ? strtoul(s, NULL, 0) : 2000;

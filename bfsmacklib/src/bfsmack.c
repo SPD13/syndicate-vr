@@ -17,6 +17,9 @@
  *     (at your option) any later version.
  */
 /******************************************************************************/
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 #include "bfsmack.h"
 
 #include <assert.h>
@@ -867,4 +870,158 @@ TbResult play_smk(char *fname, u32 smkflags, ushort plyflags)
     return ret;
 }
 
+/******************************************************************************/
+
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
+/******************************************************************************/
+/* Comparison of the C decoder (smkdec.c) against the original asm decoder,
+ * run by the difftest build: `syndwarsfx -t` with $SWARS_SMK_COMPARE set to
+ * a list of .smk files separated by ';'. For every frame the image and the
+ * palette must be equal; every packed audio chunk is unpacked by both
+ * (SmackDoPCM of the asm) and must be equal.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include "smkdec.h"
+
+void SmackDoPCM(const void *src, uint32_t unp_size, void *scratch,
+  void *ring_beg, void *ring_end, void *wptr);
+
+static void *smkcmp_malloc(uint32_t size)
+{
+    return malloc(size);
+}
+
+static void smkcmp_free(void *ptr)
+{
+    free(ptr);
+}
+
+static int smack_compare_file(const char *fname)
+{
+    struct Smack *p_smk;
+    struct SmkDec *p_dec;
+    uint8_t *buf, *pcm_c, *pcm_a, *scratch;
+    uint32_t frm, w, h, bad_img, bad_pal, bad_snd, snd_chunks, pal_mode;
+    int i;
+
+    p_dec = smkdec_open(fname);
+    if (p_dec == NULL) {
+        fprintf(stderr, "smkcmp: %s: C decoder cannot open\n", fname);
+        return 1;
+    }
+    p_smk = SMACKOPEN(0xFFFFFFFF, 0, (char *)fname);
+    if (p_smk == NULL) {
+        fprintf(stderr, "smkcmp: %s: asm decoder cannot open\n", fname);
+        smkdec_close(p_dec);
+        return 1;
+    }
+    w = p_smk->Width;
+    h = p_smk->Height;
+    if ((w != p_dec->width) || (h != p_dec->height) || (p_smk->Frames != p_dec->frames)) {
+        fprintf(stderr, "smkcmp: %s: header differs: asm %ux%u %u frames, C %ux%u %u\n",
+          fname, w, h, p_smk->Frames, p_dec->width, p_dec->height, p_dec->frames);
+        SMACKCLOSE(p_smk);
+        smkdec_close(p_dec);
+        return 1;
+    }
+    buf = calloc(w, h);
+    pcm_c = malloc(4 << 20);
+    pcm_a = malloc(4 << 20);
+    scratch = calloc(1, 0x2000);
+    SMACKTOBUFFER(0, buf, h, w, 0, 0, p_smk);
+    bad_img = bad_pal = bad_snd = snd_chunks = 0;
+    pal_mode = 0;
+    for (frm = 0; frm < p_dec->frames; frm++)
+    {
+        SMACKDOFRAME(p_smk);
+        if (smkdec_next_frame(p_dec) < 0) {
+            fprintf(stderr, "smkcmp: %s: C decoder failed at frame %u\n", fname, frm);
+            bad_img++;
+            break;
+        }
+        if (memcmp(buf, p_dec->image, w * h) != 0) {
+            if (bad_img < 5) {
+                uint32_t k;
+                for (k = 0; k < w * h && buf[k] == p_dec->image[k]; k++);
+                fprintf(stderr, "smkcmp: %s: frame %u image differs at %u,%u (asm %u C %u)\n",
+                  fname, frm, k % w, k / w, buf[k], p_dec->image[k]);
+            }
+            bad_img++;
+        }
+        // the asm palette may hold 6-bit or 8-bit components
+        if (memcmp(p_smk->Palette, p_dec->palette, 768) != 0) {
+            int same8 = 1;
+            for (i = 0; i < 768; i++) {
+                uint8_t c = p_dec->palette[i];
+                if (p_smk->Palette[i] != (uint8_t)((c << 2) | (c >> 4)))
+                    same8 = 0;
+            }
+            if (same8)
+                pal_mode = 8;
+            else {
+                if (bad_pal < 5)
+                    fprintf(stderr, "smkcmp: %s: frame %u palette differs\n", fname, frm);
+                bad_pal++;
+            }
+        }
+        for (i = 0; i < SMKDEC_TRACKS; i++)
+        {
+            const uint8_t *chunk;
+            int32_t len, n;
+            uint32_t unp;
+            if (!p_dec->audio[i].packed)
+                continue;
+            len = smkdec_audio_chunk(p_dec, frm, i, &chunk);
+            if (len < 8)
+                continue;
+            unp = chunk[0] | (chunk[1] << 8) | (chunk[2] << 16) | ((uint32_t)chunk[3] << 24);
+            if (unp > (4 << 20))
+                continue;
+            n = smkdec_frame_audio(p_dec, frm, i, pcm_c, 4 << 20);
+            memset(pcm_a, 0, unp);
+            SmackDoPCM(chunk + 4, unp, scratch, pcm_a, pcm_a + (4 << 20), pcm_a);
+            snd_chunks++;
+            if ((n != (int32_t)unp) || (memcmp(pcm_a, pcm_c, unp) != 0)) {
+                if (bad_snd < 5) {
+                    int32_t k;
+                    for (k = 0; k < n && pcm_a[k] == pcm_c[k]; k++);
+                    fprintf(stderr, "smkcmp: %s: frame %u track %d audio differs (C %d bytes, unpacked %u, first diff at %d)\n",
+                      fname, frm, i, n, unp, k);
+                }
+                bad_snd++;
+            }
+        }
+        SMACKNEXTFRAME(p_smk);
+    }
+    fprintf(stderr, "smkcmp: %s: %u frames, %u images differ, %u palettes differ (asm palette %d-bit), %u/%u audio chunks differ\n",
+      fname, p_dec->frames, bad_img, bad_pal, pal_mode ? 8 : 6, bad_snd, snd_chunks);
+    SMACKCLOSE(p_smk);
+    smkdec_close(p_dec);
+    free(buf);
+    free(pcm_c);
+    free(pcm_a);
+    free(scratch);
+    return (bad_img || bad_pal || bad_snd) ? 1 : 0;
+}
+
+int smack_compare_files(const char *list)
+{
+    char *tmp, *tok;
+    int bad = 0, n = 0;
+
+    if (smack_malloc == NULL)
+        set_smack_malloc(smkcmp_malloc);
+    if (smack_free == NULL)
+        set_smack_free(smkcmp_free);
+    tmp = strdup(list);
+    for (tok = strtok(tmp, ";"); tok != NULL; tok = strtok(NULL, ";")) {
+        bad += smack_compare_file(tok);
+        n++;
+    }
+    free(tmp);
+    fprintf(stderr, "smkcmp: %d files, %d differ\n", n, bad);
+    return bad;
+}
+#endif
 /******************************************************************************/
