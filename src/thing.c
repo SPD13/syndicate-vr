@@ -2650,11 +2650,122 @@ struct SimpleThing *create_growing_e_strand(int x, int y, int z,
     DIFFTEST_RETURN(p_sthing);
 }
 
-void create_another_strand(struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void create_another_strand_asm(struct SimpleThing *p_sthing)
 {
     asm volatile (
       "call ASM_create_another_strand\n"
         : : "a" (p_sthing));
+}
+
+void create_another_strand(struct SimpleThing *p_sthing)
+{
+    short cand_vert[100];
+    short cand_face[100];
+    struct SingleObject *p_sobj;
+    struct SimpleThing *p_strand;
+    short *p_pointno;
+    struct SinglePoint *p_pt;
+    short cur_face;
+    short count;
+    short face, vert;
+    short i, k;
+    ubyte sound;
+    u32 rnd;
+    int map_x, map_z, ofs_y;
+
+    DIFFTEST_SHADOW(create_another_strand, create_another_strand_asm(p_sthing));
+    cur_face = p_sthing->U.UEffect.OY;
+    p_sobj = &game_objects[p_sthing->U.UEffect.OX];
+    map_x = p_sobj->MapX;
+    map_z = p_sobj->MapZ;
+    ofs_y = p_sobj->OffsetY;
+    count = 0;
+
+    // Collect vertices following the current point on faces sharing it
+    if (p_sobj->NumbFaces != 0)
+    {
+        struct SingleObjectFace3 *p_face3;
+
+        p_face3 = &game_object_faces3[p_sobj->StartFace];
+        for (i = p_sobj->StartFace;
+          i < (int)p_sobj->StartFace + (int)p_sobj->NumbFaces;
+          i++, p_face3++)
+        {
+            if (i == cur_face)
+                continue;
+            for (k = 0; k < 3; k++)
+            {
+                if ((ushort)p_face3->PointNo[k] != p_sthing->U.UEffect.OZ)
+                    continue;
+                cand_face[count] = i;
+                cand_vert[count] = k + 1;
+                count++;
+                cand_face[count] = i;
+                cand_vert[count] = k + 2;
+                count++;
+            }
+        }
+    }
+    if (p_sobj->NumbFaces4 != 0)
+    {
+        struct SingleObjectFace4 *p_face4;
+
+        p_face4 = &game_object_faces4[p_sobj->StartFace4];
+        for (i = p_sobj->StartFace4;
+          i < (int)p_sobj->StartFace4 + (int)p_sobj->NumbFaces4;
+          i++, p_face4++)
+        {
+            if (i == -cur_face)
+                continue;
+            for (k = 0; k < 4; k++)
+            {
+                if ((ushort)p_face4->PointNo[k] != p_sthing->U.UEffect.OZ)
+                    continue;
+                cand_face[count] = -i;
+                cand_vert[count] = k + 1;
+                count++;
+                cand_face[count] = -i;
+                cand_vert[count] = k + 2;
+                count++;
+                cand_face[count] = -i;
+                cand_vert[count] = k + 3;
+                count++;
+            }
+        }
+    }
+
+    if (count <= 0)
+        return;
+
+    rnd = ((u32)(ushort)LbRandomAnyShort() + (u32)gameturn) % (u32)(s32)count;
+    face = cand_face[(short)rnd];
+    vert = cand_vert[(short)rnd];
+    // TODO the wrap-around does not give vertex 0 (3 -> 1 on triangles,
+    // 4..6 -> 1..3 on quads); kept as in the original
+    if (face > 0)
+    {
+        if (vert > 2)
+            vert -= 2;
+        p_pointno = &game_object_faces3[face].PointNo[vert];
+    }
+    else
+    {
+        if (vert > 3)
+            vert -= 3;
+        p_pointno = &game_object_faces4[-face].PointNo[vert];
+    }
+    sound = gameturn & 1;
+    p_pt = &game_object_points[(ushort)*p_pointno];
+    p_strand = create_electric_strand(p_sthing->U.UEffect.VX,
+      p_sthing->U.UEffect.VY, p_sthing->U.UEffect.VZ,
+      p_pt->X + map_x, p_pt->Y + ofs_y, p_pt->Z + map_z, sound);
+    if (p_strand == NULL)
+        return;
+
+    p_strand->U.UEffect.OX = p_sthing->U.UEffect.OX;
+    p_strand->U.UEffect.OY = face;
+    p_strand->U.UEffect.OZ = *p_pointno;
+    p_strand->StartTimer1 = p_sthing->StartTimer1 + 1;
 }
 
 static DIFFTEST_REF_FUNC void process_electric_strand_asm(struct SimpleThing *p_sthing)
