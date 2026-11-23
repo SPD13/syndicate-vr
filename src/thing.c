@@ -4598,11 +4598,50 @@ void process_scale_effect(struct SimpleThing *p_sthing, ThingIdx thing_item)
     }
 }
 
-void test_stuff(int x, int y, int z, ushort owner)
+static DIFFTEST_REF_FUNC void test_stuff_asm(int x, int y, int z, ushort owner)
 {
     asm volatile (
       "call ASM_test_stuff\n"
         : : "a" (x), "d" (y), "b" (z), "c" ((int)owner));
+}
+
+void test_stuff(int x, int y, int z, ushort owner)
+{
+    ushort angle;
+    u32 n;
+
+    DIFFTEST_SHADOW(test_stuff, test_stuff_asm(x, y, z, owner));
+    angle = 0;
+    if ((gameturn & 0x01) != 0)
+        angle = 0x80;
+    for (n = 0; angle < 0x800; n++, angle += 0x100)
+    {
+        struct SimpleThing *p_sthing;
+        s32 dx, dz;
+        short timer;
+
+        dx = lbSinTable[angle + LbFPMath_PI/2];
+        dz = lbSinTable[angle];
+        dx = (dx >> 8) + (s32)LbRandomAnyShort() % 55 - 27;
+        dz = (dz >> 8) + (s32)LbRandomAnyShort() % 55 - 27;
+        if ((n & 0x01) != 0)
+            timer = 40;
+        else
+            timer = (s32)LbRandomAnyShort() % 10 + 40;
+
+        p_sthing = create_scale_effect(x + dx, y, z + dz, 907, timer);
+        if (p_sthing == NULL)
+            continue;
+        p_sthing->SubType = 31;
+        p_sthing->Object = 128;
+        p_sthing->StartFrame = 4;
+        p_sthing->U.UEffect.VY = 4000;
+        p_sthing->U.UEffect.VX = dx;
+        p_sthing->U.UEffect.VZ = dz;
+        p_sthing->U.UEffect.OX = x;
+        p_sthing->U.UEffect.OY = y;
+        p_sthing->U.UEffect.OZ = z;
+    }
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
