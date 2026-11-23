@@ -9,6 +9,32 @@ plan is in `docs/decompilation-agent-plan.md`.
 - Branch `decomp/auto` (pushed to `origin` = SPD13/syndicate-vr since
   2026-11-21, user request; **never** to `upstream`), on top of
   `vr/main`.
+- **Asm-free single player build, 2026-11-22/23** (user goal: no asm in a
+  build without difftest; network left aside). Done so far:
+  - `thing_expld_s`, `thing_fire_s`, `bflib_vidraw_s` assembled only for
+    difftest; `LbSqrL` and `mul_shift16_sign_pad_lo` in C.
+  - Asm data moved to C with `tools/decomp-agent/sx_data2c.py` (generated
+    `*_data.c`: one packed byte-layout object per label, same order,
+    `no_reorder`/`aligned(1)`, so the layout is the asm's; the asm, kept
+    for difftest, references them). Checked with
+    `tools/decomp-agent/sx_data_check.py` (offsets and bytes against the
+    asm build): `bat_s` (then difftest-only), `swars.sx`, the six network
+    files, `bfsmacklib_s`.
+  - DOS network (IPX, serial, RADICA asm with DOS interrupts) built only
+    with `--enable-dos-network` (`build.sh --dos-network`); otherwise the
+    network service functions report failure. `net_unkn_func_12` in C.
+  - Smacker: `bfsmacklib/src/smkdec.c` decodes in C, bit-exact against the
+    asm on all 10 game videos (`SWARS_SMK_COMPARE='a.smk;b.smk'
+    syndwarsfx -t` in a difftest build compares frames, palettes and
+    audio chunks). `play_smk_*` use it; the RAD asm player, `smack2ail.c`
+    and `conf/wrappers_smack.conf` are difftest-only.
+  - The 12 upstream-recent functions are queued again
+    (`DECOMP_SKIP_UPSTREAM_RECENT=1` excludes them); `path_init8_tank` and
+    `tank_los` routed for `build_tank_path`.
+  - `tools/decomp-agent/asm_inventory.py` lists what asm a release build
+    still has. Left: the last loop targets, then `swars.sx` and the
+    generated `ac_` wrappers become difftest-only (wrappers also with
+    `--enable-dos-network`).
 - **Sound, 2026-11-22** (`decomp/auto` at `7a7b9b5c`): the game side of
   sound is done. The 5 sound heap labels and `heapmgr_free_handle` were
   routed (state traces identical), a `m_pause` hook (scenario
