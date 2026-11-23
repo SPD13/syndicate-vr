@@ -108,7 +108,7 @@ struct TbFileFind {
     TbTime CreationTime;
     TbDate LastWriteDate;
     TbTime LastWriteTime;
-    unsigned long ReservedHandle;
+    intptr_t ReservedHandle; /**< _findfirst() handle, pointer-sized on 64-bit Windows */
     TbFILE_FIND Reserved;
 };
 

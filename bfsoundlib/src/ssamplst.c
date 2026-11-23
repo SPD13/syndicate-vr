@@ -93,7 +93,7 @@ void cb_sample_queue_callback(SNDSAMPLE *s)
     AIL_init_sample(sample_queue_handle);
     AIL_register_EOS_callback(sample_queue_handle, cb_sample_queue_callback);
     sfi = &((struct BfSfxInfo *)Sfx)[sfxid];
-    AIL_set_sample_file(sample_queue_handle, sfi->DataBeg, 1);
+    AIL_set_sample_file(sample_queue_handle, (ubyte *)SfxData + sfi->DataBeg, 1);
     current_sample_queue_count++;
     AIL_start_sample(sample_queue_handle);
 }
@@ -136,14 +136,10 @@ void format_sounds(void)
     dt = SfxData;
     if ((Sfx != NULL) && (dt != NULL))
     {
+        // DataBeg and DataEnd stay offsets in SfxData
         n = 0;
         for (sfi++; sfi < sfiend; sfi++)
-        {
-            ulong offs;
-            offs = (ulong)sfi->DataBeg;
-            sfi->DataBeg = &dt[offs];
             n++;
-        }
     }
     SfxData = dt;
     EndSfxs = sfiend;

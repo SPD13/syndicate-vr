@@ -39,13 +39,17 @@ struct MusicBankSizes {
     ulong mbs7;
 };
 
+/** Song entry of a music bank, as in the file (32 bytes).
+ * DataBeg and DataEnd are offsets in the bank data (BfMusicData); they
+ * stay offsets in memory, so the entry has the file layout on every target.
+ */
 struct BfMusicInfo {
   char FileName[12];
-  long mifld_12;
+  s32 mifld_12;
   short mifld_16;
-  ubyte *DataBeg;
-  long mifld_22;
-  ubyte *DataEnd;
+  u32 DataBeg;
+  s32 mifld_22;
+  u32 DataEnd;
   short mifld_30;
 };
 

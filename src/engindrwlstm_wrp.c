@@ -373,7 +373,7 @@ void calc_bul_offsets(void)
             {
                 struct TbSprite *p_sprite;
 
-                p_sprite = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+                p_sprite = FRAME_ELEMENT_SPRITE(p_elem);
                 if (((p_elem->Flags & 0x1F0) == 0x40) && ((p_elem->Flags & 0xFE00) == 0x400))
                 {
                     bul_starts[i].OffsetX = (sbyte)(p_elem->X + p_sprite->SWidth);

@@ -33,10 +33,10 @@
 #pragma pack(1)
 
 struct MusicBankHead {
-  long info_offset;
-  long data_offset;
-  long info_size;
-  long data_size;
+  s32 info_offset;
+  s32 data_offset;
+  s32 info_size;
+  s32 data_size;
 };
 
 #pragma pack()
@@ -63,22 +63,16 @@ void format_music(void)
     ubyte *dt;
     struct BfMusicInfo *musinf;
     struct BfMusicInfo *musinfend;
-    ulong offs;
 
     nsongs = NumberOfSongs;
     musinfend = BfEndMusic;
     dt = BfMusicData;
     if ((BfMusic != NULL) && (BfMusicData != NULL))
     {
+        // DataBeg and DataEnd stay offsets in BfMusicData
         nsongs = 0;
         for (musinf = &BfMusic[1]; musinf < musinfend; musinf++)
-        {
-            offs = (ulong)musinf->DataBeg;
-            musinf->DataBeg = &dt[offs];
-            offs = (ulong)musinf->DataEnd;
-            musinf->DataEnd = &dt[offs];
             nsongs++;
-        }
     }
     BfMusicData = dt;
     BfEndMusic = musinfend;

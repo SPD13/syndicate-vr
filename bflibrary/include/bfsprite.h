@@ -52,6 +52,16 @@ struct TbSprite {
 #endif
 };
 
+/** Size of a sprite in .tab files: a 32-bit offset of its data in the .dat
+ * file, then the width and height. In memory, Data becomes a pointer; with
+ * 64-bit pointers the entries are larger than in the file.
+ */
+#define LB_SPRITE_FILE_SIZE (4 + 2 * sizeof(((struct TbSprite *)0)->SWidth))
+
+/** Bytes a sprite table of a .tab file of given length takes in memory. */
+#define LB_SPRITE_TAB_MEM_SIZE(file_len) \
+    ((file_len) / LB_SPRITE_FILE_SIZE * sizeof(struct TbSprite))
+
 typedef struct TbSetupSprite TbSetupSprite;
 
 struct TbSetupSprite {
@@ -76,6 +86,14 @@ struct TiledSprite {
 };
 
 #pragma pack()
+
+/** Converts a sprite table, loaded from a .tab file into buf, to TbSprite
+ * entries in place; Data then holds the offset, until LbSpriteSetup().
+ * The buffer must have room for LB_SPRITE_TAB_MEM_SIZE(file_len) bytes.
+ * Returns that size. Nothing changes where the entries have the file
+ * layout (32-bit builds).
+ */
+long LbSpriteTabExpand(void *buf, long file_len);
 
 /** Set up data pointers in an array of sprites within given bounds.
  */

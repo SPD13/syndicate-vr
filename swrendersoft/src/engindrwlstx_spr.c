@@ -163,7 +163,7 @@ void draw_hud_frame_on_screen(short scr_x, short scr_y, ushort frm, int sscale)
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -200,7 +200,7 @@ void draw_hud_frame_on_screen_unscaled_but_scale_pos(short scr_x, short scr_y, u
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -229,7 +229,7 @@ void draw_frame_unscaled(int scr_x, int scr_y, ushort frm)
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -260,7 +260,7 @@ void draw_frame_unscaled_one_colour(int scr_x, int scr_y, ushort frm,
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -293,7 +293,7 @@ void draw_frame_on_screen(short scr_x, short scr_y, ushort frm)
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -325,7 +325,7 @@ void draw_frame_unscaled_alpha_force(short scr_x, short scr_y, ushort frm, ubyte
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -358,7 +358,7 @@ void draw_frame_unscaled_alpha_frv(short scr_x, short scr_y, ubyte *frv, ushort 
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -398,7 +398,7 @@ void draw_frame_glb_scale_alpha(int scr_x, int scr_y, ushort frm)
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -434,7 +434,7 @@ void draw_frame_glb_scale_alpha_frv(int scr_x, int scr_y, ubyte *frv, ushort frm
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 
@@ -519,7 +519,7 @@ void draw_frame_scaled_alpha_frv(short x, short y, ubyte *frv, ushort frm,
         int el_X, el_Y;
 
         p_elem = &melement_ani[el];
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_elem->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_elem);
         if ((p_spr <= m_sprites) || (p_spr >= m_sprites_end))
             continue;
 

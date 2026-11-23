@@ -895,7 +895,7 @@ static DIFFTEST_REF_FUNC void func_81db4_asm(int a1, int a2, int a3, int a4, int
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
-void func_81db4(int a1, int a2, int a3, int a4, int a5, int a6)
+void func_81db4(int a1, int a2, int a3, int a4, intptr_t a5, intptr_t a6)
 {
     TrTriangId tri = a1;
     TrTipId cor = a2;
@@ -958,7 +958,7 @@ static DIFFTEST_REF_FUNC void line_intersect8_asm(int a1, int a2, int a3, int a4
  * through (a5,a6)-(a7,a8), in 8-bit fixed point, stored to *a9 and *a10.
  * For parallel lines, stores the first point instead.
  */
-void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10)
+void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, intptr_t a9, intptr_t a10)
 {
     s32 x1, y1, x2, y2, x3, y3, x4, y4, tmp;
     s32 dx12, dy12, dx34, dy34, num, den;
@@ -1097,7 +1097,7 @@ void make_clip_list(int x1, int y1, int x2, int y2)
         p_ptC = &triangulation[0].Points[(ushort)p_old->point[cor_cur]];
         p_ptD = &triangulation[0].Points[(ushort)p_old->point[MOD3[cor_cur+1]]];
         line_intersect8(x1, y1, x2, y2, p_ptC->x, p_ptC->y, p_ptD->x, p_ptD->y,
-          (int)(intptr_t)&out_x, (int)(intptr_t)&out_y);
+          (intptr_t)&out_x, (intptr_t)&out_y);
         pt_x = (out_x + 0x80) >> 8;
         pt_y = (out_y + 0x80) >> 8;
 
@@ -1115,7 +1115,7 @@ void make_clip_list(int x1, int y1, int x2, int y2)
             continue;
         }
         func_81db4(tri_old, cor_cur, out_x, out_y,
-          (int)(intptr_t)&pt_x, (int)(intptr_t)&pt_y);
+          (intptr_t)&pt_x, (intptr_t)&pt_y);
         point_find(pt_x, pt_y, &tri, &cor);
     }
 }
@@ -1339,7 +1339,7 @@ static s32 triangle_route_unkn7_pt_dist(s32 ax, s32 ay, ushort pt)
  * (from a1 back to a2), a4 unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn7(int a1, int a2, int a3, int a4)
+int triangle_route_do_unkn7(int a1, int a2, intptr_t a3, int a4)
 {
     s32 *p_route = (s32 *)a3;
     struct TrTriangle *p_tri;
@@ -1484,7 +1484,7 @@ s32 ma_triangle_route_4(int triA, int triB, s32 *p_treert)
     tree_By8 = tmp;
 
     // TODO the asm passes its incoming ecx as a4; unused by the callee
-    ret = triangle_route_do_unkn7(triB, triA, (int)(intptr_t)route_bak, 0);
+    ret = triangle_route_do_unkn7(triB, triA, (intptr_t)route_bak, 0);
     if (ret == -1)
         DIFFTEST_RETURN((s32)-1);
 
@@ -1534,7 +1534,7 @@ static int fov_cross_sign(s32 m1, s32 m2, s32 m3, s32 m4)
  * (p[2],p[3]), (p[4],p[5]). Returns -1, 0 or 1 depending on which side
  * of the rays the point lies. Register a4 is not used.
  */
-int fov_region(int a1, int a2, int a3, int a4)
+int fov_region(int a1, int a2, intptr_t a3, int a4)
 {
     s32 x = a1, y = a2;
     s32 *p = (s32 *)a3;
@@ -1570,7 +1570,7 @@ static DIFFTEST_REF_FUNC int edge_points8_asm(int a1, int a2, int a3, int a4, in
  * by 256, at pointers a3,a4 (first point x,y) and a5,a6 (second point x,y).
  * Returns 0, or -42 if the triangles are not connected.
  */
-int edge_points8(int a1, int a2, int a3, int a4, int a5, int a6)
+int edge_points8(int a1, int a2, intptr_t a3, intptr_t a4, intptr_t a5, intptr_t a6)
 {
     struct TrTriangle *p_tri;
     struct TrPoint *p_points;
@@ -1674,23 +1674,23 @@ s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
 
     rt_idx = 0;
     lt_idx = 0;
-    if (edge_points8(p_treert[0], p_treert[1], (int)(intptr_t)&fov[2],
-      (int)(intptr_t)&fov[3], (int)(intptr_t)&fov[4], (int)(intptr_t)&fov[5]) == -42)
+    if (edge_points8(p_treert[0], p_treert[1], (intptr_t)&fov[2],
+      (intptr_t)&fov[3], (intptr_t)&fov[4], (intptr_t)&fov[5]) == -42)
         DIFFTEST_RETURN((s32)-1);
 
     for (i = 1; ; i++)
     {
         if (i < treert_len)
         {
-            if (edge_points8(p_treert[i], p_treert[i + 1], (int)(intptr_t)&ex1,
-              (int)(intptr_t)&ey1, (int)(intptr_t)&ex2, (int)(intptr_t)&ey2) == -42)
+            if (edge_points8(p_treert[i], p_treert[i + 1], (intptr_t)&ex1,
+              (intptr_t)&ey1, (intptr_t)&ex2, (intptr_t)&ey2) == -42)
                 DIFFTEST_RETURN((s32)-1);
-            reg1 = fov_region(ex1, ey1, (int)(intptr_t)fov, 0);
-            reg2 = fov_region(ex2, ey2, (int)(intptr_t)fov, reg1);
+            reg1 = fov_region(ex1, ey1, (intptr_t)fov, 0);
+            reg2 = fov_region(ex2, ey2, (intptr_t)fov, reg1);
         }
         else
         {
-            reg1 = fov_region(bx8, by8, (int)(intptr_t)fov, 0);
+            reg1 = fov_region(bx8, by8, (intptr_t)fov, 0);
             reg2 = reg1;
             if (reg1 == 0)
             {
@@ -1736,8 +1736,8 @@ s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
             fov[1] = fov[3];
             i = lt_idx;
             n++;
-            if (edge_points8(p_treert[i], p_treert[i + 1], (int)(intptr_t)&fov[2],
-              (int)(intptr_t)&fov[3], (int)(intptr_t)&fov[4], (int)(intptr_t)&fov[5]) == -42)
+            if (edge_points8(p_treert[i], p_treert[i + 1], (intptr_t)&fov[2],
+              (intptr_t)&fov[3], (intptr_t)&fov[4], (intptr_t)&fov[5]) == -42)
                 DIFFTEST_RETURN((s32)-1);
         }
         else if (reg1 == 1)
@@ -1752,8 +1752,8 @@ s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
             fov[1] = fov[5];
             i = rt_idx;
             n++;
-            if (edge_points8(p_treert[i], p_treert[i + 1], (int)(intptr_t)&fov[2],
-              (int)(intptr_t)&fov[3], (int)(intptr_t)&fov[4], (int)(intptr_t)&fov[5]) == -42)
+            if (edge_points8(p_treert[i], p_treert[i + 1], (intptr_t)&fov[2],
+              (intptr_t)&fov[3], (intptr_t)&fov[4], (intptr_t)&fov[5]) == -42)
                 DIFFTEST_RETURN((s32)-1);
         }
     }
@@ -1898,7 +1898,7 @@ static DIFFTEST_REF_FUNC int func_5cff0_asm(int a1, int a2, int a3, int a4)
  * the asm reads most of them as high halves of unaligned 32-bit loads.
  * Returns 1 if the point was snapped, 0 otherwise. Register a4 is not used.
  */
-int func_5cff0(int a1, int a2, int a3, int a4)
+int func_5cff0(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
 {
     short *p_x = (short *)a1;
     short *p_z = (short *)a2;
@@ -1931,7 +1931,7 @@ int func_5cff0(int a1, int a2, int a3, int a4)
 
 static DIFFTEST_REF_FUNC short collide_coords_asm(short *p_X, short *p_Y, short *p_Z)
 {
-    int ra = (int)p_X, rd = (int)p_Y, rb = (int)p_Z;
+    int ra = (int)(intptr_t)p_X, rd = (int)(intptr_t)p_Y, rb = (int)(intptr_t)p_Z;
     asm volatile ("call ASM_collide_coords\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
     return (short)ra;
@@ -1955,7 +1955,7 @@ static TbBool collide_coords_col_list(short *p_X, short *p_Z, ushort *p_ax)
         struct ColVect *p_colvect;
 
         p_colvect = &game_col_vects[game_col_vects_list[cvlist].Vect];
-        ret = func_5cff0((int)p_X, (int)p_Z, (int)p_colvect, (int)p_Z);
+        ret = func_5cff0((intptr_t)p_X, (intptr_t)p_Z, (intptr_t)p_colvect, (intptr_t)p_Z);
         if ((short)ret != 0) {
             *p_ax = (ushort)ret;
             return true;
@@ -1975,10 +1975,10 @@ static TbBool collide_coords_col_list(short *p_X, short *p_Z, ushort *p_ax)
  */
 static struct MyMapElement *collide_coords_mapel(s32 idx, TbBool base_in_ax, ushort *p_ax)
 {
-    u32 base, addr;
+    uintptr_t base, addr;
 
-    base = (u32)game_my_big_map;
-    addr = base + (u32)idx * sizeof(struct MyMapElement);
+    base = (uintptr_t)game_my_big_map;
+    addr = base + (uintptr_t)((intptr_t)idx * (intptr_t)sizeof(struct MyMapElement));
     if (addr <= base) {
         *p_ax = base_in_ax ? (ushort)base : (ushort)addr;
         return NULL;

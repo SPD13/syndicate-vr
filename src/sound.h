@@ -43,14 +43,23 @@ enum SounsHeapSetupCmd {
 struct Thing;
 struct SimpleThing;
 
+/** Item of the sound heap, holding the data of one sample.
+ * In 32-bit builds the layout is the one of the asm (0x1C bytes).
+ */
 struct HeapMgrHandle {
-  ubyte field_0[14];
-  ubyte field_E;
+  ubyte *Data;                  /**< 0x00 sample data, in the heap area */
+  s32 Size;                     /**< 0x04 */
+  ushort Flags;                 /**< 0x08 0x01 used, 0x02 locked, 0x04 pinned */
+  ushort SmpId;                 /**< 0x0A sample table index */
+  struct HeapMgrHandle *Prev;   /**< 0x0C previous item by address */
+  struct HeapMgrHandle *Next;   /**< 0x10 next item by address */
+  struct HeapMgrHandle *Older;  /**< 0x14 older item in the age list */
+  struct HeapMgrHandle *Newer;  /**< 0x18 newer item in the age list */
 };
 
 struct SampleTable {
-  long field_0;
-  long field_4;
+  s32 field_0;
+  s32 field_4;
   struct HeapMgrHandle *hmhandle;
 };
 

@@ -116,9 +116,12 @@ void net_sessionlist_clear(void)
 {
     ushort i;
 
+#if UINTPTR_MAX == 0xFFFFFFFFu
+    // the layout of the DOS network services, with 32-bit pointers
     assert(sizeof(struct TbNetworkSession) == 40);
     assert(sizeof(struct TbNetworkPlayer) == 22);
     assert(sizeof(struct TbNetworkSessionList) == 40+22*8+2);
+#endif
 
     for (i = 0; i < sizeof(unkstruct04_arr)/sizeof(unkstruct04_arr[0]); i++)
         LbMemorySet(&unkstruct04_arr[i], 0, sizeof(struct TbNetworkSessionList));

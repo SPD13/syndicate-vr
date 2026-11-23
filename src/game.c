@@ -1141,7 +1141,7 @@ static DIFFTEST_REF_FUNC int can_the_tank_run_over_asm(int a1, int a2)
     return ra;
 }
 
-int can_the_tank_run_over(int a1, int a2)
+int can_the_tank_run_over(intptr_t a1, int a2)
 {
     struct SimpleThing *p_sthing = (struct SimpleThing *)a1;
     ushort frame;
@@ -1316,7 +1316,7 @@ void process_map_crater(int crater)
                 struct SimpleThing *p_sthing;
 
                 p_sthing = &sthings[thing];
-                if (can_the_tank_run_over((int)p_sthing, 0))
+                if (can_the_tank_run_over((intptr_t)p_sthing, 0))
                 {
                     sthings[thing].Y = alt_at_point((short)(sthings[thing].X >> 8),
                       (short)(sthings[thing].Z >> 8));
@@ -2234,7 +2234,7 @@ static DIFFTEST_REF_FUNC int train_related_func_01_asm(int a1, int a2, int a3, i
 /** Routed asm (internal label). Arguments are the raw registers the asm
  * takes (eax, edx, ebx, ecx); only eax (the train thing) is used.
  */
-int train_related_func_01(int a1, int a2, int a3, int a4)
+int train_related_func_01(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_train = (struct Thing *)a1;
     struct Thing *p_station;
@@ -2303,7 +2303,7 @@ void func_74934(void)
 
                         p_thing->U.UObject.ComHead = 0;
                         p_thing->U.UObject.ComCur = 0;
-                        ret = train_related_func_01((int)p_thing, thing, 0, tile_z);
+                        ret = train_related_func_01((intptr_t)p_thing, thing, 0, tile_z);
                         if ((ushort)ret != 0)
                             ingame.TrainMode |= 0x02;
                     }

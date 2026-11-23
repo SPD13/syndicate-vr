@@ -2040,7 +2040,7 @@ void should_i_get_item(struct Thing *p_person, struct SimpleThing *p_sthing)
         if ((wtype > WEP_ELLASER) && (wtype != WEP_LONGRANGE) && (wtype != WEP_BEAM))
             return;
     }
-    if (do_i_have_weapon((int)p_person, wtype) != 0)
+    if (do_i_have_weapon((intptr_t)p_person, wtype) != 0)
         return;
 
     p_person->State = PerSt_GET_ITEM;
@@ -2725,7 +2725,7 @@ extern s32 tree_routecost;
 extern s32 tree_route[3000];
 
 int triangle_findSE8(int x, int y);
-int ma_triangle_route_5(int a1, int a2, int a3, int a4);
+int ma_triangle_route_5(int a1, int a2, intptr_t a3, intptr_t a4);
 s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
   s32 treert_len, struct Path *p_path, int *p_len2);
 
@@ -2733,7 +2733,7 @@ s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
  * the triangulation with ma_triangle_route_5().
  * Arguments: a1 = struct Path *, a2..a5 = ax8, ay8, bx8, by8; a6 unused.
  */
-void path_init8_tank(int a1, int a2, int a3, int a4, int a5, int a6)
+void path_init8_tank(intptr_t a1, int a2, int a3, int a4, int a5, int a6)
 {
     struct Path *p_path = (struct Path *)a1;
     int ax8 = a2, ay8 = a3, bx8 = a4, by8 = a5;
@@ -2766,8 +2766,8 @@ void path_init8_tank(int a1, int a2, int a3, int a4, int a5, int a6)
     if (tree_triA == -1 || triB == -1)
         return;
 
-    ret = ma_triangle_route_5(tree_triA, triB, (int)(intptr_t)tree_route,
-      (int)(intptr_t)&tree_routecost);
+    ret = ma_triangle_route_5(tree_triA, triB, (intptr_t)tree_route,
+      (intptr_t)&tree_routecost);
     tree_routelen = ret;
     if (ret == -1)
         return;
@@ -2882,8 +2882,8 @@ extern s32 dword_1AA3A4;
 extern s32 dword_1AA3A8;
 
 void count_fnavs(TbBool now_draw);
-void use_nav_data(int a1, int a2, int a3, int a4);
-void fatter_than_nothing(int a1, int a2, int a3, int a4);
+void use_nav_data(intptr_t a1, int a2, int a3, int a4);
+void fatter_than_nothing(intptr_t a1, intptr_t a2, int a3, int a4);
 
 static DIFFTEST_REF_FUNC int build_tank_path_asm(struct Thing *p_thing, int x, int z)
 {
@@ -2921,7 +2921,7 @@ int build_tank_path(struct Thing *p_thing, int x, int z)
             g_fat_data.PathLength = 1;
             g_fat_data.WayPoints[0].x8 = x << 8;
             g_fat_data.WayPoints[0].y8 = z << 8;
-            use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+            use_nav_data((intptr_t)p_thing, 1, 0, 0);
             unkn_path_func_001(p_thing, 1);
             DIFFTEST_RETURN((int)1);
         }
@@ -2932,7 +2932,7 @@ int build_tank_path(struct Thing *p_thing, int x, int z)
         g_fat_data.WayPoints[0].x8 = x << 8;
         g_fat_data.WayPoints[0].y8 = z << 8;
         g_fat_data.PathLength = 1;
-        use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+        use_nav_data((intptr_t)p_thing, 1, 0, 0);
         unkn_path_func_001(p_thing, 1);
         DIFFTEST_RETURN((int)1);
     }
@@ -2941,13 +2941,13 @@ int build_tank_path(struct Thing *p_thing, int x, int z)
     alt_z = dword_1AA3A8;
     triangulation_select(2);
     nav_stats__ThisTurn++;
-    path_init8_tank((int)(intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
+    path_init8_tank((intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
       x << 8, z << 8, -2);
     if (g_nav_data.PathLength != 0)
     {
-        fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data,
+        fatter_than_nothing((intptr_t)&g_nav_data, (intptr_t)&g_fat_data,
           0x100, x << 8);
-        use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+        use_nav_data((intptr_t)p_thing, 1, 0, 0);
         unkn_path_func_001(p_thing, 1);
         triangulation_select(1);
         DIFFTEST_RETURN((int)1);
@@ -2958,7 +2958,7 @@ int build_tank_path(struct Thing *p_thing, int x, int z)
     g_fat_data.WayPoints[0].x8 = alt_x << 8;
     g_fat_data.PathLength = 1;
     g_fat_data.WayPoints[0].y8 = alt_z << 8;
-    use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+    use_nav_data((intptr_t)p_thing, 1, 0, 0);
     unkn_path_func_001(p_thing, 1);
     DIFFTEST_RETURN((int)1);
 }
@@ -3066,7 +3066,7 @@ static DIFFTEST_REF_FUNC void VNAV_do_asm(int a1, int a2, int a3, int a4)
  * nodes from destination back to start. If no route is found, the short at
  * offset 8 is set to 42.
  */
-void VNAV_do(int a1, int a2, int a3, int a4)
+void VNAV_do(int a1, int a2, intptr_t a3, int a4)
 {
     short *p_route = (short *)a3;
     struct TrafficNode *p_cur;
@@ -3257,7 +3257,7 @@ static DIFFTEST_REF_FUNC void VNAV_find_dropoff_point_asm(int a1, int a2, int a3
 }
 
 extern short VNAV_nearnodes[5];
-void VNAV_qwertyuiop(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+void VNAV_qwertyuiop(intptr_t a1, intptr_t a2, int a3, int a4, int a5, int a6, int a7, int a8);
 
 /** Returns 1 if the thing list of map element mapel contains a vehicle,
  * as inlined in VNAV_find_dropoff_point() asm.
@@ -3289,7 +3289,7 @@ static int VNAV_mapel_has_vehicle(s32 mapel)
  * along the link. Stores the node in *a1 (9999 if none), link index
  * in *a2 and position along the segment in *a3.
  */
-void VNAV_find_dropoff_point(int a1, int a2, int a3, int a4, int a5)
+void VNAV_find_dropoff_point(intptr_t a1, intptr_t a2, intptr_t a3, int a4, int a5)
 {
     short *p_tnode_out = (short *)a1;
     ubyte *p_link_out = (ubyte *)a2;
@@ -3359,7 +3359,7 @@ void VNAV_find_dropoff_point(int a1, int a2, int a3, int a4, int a5)
                 if (k < 4)
                     continue;
             }
-            VNAV_qwertyuiop((int)&dist, (int)&frac, node_x, node_z,
+            VNAV_qwertyuiop((intptr_t)&dist, (intptr_t)&frac, node_x, node_z,
               lnode_x, lnode_z, (short)a4, (short)a5);
             if (dist >= best_dist)
                 continue;
@@ -3395,7 +3395,7 @@ void VNAV_find_nearnodes(int a1, int a2, int a3, int a4);
  * Returns 0 if no drop-off node is found, or if a route from the vehicle's
  * current traffic node is computed and its second entry is 42.
  */
-int VNAV_can_i_get_there(int a1, int a2, int a3, int a4)
+int VNAV_can_i_get_there(intptr_t a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_vehicle = (struct Thing *)a1;
     s32 drop_a, drop_node, drop_b;
@@ -3406,13 +3406,13 @@ int VNAV_can_i_get_there(int a1, int a2, int a3, int a4)
     z = (short)a3;
     x = (short)a2;
     VNAV_find_nearnodes(x, z, z, x);
-    VNAV_find_dropoff_point((int)&drop_node, (int)&drop_b, (int)&drop_a, x, z);
+    VNAV_find_dropoff_point((intptr_t)&drop_node, (intptr_t)&drop_b, (intptr_t)&drop_a, x, z);
     tnode = (short)drop_node;
     if (tnode == 9999)
         DIFFTEST_RETURN(0);
     if (p_vehicle->U.UVehicle.TNode == -tnode)
         DIFFTEST_RETURN(1);
-    VNAV_do(p_vehicle->U.UVehicle.TNode, (short)(-drop_node), (int)VNAV_route, x);
+    VNAV_do(p_vehicle->U.UVehicle.TNode, (short)(-drop_node), (intptr_t)VNAV_route, x);
     if (VNAV_route[4] == 42)
         DIFFTEST_RETURN(0);
     DIFFTEST_RETURN(1);
@@ -3450,7 +3450,7 @@ static s32 VNAV_goto_approx_dist(s32 dx, s32 dz)
  * step count and drop-off fraction into Dummy4a, and the target node and
  * link into AccelZ/AccelX.
  */
-int VNAV_goto(int a1, int a2, int a3, int a4)
+int VNAV_goto(intptr_t a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_vehicle = (struct Thing *)a1;
     s32 drop_a, drop_node, drop_b;
@@ -3478,7 +3478,7 @@ int VNAV_goto(int a1, int a2, int a3, int a4)
     x = (short)a2;
     z = (short)a3;
     VNAV_find_nearnodes(x, z, z, x);
-    VNAV_find_dropoff_point((int)&drop_node, (int)&drop_b, (int)&drop_a, x, z);
+    VNAV_find_dropoff_point((intptr_t)&drop_node, (intptr_t)&drop_b, (intptr_t)&drop_a, x, z);
     tnode = (short)drop_node;
     if (tnode == 9999)
         DIFFTEST_RETURN((int)0);
@@ -3539,7 +3539,7 @@ int VNAV_goto(int a1, int a2, int a3, int a4)
         uint sh;
 
         VNAV_do(p_vehicle->U.UVehicle.TNode, (short)(-drop_node),
-          (int)VNAV_route, x);
+          (intptr_t)VNAV_route, x);
         if (VNAV_route[4] == 42)
             DIFFTEST_RETURN((int)0);
 
@@ -3596,7 +3596,7 @@ static DIFFTEST_REF_FUNC void VNAV_goto_and_unpark_asm(int a1, int a2, int a3, i
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
 }
 
-void VNAV_goto_and_unpark(int a1, int a2, int a3, int a4)
+void VNAV_goto_and_unpark(intptr_t a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_vehicle = (struct Thing *)a1;
     s32 *p_target;
@@ -3639,7 +3639,7 @@ static DIFFTEST_REF_FUNC void VNAV_goto_and_unplace_asm(int a1, int a2, int a3, 
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
 }
 
-void VNAV_goto_and_unplace(int a1, int a2, int a3, int a4)
+void VNAV_goto_and_unplace(intptr_t a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_vehicle = (struct Thing *)a1;
     s32 *p_target;
@@ -3675,7 +3675,7 @@ static DIFFTEST_REF_FUNC void VNAV_goto_and_unstop_asm(int a1, int a2, int a3, i
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void VNAV_goto_and_unstop(int a1, int a2, int a3, int a4)
+void VNAV_goto_and_unstop(intptr_t a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_vehicle = (struct Thing *)a1;
     s32 *p_target;
@@ -3929,7 +3929,7 @@ static s32 triangle_route_bak_pt_dist(s32 ax, s32 ay, ushort pt)
  * (from a1 back to a2), a4 unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_bak(int a1, int a2, int a3, int a4)
+int triangle_route_do_bak(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     struct TrTriangle *p_tri;
@@ -4028,7 +4028,7 @@ static DIFFTEST_REF_FUNC int triangle_route_do_given_asm(int a1, int a2, int a3,
  * (from a1 back to a2), a4 unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_given(int a1, int a2, int a3, int a4)
+int triangle_route_do_given(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     struct TrTriangle *p_tri;
@@ -4175,7 +4175,7 @@ static void triangle_route_unkn3_expand(s32 tri_cur)
  * (from a1 back to a2), a4 unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn3(int a1, int a2, int a3, int a4)
+int triangle_route_do_unkn3(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     s32 tri_dst, tri_beg, tri_cur, tri_cur2;
@@ -4303,7 +4303,7 @@ static void triangle_route_unkn4_expand(s32 tri_cur)
  * (from a1 back to a2), a4 unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn4(int a1, int a2, int a3, int a4)
+int triangle_route_do_unkn4(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     s32 tri_dst, tri_beg, tri_cur, tri_cur2;
@@ -4394,7 +4394,7 @@ s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
  * through to the route search functions.
  * Returns the route length, or -1.
  */
-int ma_triangle_route(int a1, int a2, int a3, int a4)
+int ma_triangle_route(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     s32 *p_dst;
@@ -4420,7 +4420,7 @@ int ma_triangle_route(int a1, int a2, int a3, int a4)
     tree_Ay8 = tree_By8;
     tree_By8 = tmp;
 
-    ret_bak = triangle_route_do_bak(a2, a1, (int)(intptr_t)route_bak, a4);
+    ret_bak = triangle_route_do_bak(a2, a1, (intptr_t)route_bak, a4);
     if (ret_bak == -1)
         DIFFTEST_RETURN((int)-1);
 
@@ -4465,7 +4465,7 @@ static DIFFTEST_REF_FUNC int ma_triangle_route_5_asm(int a1, int a2, int a3, int
  * through to the route search functions.
  * Returns the route length, or -1.
  */
-int ma_triangle_route_5(int a1, int a2, int a3, int a4)
+int ma_triangle_route_5(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     s32 *p_dst;
@@ -4491,7 +4491,7 @@ int ma_triangle_route_5(int a1, int a2, int a3, int a4)
     tree_Ay8 = tree_By8;
     tree_By8 = tmp;
 
-    ret_bak = triangle_route_do_unkn4(a2, a1, (int)(intptr_t)route_bak, a4);
+    ret_bak = triangle_route_do_unkn4(a2, a1, (intptr_t)route_bak, a4);
     if (ret_bak == -1)
         DIFFTEST_RETURN((int)-1);
 
@@ -4546,7 +4546,7 @@ int triangle_findSE8(int x, int y);
  * triangulation with ma_triangle_route().
  * Arguments: a1 = struct Path *, a2..a5 = ax8, ay8, bx8, by8; a6 unused.
  */
-void path_init8_wide(int a1, int a2, int a3, int a4, int a5, int a6)
+void path_init8_wide(intptr_t a1, int a2, int a3, int a4, int a5, int a6)
 {
     struct Path *p_path = (struct Path *)a1;
     int ax8 = a2, ay8 = a3, bx8 = a4, by8 = a5;
@@ -4581,8 +4581,8 @@ void path_init8_wide(int a1, int a2, int a3, int a4, int a5, int a6)
     if (tree_triA == -1 || tree_triB == -1)
         return;
 
-    ret = ma_triangle_route(tree_triA, tree_triB, (int)(intptr_t)tree_route,
-      (int)(intptr_t)&tree_routecost);
+    ret = ma_triangle_route(tree_triA, tree_triB, (intptr_t)tree_route,
+      (intptr_t)&tree_routecost);
     tree_routelen = ret;
     if (ret == -1)
         return;
@@ -4596,8 +4596,8 @@ extern u32 nav_stats__ThisTurn;
 extern s32 gamep_unknval_14;
 
 void count_fnavs(TbBool now_draw);
-void use_nav_data(int a1, int a2, int a3, int a4);
-void fatter_than_nothing(int a1, int a2, int a3, int a4);
+void use_nav_data(intptr_t a1, int a2, int a3, int a4);
+void fatter_than_nothing(intptr_t a1, intptr_t a2, int a3, int a4);
 
 static DIFFTEST_REF_FUNC int ariadne_initialise_route_asm(int a1, int a2, int a3, int a4)
 {
@@ -4612,7 +4612,7 @@ static DIFFTEST_REF_FUNC int ariadne_initialise_route_asm(int a1, int a2, int a3
  * coords, not shifted by 8); a4 unused.
  * Returns 0 if coords are out of range, 1 otherwise.
  */
-int ariadne_initialise_route(int a1, int a2, int a3, int a4)
+int ariadne_initialise_route(intptr_t a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_thing = (struct Thing *)a1;
     s32 tgt_x = a2, tgt_z = a3;
@@ -4638,7 +4638,7 @@ int ariadne_initialise_route(int a1, int a2, int a3, int a4)
             g_fat_data.PathLength = 1;
             g_fat_data.WayPoints[0].x8 = tgt_x << 8;
             g_fat_data.WayPoints[0].y8 = tgt_z << 8;
-            use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+            use_nav_data((intptr_t)p_thing, 0, 0, 0);
             DIFFTEST_RETURN((int)1);
         }
     }
@@ -4648,7 +4648,7 @@ int ariadne_initialise_route(int a1, int a2, int a3, int a4)
         g_fat_data.WayPoints[0].x8 = tgt_x << 8;
         g_fat_data.WayPoints[0].y8 = tgt_z << 8;
         g_fat_data.PathLength = 1;
-        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        use_nav_data((intptr_t)p_thing, 0, 0, 0);
         DIFFTEST_RETURN((int)1);
     }
 
@@ -4656,13 +4656,13 @@ int ariadne_initialise_route(int a1, int a2, int a3, int a4)
     alt_z = dword_1AA3B0;
     triangulation_select(2);
     nav_stats__ThisTurn++;
-    path_init8_wide((int)(intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
+    path_init8_wide((intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
       tgt_x << 8, tgt_z << 8, -2);
     if (g_nav_data.PathLength != 0)
     {
-        fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data,
+        fatter_than_nothing((intptr_t)&g_nav_data, (intptr_t)&g_fat_data,
           0x100, tgt_x << 8);
-        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        use_nav_data((intptr_t)p_thing, 0, 0, 0);
         triangulation_select(1);
         DIFFTEST_RETURN((int)1);
     }
@@ -4672,7 +4672,7 @@ int ariadne_initialise_route(int a1, int a2, int a3, int a4)
     g_fat_data.WayPoints[0].x8 = alt_x << 8;
     g_fat_data.PathLength = 1;
     g_fat_data.WayPoints[0].y8 = alt_z << 8;
-    use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+    use_nav_data((intptr_t)p_thing, 0, 0, 0);
     DIFFTEST_RETURN((int)1);
 }
 static DIFFTEST_REF_FUNC void send_ship_to_asm(int a1, int a2, int a3, int a4)
@@ -4691,7 +4691,7 @@ static DIFFTEST_REF_FUNC void send_ship_to_asm(int a1, int a2, int a3, int a4)
  * becomes the goal, and the parent chain from it is reversed so that
  * GateLink points forward along the route.
  */
-void send_ship_to(int a1, int a2, int a3, int a4)
+void send_ship_to(intptr_t a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_vehicle = (struct Thing *)a1;
     short x = (short)a2;
@@ -4835,29 +4835,29 @@ int start_goto_vehicle(struct Thing *p_vehicle, int x, int z)
 
         if ((ushort)p_vehicle->State == 0x36)
         {
-            if (!VNAV_can_i_get_there((int)p_vehicle, (short)x, (short)z, (int)p_vehicle))
+            if (!VNAV_can_i_get_there((intptr_t)p_vehicle, (short)x, (short)z, (intptr_t)p_vehicle))
                 DIFFTEST_RETURN(0);
-            VNAV_goto_and_unstop((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+            VNAV_goto_and_unstop((intptr_t)p_vehicle, (short)x, (short)z, (intptr_t)p_vehicle);
             p_vehicle->Flag &= ~0x04;
             DIFFTEST_RETURN(0);
         }
         if ((ushort)p_vehicle->State == 0x3d)
         {
-            if (!VNAV_can_i_get_there((int)p_vehicle, (short)x, (short)z, (int)p_vehicle))
+            if (!VNAV_can_i_get_there((intptr_t)p_vehicle, (short)x, (short)z, (intptr_t)p_vehicle))
                 DIFFTEST_RETURN(0);
-            VNAV_goto_and_unplace((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+            VNAV_goto_and_unplace((intptr_t)p_vehicle, (short)x, (short)z, (intptr_t)p_vehicle);
             p_vehicle->Flag &= ~0x04;
             DIFFTEST_RETURN(0);
         }
         if ((ushort)p_vehicle->State == 0x21)
         {
-            if (!VNAV_can_i_get_there((int)p_vehicle, (short)x, (short)z, (int)p_vehicle))
+            if (!VNAV_can_i_get_there((intptr_t)p_vehicle, (short)x, (short)z, (intptr_t)p_vehicle))
                 DIFFTEST_RETURN(0);
-            VNAV_goto_and_unpark((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+            VNAV_goto_and_unpark((intptr_t)p_vehicle, (short)x, (short)z, (intptr_t)p_vehicle);
             p_vehicle->Flag &= ~0x04;
             DIFFTEST_RETURN(0);
         }
-        ret = VNAV_goto((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+        ret = VNAV_goto((intptr_t)p_vehicle, (short)x, (short)z, (intptr_t)p_vehicle);
         if (ret == 1)
         {
             p_vehicle->State = 0x32;
@@ -4876,7 +4876,7 @@ int start_goto_vehicle(struct Thing *p_vehicle, int x, int z)
 
     case 0x32:
         remove_path(p_vehicle);
-        if (ariadne_initialise_route((int)p_vehicle, x, z, (int)p_vehicle) <= 0)
+        if (ariadne_initialise_route((intptr_t)p_vehicle, x, z, (intptr_t)p_vehicle) <= 0)
             DIFFTEST_RETURN(0);
         unkn_path_func_001(p_vehicle, 1);
         p_path = &my_paths[p_vehicle->U.UVehicle.PathIndex];
@@ -4904,7 +4904,7 @@ int start_goto_vehicle(struct Thing *p_vehicle, int x, int z)
         DIFFTEST_RETURN(1);
 
     case 0x36:
-        send_ship_to((int)p_vehicle, (short)x, (short)z, (int)p_vehicle);
+        send_ship_to((intptr_t)p_vehicle, (short)x, (short)z, (intptr_t)p_vehicle);
         DIFFTEST_RETURN(0);
 
     default:
@@ -5014,7 +5014,7 @@ extern s32 tree_route[3000];
 int triangle_findSE8(int x, int y);
 s32 route_to_path(int ax8, int ay8, int bx8, int by8, s32 *p_treert,
   s32 treert_len, struct Path *p_path, int *p_len2);
-int ma_triangle_route_3(int a1, int a2, int a3, int a4);
+int ma_triangle_route_3(int a1, int a2, intptr_t a3, intptr_t a4);
 
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -5036,7 +5036,7 @@ static DIFFTEST_REF_FUNC int path_init8_thing_asm(int a1, int a2, int a3, int a4
  * through triangulation. Returns the number of way points, or -1.
  * Arguments: a1 = struct Path *, a2..a5 = ax8, ay8, bx8, by8; a6 unused.
  */
-int path_init8_thing(int a1, int a2, int a3, int a4, int a5, int a6)
+int path_init8_thing(intptr_t a1, int a2, int a3, int a4, int a5, int a6)
 {
     struct Path *p_path = (struct Path *)a1;
     int ax8 = a2, ay8 = a3, bx8 = a4, by8 = a5;
@@ -5074,8 +5074,8 @@ int path_init8_thing(int a1, int a2, int a3, int a4, int a5, int a6)
     if (ret == -1)
         DIFFTEST_RETURN((int)ret);
 
-    ret = ma_triangle_route_3(tree_triA, ret, (int)(intptr_t)tree_route,
-      (int)(intptr_t)&tree_routecost);
+    ret = ma_triangle_route_3(tree_triA, ret, (intptr_t)tree_route,
+      (intptr_t)&tree_routecost);
     tree_routelen = ret;
     if (ret == -1)
         DIFFTEST_RETURN((int)ret);
@@ -5097,7 +5097,7 @@ static DIFFTEST_REF_FUNC ushort build_navigate_path_asm(struct Thing *p_thing, i
 
 static void build_navigate_face_xz(struct Thing *p_thing, struct Thing *p_thing_to,
   short face, int *p_x, int *p_z, short *p_tringl);
-int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+int tri_path_init8(int a1, int a2, intptr_t a3, int a4, int a5, int a6, int a7, int a8);
 
 /** Builds a navigation path for a person towards given map coords.
  * Arguments x and z are map coords (not shifted by 8), used as short;
@@ -5143,7 +5143,7 @@ ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face)
         g_fat_data.WayPoints[0].x8 = tgt_x << 8;
         g_fat_data.WayPoints[0].y8 = tgt_z << 8;
         gamep_unknval_14++;
-        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        use_nav_data((intptr_t)p_thing, 0, 0, 0);
         DIFFTEST_RETURN((ushort)1);
     }
 
@@ -5154,14 +5154,14 @@ ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face)
         build_navigate_face_xz(p_thing, p_thing, p_thing->U.UPerson.OnFace,
           &x0, &z0, &face0);
         nav_stats__ThisTurn++;
-        tri_path_init8(face0, -1, (int)(intptr_t)&g_nav_data, x0, z0, x8, z8, -2);
+        tri_path_init8(face0, -1, (intptr_t)&g_nav_data, x0, z0, x8, z8, -2);
     }
     else
     {
         nav_stats__ThisTurn++;
         // The asm wraps this in a retry loop (up to 11 tries), but it exits
         // after the first try whenever the path is not empty.
-        path_init8_thing((int)(intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
+        path_init8_thing((intptr_t)&g_nav_data, p_thing->X, p_thing->Z,
           x8, z8, -2);
         // The asm here has unreachable code appending (x8,z8) as a way point
         // to g_nav_data, guarded by a local which is always 0.
@@ -5176,14 +5176,14 @@ ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face)
         g_fat_data.ay8 = p_thing->Z;
         g_fat_data.WayPoints[0].y8 = z8;
         g_fat_data.PathLength = 1;
-        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        use_nav_data((intptr_t)p_thing, 0, 0, 0);
         count_fnavs(0);
         p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
         DIFFTEST_RETURN((ushort)0);
     }
 
-    fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data, 0x80, 0);
-    use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+    fatter_than_nothing((intptr_t)&g_nav_data, (intptr_t)&g_fat_data, 0x80, 0);
+    use_nav_data((intptr_t)p_thing, 1, 0, 0);
     unkn_path_func_001(p_thing, 1);
     DIFFTEST_RETURN((ushort)1);
 }
@@ -5205,11 +5205,11 @@ extern s32 navi2_unkn_counter;
 void path_init8_unkn3(struct Path *p_path, int ax8, int ay8, int bx8, int by8, int a6);
 ubyte check_person_within(struct Command *p_cmd, int x, int z);
 void count_fnavs(TbBool now_draw);
-void set_xz_for_quad210(int a1, int a2, int a3, int a4);
-void set_xz_for_quad_unkn03(int a1, int a2, int a3, int a4);
-void use_nav_data(int a1, int a2, int a3, int a4);
-void fatter_than_nothing(int a1, int a2, int a3, int a4);
-int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+void set_xz_for_quad210(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4);
+void set_xz_for_quad_unkn03(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4);
+void use_nav_data(intptr_t a1, int a2, int a3, int a4);
+void fatter_than_nothing(intptr_t a1, intptr_t a2, int a3, int a4);
+int tri_path_init8(int a1, int a2, intptr_t a3, int a4, int a5, int a6, int a7, int a8);
 
 /** Set the position of a face for navigation into x and z, depending on
  * the face index sign (positive - triangle, negative - quad).
@@ -5230,15 +5230,15 @@ static void build_navigate_face_xz(struct Thing *p_thing, struct Thing *p_thing_
     {
         p_face4 = &game_object_faces4[-face];
         *p_tringl = p_face4->UnknTringl2;
-        set_xz_for_quad210((int)(intptr_t)p_face4, (int)(intptr_t)p_x,
-          (int)(intptr_t)p_z, (int)(intptr_t)p_thing_to);
+        set_xz_for_quad210((intptr_t)p_face4, (intptr_t)p_x,
+          (intptr_t)p_z, (intptr_t)p_thing_to);
     }
     else
     {
         p_face4 = &game_object_faces4[-face];
         *p_tringl = p_face4->UnknTringl1;
-        set_xz_for_quad_unkn03((int)(intptr_t)p_face4, (int)(intptr_t)p_x,
-          (int)(intptr_t)p_z, (int)(intptr_t)p_thing_to);
+        set_xz_for_quad_unkn03((intptr_t)p_face4, (intptr_t)p_x,
+          (intptr_t)p_z, (intptr_t)p_thing_to);
     }
     *p_x <<= 8;
     *p_z <<= 8;
@@ -5318,7 +5318,7 @@ ushort build_navigate_path_to_person(struct Thing *p_thing, struct Thing *p_thin
         g_fat_data.WayPoints[0].x8 = p_thing_to->X;
         g_fat_data.WayPoints[0].y8 = p_thing_to->Z;
         gamep_unknval_14++;
-        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        use_nav_data((intptr_t)p_thing, 0, 0, 0);
         DIFFTEST_RETURN((ushort)1);
     }
 
@@ -5346,8 +5346,8 @@ ushort build_navigate_path_to_person(struct Thing *p_thing, struct Thing *p_thin
             DIFFTEST_RETURN((ushort)0);
         p_face4 = &game_object_faces4[(short)p_vehicle->U.UVehicle.ComHead];
         face1 = p_face4->UnknTringl2;
-        set_xz_for_quad210((int)(intptr_t)p_face4, (int)(intptr_t)&x1,
-          (int)(intptr_t)&z1, (int)(intptr_t)p_thing_to);
+        set_xz_for_quad210((intptr_t)p_face4, (intptr_t)&x1,
+          (intptr_t)&z1, (intptr_t)p_thing_to);
         x1 <<= 8;
         z1 <<= 8;
     }
@@ -5382,7 +5382,7 @@ ushort build_navigate_path_to_person(struct Thing *p_thing, struct Thing *p_thin
     {
         p_thing->U.UPerson.Flag3 &= ~0x10;
         navi2_unkn_counter++;
-        tri_path_init8(face0, face1, (int)(intptr_t)&g_nav_data, x0, z0, x1, z1, -2);
+        tri_path_init8(face0, face1, (intptr_t)&g_nav_data, x0, z0, x1, z1, -2);
     }
 
     if (g_nav_data.PathLength == 0)
@@ -5394,14 +5394,14 @@ ushort build_navigate_path_to_person(struct Thing *p_thing, struct Thing *p_thin
         g_fat_data.WayPoints[0].x8 = x1;
         g_fat_data.WayPoints[0].y8 = z1;
         g_fat_data.PathLength = 1;
-        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        use_nav_data((intptr_t)p_thing, 0, 0, 0);
         count_fnavs(0);
         p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
         DIFFTEST_RETURN((ushort)0);
     }
 
-    fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data, 0x80, 0);
-    use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+    fatter_than_nothing((intptr_t)&g_nav_data, (intptr_t)&g_fat_data, 0x80, 0);
+    use_nav_data((intptr_t)p_thing, 0, 0, 0);
     DIFFTEST_RETURN((ushort)1);
 }
 
@@ -5461,14 +5461,14 @@ void build_navigate_path_to_face(struct Thing *p_thing, short face)
             if ((p_thing->Flag & TngF_Unkn0020) != 0)
             {
                 face0 = p_face4->UnknTringl2;
-                set_xz_for_quad210((int)(intptr_t)p_face4, (int)(intptr_t)&x0,
-                  (int)(intptr_t)&z0, 0);
+                set_xz_for_quad210((intptr_t)p_face4, (intptr_t)&x0,
+                  (intptr_t)&z0, 0);
             }
             else
             {
                 face0 = p_face4->UnknTringl1;
-                set_xz_for_quad_unkn03((int)(intptr_t)p_face4, (int)(intptr_t)&x0,
-                  (int)(intptr_t)&z0, 0);
+                set_xz_for_quad_unkn03((intptr_t)p_face4, (intptr_t)&x0,
+                  (intptr_t)&z0, 0);
             }
             x0 <<= 8;
             z0 <<= 8;
@@ -5485,14 +5485,14 @@ void build_navigate_path_to_face(struct Thing *p_thing, short face)
     {
         p_face4 = &game_object_faces4[face];
         face1 = p_face4->UnknTringl1;
-        set_xz_for_quad_unkn03((int)(intptr_t)p_face4, (int)(intptr_t)&x1,
-          (int)(intptr_t)&z1, 0);
+        set_xz_for_quad_unkn03((intptr_t)p_face4, (intptr_t)&x1,
+          (intptr_t)&z1, 0);
     }
     x1 <<= 8;
     z1 <<= 8;
 
     nav_stats__ThisTurn++;
-    tri_path_init8(face0, face1, (int)(intptr_t)&g_nav_data, x0, z0, x1, z1, -2);
+    tri_path_init8(face0, face1, (intptr_t)&g_nav_data, x0, z0, x1, z1, -2);
 
     if (g_nav_data.PathLength == 0)
     {
@@ -5503,14 +5503,14 @@ void build_navigate_path_to_face(struct Thing *p_thing, short face)
         g_fat_data.WayPoints[0].x8 = x1;
         g_fat_data.WayPoints[0].y8 = z1;
         g_fat_data.PathLength = 1;
-        use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+        use_nav_data((intptr_t)p_thing, 0, 0, 0);
         count_fnavs(0);
         p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
         return;
     }
 
-    fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data, 0x80, 0);
-    use_nav_data((int)(intptr_t)p_thing, 0, 0, 0);
+    fatter_than_nothing((intptr_t)&g_nav_data, (intptr_t)&g_fat_data, 0x80, 0);
+    use_nav_data((intptr_t)p_thing, 0, 0, 0);
 }
 static DIFFTEST_REF_FUNC void fatter_than_nothing_asm(int a1, int a2, int a3, int a4)
 {
@@ -5541,7 +5541,7 @@ static void fatter_normalize(s32 *p_x, s32 *p_y)
  * the path in edx, moving each inner way point outwards by the width in
  * ebx; sharp turns get an additional way point. The ecx register is unused.
  */
-void fatter_than_nothing(int a1, int a2, int a3, int a4)
+void fatter_than_nothing(intptr_t a1, intptr_t a2, int a3, int a4)
 {
     struct Path *p_src = (struct Path *)a1;
     struct Path *p_dst = (struct Path *)a2;
@@ -5670,7 +5670,7 @@ static DIFFTEST_REF_FUNC short set_xz_for_quad123_asm(int a1, int a2, int a3, in
 /** Returns the triangle of the quad face on which the point (x,z) lies,
  * based on the side of the edge between face points 1 and 2.
  */
-short set_xz_for_quad123(int a1, int a2, int a3, int a4)
+short set_xz_for_quad123(intptr_t a1, int a2, int a3, int a4)
 {
     struct SingleObjectFace4 *p_face = (struct SingleObjectFace4 *)a1;
     s32 x = a2;
@@ -5707,7 +5707,7 @@ static DIFFTEST_REF_FUNC void set_xz_for_quad210_asm(int a1, int a2, int a3, int
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void set_xz_for_quad210(int a1, int a2, int a3, int a4)
+void set_xz_for_quad210(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
 {
     struct SingleObjectFace4 *p_face = (struct SingleObjectFace4 *)a1;
     s32 *x = (s32 *)a2;
@@ -5764,7 +5764,7 @@ static int quad_unkn03_cross_sign(s32 ax, s32 az, s32 bx, s32 bz, s32 px, s32 pz
     return (v > 0) ? 1 : 0;
 }
 
-void set_xz_for_quad_unkn03(int a1, int a2, int a3, int a4)
+void set_xz_for_quad_unkn03(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
 {
     struct SingleObjectFace4 *p_face = (struct SingleObjectFace4 *)a1;
     s32 *x = (s32 *)a2;
@@ -5824,7 +5824,7 @@ static DIFFTEST_REF_FUNC void use_nav_data_asm(int a1, int a2, int a3, int a4)
  * and attach that chain to the thing.
  * Routed asm (internal label); only a1 (the thing) is used.
  */
-void use_nav_data(int a1, int a2, int a3, int a4)
+void use_nav_data(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_thing = (struct Thing *)a1;
     struct MyPath *p_mypath;
@@ -5896,7 +5896,7 @@ static DIFFTEST_REF_FUNC int triangle_route_do_unkn5_asm(int a1, int a2, int a3,
  * (from a1 back to a2), a4 unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn5(int a1, int a2, int a3, int a4)
+int triangle_route_do_unkn5(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     struct TrTriangle *p_tri;
@@ -6015,7 +6015,7 @@ static DIFFTEST_REF_FUNC int triangle_route_do_unkn6_asm(int a1, int a2, int a3,
  * (from a1 back to a2), a4 unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn6(int a1, int a2, int a3, int a4)
+int triangle_route_do_unkn6(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     struct TrTriangle *p_tri;
@@ -6133,7 +6133,7 @@ static DIFFTEST_REF_FUNC int ma_triangle_route_3_asm(int a1, int a2, int a3, int
  * through to the route search functions.
  * Returns the route length, or -1.
  */
-int ma_triangle_route_3(int a1, int a2, int a3, int a4)
+int ma_triangle_route_3(int a1, int a2, intptr_t a3, intptr_t a4)
 {
     s32 *p_route = (s32 *)a3;
     s32 *p_dst;
@@ -6151,7 +6151,7 @@ int ma_triangle_route_3(int a1, int a2, int a3, int a4)
     tree_Ay8 = tree_By8;
     tree_By8 = tmp;
 
-    ret_bak = triangle_route_do_unkn6(a2, a1, (int)(intptr_t)route_bak, a4);
+    ret_bak = triangle_route_do_unkn6(a2, a1, (intptr_t)route_bak, a4);
     if (ret_bak == -1)
         DIFFTEST_RETURN((int)-1);
 
@@ -6212,7 +6212,7 @@ static DIFFTEST_REF_FUNC int tri_path_init8_asm(int a1, int a2, int a3, int a4, 
  * a4..a7 = ax8, ay8, bx8, by8; a8 unused.
  * Returns the number of way points, or another value on failure.
  */
-int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+int tri_path_init8(int a1, int a2, intptr_t a3, int a4, int a5, int a6, int a7, int a8)
 {
     struct Path *p_path = (struct Path *)a3;
     int ax8 = a4, ay8 = a5, bx8 = a6, by8 = a7;
@@ -6260,8 +6260,8 @@ int tri_path_init8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a
     if (triB == -1)
         DIFFTEST_RETURN((int)ret);
 
-    ret = ma_triangle_route_3(tree_triA, triB, (int)(intptr_t)tree_route,
-      (int)(intptr_t)&tree_routecost);
+    ret = ma_triangle_route_3(tree_triA, triB, (intptr_t)tree_route,
+      (intptr_t)&tree_routecost);
     tree_routelen = ret;
     if (ret == -1)
         DIFFTEST_RETURN((int)ret);
@@ -6326,13 +6326,13 @@ void build_navigate_path_to_face_xz(struct Thing *p_thing, short face, int x, in
     if (face < 0)
         tringl1 = game_object_faces3[-face].UnknTringl;
     else
-        tringl1 = set_xz_for_quad123((int)(intptr_t)&game_object_faces4[face],
+        tringl1 = set_xz_for_quad123((intptr_t)&game_object_faces4[face],
           x, z, tringl0);
 
     x8 = x << 8;
     z8 = z << 8;
     nav_stats__ThisTurn++;
-    tri_path_init8(tringl0, tringl1, (int)(intptr_t)&g_nav_data, x0, z0, x8, z8, -2);
+    tri_path_init8(tringl0, tringl1, (intptr_t)&g_nav_data, x0, z0, x8, z8, -2);
 
     if (g_nav_data.PathLength == 0)
     {
@@ -6343,14 +6343,14 @@ void build_navigate_path_to_face_xz(struct Thing *p_thing, short face, int x, in
         g_fat_data.WayPoints[0].x8 = x8;
         g_fat_data.PathLength = 1;
         g_fat_data.WayPoints[0].y8 = z8;
-        use_nav_data((int)(intptr_t)p_thing, tringl1, 0, 0);
+        use_nav_data((intptr_t)p_thing, tringl1, 0, 0);
         count_fnavs(0);
         p_thing->Flag2 |= TgF2_Unkn00020000 | TgF2_Unkn0040;
         return;
     }
 
-    fatter_than_nothing((int)(intptr_t)&g_nav_data, (int)(intptr_t)&g_fat_data, 0x80, 0);
-    use_nav_data((int)(intptr_t)p_thing, 1, 0, 0);
+    fatter_than_nothing((intptr_t)&g_nav_data, (intptr_t)&g_fat_data, 0x80, 0);
+    use_nav_data((intptr_t)p_thing, 1, 0, 0);
     unkn_path_func_001(p_thing, 1);
 }
 
@@ -6393,7 +6393,7 @@ static DIFFTEST_REF_FUNC int do_i_have_weapon_asm(int a1, int a2)
     return ra;
 }
 
-int do_i_have_weapon(int a1, int a2)
+int do_i_have_weapon(intptr_t a1, int a2)
 {
     struct Thing *p_person = (struct Thing *)a1;
     int weapon = a2;
@@ -6498,7 +6498,7 @@ void person_init_pickup(struct Thing *p_person, ThingIdx item)
     if (weapon != 0)
     {
         can_pick = 1;
-        if (do_i_have_weapon((int)(intptr_t)p_person, weapon) != 0)
+        if (do_i_have_weapon((intptr_t)p_person, weapon) != 0)
             can_pick = 0;
 
         if ((p_person->Flag & TngF_PlayerAgent) != 0)
@@ -7024,7 +7024,7 @@ static DIFFTEST_REF_FUNC void set_get_item_asm(int a1, int a2, int a3, int a4)
 /** Makes a person go pick up given item (simple thing).
  * Arguments are raw registers: a1 = person, a2 = item index (short).
  */
-void set_get_item(int a1, int a2, int a3, int a4)
+void set_get_item(intptr_t a1, int a2, intptr_t a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     short item = (short)a2;
@@ -7073,7 +7073,7 @@ static DIFFTEST_REF_FUNC int send_another_player_peep_asm(int a1, int a2, int a3
  * a3 = player index (ushort).
  * Returns 1 if an agent was sent, 0xffff if no agent qualified, 0 otherwise.
  */
-int send_another_player_peep(int a1, int a2, int a3, int a4)
+int send_another_player_peep(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     short item = (short)a2;
@@ -7093,7 +7093,7 @@ int send_another_player_peep(int a1, int a2, int a3, int a4)
         DIFFTEST_RETURN((int)0);
 
     // TODO: returns early when the person does NOT have the weapon; looks inverted
-    if (do_i_have_weapon((int)p_person, p_sthing->U.UWeapon.WeaponType) == 0)
+    if (do_i_have_weapon((intptr_t)p_person, p_sthing->U.UWeapon.WeaponType) == 0)
         DIFFTEST_RETURN((int)0);
 
     for (i = 0; i < playable_agents; i++)
@@ -7127,7 +7127,7 @@ int send_another_player_peep(int a1, int a2, int a3, int a4)
         }
         if (nweapons >= 6)
             continue;
-        if (do_i_have_weapon((int)p_agent, p_sthing->U.UWeapon.WeaponType) != 0)
+        if (do_i_have_weapon((intptr_t)p_agent, p_sthing->U.UWeapon.WeaponType) != 0)
             continue;
 
         dx = (s32)(p_agent->X - p_sthing->X) >> 8;
@@ -7146,7 +7146,7 @@ int send_another_player_peep(int a1, int a2, int a3, int a4)
 
     p_thing = &things[best_thing];
     set_person_animmode_run(p_thing);
-    set_get_item((int)p_thing, item, (int)p_thing, 0);
+    set_get_item((intptr_t)p_thing, item, (intptr_t)p_thing, 0);
     p_thing->Flag2 |= TgF2_Unkn10000000;
     DIFFTEST_RETURN((int)1);
 }
@@ -7169,7 +7169,7 @@ void person_init_get_item(struct Thing *p_person, short item, ushort plyr)
 
     DIFFTEST_SHADOW(person_init_get_item, person_init_get_item_asm(p_person, item, plyr));
     p_sthing = &sthings[item];
-    if ((ushort)send_another_player_peep((int)p_person, item, plyr, 0) != 0)
+    if ((ushort)send_another_player_peep((intptr_t)p_person, item, plyr, 0) != 0)
         return;
     if ((p_person->Flag & (TngF_StationrSht | TngF_Destroyed)) != 0)
         return;
@@ -7178,7 +7178,7 @@ void person_init_get_item(struct Thing *p_person, short item, ushort plyr)
     if (weapon != 0)
     {
         can_take = 1;
-        if (do_i_have_weapon((int)p_person, weapon) != 0)
+        if (do_i_have_weapon((intptr_t)p_person, weapon) != 0)
             can_take = 0;
 
         if ((p_person->Flag & TngF_PlayerAgent) != 0)
@@ -7222,7 +7222,7 @@ void person_init_get_item(struct Thing *p_person, short item, ushort plyr)
 
     p_sthing = &sthings[item];
     if (p_sthing->Type == SmTT_DROPPED_ITEM)
-        set_get_item((int)p_person, item, plyr, 0);
+        set_get_item((intptr_t)p_person, item, plyr, 0);
 }
 static DIFFTEST_REF_FUNC void person_unkn_start_get_item_asm(int a1, int a2, int a3, int a4)
 {
@@ -7235,7 +7235,7 @@ static DIFFTEST_REF_FUNC void person_unkn_start_get_item_asm(int a1, int a2, int
  * still carry the item's weapon, to pick up given item (simple thing).
  * Arguments are raw registers: a1 = person, a2 = item index (short).
  */
-void person_unkn_start_get_item(int a1, int a2, int a3, int a4)
+void person_unkn_start_get_item(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     short item = (short)a2;
@@ -7321,7 +7321,7 @@ next:
 
 static DIFFTEST_REF_FUNC void person_init_get_item_fast_asm(struct Thing *p_person, short item, ushort plyr)
 {
-    int ra = (int)p_person, rd = item, rb = plyr;
+    int ra = (int)(intptr_t)p_person, rd = item, rb = plyr;
     asm volatile ("call ASM_person_init_get_item_fast\n"
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
 }
@@ -7340,8 +7340,8 @@ void person_init_get_item_fast(struct Thing *p_person, short item, ushort plyr)
 
     DIFFTEST_SHADOW(person_init_get_item_fast, person_init_get_item_fast_asm(p_person, item, plyr));
     p_sthing = &sthings[item];
-    person_unkn_start_get_item((int)p_person, item, plyr, item);
-    if ((ushort)send_another_player_peep((int)p_person, item, plyr, item) != 0)
+    person_unkn_start_get_item((intptr_t)p_person, item, plyr, item);
+    if ((ushort)send_another_player_peep((intptr_t)p_person, item, plyr, item) != 0)
         return;
     if ((p_person->Flag & (TngF_StationrSht | TngF_Destroyed)) != 0)
         return;
@@ -7406,7 +7406,7 @@ void person_init_get_item_fast(struct Thing *p_person, short item, ushort plyr)
     p_sthing = &sthings[item];
     if (p_sthing->Type != SmTT_DROPPED_ITEM)
         return;
-    set_get_item((int)p_person, item, plyr, 0);
+    set_get_item((intptr_t)p_person, item, plyr, 0);
     if ((p_person->Flag2 & TgF2_Unkn0040) == 0)
         set_person_animmode_run(p_person);
 }
@@ -8460,7 +8460,7 @@ static DIFFTEST_REF_FUNC int do_fvect_colide_asm(int a1, int a2, int a3, int a4,
     return ra;
 }
 
-int do_fvect_colide(int a1, int a2, int a3, int a4, int a5)
+int do_fvect_colide(int a1, int a2, int a3, int a4, intptr_t a5)
 {
     struct MyMapElement *p_me = (struct MyMapElement *)a5;
     struct ColVectList *p_cvlist;
@@ -8578,7 +8578,7 @@ int can_i_see_building(struct Thing *p_i, struct Thing *p_thing,
         p_mapel = &game_my_big_map[tile_z * 128 + tile_x];
         if (p_mapel->ColHead == 0)
             continue;
-        cvlist = do_fvect_colide(x, z, x + step_x, z + step_z, (int)p_mapel);
+        cvlist = do_fvect_colide(x, z, x + step_x, z + step_z, (intptr_t)p_mapel);
         if (cvlist == 0)
             continue;
         if (game_col_vects_list[cvlist].Object == (int)(ushort)p_thing->ThingOffset)
@@ -8712,7 +8712,7 @@ static DIFFTEST_REF_FUNC int person_drops_weapons_asm(int a1, int a2, int a3, in
 void plant_mine(struct Thing *p_person);
 ubyte vector_in_way(struct Thing *p_thing, int dx, int dz);
 
-int person_drops_weapons(int a1, int a2, int a3, int a4)
+int person_drops_weapons(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     s32 cor_y;
@@ -8809,7 +8809,7 @@ static DIFFTEST_REF_FUNC void scare_civs_asm(int a1, int a2, int a3, int a4)
 
 void make_peep_flee(int b_x, int b_z, struct Thing *p_person);
 
-void scare_civs(int a1, int a2, int a3, int a4)
+void scare_civs(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_scarer = (struct Thing *)a1;
     int cntr_x, cntr_z;
@@ -8943,7 +8943,7 @@ void set_person_dead(struct Thing *p_person, ushort anim_mode)
         }
     }
 
-    scare_civs((int)p_person, 0, 0, 0);
+    scare_civs((intptr_t)p_person, 0, 0, 0);
 
     if ((p_person->Flag2 & TgF2_Unkn0200) != 0)
     {
@@ -9057,7 +9057,7 @@ void set_person_dead(struct Thing *p_person, ushort anim_mode)
         play_dist_sample(p_person, 57, 0x7F, 0x40, 100, 0, 3);
     else
         play_dist_sample(p_person, 25, 0x7F, 0x40, 100, 0, 3);
-    person_drops_weapons((int)p_person, 0, 0, 0);
+    person_drops_weapons((intptr_t)p_person, 0, 0, 0);
 
     if ((p_person->Flag2 & TgF2_KnockedOut) == 0)
         return;
@@ -9089,7 +9089,7 @@ static DIFFTEST_REF_FUNC int available_for_guard_duty_asm(int a1, int a2, int a3
  * Arguments are the raw registers the asm takes (eax, edx, ebx); only
  * eax (the person thing pointer) is used. Return value is in al only.
  */
-int available_for_guard_duty(int a1, int a2, int a3)
+int available_for_guard_duty(intptr_t a1, int a2, intptr_t a3)
 {
     struct Thing *p_person = (struct Thing *)a1;
     ushort state;
@@ -9138,7 +9138,7 @@ static DIFFTEST_REF_FUNC int find_best_guardian_asm(int a1, int a2, int a3, int 
  * eax is the person thing pointer, dx the group. Returns the guardian
  * thing pointer, or 0. Stores the found distance in dword_1AA680.
  */
-int find_best_guardian(int a1, int a2, int a3, int a4)
+intptr_t find_best_guardian(intptr_t a1, int a2, intptr_t a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_thing;
@@ -9147,7 +9147,7 @@ int find_best_guardian(int a1, int a2, int a3, int a4)
     s32 dist_x, dist_z, dist;
     int k;
 
-    DIFFTEST_SHADOW_RET(find_best_guardian, int,
+    DIFFTEST_SHADOW_RET(find_best_guardian, intptr_t,
       find_best_guardian_asm(a1, a2, a3, a4));
     best_thing = 0;
     best_dist = 16000;
@@ -9163,7 +9163,7 @@ int find_best_guardian(int a1, int a2, int a3, int a4)
         k++;
         if ((ushort)p_person->ThingOffset != thing
           && p_person->GotoThingIndex != thing
-          && (ubyte)available_for_guard_duty((int)p_thing, a2, (int)p_thing))
+          && (ubyte)available_for_guard_duty((intptr_t)p_thing, a2, (intptr_t)p_thing))
         {
             dist_x = abs((p_thing->X - p_person->X) >> 8);
             dist_z = abs((p_thing->Z - p_person->Z) >> 8);
@@ -9181,8 +9181,8 @@ int find_best_guardian(int a1, int a2, int a3, int a4)
     }
     dword_1AA680 = best_dist;
     if (best_thing == 0)
-        DIFFTEST_RETURN((int)0);
-    DIFFTEST_RETURN((int)&things[best_thing]);
+        DIFFTEST_RETURN((intptr_t)0);
+    DIFFTEST_RETURN((intptr_t)&things[best_thing]);
 }
 
 static DIFFTEST_REF_FUNC uint find_and_alert_guardian_asm(struct Thing *p_person,
@@ -9218,8 +9218,8 @@ uint find_and_alert_guardian(struct Thing *p_person, struct Thing *p_attacker)
             continue;
         while (1)
         {
-            p_guard = (struct Thing *)find_best_guardian((int)p_person, grp,
-              (int)p_person, count);
+            p_guard = (struct Thing *)find_best_guardian((intptr_t)p_person, grp,
+              (intptr_t)p_person, count);
             if (p_guard == NULL)
                 break;
             p_guard->State = PerSt_INIT_SAVE_VICTIM;
@@ -9698,10 +9698,10 @@ static DIFFTEST_REF_FUNC void do_person_gotothingindex_asm(int a1, int a2, int a
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-int do_next_navigate_index(int a1, int a2, int a3, int a4);
+int do_next_navigate_index(intptr_t a1, int a2, int a3, int a4);
 short person_move(struct Thing *p_person);
 
-void do_person_gotothingindex(int a1, int a2, int a3, int a4)
+void do_person_gotothingindex(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_target;
@@ -9803,7 +9803,7 @@ void do_person_gotothingindex(int a1, int a2, int a3, int a4)
         if (p_person->U.UPerson.ComTimer == -100)
         {
             p_person->U.UPerson.LastDist = 0x7d00;
-            if ((ubyte)do_next_navigate_index((int)p_person, 0, 0, 0) != 0)
+            if ((ubyte)do_next_navigate_index((intptr_t)p_person, 0, 0, 0) != 0)
             {
                 p_person->U.UPerson.PathIndex = 0;
                 p_person->State = 0;
@@ -10013,7 +10013,7 @@ int person_goto_person_nav(struct Thing *p_person)
         p_person->U.UPerson.GotoZ = p_target->Z >> 8;
     }
     old_state = p_person->State;
-    do_person_gotothingindex((int)p_person, old_state, 0, 0);
+    do_person_gotothingindex((intptr_t)p_person, old_state, 0, 0);
 
     if ((ushort)p_person->State == 0)
     {
@@ -10128,7 +10128,7 @@ void person_goto_point(struct Thing *p_person)
         if (p_person->U.UPerson.ComTimer == -100)
         {
             p_person->U.UPerson.LastDist = 0x7d00;
-            if ((ubyte)do_next_navigate_index((int)p_person, 0, 0, 0) != 0)
+            if ((ubyte)do_next_navigate_index((intptr_t)p_person, 0, 0, 0) != 0)
             {
                 p_person->U.UPerson.PathIndex = 0;
                 p_person->State = 0;
@@ -11752,7 +11752,7 @@ static DIFFTEST_REF_FUNC int set_player_peeps_to_run_asm(int a1, int a2, int a3,
     return ra;
 }
 
-int set_player_peeps_to_run(int a1, int a2, int a3, int a4)
+int set_player_peeps_to_run(intptr_t a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     ushort plyr = (ushort)a2;
@@ -11803,7 +11803,7 @@ void person_go_enter_vehicle_fast(struct Thing *p_person, struct Thing *p_vehicl
     if ((p_person->Flag2 & TgF2_Unkn0040) != 0)
         return;
     set_person_animmode_run(p_person);
-    set_player_peeps_to_run((int)p_person, plyr, 0, (int)p_person);
+    set_player_peeps_to_run((intptr_t)p_person, plyr, 0, (intptr_t)p_person);
 }
 
 static DIFFTEST_REF_FUNC void person_go_enter_vehicle_asm(struct Thing *p_person, struct Thing *p_vehicle)
@@ -12060,7 +12060,7 @@ void make_peeps_scatter(struct Thing *p_person, int x, int z)
             if ((p_agent->Flag2 & TgF2_Unkn0040) == 0)
             {
                 set_person_animmode_run(p_agent);
-                set_player_peeps_to_run((int)p_agent, plyr, (short)cor_y, cor_z);
+                set_player_peeps_to_run((intptr_t)p_agent, plyr, (short)cor_y, cor_z);
             }
         }
 
@@ -12123,7 +12123,7 @@ static DIFFTEST_REF_FUNC void yank_from_vehicle_asm(int a1, int a2, int a3, int 
 /** Routed asm (internal label). Arguments are the raw registers the asm
  * takes (eax, edx, ebx, ecx); only eax (the person) is used.
  */
-void yank_from_vehicle(int a1, int a2, int a3, int a4)
+void yank_from_vehicle(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_vehicle;
@@ -12199,7 +12199,7 @@ void person_self_destruct(struct Thing *p_person)
         ThingIdx vehicle;
 
         vehicle = p_person->U.UPerson.Vehicle;
-        yank_from_vehicle((int)p_person, 0, 0, 0);
+        yank_from_vehicle((intptr_t)p_person, 0, 0, 0);
         if ((p_person->Flag & TngF_Destroyed) == 0
           && (ushort)p_person->State != PerSt_DEAD)
             set_person_dead(p_person, 12);
@@ -12413,7 +12413,7 @@ static DIFFTEST_REF_FUNC int find_target_from_persuaded_peeps_asm(int a1, int a2
     return (ubyte)ra;
 }
 
-int find_target_from_persuaded_peeps(int a1, int a2, int a3, int a4)
+int find_target_from_persuaded_peeps(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_other;
@@ -12482,7 +12482,7 @@ static DIFFTEST_REF_FUNC int find_target_from_players_asm(int a1, int a2, int a3
     return (ubyte)ra;
 }
 
-int find_target_from_players(int a1, int a2, int a3, int a4)
+int find_target_from_players(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_agent;
@@ -12553,7 +12553,7 @@ static DIFFTEST_REF_FUNC void find_target_from_group_asm(int a1, int a2, int a3,
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void find_target_from_group(int a1, int a2, int a3, int a4)
+void find_target_from_group(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_other;
@@ -12620,9 +12620,9 @@ void find_target_from_group(int a1, int a2, int a3, int a4)
     if (!in_network_game && (p_person->Flag2 & TgF2_Unkn0008) == 0 &&
       (kill_on_sight & (1u << (level_def.PlayableGroups[0] & 0x1f))) != 0)
     {
-        if ((ubyte)find_target_from_players((int)p_person, range, see_flags, see_flags) != 0)
+        if ((ubyte)find_target_from_players((intptr_t)p_person, range, see_flags, see_flags) != 0)
             return;
-        if ((ubyte)find_target_from_persuaded_peeps((int)p_person, range, see_flags, see_flags) != 0)
+        if ((ubyte)find_target_from_persuaded_peeps((intptr_t)p_person, range, see_flags, see_flags) != 0)
             return;
         if (((~(1u << (level_def.PlayableGroups[0] & 0x1f)) & kill_on_sight) |
           kill_weapon_out | kill_armed) == 0)
@@ -12691,7 +12691,7 @@ void person_intel(struct Thing *p_person)
         p_person->Flag &= ~TngF_TriggerUse;
     if (p_person->U.UPerson.WeaponTurn != 0)
         return;
-    find_target_from_group((int)p_person, 0, 0, 0);
+    find_target_from_group((intptr_t)p_person, 0, 0, 0);
 }
 
 short person_move(struct Thing *p_person);
@@ -13306,7 +13306,7 @@ static DIFFTEST_REF_FUNC void copy_owner_with_weapon_asm(int a1, int a2, int a3,
 
 void peep_change_weapon(struct Thing *p_person);
 
-void copy_owner_with_weapon(int a1, int a2, int a3, int a4)
+void copy_owner_with_weapon(intptr_t a1, intptr_t a2, intptr_t a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_owner = (struct Thing *)a2;
@@ -13415,7 +13415,7 @@ void process_persuaded(struct Thing *p_person)
         return;
     }
 
-    copy_owner_with_weapon((int)p_person, (int)p_owner, (int)p_owner, 0);
+    copy_owner_with_weapon((intptr_t)p_person, (intptr_t)p_owner, (intptr_t)p_owner, 0);
     if ((p_person->PTarget != NULL)
       && (p_person->PTarget->U.UPerson.EffectiveGroup == p_person->U.UPerson.EffectiveGroup))
         p_person->PTarget = NULL;
@@ -14044,7 +14044,7 @@ void person_pickup(struct Thing *p_person)
             {
                 reset_timer = false;
             }
-            else if (do_i_have_weapon((int)p_person, p_sthing->U.UWeapon.WeaponType) == 0)
+            else if (do_i_have_weapon((intptr_t)p_person, p_sthing->U.UWeapon.WeaponType) == 0)
             {
                 play_dist_sample(p_person, 0x45, 0x7F, 0x40, 100, 0, 1);
                 if (p_sthing->Type != SmTT_CARRIED_ITEM)
@@ -14486,7 +14486,7 @@ static DIFFTEST_REF_FUNC int search_floor_for_item_asm(int a1, int a2, int a3, i
     return ra;
 }
 
-int search_floor_for_item(int a1, int a2, int a3, int a4)
+int search_floor_for_item(intptr_t a1, int a2, intptr_t a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     short item = (short)a2;
@@ -14585,8 +14585,8 @@ void person_get_item(struct Thing *p_person)
     {
         if (p_person->U.UPerson.StandOnThing != p_person->GotoThingIndex)
         {
-            if ((short)search_floor_for_item((int)p_person,
-              p_person->GotoThingIndex, (int)p_person, 0) != 1)
+            if ((short)search_floor_for_item((intptr_t)p_person,
+              p_person->GotoThingIndex, (intptr_t)p_person, 0) != 1)
                 return;
         }
     }
@@ -16383,7 +16383,7 @@ static DIFFTEST_REF_FUNC void check_unlock_target_asm(int a1, int a2, int a3, in
  *
  * Routed asm (internal label): a1 is the person (eax), others unused.
  */
-void check_unlock_target(int a1, int a2, int a3, int a4)
+void check_unlock_target(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_target;
@@ -16434,7 +16434,7 @@ static DIFFTEST_REF_FUNC int get_target_priority_asm(int a1, int a2, int a3, int
     return ra;
 }
 
-int get_target_priority(int a1, int a2, int a3, int a4)
+int get_target_priority(intptr_t a1, intptr_t a2, int a3, int a4)
 {
     struct Thing *p_target = (struct Thing *)a1;
     struct Thing *p_person = (struct Thing *)a2;
@@ -16525,7 +16525,7 @@ static void find_a_target_check(struct Thing *p_person, ushort thing,
     p_thing = &things[thing];
     if ((p_thing->Flag & TngF_Destroyed) != 0)
         return;
-    if ((short)get_target_priority((int)p_person, (int)p_thing, 0, 0) == 0)
+    if ((short)get_target_priority((intptr_t)p_person, (intptr_t)p_thing, 0, 0) == 0)
         return;
     dist = can_i_see_thing(p_person, p_thing, max_dist, 0);
     if (dist == 0)
@@ -16552,7 +16552,7 @@ static void find_a_target_check(struct Thing *p_person, ushort thing,
  * preferring the ones targeting that person. Returns its index or 0,
  * and leaves the distance in dword_1AA67C.
  */
-int find_a_target(int a1, int a2, int a3, int a4)
+int find_a_target(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     u32 range;
@@ -16607,7 +16607,7 @@ static void people_intel_group_search(struct Thing *p_thing)
         p_thing->Flag &= ~TngF_TriggerUse;
     if (p_thing->U.UPerson.WeaponTurn != 0)
         return;
-    find_target_from_group((int)p_thing, 0, 0, 0);
+    find_target_from_group((intptr_t)p_thing, 0, 0, 0);
 }
 
 void people_intel(ubyte flag)
@@ -16651,7 +16651,7 @@ void people_intel(ubyte flag)
                 continue;
             if (((u32)gameturn % (u32)(s32)period) != 0)
                 continue;
-            find_target_from_group((int)p_thing, 0, 0, 0);
+            find_target_from_group((intptr_t)p_thing, 0, 0, 0);
         }
     }
 
@@ -16674,17 +16674,17 @@ void people_intel(ubyte flag)
                 continue;
             if ((p_thing->Flag2 & (TgF2_IgnoreEnemies|TgF2_Unkn00080000)) != 0)
             {
-                check_unlock_target((int)p_thing, 0, 0, 0);
+                check_unlock_target((intptr_t)p_thing, 0, 0, 0);
                 continue;
             }
             if (p_thing->PTarget == NULL)
                 p_thing->Flag2 &= ~TgF2_Unkn00200000;
             if ((p_thing->Flag2 & TgF2_Unkn00200000) != 0)
             {
-                check_unlock_target((int)p_thing, 0, 0, 0);
+                check_unlock_target((intptr_t)p_thing, 0, 0, 0);
                 continue;
             }
-            target = find_a_target((int)p_thing, 0, 0, 0);
+            target = find_a_target((intptr_t)p_thing, 0, 0, 0);
             if (target == 0)
                 p_thing->PTarget = NULL;
             else

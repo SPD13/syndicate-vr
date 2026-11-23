@@ -138,7 +138,15 @@ static inline TbResult load_sprites_with_detail(ubyte *p_dat, ubyte **pp_dat_end
     }
 
     sprintf(locstr, "%s/%s%hd-%hd.tab", dir, name, styleno, detail);
-    len = LbFileLoadAt(locstr, p_spr);
+    len = LbFileLengthRnc(locstr);
+    if ((len != -1) && (p_spr + LB_SPRITE_TAB_MEM_SIZE(len) > p_spr_end)) {
+        LOGERR("Sprites of \"%s\" do not fit the area, trimmed", locstr);
+        len = -1;
+    }
+    if (len != -1)
+        len = LbFileLoadAt(locstr, p_spr);
+    if (len != -1)
+        len = LbSpriteTabExpand(p_spr, len);
     if (len == -1) {
         ret = Lb_FAIL;
         LbMemorySet(p_spr, 0, p_spr_end - p_spr);
@@ -536,6 +544,8 @@ TbResult load_multicolor_sprites(const char *dir)
     assert(m_sprites_data_end + 512 >= m_sprites_data + len);
     sprintf(locstr, "%s/mspr-%d.tab", dir, ingame.TrenchcoatPreference);
     len = LbFileLoadAt(locstr, m_sprites);
+    if (len != -1)
+        len = LbSpriteTabExpand(m_sprites, len);
     if (len == -1) {
         ret = Lb_FAIL;
         len = 128 * sizeof(struct TbSprite);
@@ -566,8 +576,8 @@ void debug_multicolor_sprite(int idx)
 
     spr = &m_sprites[idx];
     str = strdata;
-    sprintf(str, "spr %d width %d height %d ptr 0x%lx data",
-      idx, (int)spr->SWidth, (int)spr->SHeight, (ulong)spr->Data);
+    sprintf(str, "spr %d width %d height %d ptr %p data",
+      idx, (int)spr->SWidth, (int)spr->SHeight, (void *)spr->Data);
     ptr = spr->Data;
     for (i = 0; i < 10; i++)
     {

@@ -312,7 +312,7 @@ static DIFFTEST_REF_FUNC int sit_on_my_face_asm(int a1, int a2, int a3, int a4)
  *
  * Routed asm (internal label): a1 = face, a2 = thing pointer.
  */
-int sit_on_my_face(int a1, int a2, int a3, int a4)
+int sit_on_my_face(int a1, intptr_t a2, int a3, int a4)
 {
     int face = a1;
     struct Thing *p_thing = (struct Thing *)a2;
@@ -362,7 +362,7 @@ static DIFFTEST_REF_FUNC void do_people_on_exploding_building_asm(int a1, int a2
  *
  * Routed asm (internal label): a1 = building thing index.
  */
-void do_people_on_exploding_building(int a1, int a2, int a3, int a4)
+void do_people_on_exploding_building(int a1, int a2, int a3, intptr_t a4)
 {
     struct Thing *p_building;
     int thing;
@@ -390,7 +390,7 @@ void do_people_on_exploding_building(int a1, int a2, int a3, int a4)
         if (p_thing->U.UPerson.OnFace == 0)
             continue;
         p_building = &things[(short)a1];
-        if (sit_on_my_face(p_thing->U.UPerson.OnFace, (int)p_building, 0, 0) == 0)
+        if (sit_on_my_face(p_thing->U.UPerson.OnFace, (intptr_t)p_building, 0, 0) == 0)
             continue;
         {
             int alt;
@@ -411,7 +411,7 @@ void do_people_on_exploding_building(int a1, int a2, int a3, int a4)
 }
 
 
-int del_thing_vectors_from_mapwho(int a1, int a2, int a3, int a4);
+int del_thing_vectors_from_mapwho(intptr_t a1, int a2, intptr_t a3, int a4);
 
 /** Scanner areas to redraw; defined in asm, same layout as in scanner.c. */
 extern ubyte redo_scanner[128][4];
@@ -471,7 +471,7 @@ ushort explode_thing_building(short thing, short x, short y, short z)
         else
         {
             do_people_on_exploding_building(thing, numb_faces, start_face,
-              (int)p_building);
+              (intptr_t)p_building);
             ofs_x = p_sobj->MapX;
             ofs_y = p_sobj->OffsetY;
             ofs_z = p_sobj->MapZ;
@@ -682,8 +682,8 @@ ushort explode_thing_building(short thing, short x, short y, short z)
                 }
             }
 
-            while (del_thing_vectors_from_mapwho((int)p_mapel, thing,
-              (int)p_mapel, 0) != 0)
+            while (del_thing_vectors_from_mapwho((intptr_t)p_mapel, thing,
+              (intptr_t)p_mapel, 0) != 0)
                 ;
 
             child = p_mapel->Child;
@@ -1317,7 +1317,7 @@ static DIFFTEST_REF_FUNC int rotate_obj_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int rotate_obj(int a1, int a2, int a3, int a4)
+int rotate_obj(int a1, int a2, int a3, intptr_t a4)
 {
     s32 *p_mat = (s32 *)a4;
     ushort ang_x, ang_y, ang_z;
@@ -1379,7 +1379,7 @@ void rotate_object(struct Thing *p_object)
     p_mat = &local_mats[p_object->U.UMGun.MatrixIndex];
     if (p_object->U.UMGun.AngleX > 0x400)
         p_object->U.UMGun.AngleX -= 0x800;
-    rotate_obj(0, (short)(-p_object->U.UMGun.AngleY), 0, (int)p_mat);
+    rotate_obj(0, (short)(-p_object->U.UMGun.AngleY), 0, (intptr_t)p_mat);
     rotate_object_axis(p_mat, 0, (short)(-p_object->U.UMGun.AngleX), 0);
 }
 
@@ -1475,7 +1475,7 @@ static DIFFTEST_REF_FUNC int kill_flags_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int kill_flags(int a1, int a2, int a3, int a4)
+int kill_flags(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
 {
     struct Thing *p_thing = (struct Thing *)a1;
     struct Thing *p_target = (struct Thing *)a2;
@@ -1550,7 +1550,7 @@ ThingIdx aquire_target(struct Thing *p_gun)
                     continue;
                 }
                 p_thing = &things[thing];
-                if ((short)kill_flags((int)p_gun, (int)p_thing, (int)p_thing, (int)p_gun) != 0
+                if ((short)kill_flags((intptr_t)p_gun, (intptr_t)p_thing, (intptr_t)p_thing, (intptr_t)p_gun) != 0
                   && p_thing->Type == TT_PERSON
                   && (p_thing->Flag & TngF_Destroyed) == 0)
                 {

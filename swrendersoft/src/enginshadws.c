@@ -291,7 +291,7 @@ void get_frame_bounds_05(ushort frm, short *x1, short *x2, short *y1, short *y2)
         if ((p_el < melement_ani) || (p_el >= mele_ani_end))
             break;
 
-        p_spr = (struct TbSprite *)((ubyte *)m_sprites + p_el->ToSprite);
+        p_spr = FRAME_ELEMENT_SPRITE(p_el);
         if ((p_spr < m_sprites) || (p_spr >= m_sprites_end))
             continue;
 

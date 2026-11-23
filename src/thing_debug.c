@@ -796,7 +796,7 @@ void things_debug_hud(void)
         draw_simple_text(trg2_scr_x, trg2_scr_y, locstr, colour_lookup[ColLU_WHITE]);
 
         short targ_scr_x, targ_scr_y;
-        sprintf(locstr, "pTarg %x",  (uint)p_track_thing->PTarget);
+        sprintf(locstr, "pTarg %x",  (uint)(uintptr_t)p_track_thing->PTarget);
         targ_scr_x = scr_x + 45;
         targ_scr_y = scr_y + ln*3;
         draw_simple_text(targ_scr_x, targ_scr_y, locstr, colour_lookup[ColLU_WHITE]);

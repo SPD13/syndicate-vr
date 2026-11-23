@@ -1673,7 +1673,7 @@ static DIFFTEST_REF_FUNC int bul_path_end_asm(int x1, int y1, int z1,
     return ret;
 }
 
-int do_fvect_colide(int a1, int a2, int a3, int a4, int a5);
+int do_fvect_colide(int a1, int a2, int a3, int a4, intptr_t a5);
 
 int bul_path_end(int x1, int y1, int z1, int *x2, int *y2, int *z2,
   int radius, struct Thing *p_owner, ubyte *status)
@@ -1741,7 +1741,7 @@ int bul_path_end(int x1, int y1, int z1, int *x2, int *y2, int *z2,
             if (p_mapel->ColHead != 0)
             {
                 colide = do_fvect_colide(x1, z1, orig_x, orig_z,
-                  (int)(intptr_t)p_mapel);
+                  (intptr_t)p_mapel);
                 if (colide > 0)
                 {
                     *status = 1;
@@ -2484,7 +2484,7 @@ static DIFFTEST_REF_FUNC void snap_razor_wire_asm(int a1, int a2, int a3, int a4
 /** Remove a razor wire thing, together with its collision vector.
  * Routed asm (internal label); only a1 (eax) is used, as the wire thing.
  */
-void snap_razor_wire(int a1, int a2, int a3, int a4)
+void snap_razor_wire(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_wire = (struct Thing *)a1;
 
@@ -5995,7 +5995,7 @@ s32 laser_hit_at(s32 cor1_x, s32 cor1_y, s32 cor1_z,
           && p_mapel->ColHead != 0)
         {
             colide = do_fvect_colide(cor1_x, cor1_z, orig_x, orig_z,
-              (int)(intptr_t)p_mapel);
+              (intptr_t)p_mapel);
             if (colide > 0)
                 DIFFTEST_RETURN(-colide);
         }

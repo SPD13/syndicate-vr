@@ -20,9 +20,38 @@ plan is in `docs/decompilation-agent-plan.md`.
   only with difftest or `--enable-dos-network` (`ASM_WRAPPERS`);
   `-lbullfrog` repeated after `-lswrender` (the wrappers used to pull in
   the bullfrog objects swrender needs).
-- Next steps towards arm64/64-bit (plan step 2): build without `-m32`
-  and fix pointer-size assumptions; the generated `*_data.c` are 32-bit
-  byte layouts and need real types; the DOS network has no replacement.
+- **64-bit, 2026-11-23** (user goal: C code fully 64-bit compatible).
+  `build.sh --x64` builds with MSYS2 MINGW64 into `build/x64` (with the
+  test harness); on 52 scenarios of 1500 turns its state traces equal
+  the 32-bit difftest build ones. How it got there:
+  - `--enable-test-harness`: bot, hooks, turn limit, seed, own rand()
+    and state trace without the asm (`DIFFTEST_HARNESS` in difftest.h),
+    so any target can be traced (`SWARS_TRACE_BUILD=harness|x64
+    statetrace.sh`). The trace hashes things in the 32-bit word layout.
+    `build.sh --harness` is the 32-bit build of it.
+  - Typed asm data: the 161 labels C uses are variables of their C types
+    in the C files that own them (`sx_data_typed.py`, placed by
+    `sx_data_inline.py`, checked byte for byte by
+    `sx_data_typed_check.py`); `swars_data.c`, `bat_data.c`,
+    `bfsmacklib_data.c` are built only with difftest, the network ones
+    only with `--enable-dos-network`.
+  - Raw register arguments carrying pointers (`int a1`) are `intptr_t`
+    (`widen_regs.py`, from the 64-bit warnings and from `(int)(intptr_t)`
+    casts in the source); a `-Wconversion` build (`build/x64conv`)
+    finds pointers still passed into `int`.
+  - File records with pointers are converted at load/save: things in
+    level and MAD files (168 bytes, `thing_from_record`), triangulation
+    states in MAD files, missions in .mis files, sprite tables (.tab,
+    `LbSpriteTabExpand`, also in `LbDataLoad`; frame elements address
+    sprites by file byte offset, `FRAME_ELEMENT_SPRITE`). Sound and
+    music bank entries keep their data offsets as offsets.
+  - The sound heap items are a real struct (`HeapMgrHandle`), not raw
+    offsets.
+  - `layout_diff.py` compares struct layouts of the two builds;
+    `dump_compare.py` compares things dumps of a 32 and 64-bit run.
+- Next: LP64 (Linux, macOS, Android): `long` is 64 bits there, so
+  `long`/`ulong` become `s32`/`u32` (`long_to_fixed.py`, formats by
+  `fix_formats.py`).
 - **Asm-free single player build, 2026-11-22/23** (user goal: no asm in a
   build without difftest; network left aside). Done so far:
   - `thing_expld_s`, `thing_fire_s`, `bflib_vidraw_s` assembled only for

@@ -20,9 +20,37 @@
 /******************************************************************************/
 #include "bfsprite.h"
 
+#include <stdint.h>
+#include <string.h>
+
 #include "privbflog.h"
 
 ubyte * lbSpriteReMapPtr;
+
+long LbSpriteTabExpand(void *buf, long file_len)
+{
+    ubyte *p_file = buf;
+    struct TbSprite *p_spr = buf;
+    long n, i;
+
+    n = file_len / LB_SPRITE_FILE_SIZE;
+    if (sizeof(struct TbSprite) == LB_SPRITE_FILE_SIZE)
+        return file_len;
+    // From the last entry, as the entries grow in place
+    for (i = n - 1; i >= 0; i--)
+    {
+        const ubyte *rec = p_file + i * LB_SPRITE_FILE_SIZE;
+        u32 offs;
+        struct TbSprite spr;
+
+        memcpy(&offs, rec, 4);
+        memcpy(&spr.SWidth, rec + 4, sizeof(spr.SWidth));
+        memcpy(&spr.SHeight, rec + 4 + sizeof(spr.SWidth), sizeof(spr.SHeight));
+        spr.Data = (TbSpriteData)(uintptr_t)offs;
+        memcpy(&p_spr[i], &spr, sizeof(spr));
+    }
+    return n * sizeof(struct TbSprite);
+}
 
 TbResult LbSpriteSetup(TbSprite *start, const TbSprite *end, const unsigned char *data)
 {
@@ -33,9 +61,9 @@ TbResult LbSpriteSetup(TbSprite *start, const TbSprite *end, const unsigned char
     sprt = start;
     while (sprt < end)
     {
-      if ((unsigned long)sprt->Data < (unsigned long)data)
+      if ((uintptr_t)sprt->Data < (uintptr_t)data)
       {
-        sprt->Data += (unsigned long)data;
+        sprt->Data = (TbSpriteData)data + (uintptr_t)sprt->Data;
         n++;
       }
       sprt++;
@@ -70,9 +98,9 @@ TbResult LbSpriteReset(TbSprite *start, const TbSprite *end, const unsigned char
     sprt = start;
     while (sprt < end)
     {
-      if ((unsigned long)sprt->Data >= (unsigned long)data)
+      if ((uintptr_t)sprt->Data >= (uintptr_t)data)
       {
-        sprt->Data -= (unsigned long)data;
+        sprt->Data = (TbSpriteData)(uintptr_t)(sprt->Data - data);
         n++;
       }
       sprt++;

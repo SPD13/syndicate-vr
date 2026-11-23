@@ -55,7 +55,7 @@
 /* Not in headers */
 StateChRes person_init_support_person(struct Thing *p_person, short targetng);
 void build_navigate_path_to_face(struct Thing *p_thing, short face);
-int find_nearest_player(int a1, int a2, int a3, int a4);
+int find_nearest_player(intptr_t a1, int a2, int a3, int a4);
 int process_things_mines_explode(int affected_max);
 int process_things_bang(int affected_max);
 extern s32 unkn_mech_var11;
@@ -375,7 +375,7 @@ static void hp_near_turn(void)
         thing = hp_pick_person(gameturn / 16 + i * 7, HpP_ANY);
         if (thing == 0)
             return;
-        find_nearest_player((int)(intptr_t)&things[thing], 0, 0, 0);
+        find_nearest_player((intptr_t)&things[thing], 0, 0, 0);
     }
 }
 

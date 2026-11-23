@@ -24,6 +24,7 @@
 #include "bfini.h"
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "cybmod.h"
 #include "weapon.h"
@@ -37,6 +38,11 @@
 #include "swlog.h"
 #include "wadfile.h"
 #include "wrcities.h"
+
+/** Size of a mission in .mis files; the 32-bit layout, with TextName as a
+ * 4-byte pointer.
+ */
+#define MISSION_FILE_SIZE 76
 /******************************************************************************/
 
 enum MissionListConfigCmd {
@@ -521,7 +527,16 @@ void read_missions_bin_file(int num)
         LbFileRead(fh, &mission_strings_len, sizeof(ushort));
         LbFileRead(fh, p_str, mission_strings_len);
         LbFileRead(fh, &next_mission, sizeof(ushort));
-        LbFileRead(fh, mission_list, sizeof(struct Mission) * next_mission);
+        // Records of the 32-bit layout: TextName is a 4-byte pointer there,
+        // set from the strings block below
+        for (i = 0; i < next_mission; i++)
+        {
+            ubyte rec[MISSION_FILE_SIZE];
+            LbFileRead(fh, rec, MISSION_FILE_SIZE);
+            mission_list[i].TextName = NULL;
+            memcpy((ubyte *)&mission_list[i] + sizeof(mission_list[i].TextName), rec + 4,
+              MISSION_FILE_SIZE - 4);
+        }
         LbFileRead(fh, &next_used_objective, sizeof(ushort));
         LbFileRead(fh, game_used_objectives, sizeof(struct Objective) * next_used_objective);
         if (fmtver > 30)

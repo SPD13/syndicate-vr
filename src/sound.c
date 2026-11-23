@@ -59,16 +59,19 @@
 
 #pragma pack(1)
 
-struct HeapMgrHeader { // sizeof=0x24
-    void *field_0;
-    void *field_4;
-    int field_8;
-    int samples_count;
-    int field_10;
-    int field_14;
-    int field_18;
-    int field_1C;
-    int field_20;
+/** Sound heap header, followed by samples_count handles; 0x24 bytes in
+ * 32-bit builds, as in the asm.
+ */
+struct HeapMgrHeader {
+    ubyte *field_0;                   /**< data area begin */
+    ubyte *field_4;                   /**< data area end */
+    int field_8;                      /**< data area size */
+    int samples_count;                /**< number of handles */
+    int field_10;                     /**< handles in use */
+    int field_14;                     /**< bytes in use */
+    struct HeapMgrHandle *field_18;   /**< first item by address */
+    struct HeapMgrHandle *field_1C;   /**< oldest item */
+    struct HeapMgrHandle *field_20;   /**< newest item */
 };
 
 #pragma pack()
@@ -147,69 +150,70 @@ static DIFFTEST_REF_FUNC int heapmgr_add_item_asm(int a1, int a2, int a3, int a4
  * links 0x0C/0x10), and appends it as the newest in the age list.
  * Returns the item, or 0 if there is no room or no free handle.
  */
-int heapmgr_add_item(int a1, int a2, int a3, int a4)
+struct HeapMgrHandle *heapmgr_add_item(struct HeapMgrHeader *p_hmhead, s32 size,
+  int a3, int a4)
 {
-    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
-    s32 size = a2;
-    ubyte *p_item;
-    ubyte *p_prev;
-    ubyte *p_next;
-    s32 gap_beg, gap_end;
+    struct HeapMgrHandle *p_item;
+    struct HeapMgrHandle *p_prev;
+    struct HeapMgrHandle *p_next;
+    ubyte *gap_beg;
+    ubyte *gap_end;
 
-    DIFFTEST_SHADOW_RET(heapmgr_add_item, int, heapmgr_add_item_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW_RET(heapmgr_add_item, struct HeapMgrHandle *,
+      (struct HeapMgrHandle *)heapmgr_add_item_asm((int)p_hmhead, size, a3, a4));
     if (size > p_hmhead->field_8 - p_hmhead->field_14)
-        DIFFTEST_RETURN((int)0);
+        DIFFTEST_RETURN((struct HeapMgrHandle *)NULL);
     if (p_hmhead->field_10 >= p_hmhead->samples_count)
-        DIFFTEST_RETURN((int)0);
-    p_item = (ubyte *)p_hmhead + 0x24;
-    while (*(ushort *)(p_item + 0x08) != 0)
-        p_item += 0x1C;
+        DIFFTEST_RETURN((struct HeapMgrHandle *)NULL);
+    p_item = (struct HeapMgrHandle *)(p_hmhead + 1);
+    while (p_item->Flags != 0)
+        p_item++;
 
-    if (p_hmhead->field_18 == 0)
+    if (p_hmhead->field_18 == NULL)
     {
-        p_hmhead->field_18 = (s32)p_item;
-        *(s32 *)(p_item + 0x00) = (s32)p_hmhead->field_0;
+        p_hmhead->field_18 = p_item;
+        p_item->Data = p_hmhead->field_0;
     }
     else
     {
-        p_prev = (ubyte *)p_hmhead->field_18;
+        p_prev = p_hmhead->field_18;
         for (;;)
         {
-            p_next = (ubyte *)*(s32 *)(p_prev + 0x10);
-            gap_beg = *(s32 *)(p_prev + 0x00) + *(s32 *)(p_prev + 0x04);
+            p_next = p_prev->Next;
+            gap_beg = p_prev->Data + p_prev->Size;
             if (p_next != NULL)
-                gap_end = *(s32 *)(p_next + 0x00);
+                gap_end = p_next->Data;
             else
-                gap_end = (s32)p_hmhead->field_4;
+                gap_end = p_hmhead->field_4;
             if (gap_end - gap_beg >= size)
                 break;
             if (p_next == NULL)
-                DIFFTEST_RETURN((int)0);
+                DIFFTEST_RETURN((struct HeapMgrHandle *)NULL);
             p_prev = p_next;
         }
-        *(s32 *)(p_item + 0x0C) = (s32)p_prev;
-        *(s32 *)(p_item + 0x00) = *(s32 *)(p_prev + 0x00) + *(s32 *)(p_prev + 0x04);
-        p_next = (ubyte *)*(s32 *)(p_prev + 0x10);
-        *(s32 *)(p_item + 0x10) = (s32)p_next;
+        p_item->Prev = p_prev;
+        p_item->Data = p_prev->Data + p_prev->Size;
+        p_next = p_prev->Next;
+        p_item->Next = p_next;
         if (p_next != NULL)
-            *(s32 *)(p_next + 0x0C) = (s32)p_item;
-        *(s32 *)(p_prev + 0x10) = (s32)p_item;
+            p_next->Prev = p_item;
+        p_prev->Next = p_item;
     }
-    *(ushort *)(p_item + 0x08) = 1;
-    *(s32 *)(p_item + 0x04) = size;
+    p_item->Flags = 1;
+    p_item->Size = size;
     p_hmhead->field_14 += size;
     p_hmhead->field_10++;
-    if (p_hmhead->field_20 != 0)
+    if (p_hmhead->field_20 != NULL)
     {
-        *(s32 *)((ubyte *)p_hmhead->field_20 + 0x18) = (s32)p_item;
-        *(s32 *)(p_item + 0x14) = p_hmhead->field_20;
+        p_hmhead->field_20->Newer = p_item;
+        p_item->Older = p_hmhead->field_20;
     }
     else
     {
-        p_hmhead->field_1C = (s32)p_item;
+        p_hmhead->field_1C = p_item;
     }
-    p_hmhead->field_20 = (s32)p_item;
-    DIFFTEST_RETURN((int)p_item);
+    p_hmhead->field_20 = p_item;
+    DIFFTEST_RETURN(p_item);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -230,63 +234,61 @@ static DIFFTEST_REF_FUNC void heapmgr_free_handle_asm(int a1, int a2, int a3, in
  * header counters and clears the item. The asm leaves the item's ushort
  * at 0x0A in eax, but the function is declared void.
  */
-void heapmgr_free_handle(int a1, int a2, int a3, int a4)
+void heapmgr_free_handle(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p_item,
+  intptr_t a3, int a4)
 {
-    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
-    ubyte *p_item = (ubyte *)a2;
-    ubyte *p_prev;
-    ubyte *p_next;
-    ubyte *p_older;
-    ubyte *p_newer;
+    struct HeapMgrHandle *p_prev;
+    struct HeapMgrHandle *p_next;
+    struct HeapMgrHandle *p_older;
+    struct HeapMgrHandle *p_newer;
 
-    DIFFTEST_SHADOW(heapmgr_free_handle, heapmgr_free_handle_asm(a1, a2, a3, a4));
-    p_prev = (ubyte *)*(s32 *)(p_item + 0x0C);
+    DIFFTEST_SHADOW(heapmgr_free_handle,
+      heapmgr_free_handle_asm((int)p_hmhead, (int)p_item, a3, a4));
+    p_prev = p_item->Prev;
     if (p_prev != NULL)
-        *(s32 *)(p_prev + 0x10) = *(s32 *)(p_item + 0x10);
+        p_prev->Next = p_item->Next;
     else
-        p_hmhead->field_18 = *(s32 *)(p_item + 0x10);
+        p_hmhead->field_18 = p_item->Next;
 
-    p_next = (ubyte *)*(s32 *)(p_item + 0x10);
+    p_next = p_item->Next;
     if (p_next != NULL)
     {
-        *(s32 *)(p_next + 0x0C) = *(s32 *)(p_item + 0x0C);
-        p_next = (ubyte *)*(s32 *)(p_item + 0x10);
-        if ((*(p_next + 0x08) & 0x04) == 0)
+        p_next->Prev = p_item->Prev;
+        p_next = p_item->Next;
+        if ((p_next->Flags & 0x04) == 0)
         {
-            p_prev = (ubyte *)*(s32 *)(p_item + 0x0C);
+            p_prev = p_item->Prev;
             if (p_prev != NULL)
             {
-                memmove((void *)(*(s32 *)(p_prev + 0x00) + *(s32 *)(p_prev + 0x04)),
-                  (void *)*(s32 *)(p_next + 0x00), *(s32 *)(p_next + 0x04));
-                p_prev = (ubyte *)*(s32 *)(p_item + 0x0C);
-                p_next = (ubyte *)*(s32 *)(p_item + 0x10);
-                *(s32 *)(p_next + 0x00) = *(s32 *)(p_prev + 0x00) + *(s32 *)(p_prev + 0x04);
+                memmove(p_prev->Data + p_prev->Size, p_next->Data, p_next->Size);
+                p_prev = p_item->Prev;
+                p_next = p_item->Next;
+                p_next->Data = p_prev->Data + p_prev->Size;
             }
             else
             {
-                memmove(p_hmhead->field_0, (void *)*(s32 *)(p_next + 0x00),
-                  *(s32 *)(p_next + 0x04));
-                p_next = (ubyte *)*(s32 *)(p_item + 0x10);
-                *(s32 *)(p_next + 0x00) = (s32)p_hmhead->field_0;
+                memmove(p_hmhead->field_0, p_next->Data, p_next->Size);
+                p_next = p_item->Next;
+                p_next->Data = p_hmhead->field_0;
             }
         }
     }
 
-    p_older = (ubyte *)*(s32 *)(p_item + 0x14);
+    p_older = p_item->Older;
     if (p_older != NULL)
-        *(s32 *)(p_older + 0x18) = *(s32 *)(p_item + 0x18);
+        p_older->Newer = p_item->Newer;
     else
-        p_hmhead->field_1C = *(s32 *)(p_item + 0x18);
+        p_hmhead->field_1C = p_item->Newer;
 
-    p_newer = (ubyte *)*(s32 *)(p_item + 0x18);
+    p_newer = p_item->Newer;
     if (p_newer != NULL)
-        *(s32 *)(p_newer + 0x14) = *(s32 *)(p_item + 0x14);
+        p_newer->Older = p_item->Older;
     else
-        p_hmhead->field_20 = *(s32 *)(p_item + 0x14);
+        p_hmhead->field_20 = p_item->Older;
 
     p_hmhead->field_10--;
-    p_hmhead->field_14 -= *(s32 *)(p_item + 0x04);
-    memset(p_item, 0, 0x1C);
+    p_hmhead->field_14 -= p_item->Size;
+    memset(p_item, 0, sizeof(struct HeapMgrHandle));
 }
 
 /** Routed asm (internal label). Arguments and return value are the
@@ -306,27 +308,27 @@ static DIFFTEST_REF_FUNC int heapmgr_free_oldest_asm(int a1, int a2, int a3, int
  * the newer links (0x18). Returns -1 if no item could be freed, otherwise
  * the sample index of the freed item (ushort at 0x0A).
  */
-int heapmgr_free_oldest(int a1, int a2, int a3, int a4)
+int heapmgr_free_oldest(struct HeapMgrHeader *p_hmhead, int a2, int a3, int a4)
 {
-    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
-    ubyte *p_item;
+    struct HeapMgrHandle *p_item;
     int smp_id;
 
-    DIFFTEST_SHADOW_RET(heapmgr_free_oldest, int, heapmgr_free_oldest_asm(a1, a2, a3, a4));
-    p_item = (ubyte *)p_hmhead->field_1C;
+    DIFFTEST_SHADOW_RET(heapmgr_free_oldest, int,
+      heapmgr_free_oldest_asm((int)p_hmhead, a2, a3, a4));
+    p_item = p_hmhead->field_1C;
     if (p_item == NULL)
         DIFFTEST_RETURN((int)-1);
-    while ((*(p_item + 0x08) & 0x02) != 0)
+    while ((p_item->Flags & 0x02) != 0)
     {
-        p_item = (ubyte *)*(s32 *)(p_item + 0x18);
+        p_item = p_item->Newer;
         if (p_item == NULL)
             DIFFTEST_RETURN((int)-1);
     }
     // The asm returns whatever eax the free_handle call leaves; the asm
-    // free_handle returns the item's ushort at 0x0A, read before it clears
-    // the item. Read it here, as heapmgr_free_handle() is declared void.
-    smp_id = *(ushort *)(p_item + 0x0A);
-    heapmgr_free_handle(a1, (int)p_item, a1, a4);
+    // free_handle returns the item's SmpId, read before it clears the
+    // item. Read it here, as heapmgr_free_handle() is declared void.
+    smp_id = p_item->SmpId;
+    heapmgr_free_handle(p_hmhead, p_item, (intptr_t)p_hmhead, a4);
     DIFFTEST_RETURN(smp_id);
 }
 /** Routed asm (internal label). Arguments and return value are the
@@ -344,29 +346,29 @@ static DIFFTEST_REF_FUNC void heapmgr_make_newest_asm(int a1, int a2, int a3, in
  * a1 is the heap header, a2 the item; the item keeps the older neighbour
  * at 0x14 and the newer one at 0x18.
  */
-void heapmgr_make_newest(int a1, int a2, int a3, int a4)
+void heapmgr_make_newest(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p_item,
+  int a3, int a4)
 {
-    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
-    ubyte *p_item = (ubyte *)a2;
-    ubyte *p_newer;
-    ubyte *p_older;
-    s32 newest;
+    struct HeapMgrHandle *p_newer;
+    struct HeapMgrHandle *p_older;
+    struct HeapMgrHandle *p_newest;
 
-    DIFFTEST_SHADOW(heapmgr_make_newest, heapmgr_make_newest_asm(a1, a2, a3, a4));
-    p_newer = (ubyte *)*(s32 *)(p_item + 0x18);
+    DIFFTEST_SHADOW(heapmgr_make_newest,
+      heapmgr_make_newest_asm((int)p_hmhead, (int)p_item, a3, a4));
+    p_newer = p_item->Newer;
     if (p_newer == NULL)
         return;
-    p_older = (ubyte *)*(s32 *)(p_item + 0x14);
-    *(s32 *)(p_newer + 0x14) = (s32)p_older;
+    p_older = p_item->Older;
+    p_newer->Older = p_older;
     if (p_older != NULL)
-        *(s32 *)(p_older + 0x18) = *(s32 *)(p_item + 0x18);
+        p_older->Newer = p_item->Newer;
     else
-        p_hmhead->field_1C = *(s32 *)(p_item + 0x18);
-    *(s32 *)((ubyte *)p_hmhead->field_20 + 0x18) = (s32)p_item;
-    newest = p_hmhead->field_20;
-    *(s32 *)(p_item + 0x18) = 0;
-    *(s32 *)(p_item + 0x14) = newest;
-    p_hmhead->field_20 = (s32)p_item;
+        p_hmhead->field_1C = p_item->Newer;
+    p_hmhead->field_20->Newer = p_item;
+    p_newest = p_hmhead->field_20;
+    p_item->Newer = NULL;
+    p_item->Older = p_newest;
+    p_hmhead->field_20 = p_item;
 }
 
 
@@ -392,7 +394,7 @@ static DIFFTEST_REF_FUNC struct SampleInfo *play_sample_using_heap_asm(ulong ban
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc)
         : "S" (stkargs)
         : "cc", "memory");
-    return (struct SampleInfo *)ra;
+    return (struct SampleInfo *)(intptr_t)ra;
 }
 
 /** Plays a sample from the sound bank, loading it into the sound heap first
@@ -405,7 +407,7 @@ struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
 {
     struct SampleTable *p_smptbl;
     struct SampleInfo *p_sinfo;
-    ubyte *p_hmhandle;
+    struct HeapMgrHandle *p_hmhandle;
     s32 smp_offs;
     s32 smp_size;
     int smp_id;
@@ -430,33 +432,33 @@ struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
         p_hmhandle = NULL;
         for (i = 0; i < 50; i++)
         {
-            p_hmhandle = (ubyte *)heapmgr_add_item((int)hmhead, smp_size, i, smp_size);
+            p_hmhandle = heapmgr_add_item(hmhead, smp_size, i, smp_size);
             if (p_hmhandle != NULL)
                 break;
-            freed_id = heapmgr_free_oldest((int)hmhead, smp_size, i, smp_size);
+            freed_id = heapmgr_free_oldest(hmhead, smp_size, i, smp_size);
             if (freed_id < 0)
                 break;
             // Store of the (null) handle into the freed sample entry
-            sample_table[freed_id].hmhandle = (struct HeapMgrHandle *)p_hmhandle;
+            sample_table[freed_id].hmhandle = p_hmhandle;
         }
         if (p_hmhandle != NULL)
         {
-            *(ushort *)(p_hmhandle + 0x0A) = smp_id;
+            p_hmhandle->SmpId = smp_id;
             LbFileSeek(sound_file, smp_offs, Lb_FILE_SEEK_BEGINNING);
-            LbFileRead(sound_file, *(void **)(p_hmhandle + 0x00), smp_size);
+            LbFileRead(sound_file, p_hmhandle->Data, smp_size);
         }
-        p_smptbl->hmhandle = (struct HeapMgrHandle *)p_hmhandle;
+        p_smptbl->hmhandle = p_hmhandle;
     }
-    p_hmhandle = (ubyte *)p_smptbl->hmhandle;
+    p_hmhandle = p_smptbl->hmhandle;
     if (p_hmhandle == NULL)
         DIFFTEST_RETURN((struct SampleInfo *)NULL);
-    heapmgr_make_newest((int)hmhead, (int)p_hmhandle, (int)volume, (int)pan);
+    heapmgr_make_newest(hmhead, p_hmhandle, (int)volume, (int)pan);
     p_sinfo = PlaySampleFromAddress(bank_id, smptbl_id, volume, pan, pitch,
-      loop_count, stype, *(void **)p_smptbl->hmhandle);
+      loop_count, stype, p_smptbl->hmhandle->Data);
     if (p_sinfo != NULL)
     {
         p_sinfo->UserFlag |= 0x01;
-        p_smptbl->hmhandle->field_0[8] |= 0x06;
+        p_smptbl->hmhandle->Flags |= 0x06;
     }
     DIFFTEST_RETURN(p_sinfo);
 }
@@ -501,7 +503,7 @@ void stop_sample_using_heap(long source_id, ulong sample_number)
     p_hmhandle = sample_table[smp_id].hmhandle;
     if (p_hmhandle == NULL)
         return;
-    p_hmhandle->field_0[8] &= ~0x06;
+    p_hmhandle->Flags &= ~0x06;
 }
 
 int play_dist_speech(struct Thing *p_thing, ushort speech_no, ushort vol,
@@ -995,7 +997,7 @@ struct HeapMgrHeader *heapmgr_init(void *p_buf, int buf_size, int n_samples)
     int offs3;
 
     p_hmhead = (struct HeapMgrHeader *)p_buf;
-    offs_after_samples = 0x1C * n_samples + sizeof(struct HeapMgrHeader);
+    offs_after_samples = sizeof(struct HeapMgrHandle) * n_samples + sizeof(struct HeapMgrHeader);
     offs3 = buf_size - offs_after_samples;
     if (offs3 <= 0)
         return NULL;
@@ -1064,9 +1066,9 @@ int setup_heap_manager(struct SampleTable *smptable, size_t smptb_len,
     for (i = 0; i < samples_in_bank; i++)
     {
         LbFileRead(fh, &sfxi, sizeof(struct BfSfxInfo));
-        smptb->field_0 = sbh->DatPos + (long)sfxi.DataBeg;
+        smptb->field_0 = sbh->DatPos + (s32)sfxi.DataBeg;
         smptb->hmhandle = 0;
-        smptb->field_4 = (long)sfxi.DataEnd;
+        smptb->field_4 = (s32)sfxi.DataEnd;
         smptb++;
     }
     if (samples_in_bank <= 0) {
@@ -1195,33 +1197,30 @@ static DIFFTEST_REF_FUNC void heapmgr_defrag_asm(int a1, int a2, int a3, int a4)
  * and which is not pinned (flag 0x04 at 0x08), has its data moved to
  * close the gap; then stops.
  */
-void heapmgr_defrag(int a1, int a2, int a3, int a4)
+void heapmgr_defrag(struct HeapMgrHeader *p_hmhead, int a2, int a3, int a4)
 {
-    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
-    ubyte *p_item;
-    ubyte *p_next;
-    u32 prev_end;
+    struct HeapMgrHandle *p_item;
+    struct HeapMgrHandle *p_next;
+    ubyte *prev_end;
 
-    DIFFTEST_SHADOW(heapmgr_defrag, heapmgr_defrag_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(heapmgr_defrag, heapmgr_defrag_asm((int)p_hmhead, a2, a3, a4));
     if (p_hmhead == NULL)
         return;
     if (p_hmhead->field_10 == 0)
         return;
-    p_item = (ubyte *)p_hmhead->field_18;
+    p_item = p_hmhead->field_18;
     if (p_item == NULL)
         return;
     while (1)
     {
-        p_next = (ubyte *)*(s32 *)(p_item + 0x10);
+        p_next = p_item->Next;
         if (p_next == NULL)
             return;
-        prev_end = *(u32 *)(p_item + 0x00) + *(u32 *)(p_item + 0x04);
-        if ((prev_end < *(u32 *)(p_next + 0x00)) &&
-          ((*(p_next + 0x08) & 0x04) == 0))
+        prev_end = p_item->Data + p_item->Size;
+        if ((prev_end < p_next->Data) && ((p_next->Flags & 0x04) == 0))
         {
-            memmove((void *)(*(u32 *)(p_item + 0x00) + *(u32 *)(p_item + 0x04)),
-              (void *)*(u32 *)(p_next + 0x00), *(u32 *)(p_next + 0x04));
-            *(u32 *)(p_next + 0x00) = *(u32 *)(p_item + 0x00) + *(u32 *)(p_item + 0x04);
+            memmove(p_item->Data + p_item->Size, p_next->Data, p_next->Size);
+            p_next->Data = p_item->Data + p_item->Size;
             return;
         }
         p_item = p_next;
@@ -1253,7 +1252,7 @@ void process_sound_heap(void)
     {
         p_hmhandle = sample_table[i].hmhandle;
         if (p_hmhandle != NULL)
-            p_hmhandle->field_0[8] &= ~0x06;
+            p_hmhandle->Flags &= ~0x06;
     }
     p_last = GetLastSampleInfoStructure();
     for (p_sinfo = GetFirstSampleInfoStructure(); p_sinfo <= p_last; p_sinfo++)
@@ -1268,9 +1267,9 @@ void process_sound_heap(void)
         }
         p_hmhandle = sample_table[p_sinfo->SampleNumber].hmhandle;
         if (p_hmhandle != NULL)
-            p_hmhandle->field_0[8] |= 0x06;
+            p_hmhandle->Flags |= 0x06;
     }
-    heapmgr_defrag((int)hmhead, 0, 0, 0);
+    heapmgr_defrag(hmhead, 0, 0, 0);
 }
 
 /******************************************************************************/

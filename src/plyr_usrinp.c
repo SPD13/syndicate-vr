@@ -370,7 +370,7 @@ short get_next_player_agent(ushort player)
     for (plagent = 0; plagent < 4; plagent++)
     {
         short thing;
-        thing = ((s32)p_player->MyAgent[plagent] - (s32)things) / (s32)sizeof(struct Thing);
+        thing = ((intptr_t)p_player->MyAgent[plagent] - (intptr_t)things) / (intptr_t)sizeof(struct Thing);
         if ((s32)thing == (s32)p_player->DirectControl[0])
             break;
     }
@@ -387,7 +387,7 @@ short get_next_player_agent(ushort player)
     }
     // If none found, the slot reached after all checks is used
     p_agent = p_player->MyAgent[plagent % 4];
-    DIFFTEST_RETURN((short)(((s32)p_agent - (s32)things) / (s32)sizeof(struct Thing)));
+    DIFFTEST_RETURN((short)(((intptr_t)p_agent - (intptr_t)things) / (intptr_t)sizeof(struct Thing)));
 }
 
 ubyte input_user_control_agent(ushort plyr, short dmuser)

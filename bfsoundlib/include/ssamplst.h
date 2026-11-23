@@ -30,19 +30,23 @@ extern "C" {
 #pragma pack(1)
 
 struct BfSoundBankHead {
-  long TabPos;
-  long DatPos;
-  long TabSize;
-  long DatSize;
+  s32 TabPos;
+  s32 DatPos;
+  s32 TabSize;
+  s32 DatSize;
 };
 
+/** Sample entry of a sound bank, as in the file (32 bytes).
+ * DataBeg and DataEnd are offsets in the bank data (SfxData); they stay
+ * offsets in memory, so the entry has the file layout on every target.
+ */
 struct BfSfxInfo { // sizeof=32
   char FileName[12];
-  long sffld_12;
+  s32 sffld_12;
   short sffld_16;
-  ubyte *DataBeg;
-  long sffld_22;
-  ubyte *DataEnd;
+  u32 DataBeg;
+  s32 sffld_22;
+  u32 DataEnd;
   short sffld_30;
 };
 

@@ -221,7 +221,7 @@ void thing_goto_point_rel_fast(struct Thing *p_thing, short x, short y, short z,
     if ((p_thing->Flag2 & TgF2_Unkn0040) != 0)
         return;
     set_person_animmode_run(p_thing);
-    set_player_peeps_to_run((int)p_thing, (ushort)plyr, 0, (int)p_thing);
+    set_player_peeps_to_run((intptr_t)p_thing, (ushort)plyr, 0, (intptr_t)p_thing);
 }
 
 void thing_goto_point(struct Thing *p_thing, short x, short y, short z);
@@ -249,7 +249,7 @@ void thing_goto_point_fast(struct Thing *p_thing, short x, short y, short z, int
     if ((p_thing->Flag2 & TgF2_Unkn0040) != 0)
         return;
     set_person_animmode_run(p_thing);
-    set_player_peeps_to_run((int)p_thing, (ushort)plyr, 0, (int)p_thing);
+    set_player_peeps_to_run((intptr_t)p_thing, (ushort)plyr, 0, (intptr_t)p_thing);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -262,7 +262,7 @@ static DIFFTEST_REF_FUNC void clear_player_protectors_paths_asm(int a1, int a2, 
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void clear_player_protectors_paths(int a1, int a2, int a3, int a4)
+void clear_player_protectors_paths(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_thing = (struct Thing *)a1;
     ushort plyr;
@@ -327,7 +327,7 @@ void thing_goto_point(struct Thing *p_thing, short x, short y, short z)
     }
 
     if ((p_thing->Flag & TngF_SelectedAgent) != 0)
-        clear_player_protectors_paths((int)p_thing, 0, 0, 0);
+        clear_player_protectors_paths((intptr_t)p_thing, 0, 0, 0);
 
     if ((p_thing->Flag & TngF_PlayerAgent) != 0)
         players[p_thing->U.UPerson.ComCur >> 2].GotoFace = 0;
@@ -405,7 +405,7 @@ void thing_goto_point_on_face_fast(struct Thing *p_thing, short x, short z, shor
     if ((p_thing->Flag2 & TgF2_Unkn0040) != 0)
         return;
     set_person_animmode_run(p_thing);
-    set_player_peeps_to_run((int)p_thing, (ushort)plyr, 0, (int)p_thing);
+    set_player_peeps_to_run((intptr_t)p_thing, (ushort)plyr, 0, (intptr_t)p_thing);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -418,7 +418,7 @@ static DIFFTEST_REF_FUNC void find_bezier_nav_point_asm(int a1, int a2, int a3, 
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void find_bezier_nav_point(int a1, int a2, int a3, int a4)
+void find_bezier_nav_point(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
 {
     short face = (short)a1;
     struct Thing *p_vehicle = (struct Thing *)a2;
@@ -500,7 +500,7 @@ void thing_goto_point_on_face(struct Thing *p_thing, short x, short z, short fac
             {
                 nav_x = 0;
                 nav_z = 0;
-                find_bezier_nav_point(face, (int)p_vehicle, (int)&nav_x, (int)&nav_z);
+                find_bezier_nav_point(face, (intptr_t)p_vehicle, (intptr_t)&nav_x, (intptr_t)&nav_z);
             }
             else
             {

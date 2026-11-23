@@ -25,6 +25,8 @@
 #include "bfmusic.h"
 #include "aildebug.h"
 #include "mssal.h"
+
+extern void *BfMusicData;
 /******************************************************************************/
 
 ushort CurrentTempo = 0;
@@ -105,7 +107,7 @@ void StartMusic(int songNo, ubyte volume)
         SongCurrentlyPlaying = 0;
     }
 
-    AIL_init_sequence(SongHandle, BfMusic[songNo].DataBeg, 0);
+    AIL_init_sequence(SongHandle, (ubyte *)BfMusicData + BfMusic[songNo].DataBeg, 0);
     AIL_register_trigger_callback(SongHandle, cb_get_trigger_info);
 
     for (i = 0; i < 16; i++)

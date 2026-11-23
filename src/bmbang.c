@@ -757,7 +757,7 @@ static DIFFTEST_REF_FUNC int del_thing_vectors_from_mapwho_asm(int a1, int a2, i
  * @param a2 Index of the thing owning the vectors (low 16 bits used).
  * @return 1 if an entry was removed, 0 otherwise.
  */
-int del_thing_vectors_from_mapwho(int a1, int a2, int a3, int a4)
+int del_thing_vectors_from_mapwho(intptr_t a1, int a2, intptr_t a3, int a4)
 {
     struct MyMapElement *p_mapel = (struct MyMapElement *)a1;
     struct ColVectList *p_list;
@@ -881,7 +881,7 @@ void do_shockwave(int x, int y, int z, int radius_arg, int intensity, struct Thi
                     }
                     else if (obj < 1000)
                     {
-                        del_thing_vectors_from_mapwho((int)(intptr_t)p_mapel,
+                        del_thing_vectors_from_mapwho((intptr_t)p_mapel,
                           (short)obj, 0, 0);
                     }
                     else

@@ -844,7 +844,7 @@ static DIFFTEST_REF_FUNC int find_nearest_player_asm(int a1, int a2, int a3, int
  * the net game, or 0. The conf line says void, but the wrapper passes
  * eax through and the asm caller uses it, so we return it.
  */
-int find_nearest_player(int a1, int a2, int a3, int a4)
+int find_nearest_player(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
     struct Thing *p_thing;
@@ -933,7 +933,7 @@ short find_nearest_from_group(struct Thing *p_person, ushort group, ubyte no_per
     if (in_network_game && (group == 0))
     {
         short ret;
-        ret = find_nearest_player((int)p_person, 0, 0, 0);
+        ret = find_nearest_player((intptr_t)p_person, 0, 0, 0);
         DIFFTEST_RETURN(ret);
     }
 

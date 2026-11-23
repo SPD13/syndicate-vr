@@ -71,9 +71,89 @@ struct BillboardNBreakout {
 };
 
 #pragma pack()
+
+/** Size of a thing in level files; the 32-bit layout, with PTarget as a
+ * 4-byte pointer.
+ */
+#define THING_FILE_SIZE 168
+/** Size of a triangulation state in MAD files; the 32-bit layout, with
+ * Triangles and Points as 4-byte pointers.
+ */
+#define TRIANGULATION_FILE_SIZE 60
 /******************************************************************************/
 
 TbBool level_deep_fix = false;
+
+/** Copies a thing stored in a level or MAD file, in the 32-bit layout of
+ * the files. PTarget, a meaningless pointer in a file, is kept only where
+ * it fits (32-bit builds); the loaders clear it anyway.
+ */
+static void thing_from_record(struct Thing *p_thing, const ubyte *rec)
+{
+    size_t pos = offsetof(struct Thing, PTarget);
+
+    memcpy(p_thing, rec, pos);
+    if (sizeof(p_thing->PTarget) == 4)
+        memcpy(&p_thing->PTarget, rec + pos, 4);
+    else
+        p_thing->PTarget = NULL;
+    memcpy((ubyte *)p_thing + pos + sizeof(p_thing->PTarget), rec + pos + 4,
+      THING_FILE_SIZE - pos - 4);
+}
+
+static void read_thing_record(TbFileHandle fh, struct Thing *p_thing)
+{
+    ubyte rec[THING_FILE_SIZE];
+
+    LbFileRead(fh, rec, THING_FILE_SIZE);
+    thing_from_record(p_thing, rec);
+}
+
+/** Copies the triangulation state from a MAD file record; the arrays are
+ * set by the caller. Fields are 32-bit ints, the pointers 4 bytes.
+ */
+static void triangulation_from_record(struct Triangulation *p_tri, const ubyte *rec)
+{
+    s32 v[15];
+    memcpy(v, rec, sizeof(v));
+    p_tri->tri_allocated = v[0];
+    p_tri->tri_initialised = v[1];
+    p_tri->last_tri = v[2];
+    p_tri->ix_Triangles = v[3];
+    p_tri->count_Triangles = v[4];
+    p_tri->free_Triangles = v[5];
+    p_tri->triangle_top = v[6];
+    p_tri->max_Triangles = v[7];
+    p_tri->Triangles = NULL;
+    p_tri->ix_Points = v[9];
+    p_tri->count_Points = v[10];
+    p_tri->free_Points = v[11];
+    p_tri->point_top = v[12];
+    p_tri->max_Points = v[13];
+    p_tri->Points = NULL;
+}
+
+static void triangulation_to_record(ubyte *rec, const struct Triangulation *p_tri)
+{
+    s32 v[15];
+    v[0] = p_tri->tri_allocated;
+    v[1] = p_tri->tri_initialised;
+    v[2] = p_tri->last_tri;
+    v[3] = p_tri->ix_Triangles;
+    v[4] = p_tri->count_Triangles;
+    v[5] = p_tri->free_Triangles;
+    v[6] = p_tri->triangle_top;
+    v[7] = p_tri->max_Triangles;
+    // 32-bit builds keep the pointers, as the asm wrote the whole state
+    v[8] = (sizeof(void *) == 4) ? (s32)(intptr_t)p_tri->Triangles : 0;
+    v[9] = p_tri->ix_Points;
+    v[10] = p_tri->count_Points;
+    v[11] = p_tri->free_Points;
+    v[12] = p_tri->point_top;
+    v[13] = p_tri->max_Points;
+    v[14] = (sizeof(void *) == 4) ? (s32)(intptr_t)p_tri->Points : 0;
+    memcpy(rec, v, sizeof(v));
+}
 
 ushort game_level_unique_id = 0;
 ubyte game_level_unkn1[40];
@@ -238,8 +318,7 @@ ulong load_level_pc_handle(TbFileHandle lev_fh)
             p_thing = &things[new_thing];
             memcpy(&loc_thing, p_thing, sizeof(struct Thing));
             if (fmtver >= 13) {
-                assert(sizeof(struct Thing) == 168);
-                LbFileRead(lev_fh, p_thing, sizeof(struct Thing));
+                read_thing_record(lev_fh, p_thing);
             } else {
                 struct ThingOldV9 s_oldthing;
                 assert(sizeof(s_oldthing) == 216); // the sizeof(Thing) was 216 since fmtver=2
@@ -536,13 +615,30 @@ ulong load_level_pc_handle(TbFileHandle lev_fh)
     return fmtver;
 }
 
+/** Writes a thing to a level file, in the 32-bit layout of the files. */
+static void write_thing_record(TbFileHandle fh, const struct Thing *p_thing)
+{
+    ubyte rec[THING_FILE_SIZE];
+    size_t pos = offsetof(struct Thing, PTarget);
+    u32 ptarget = 0;
+
+    memcpy(rec, p_thing, pos);
+    // the pointer is meaningless in a file; 32-bit builds keep it as it was
+    if (sizeof(p_thing->PTarget) == sizeof(ptarget))
+        memcpy(&ptarget, &p_thing->PTarget, sizeof(ptarget));
+    memcpy(rec + pos, &ptarget, sizeof(ptarget));
+    memcpy(rec + pos + 4, (const ubyte *)p_thing + pos + sizeof(p_thing->PTarget),
+      THING_FILE_SIZE - pos - 4);
+    LbFileWrite(fh, rec, THING_FILE_SIZE);
+}
+
 void save_level_pc_handle(TbFileHandle lev_fh)
 {
     u32 fmtver;
     ushort count;
     int i;
 
-    assert(sizeof(struct Thing) == 168);
+    assert(sizeof(struct Thing) == THING_FILE_SIZE - 4 + sizeof(void *));
     assert(sizeof(struct Command) == 32);
     assert(sizeof(struct Objective) == 32);
     assert(sizeof(struct LevelMisc) == 22);
@@ -576,7 +672,7 @@ void save_level_pc_handle(TbFileHandle lev_fh)
             if (!is_level_stored_thing(p_thing))
                 continue;
             i++;
-            LbFileWrite(lev_fh, p_thing, sizeof(struct Thing));
+            write_thing_record(lev_fh, p_thing);
             if (p_thing->Type == TT_VEHICLE)
             {
                 int matx;
@@ -1494,10 +1590,9 @@ void load_map_dat_pc_handle(TbFileHandle fh)
 
         shut_h = 100;
         LbFileRead(fh, &num_things, sizeof(num_things));
-        assert(sizeof(struct Thing) == 168);
         for (i = num_things - 1; i > -1; i--)
         {
-            LbFileRead(fh, &loc_thing, sizeof(struct Thing));
+            read_thing_record(fh, &loc_thing);
             if (loc_thing.U.UObject.Object <= 0) {
                 char locbuf[256];
                 snprint_thing(locbuf, sizeof(locbuf), &loc_thing);
@@ -1629,7 +1724,12 @@ void save_mad_pc_handle(TbFileHandle mad_fh)
 
     LbFileWrite(mad_fh, &selected_triangulation_no, sizeof(selected_triangulation_no));
     LbFileWrite(mad_fh, &triangulation_initied, sizeof(triangulation_initied));
-    LbFileWrite(mad_fh, triangulation, sizeof(struct Triangulation) * 4);
+    for (i = 0; i < 4; i++)
+    {
+        ubyte rec[TRIANGULATION_FILE_SIZE];
+        triangulation_to_record(rec, &triangulation[i]);
+        LbFileWrite(mad_fh, rec, TRIANGULATION_FILE_SIZE);
+    }
 
     //TODO finish the save implementation
 }
@@ -1688,9 +1788,11 @@ void load_mad_pc_buffer(ubyte *mad_ptr, long rdsize)
     mad_ptr += sizeof(selected_triangulation_no);
     memcpy(&triangulation_initied, mad_ptr, sizeof(triangulation_initied));
     mad_ptr += sizeof(triangulation_initied);
-    assert(sizeof(struct Triangulation) == 60);
-    memcpy(triangulation, mad_ptr, sizeof(struct Triangulation) * 4);
-    mad_ptr += sizeof(struct Triangulation) * 4;
+    for (i = 0; i < 4; i++)
+    {
+        triangulation_from_record(&triangulation[i], mad_ptr);
+        mad_ptr += TRIANGULATION_FILE_SIZE;
+    }
     assert(sizeof(struct TrTriangle) == 16);
     triangulation[0].Triangles = (struct TrTriangle *)mad_ptr;
     mad_ptr += sizeof(struct TrTriangle) * triangulation[0].max_Triangles;
@@ -1745,13 +1847,15 @@ void load_mad_pc_buffer(ubyte *mad_ptr, long rdsize)
 
     ushort num_things;
     struct Thing *p_clthing;
+    struct Thing loc_thing;
 
     num_things = *(ushort *)mad_ptr;
     mad_ptr += 2;
     for (i = num_things - 1; i > -1; i--)
     {
-        p_clthing = (struct Thing *)mad_ptr;
-        mad_ptr += sizeof(struct Thing);
+        thing_from_record(&loc_thing, mad_ptr);
+        p_clthing = &loc_thing;
+        mad_ptr += THING_FILE_SIZE;
         if (p_clthing->U.UObject.Object <= 0) {
             char locbuf[256];
             snprint_thing(locbuf, sizeof(locbuf), p_clthing);

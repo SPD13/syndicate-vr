@@ -423,9 +423,9 @@ void set_static_on_fire(struct SimpleThing *p_static)
 
     DIFFTEST_SHADOW(set_static_on_fire, set_static_on_fire_asm(p_static));
     p_fulights = game_full_lights;
-    if ((u32)p_static < (u32)sthings - STHINGS_LIMIT * sizeof(struct SimpleThing))
+    if ((uintptr_t)p_static < (uintptr_t)sthings - STHINGS_LIMIT * sizeof(struct SimpleThing))
         return;
-    if ((u32)p_static > (u32)sthings)
+    if ((uintptr_t)p_static > (uintptr_t)sthings)
         return;
 
     p_static->State = 0x24;

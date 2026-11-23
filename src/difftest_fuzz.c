@@ -257,7 +257,7 @@ static void fuzz_fov_region(ulong *p_seed)
     fov_region(x, y, (int)p, 0);
 }
 
-void VNAV_qwertyuiop(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+void VNAV_qwertyuiop(intptr_t a1, intptr_t a2, int a3, int a4, int a5, int a6, int a7, int a8);
 
 static void fuzz_VNAV_qwertyuiop(ulong *p_seed)
 {
@@ -295,7 +295,7 @@ static void fuzz_VNAV_qwertyuiop(ulong *p_seed)
     VNAV_qwertyuiop((int)&dist, (int)&frac, v[0], v[1], v[2], v[3], v[4], v[5]);
 }
 
-void matrix_transpose_cp(int a1, int a2, int a3);
+void matrix_transpose_cp(intptr_t a1, intptr_t a2, intptr_t a3);
 
 static void fuzz_matrix_transpose_cp(ulong *p_seed)
 {
@@ -343,7 +343,7 @@ static void fuzz_mech_unkn_func_20(ulong *p_seed)
     }
 }
 
-int func_5cff0(int a1, int a2, int a3, int a4);
+int func_5cff0(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4);
 
 static void fuzz_func_5cff0(ulong *p_seed)
 {
@@ -370,7 +370,7 @@ static void fuzz_func_5cff0(ulong *p_seed)
 }
 
 void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
-  int a8, int a9, int a10);
+  int a8, intptr_t a9, intptr_t a10);
 
 static void fuzz_line_intersect8(ulong *p_seed)
 {

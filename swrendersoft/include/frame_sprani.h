@@ -25,6 +25,7 @@ extern "C" {
 /******************************************************************************/
 
 #include "bftypes.h"
+#include "bfsprite.h"
 
 /******************************************************************************/
 #pragma pack(1)
@@ -86,6 +87,13 @@ extern struct Element *mele_ani_end;
  */
 extern struct TbSprite *m_sprites;
 extern struct TbSprite *m_sprites_end;
+
+/** Sprite of a frame element; ToSprite is a byte shift in the .tab file,
+ * where the entries may be smaller than in memory.
+ */
+#define FRAME_ELEMENT_SPRITE(p_elem) ((struct TbSprite *)((ubyte *)m_sprites + \
+    ((sizeof(struct TbSprite) == LB_SPRITE_FILE_SIZE) ? (size_t)(p_elem)->ToSprite : \
+    (p_elem)->ToSprite / LB_SPRITE_FILE_SIZE * sizeof(struct TbSprite))))
 
 extern ushort shield_frm[4];
 

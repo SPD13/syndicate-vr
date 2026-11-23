@@ -586,7 +586,7 @@ static DIFFTEST_REF_FUNC void quick_light_unkn_func_09_asm(int a1, int a2, int a
 /** Unlinks from the map element's QuickLight chain all entries
  * referencing given light.
  */
-void quick_light_unkn_func_09(int a1, int a2, int a3, int a4)
+void quick_light_unkn_func_09(intptr_t a1, int a2, int a3, int a4)
 {
     struct MyMapElement *p_mapel = (struct MyMapElement *)a1;
     ushort light = (ushort)a2;
@@ -662,7 +662,7 @@ void quick_light_unkn_func_04(short a1, int a2, short a3, short a4)
                 continue;
             p_mapel = &game_my_big_map[(mz << 7) + mx];
             if (p_mapel->Shade != 0)
-                quick_light_unkn_func_09((int)p_mapel, light, 0, 0);
+                quick_light_unkn_func_09((intptr_t)p_mapel, light, 0, 0);
 
             thing = p_mapel->Child;
             while (thing != 0)
@@ -1378,7 +1378,7 @@ static DIFFTEST_REF_FUNC void light_cmd_unkn_func_06_asm(int a1, int a2, int a3,
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void light_cmd_unkn_func_06(int a1, int a2, int a3, int a4)
+void light_cmd_unkn_func_06(intptr_t a1, int a2, int a3, int a4)
 {
     struct LightCommand *p_lcmd = (struct LightCommand *)a1;
     ubyte *p_fld = p_lcmd->lcfld_0;
@@ -1464,7 +1464,8 @@ int light_cmd_unkn_func_05(int a1, int a2, int a3, int a4)
     {
         p_fulight = &game_full_lights[light];
         p_fulight->Intensity = (short)(((s32)mult * p_fulight->TrueIntensity) >> 8);
-        DIFFTEST_RETURN((int)p_fulight);
+        // the asm returns the pointer; no caller uses it
+        DIFFTEST_RETURN((int)(intptr_t)p_fulight);
     }
 
     ret = (u32)((s32)light * 15) & 0xFFFF0000;
@@ -1481,7 +1482,7 @@ int light_cmd_unkn_func_05(int a1, int a2, int a3, int a4)
         p_fulight = &game_full_lights[light];
         p_fulight->Intensity = (short)(((s32)mult * p_fulight->TrueIntensity) >> 8);
         light = p_fulight->NextFull;
-        ret = ((u32)p_fulight & 0xFFFF0000) | (ushort)light;
+        ret = ((u32)(uintptr_t)p_fulight & 0xFFFF0000) | (ushort)light;
     }
     DIFFTEST_RETURN((int)ret);
 }
@@ -1704,7 +1705,7 @@ void unkn_update_lights(void)
         }
 tail:
         if ((p_fld[0] & 0x10) != 0)
-            light_cmd_unkn_func_06((int)p_fld, 0, 0, 0);
+            light_cmd_unkn_func_06((intptr_t)p_fld, 0, 0, 0);
         if ((p_fld[0] & 0x20) != 0)
             light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), 0, 0, 0);
     }
@@ -2930,7 +2931,7 @@ void find_and_stasis(struct SimpleThing *p_stasis, int radius);
 static DIFFTEST_REF_FUNC void set_dist_volume_asm(struct SimpleThing *p_sthing,
   int smptbl_id, ushort vol)
 {
-    int a1 = (int)p_sthing, a2 = smptbl_id, a3 = vol;
+    int a1 = (int)(intptr_t)p_sthing, a2 = smptbl_id, a3 = vol;
 
     asm volatile ("call ASM_set_dist_volume\n"
         : "+a" (a1), "+d" (a2), "+b" (a3) : : "memory", "cc");
@@ -3196,7 +3197,7 @@ void process_time_pod(struct SimpleThing *p_sthing)
     }
 }
 
-int move_smapwho(int a1, int a2, int a3, int a4);
+int move_smapwho(intptr_t a1, intptr_t a2, int a3, intptr_t a4);
 
 static DIFFTEST_REF_FUNC void process_soul_asm(struct SimpleThing *p_sthing)
 {
@@ -3272,7 +3273,7 @@ void process_soul(struct SimpleThing *p_sthing)
         new_y += p_sthing->U.UEffect.VY * p_sthing->Timer1 * 4;
         new_z += p_sthing->U.UEffect.VZ * p_sthing->Timer1 * 4;
     }
-    move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+    move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -3714,7 +3715,7 @@ void finish_bang(struct SimpleThing *p_sthing, ThingIdx thing)
 }
 
 extern s32 dword_1E08BC;
-void snap_razor_wire(int a1, int a2, int a3, int a4);
+void snap_razor_wire(intptr_t a1, int a2, int a3, int a4);
 
 static DIFFTEST_REF_FUNC void FIRE_process_flame_asm(struct SimpleThing *p_sthing)
 {
@@ -3842,7 +3843,7 @@ void FIRE_process_flame(struct SimpleThing *p_sthing)
                 do_shockwave(p_sthing->X >> 8, p_sthing->Y >> 8, p_sthing->Z >> 8,
                   0x400, 1000, &things[(ushort)p_thing->Owner]);
             }
-            snap_razor_wire((int)p_thing, 0, 0, 0);
+            snap_razor_wire((intptr_t)p_thing, 0, 0, 0);
         }
     }
 
@@ -4090,7 +4091,7 @@ static DIFFTEST_REF_FUNC int move_smapwho_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int move_smapwho(int a1, int a2, int a3, int a4)
+int move_smapwho(intptr_t a1, intptr_t a2, int a3, intptr_t a4)
 {
     struct SimpleThing *p_sthing = (struct SimpleThing *)a1;
     s32 *p_x = (s32 *)a2;
@@ -4163,7 +4164,7 @@ void process_spark(struct SimpleThing *p_sthing)
     p_sthing->U.UEffect.OY = p_sthing->Y >> 8;
     p_sthing->U.UEffect.VY -= 0x20;
     p_sthing->U.UEffect.OZ = p_sthing->Z >> 8;
-    move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+    move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -4383,7 +4384,7 @@ static DIFFTEST_REF_FUNC void person_go_insane_asm(int a1, int a2, int a3, int a
 /** Routed asm (internal label). Arguments are the raw registers the asm
  * takes (eax, edx, ebx, ecx); only eax (the person) is used.
  */
-void person_go_insane(int a1, int a2, int a3, int a4)
+void person_go_insane(intptr_t a1, int a2, int a3, int a4)
 {
     struct Thing *p_person = (struct Thing *)a1;
 
@@ -4453,7 +4454,7 @@ void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
             }
             else
             {
-                move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+                move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
             }
             p_sthing->U.UEffect.VX += p_sthing->U.UEffect.OX;
             p_sthing->U.UEffect.VY += p_sthing->U.UEffect.OY;
@@ -4491,7 +4492,7 @@ void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
                 if ((p_person->Flag2 & TgF2_Unkn0001) != 0)
                     finalise_razor_wire(p_person);
                 if ((p_sthing->Flag & TngF_Unkn0010) != 0)
-                    person_go_insane((int)p_person, 0, 0, 0);
+                    person_go_insane((intptr_t)p_person, 0, 0, 0);
                 else
                     person_go_sleep(p_person);
             }
@@ -4569,7 +4570,7 @@ void process_mushroom(struct SimpleThing *p_sthing, ThingIdx thing_item)
     if (p_sthing->U.UEffect.VY < -2000)
         p_sthing->U.UEffect.VY = -2000;
     new_y = p_sthing->Y + (p_sthing->U.UEffect.VY >> 1);
-    move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+    move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
     p_sthing->Object += 4;
     if (p_sthing->Timer1 > 0)
     {
@@ -4608,7 +4609,7 @@ void process_special_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_it
     dz = (lbSinTable[angle] * radius) >> 11;
     new_x += dx;
     new_z += dz;
-    move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+    move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
     p_sthing->Object += p_sthing->StartFrame;
     if (p_sthing->StartTimer1 > 0)
     {
@@ -4734,7 +4735,7 @@ void process_napalm_flame(struct SimpleThing *p_sthing, ThingIdx thing_item)
             if (check_col_collision(new_x >> 8, (new_y >> 8) + 8, new_z >> 8) != 0)
                 p_sthing->Flag |= TngF_Unkn0008;
             else
-                move_smapwho((int)p_sthing, (int)&new_x, new_y, (int)&new_z);
+                move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
             p_sthing->U.UEffect.VX += p_sthing->U.UEffect.OX;
             p_sthing->U.UEffect.VY += p_sthing->U.UEffect.OY;
             p_sthing->U.UEffect.VZ += p_sthing->U.UEffect.OZ;
