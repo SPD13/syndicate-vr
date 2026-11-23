@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Inventory of the asm that a build without difftest still contains.
 
-Lists live inline asm in C sources (outside comments, `#if 0` blocks and
-DIFFTEST_REF_FUNC reference functions), with the enclosing function and
-the asm symbol it calls, and the .sx files that src/Makefile.am assembles
-unconditionally.
+Lists live inline asm in the C sources the Makefiles build unconditionally
+(outside comments, `#if 0` blocks and DIFFTEST_REF_FUNC reference
+functions), with the enclosing function and the asm symbol it calls, and
+the .sx files that src/Makefile.am assembles unconditionally. Sources in
+`if X ... endif` blocks of a Makefile.am (difftest, DOS network) are not
+counted.
 
 Usage: python tools/decomp-agent/asm_inventory.py [--summary]
 """
@@ -18,18 +20,36 @@ sys.path.insert(0, HERE)
 from sx_deps import strip_c  # noqa: E402
 
 TOPS = ('src', 'bflibrary/src', 'bfsoundlib/src', 'bfsmacklib/src', 'swrendersoft/src')
+MAKEFILES = ('src/Makefile.am', 'bflibrary/Makefile.am', 'bfsoundlib/Makefile.am',
+             'swrendersoft/Makefile.am')
 ASM_RE = re.compile(r'\basm\s+volatile\b|\b__asm__\b|\basm\s*\(')
 FUNC_RE = re.compile(r'\n(\w[\w \*]*?\b(\w+)\s*\([^;{]*\))\s*\{')
+COND_RE = re.compile(r'(?ms)^if \w+\n.*?^endif\n')
+
+
+def unconditional(path):
+    t = open(os.path.join(REPO, path), encoding='utf-8').read()
+    return COND_RE.sub('', t)
+
+
+def built_sources(ext):
+    names = set()
+    for mk in MAKEFILES:
+        if os.path.exists(os.path.join(REPO, mk)):
+            t = unconditional(mk)
+            names |= set(os.path.basename(x) for x in re.findall(r'([\w./-]+\.(?:%s))\b' % ext, t))
+    return names
 
 
 def inline_asm():
     rows = []
+    built = built_sources('c|cpp')
     for top in TOPS:
         for dp, dn, fn in os.walk(os.path.join(REPO, top)):
             if 'x86-dos-watcom' in dp:
                 continue
             for f in sorted(fn):
-                if not f.endswith(('.c', '.cpp')):
+                if not f.endswith(('.c', '.cpp')) or f not in built:
                     continue
                 p = os.path.join(dp, f)
                 t = strip_c(open(p, encoding='utf-8', errors='replace').read())
@@ -43,10 +63,7 @@ def inline_asm():
 
 
 def built_sx():
-    mk = open(os.path.join(REPO, 'src', 'Makefile.am'), encoding='utf-8').read()
-    # drop conditional blocks for difftest
-    mk = re.sub(r'(?ms)^if ENABLE_DIFFTEST\n.*?^endif\n', '', mk)
-    return sorted(set(re.findall(r'([\w./]+\.sx)\b', mk)))
+    return sorted(built_sources('sx'))
 
 
 def main():
