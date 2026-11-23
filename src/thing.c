@@ -2072,11 +2072,54 @@ void process_laser_guided(struct Thing *p_laser)
     move_mapwho(p_laser, new_x, p_laser->Y, new_z);
 }
 
-void process_c_iff(struct Thing *p_mine)
+int mounted_los(int x1, int y1, int z1, int x2, int y2, int z2);
+ThingIdx aquire_target(struct Thing *p_gun);
+
+static DIFFTEST_REF_FUNC void process_c_iff_asm(struct Thing *p_mine)
 {
     asm volatile (
       "call ASM_process_c_iff\n"
         : : "a" (p_mine));
+}
+
+void process_c_iff(struct Thing *p_mine)
+{
+    struct Thing *p_target;
+    int dx, dz, dist;
+
+    DIFFTEST_SHADOW(process_c_iff, process_c_iff_asm(p_mine));
+    if ((p_mine->Flag & TngF_Destroyed) != 0)
+        return;
+    if (p_mine->U.UPerson.WeaponTurn > 3)
+        p_mine->U.UPerson.WeaponTurn = 0;
+    process_weapon(p_mine);
+
+    p_target = p_mine->PTarget;
+    if (p_target == NULL)
+    {
+        if (((gameturn + (ushort)p_mine->ThingOffset) & 0x07) == 0)
+            aquire_target(p_mine);
+        return;
+    }
+
+    dx = abs((p_mine->X >> 8) - (p_target->X >> 8));
+    dz = abs((p_mine->Z >> 8) - (p_target->Z >> 8));
+    if (dx > dz)
+        dist = dx + (dz >> 1);
+    else
+        dist = dz + (dx >> 1);
+    if (dist >= get_weapon_range(p_mine))
+    {
+        p_mine->PTarget = NULL;
+        return;
+    }
+
+    if (!mounted_los(p_mine->X >> 8, (p_mine->Y >> 8) + 20, p_mine->Z >> 8,
+      p_target->X >> 8, (p_target->Y >> 8) + 20, p_target->Z >> 8))
+        return;
+    p_mine->Flag |= TngF_TriggerUse;
+    if ((p_mine->Flag & TngF_InVehicle) != 0)
+        things[p_mine->U.UPerson.Vehicle].Flag |= TngF_Unkn01000000;
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
