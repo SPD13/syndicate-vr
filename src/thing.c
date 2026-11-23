@@ -2903,10 +2903,78 @@ void process_stasis_pod(struct SimpleThing *p_sthing)
     }
 }
 
-void find_and_stasis(struct SimpleThing *p_stasis, int radius)
+static DIFFTEST_REF_FUNC void find_and_stasis_asm(struct SimpleThing *p_stasis, int radius)
 {
     asm volatile ("call ASM_find_and_stasis\n"
         :  : "a" (p_stasis), "d" (radius));
+}
+
+void find_and_stasis(struct SimpleThing *p_stasis, int radius)
+{
+    s32 cor_x, cor_y, cor_z;
+    s32 rng;
+    short tile_x, tile_z;
+    short dx, dz;
+
+    DIFFTEST_SHADOW(find_and_stasis, find_and_stasis_asm(p_stasis, radius));
+    cor_x = p_stasis->X >> 8;
+    cor_y = p_stasis->Y >> 8;
+    cor_z = p_stasis->Z >> 8;
+    rng = (radius >> 8) & 0xFFFF;
+    if (rng < 1)
+        rng = 1;
+    tile_x = cor_x >> 8;
+    tile_z = cor_z >> 8;
+
+    for (dx = -rng; dx <= (s32)(ushort)rng; dx++)
+    {
+        for (dz = -rng; dz <= (s32)(ushort)rng; dz++)
+        {
+            s32 mx, mz;
+            short thing;
+
+            mx = tile_x + dx;
+            if ((mx <= 0) || (mx >= 128))
+                continue;
+            mz = tile_z + dz;
+            if ((mz <= 0) || (mz >= 128))
+                continue;
+            thing = game_my_big_map[(mz << 7) + mx].Child;
+            while (thing != 0)
+            {
+                struct Thing *p_thing;
+                s32 dy, adx, adz, dist;
+
+                if (thing <= 0)
+                {
+                    // The asm also computes distances to simple things here,
+                    // but never uses them.
+                    thing = sthings[thing].Next;
+                    continue;
+                }
+                p_thing = &things[thing];
+                thing = p_thing->Next;
+                if ((p_thing->Type == TT_PERSON) && (p_thing->U.UPerson.Group ==
+                  things[(ushort)p_stasis->Owner2].U.UPerson.Group))
+                    continue;
+                dy = (p_thing->Y >> 8) - cor_y;
+                if ((dy >= 85) || (dy <= -85))
+                    continue;
+                adx = (p_thing->X >> 8) - cor_x;
+                if (adx < 0)
+                    adx = -adx;
+                adz = (p_thing->Z >> 8) - cor_z;
+                if (adz < 0)
+                    adz = -adz;
+                if (adx <= adz)
+                    dist = adz + (adx >> 1);
+                else
+                    dist = adx + (adz >> 1);
+                if (dist < (s32)(ushort)p_thing->Radius + radius)
+                    p_thing->Flag2 |= TgF2_Unkn02000000;
+            }
+        }
+    }
 }
 
 void find_and_time_travel(struct SimpleThing *p_sthing)
