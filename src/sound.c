@@ -601,11 +601,51 @@ void setup_heaps(short setup_cmd, const char *lang)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void heapmgr_defrag(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void heapmgr_defrag_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_heapmgr_defrag\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Closes one gap in the heap, by moving a single item down.
+ * a1 is the heap header; walks the address-ordered item list from 0x18
+ * through the next links (0x10). The first item whose data (pointer at
+ * 0x00) starts above the end of the previous item (0x00 + size at 0x04),
+ * and which is not pinned (flag 0x04 at 0x08), has its data moved to
+ * close the gap; then stops.
+ */
+void heapmgr_defrag(int a1, int a2, int a3, int a4)
+{
+    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
+    ubyte *p_item;
+    ubyte *p_next;
+    u32 prev_end;
+
+    DIFFTEST_SHADOW(heapmgr_defrag, heapmgr_defrag_asm(a1, a2, a3, a4));
+    if (p_hmhead == NULL)
+        return;
+    if (p_hmhead->field_10 == 0)
+        return;
+    p_item = (ubyte *)p_hmhead->field_18;
+    if (p_item == NULL)
+        return;
+    while (1)
+    {
+        p_next = (ubyte *)*(s32 *)(p_item + 0x10);
+        if (p_next == NULL)
+            return;
+        prev_end = *(u32 *)(p_item + 0x00) + *(u32 *)(p_item + 0x04);
+        if ((prev_end < *(u32 *)(p_next + 0x00)) &&
+          ((*(p_next + 0x08) & 0x04) == 0))
+        {
+            memmove((void *)(*(u32 *)(p_item + 0x00) + *(u32 *)(p_item + 0x04)),
+              (void *)*(u32 *)(p_next + 0x00), *(u32 *)(p_next + 0x04));
+            *(u32 *)(p_next + 0x00) = *(u32 *)(p_item + 0x00) + *(u32 *)(p_item + 0x04);
+            return;
+        }
+        p_item = p_next;
+    }
 }
 
 
