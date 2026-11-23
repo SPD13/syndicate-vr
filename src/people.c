@@ -2779,12 +2779,98 @@ void path_init8_tank(int a1, int a2, int a3, int a4, int a5, int a6)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int tank_los(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int tank_los_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_tank_los\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+extern s32 dword_1AA3A4;
+extern s32 dword_1AA3A8;
+
+/** Checks whether a tank can pass over the map tile at given coords.
+ * No bounds check on the coords, like in the original.
+ */
+static TbBool tank_los_tile_passable(s32 x, s32 z)
+{
+    struct MyMapElement *p_mapel;
+    s32 row, col;
+    short alt;
+
+    row = (z >> 8) * 128;
+    col = x >> 8;
+    p_mapel = &game_my_big_map[row + col];
+    if ((p_mapel->Flags2 & 0x08) != 0)
+        return true;
+    if ((p_mapel->Flags2 & 0x01) != 0)
+        return false;
+    if ((p_mapel->ColumnHead & 0x0FFF) != 0)
+        return false;
+    if ((p_mapel->Flags2 & 0x02) != 0)
+        return true;
+    alt = p_mapel->Alt;
+    if (abs(alt - game_my_big_map[row + col + 1].Alt) > 25)
+        return false;
+    if (abs(alt - game_my_big_map[row + 128 + col].Alt) > 25)
+        return false;
+    if (abs(alt - game_my_big_map[row + 128 + col + 1].Alt) > 25)
+        return false;
+    return true;
+}
+
+/** Checks if a tank can travel in a straight line between two points.
+ * Coords are in map units (thing coords >> 8). Returns 42 if the way
+ * is clear, 0 if blocked or the points are too close. Leaves the
+ * last checked position in dword_1AA3A4/dword_1AA3A8.
+ */
+int tank_los(int a1, int a2, int a3, int a4)
+{
+    s32 cur_x, cur_z;
+    s32 dt_x, dt_z;
+    s32 abs_x, abs_z;
+    s32 dist, steps;
+
+    DIFFTEST_SHADOW_RET(tank_los, int, tank_los_asm(a1, a2, a3, a4));
+    cur_x = a1;
+    cur_z = a2;
+    dt_x = a3 - a1;
+    dt_z = a4 - a2;
+    abs_z = abs(dt_z);
+    abs_x = abs(dt_x);
+    if (abs_x < abs_z)
+        dist = abs_z - (abs_z >> 5) - (abs_z >> 7) + (abs_x >> 2)
+          + (abs_x >> 3) + (abs_x >> 6) + (abs_x >> 7);
+    else
+        dist = abs_x - (abs_x >> 5) - (abs_x >> 7) + (abs_z >> 2)
+          + (abs_z >> 3) + (abs_z >> 6) + (abs_z >> 7);
+
+    dword_1AA3A4 = a3;
+    dword_1AA3A8 = a4;
+    if (dist < 256)
+        DIFFTEST_RETURN((int)0);
+
+    steps = dist >> 7;
+    dt_x /= steps;
+    dt_z /= steps;
+
+    while (1)
+    {
+        steps--;
+        if (steps == -1)
+            DIFFTEST_RETURN((int)42);
+        if (!tank_los_tile_passable(cur_x, cur_z))
+            DIFFTEST_RETURN((int)0);
+        if (!tank_los_tile_passable(cur_x + 2 * dt_z, cur_z - 2 * dt_x))
+            DIFFTEST_RETURN((int)0);
+        if (!tank_los_tile_passable(cur_x - 2 * dt_z, cur_z + 2 * dt_x))
+            DIFFTEST_RETURN((int)0);
+        dword_1AA3A4 = cur_x - dt_x;
+        cur_x += dt_x;
+        dword_1AA3A8 = cur_z - dt_z;
+        cur_z += dt_z;
+    }
 }
 
 
