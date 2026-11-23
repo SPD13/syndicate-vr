@@ -121,12 +121,84 @@ void sfx_apply_cdvolume(void)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int heapmgr_add_item(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int heapmgr_add_item_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_heapmgr_add_item\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
     return ra;
+}
+
+/** Allocates a heap item of the given size.
+ * a1 is the heap header, a2 the size in bytes. Takes the first unused
+ * handle (ushort flags at 0x08 zero) from the array at 0x24, places it in
+ * the first gap large enough in the address-ordered list (first at 0x18,
+ * links 0x0C/0x10), and appends it as the newest in the age list.
+ * Returns the item, or 0 if there is no room or no free handle.
+ */
+int heapmgr_add_item(int a1, int a2, int a3, int a4)
+{
+    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
+    s32 size = a2;
+    ubyte *p_item;
+    ubyte *p_prev;
+    ubyte *p_next;
+    s32 gap_beg, gap_end;
+
+    DIFFTEST_SHADOW_RET(heapmgr_add_item, int, heapmgr_add_item_asm(a1, a2, a3, a4));
+    if (size > p_hmhead->field_8 - p_hmhead->field_14)
+        DIFFTEST_RETURN((int)0);
+    if (p_hmhead->field_10 >= p_hmhead->samples_count)
+        DIFFTEST_RETURN((int)0);
+    p_item = (ubyte *)p_hmhead + 0x24;
+    while (*(ushort *)(p_item + 0x08) != 0)
+        p_item += 0x1C;
+
+    if (p_hmhead->field_18 == 0)
+    {
+        p_hmhead->field_18 = (s32)p_item;
+        *(s32 *)(p_item + 0x00) = (s32)p_hmhead->field_0;
+    }
+    else
+    {
+        p_prev = (ubyte *)p_hmhead->field_18;
+        for (;;)
+        {
+            p_next = (ubyte *)*(s32 *)(p_prev + 0x10);
+            gap_beg = *(s32 *)(p_prev + 0x00) + *(s32 *)(p_prev + 0x04);
+            if (p_next != NULL)
+                gap_end = *(s32 *)(p_next + 0x00);
+            else
+                gap_end = (s32)p_hmhead->field_4;
+            if (gap_end - gap_beg >= size)
+                break;
+            if (p_next == NULL)
+                DIFFTEST_RETURN((int)0);
+            p_prev = p_next;
+        }
+        *(s32 *)(p_item + 0x0C) = (s32)p_prev;
+        *(s32 *)(p_item + 0x00) = *(s32 *)(p_prev + 0x00) + *(s32 *)(p_prev + 0x04);
+        p_next = (ubyte *)*(s32 *)(p_prev + 0x10);
+        *(s32 *)(p_item + 0x10) = (s32)p_next;
+        if (p_next != NULL)
+            *(s32 *)(p_next + 0x0C) = (s32)p_item;
+        *(s32 *)(p_prev + 0x10) = (s32)p_item;
+    }
+    *(ushort *)(p_item + 0x08) = 1;
+    *(s32 *)(p_item + 0x04) = size;
+    p_hmhead->field_14 += size;
+    p_hmhead->field_10++;
+    if (p_hmhead->field_20 != 0)
+    {
+        *(s32 *)((ubyte *)p_hmhead->field_20 + 0x18) = (s32)p_item;
+        *(s32 *)(p_item + 0x14) = p_hmhead->field_20;
+    }
+    else
+    {
+        p_hmhead->field_1C = (s32)p_item;
+    }
+    p_hmhead->field_20 = (s32)p_item;
+    DIFFTEST_RETURN((int)p_item);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
