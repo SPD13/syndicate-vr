@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "thing_search.h"
 
+#include <stdlib.h>
 #include "bfutility.h"
 
 #include "bigmap.h"
@@ -1415,13 +1416,74 @@ short find_nearest_person_min(int x, int y, int z,
     DIFFTEST_RETURN((short)nearest);
 }
 
-struct Thing *check_for_people(int x, int y, int z, ushort radius)
+static DIFFTEST_REF_FUNC struct Thing *check_for_people_asm(int x, int y, int z, ushort radius)
 {
     struct Thing *ret;
     asm volatile (
       "call ASM_check_for_people\n"
-        : "=r" (ret) : "a" (x), "d" (y), "b" (z), "c" (radius));
+        : "=a" (ret) : "a" (x), "d" (y), "b" (z), "c" (radius));
     return ret;
+}
+
+struct Thing *check_for_people(int x, int y, int z, ushort radius)
+{
+    short tile_x, tile_z;
+    short dt_x, dt_z;
+
+    DIFFTEST_SHADOW_RET(check_for_people, struct Thing *,
+      check_for_people_asm(x, y, z, radius));
+    tile_x = x >> 16;
+    tile_z = z >> 16;
+    for (dt_x = -1; dt_x < 2; dt_x++)
+    {
+        for (dt_z = -1; dt_z < 2; dt_z++)
+        {
+            ThingIdx thing;
+            ushort k;
+            s32 mx, mz;
+
+            mx = tile_x + dt_x;
+            if ((mx < 0) || (mx >= 128))
+                continue;
+            mz = tile_z + dt_z;
+            if ((mz < 0) || (mz >= 128))
+                continue;
+            thing = game_my_big_map[(mz << 7) + mx].Child;
+            k = 0;
+            while (thing != 0)
+            {
+                struct Thing *p_thing;
+                s32 dist_x, dist_y, dist_z, dist;
+
+                if (k >= 400)
+                    break;
+                k++;
+                if (thing <= 0)
+                {
+                    thing = sthings[thing].Next;
+                    continue;
+                }
+                p_thing = &things[thing];
+                if ((p_thing->Type == TT_PERSON) && (p_thing->State != PerSt_DEAD))
+                {
+                    dist_y = (p_thing->Y - y) >> 8;
+                    if ((dist_y < 25) && (dist_y > -25))
+                    {
+                        dist_x = abs((p_thing->X - x) >> 8);
+                        dist_z = abs((p_thing->Z - z) >> 8);
+                        if (dist_x <= dist_z)
+                            dist = dist_z + (dist_x >> 1);
+                        else
+                            dist = dist_x + (dist_z >> 1);
+                        if (dist < (s32)(short)radius + (s32)p_thing->Radius)
+                            DIFFTEST_RETURN(p_thing);
+                    }
+                }
+                thing = p_thing->Next;
+            }
+        }
+    }
+    DIFFTEST_RETURN((struct Thing *)NULL);
 }
 
 /******************************************************************************/
