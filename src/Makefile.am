@@ -192,8 +192,6 @@ syndwarsfx_SOURCES = \
 	scandraw.h \
 	sound.c \
 	sound.h \
-	sound_smp_s.sx \
-	sound_heap_s.sx \
 	specblit.c \
 	specblit.h \
 	swars.sx \
@@ -244,6 +242,13 @@ syndwarsfx_WRAPPERS = wrappers_dos.o wrappers_game.o wrappers_libc.o wrappers_ut
 syndwarsfx_RCFLAGS = \
   -I"$(top_srcdir)/src" -I"$(builddir)" \
   $(RCFLAGS)
+
+# The asm of remade functions is kept only as the difftest reference
+if ENABLE_DIFFTEST
+syndwarsfx_SOURCES += \
+	sound_smp_s.sx \
+	sound_heap_s.sx
+endif
 
 if HAS_WINDRES
 syndwarsfx_RESRCS = syndwarsfx_stdres.res

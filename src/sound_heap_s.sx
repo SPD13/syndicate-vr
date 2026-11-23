@@ -683,13 +683,10 @@ GLOBAL_FUNC(ASM_play_sample_using_heap)	/* 0x0E0218 */
 
 .data
 
-GLOBAL (sound_file)	/* 0x155D50 */
-		.ascii  "\xff\xff\xff\xff"
-
-GLOBAL (hmhead)	/* 0x1E2E44 */
-		.long	0x0
-GLOBAL (samples_in_bank)	/* 0x1E2E48 */
-		.long	0x0
-GLOBAL (sample_table)	/* 0x1E2E4C */
-		.long	0x0
+/* sound_file, hmhead, samples_in_bank and sample_table are defined
+ * in sound.c */
+.global EXPORT_SYMBOL(sound_file);
+.global EXPORT_SYMBOL(hmhead);
+.global EXPORT_SYMBOL(samples_in_bank);
+.global EXPORT_SYMBOL(sample_table);
 

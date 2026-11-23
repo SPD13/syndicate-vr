@@ -213,6 +213,7 @@ AC_ARG_ENABLE([difftest],
 AS_IF([test "x$enable_difftest" = "xyes"], [
   AC_DEFINE([ENABLE_DIFFTEST], [1], [Define to enable asm vs C differential testing])
 ])
+AM_CONDITIONAL([ENABLE_DIFFTEST], [test "x$enable_difftest" = "xyes"])
 
 # libraries from within this project are only built after `make` is executed
 AC_SUBST(BFLIBRARY_LIBS, "-L\"\$(top_builddir)/lib\" -lbullfrog")

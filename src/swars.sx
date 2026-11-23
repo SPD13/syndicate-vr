@@ -105650,7 +105650,7 @@ GLOBAL_FUNC(ASM_process_canister)	/* 0x0C6AB8 */
 	jump_c6ca1:
 		mov    %ax,%bx
 		mov    %ebp,%eax
-		call   ASM_set_dist_volume
+		call   ac_set_dist_volume
 	jump_c6cab:
 		mov    0x26(%ebp),%eax
 		sar    $0x10,%eax
@@ -105675,7 +105675,7 @@ GLOBAL_FUNC(ASM_process_canister)	/* 0x0C6AB8 */
 	jump_c6cea:
 		mov    %ax,%bx
 		mov    %ebp,%eax
-		call   ASM_set_dist_volume
+		call   ac_set_dist_volume
 	jump_c6cf4:
 		mov    0x26(%ebp),%eax
 		sar    $0x10,%eax
@@ -111553,7 +111553,7 @@ GLOBAL_FUNC(ASM_process_time_pod)	/* 0x0CAF50 */
 		mov    $0x38,%edx
 		mov    %ax,%bx
 		mov    %esi,%eax
-		call   ASM_set_dist_volume
+		call   ac_set_dist_volume
 	jump_cafdf:
 		mov    0x26(%esi),%eax
 		sar    $0x10,%eax
@@ -111605,7 +111605,7 @@ GLOBAL_FUNC(ASM_process_time_pod)	/* 0x0CAF50 */
 		mov    $0x38,%edx
 		mov    %ax,%bx
 		mov    %esi,%eax
-		call   ASM_set_dist_volume
+		call   ac_set_dist_volume
 	jump_cb06c:
 		mov    0x26(%esi),%eax
 		sar    $0x10,%eax
@@ -111891,7 +111891,7 @@ func_cb31e:
 		mov    $0x2c,%edx
 		mov    %ax,%bx
 		mov    %esi,%eax
-		call   ASM_set_dist_volume
+		call   ac_set_dist_volume
 	jump_cb380:
 		mov    0x26(%esi),%eax
 		sar    $0x10,%eax
@@ -111972,7 +111972,7 @@ func_cb3d4:
 		mov    $0x2c,%edx
 		mov    %ax,%bx
 		mov    %esi,%eax
-		call   ASM_set_dist_volume
+		call   ac_set_dist_volume
 	jump_cb437:
 		mov    0x14(%esi),%cx
 		mov    0x26(%esi),%eax

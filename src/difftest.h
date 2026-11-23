@@ -77,8 +77,15 @@ enum DiffTestExitCodes {
 
 /** Attributes for an asm reference function; never inlined, so that any
  * register clobbering by the asm stays within the usual call convention.
+ * Without difftest nothing calls it, and as an unused static inline
+ * function it is not emitted at all, so the build needs no asm of the
+ * remade function (see the ENABLE_DIFFTEST sources in src/Makefile.am).
  */
+#if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
 #define DIFFTEST_REF_FUNC __attribute__((noinline,unused))
+#else
+#define DIFFTEST_REF_FUNC inline __attribute__((unused))
+#endif
 
 #if defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST
 

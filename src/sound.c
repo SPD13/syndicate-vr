@@ -73,12 +73,21 @@ struct HeapMgrHeader { // sizeof=0x24
 
 #pragma pack()
 
-extern long sound_heap_size;
-extern struct SampleTable *sound_heap_memory;
-extern TbFileHandle sound_file; // = INVALID_FILE;
-extern struct HeapMgrHeader *hmhead;
-extern long samples_in_bank;
-extern struct SampleTable *sample_table;
+/* Sound data, moved here from the asm (sound_smp_s.sx, sound_heap_s.sx),
+ * which now only references it, so that builds without difftest need no
+ * sound asm at all.
+ */
+long sound_heap_size;
+long dword_1DDECC;
+struct SampleTable *sound_heap_memory;
+/** Sample type per sample info slot, built by monitor_all_samples()
+ * (data_1dded8 in the asm). */
+ubyte sound_sample_types[0x190];
+u32 ail_sample_ids[20];
+TbFileHandle sound_file = INVALID_FILE;
+struct HeapMgrHeader *hmhead;
+long samples_in_bank;
+struct SampleTable *sample_table;
 
 short startscr_samplevol;
 short startscr_midivol;
@@ -596,9 +605,7 @@ void play_dist_sample(struct Thing *p_thing, ushort smptbl_id, ushort vol,
 
     DIFFTEST_SHADOW(play_dist_sample, play_dist_sample_asm(p_thing, smptbl_id,
       vol, pan, pitch, loop, stype));
-    // Per-sample type table (data_1dded8) is not exported from the asm;
-    // it directly follows the 4-byte sound_heap_memory.
-    p_smp_type = (ubyte *)&sound_heap_memory + 4;
+    p_smp_type = sound_sample_types;
 
     if (((ubyte *)p_thing < (ubyte *)things) ||
       ((ubyte *)p_thing > (ubyte *)&things[THINGS_LIMIT]))
@@ -685,9 +692,7 @@ void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vo
 
     DIFFTEST_SHADOW(play_dist_ssample, play_dist_ssample_asm(p_sthing,
       smptbl_id, vol, pan, pitch, loop, stype));
-    // Per-sample type table (data_1dded8) is not exported from the asm;
-    // it directly follows the 4-byte sound_heap_memory.
-    p_smp_type = (ubyte *)&sound_heap_memory + 4;
+    p_smp_type = sound_sample_types;
 
     // Range check as in the asm: sthings[-STHINGS_LIMIT] .. sthings[0]
     if (((ubyte *)p_sthing < (ubyte *)&sthings[-STHINGS_LIMIT]) ||
@@ -794,7 +799,6 @@ static DIFFTEST_REF_FUNC void fill_ail_sample_ids_asm(void)
         :  :  : "eax", "cc", "memory" );
 }
 
-extern u32 ail_sample_ids[];
 
 void fill_ail_sample_ids(void)
 {
@@ -833,9 +837,7 @@ void monitor_all_samples(void)
     DIFFTEST_SHADOW(monitor_all_samples, monitor_all_samples_asm());
     if ((ingame.Flags & GamF_Unkn00020000) == 0)
         return;
-    // Per-sample type table (data_1dded8) is not exported from the asm;
-    // it directly follows the 4-byte sound_heap_memory.
-    p_smp_type = (ubyte *)&sound_heap_memory + 4;
+    p_smp_type = sound_sample_types;
     memset(p_smp_type, 0, 0x18f);
 
     p_thing = NULL;

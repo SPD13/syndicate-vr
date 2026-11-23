@@ -229,7 +229,7 @@ GLOBAL_FUNC(ASM_monitor_all_samples)	/* 0x0D5D8C */
 		test   $0x2,%ah
 		je     jump_d6124
 		mov    $0x18f,%ebx
-		mov    $data_1dded8,%eax
+		mov    $EXPORT_SYMBOL(sound_sample_types),%eax
 		mov    %dx,0x88(%esp)
 		xor    %edx,%edx
 		call   ac_memset
@@ -251,7 +251,7 @@ GLOBAL_FUNC(ASM_monitor_all_samples)	/* 0x0D5D8C */
 		sar    $0x10,%eax
 		cmp    $0x270f,%eax
 		je     jump_d5e02
-		incb   data_1dded8(%eax)
+		incb   EXPORT_SYMBOL(sound_sample_types)(%eax)
 	jump_d5e02:
 		mov    0x10(%ecx),%eax
 		sar    $0x10,%eax
@@ -265,7 +265,7 @@ GLOBAL_FUNC(ASM_monitor_all_samples)	/* 0x0D5D8C */
 		mov    0xa(%ecx),%dx
 		push   %edx
 		xor    %edx,%edx
-		mov    data_1dded8(%eax),%dl
+		mov    EXPORT_SYMBOL(sound_sample_types)(%eax),%dl
 		push   %edx
 		mov    0x4(%ecx),%edx
 		push   %edx
@@ -289,7 +289,7 @@ GLOBAL_FUNC(ASM_monitor_all_samples)	/* 0x0D5D8C */
 		mov    0xa(%ecx),%dx
 		push   %edx
 		xor    %edx,%edx
-		mov    data_1dded8(%eax),%dl
+		mov    EXPORT_SYMBOL(sound_sample_types)(%eax),%dl
 		push   %edx
 		mov    0x4(%ecx),%edx
 		push   %edx
@@ -424,7 +424,7 @@ GLOBAL_FUNC(ASM_monitor_all_samples)	/* 0x0D5D8C */
 		jl     jump_d5ff5
 		mov    0x10(%ecx),%eax
 		sar    $0x10,%eax
-		mov    data_1dded8(%eax),%al
+		mov    EXPORT_SYMBOL(sound_sample_types)(%eax),%al
 		and    $0xff,%eax
 		cmp    $0x3,%eax
 		jle    jump_d6032
@@ -440,7 +440,7 @@ GLOBAL_FUNC(ASM_monitor_all_samples)	/* 0x0D5D8C */
 	jump_d6005:
 		mov    0x10(%ecx),%eax
 		sar    $0x10,%eax
-		mov    data_1dded8(%eax),%al
+		mov    EXPORT_SYMBOL(sound_sample_types)(%eax),%al
 		and    $0xff,%eax
 		cmp    $0x3,%eax
 		jle    jump_d60b0
@@ -742,7 +742,7 @@ GLOBAL_FUNC(ASM_play_dist_sample)	/* 0x0D61D0 */
 		xor    %eax,%eax
 		mov    0x18(%esp),%ax
 		xor    %edx,%edx
-		mov    data_1dded8(%eax),%dl
+		mov    EXPORT_SYMBOL(sound_sample_types)(%eax),%dl
 		cmp    $0x2,%edx
 		jle    jump_d633d
 		xor    %edx,%edx
@@ -916,7 +916,7 @@ GLOBAL_FUNC(ASM_play_dist_ssample)	/* 0x0D6374 */
 		xor    %eax,%eax
 		mov    0x14(%esp),%ax
 		xor    %edx,%edx
-		mov    data_1dded8(%eax),%dl
+		mov    EXPORT_SYMBOL(sound_sample_types)(%eax),%dl
 		cmp    $0x2,%edx
 		jle    jump_d64df
 		xor    %edx,%edx
@@ -1049,15 +1049,11 @@ aDIdDTypeDSam_0:	/* 0x15EBCD */
 		.align  4
 
 
-GLOBAL (sound_heap_size)	/* 0x1DDEC8 */
-		.long	0x0
-GLOBAL (dword_1DDECC)	/* 0x1DDECC */
-		.long	0x0
-		.fill   0x4
-GLOBAL (sound_heap_memory)	/* 0x1DDED4 */
-		.long	0x0
-data_1dded8:
-		.fill   0x190
-GLOBAL (ail_sample_ids)	/* 0x1DE068 */
-		.fill   0x50
+/* sound_heap_size, dword_1DDECC, sound_heap_memory, data_1dded8
+ * (sound_sample_types) and ail_sample_ids are defined in sound.c */
+.global EXPORT_SYMBOL(sound_heap_size);
+.global EXPORT_SYMBOL(dword_1DDECC);
+.global EXPORT_SYMBOL(sound_heap_memory);
+.global EXPORT_SYMBOL(sound_sample_types);
+.global EXPORT_SYMBOL(ail_sample_ids);
 
