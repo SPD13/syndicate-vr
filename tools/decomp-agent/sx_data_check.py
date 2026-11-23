@@ -30,7 +30,10 @@ def symbols(exe):
         p = line.split()
         if len(p) == 3:
             name = p[2]
-            syms.setdefault(name, int(p[0], 16))
+            # prefer global symbols over file-static ones of the same name
+            if name not in syms or (p[1].isupper() and not syms[name][1]):
+                syms[name] = (int(p[0], 16), p[1].isupper())
+    syms = {k: v[0] for k, v in syms.items()}
     return syms
 
 
