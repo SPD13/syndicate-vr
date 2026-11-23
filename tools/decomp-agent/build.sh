@@ -18,6 +18,7 @@ for a in "$@"; do
     --reconf) RECONF=1 ;;
     --difftest) VARIANT=difftest; EXTRA_CONF="--enable-difftest" ;;
     --coverage) VARIANT=coverage; EXTRA_CONF="--enable-difftest"; EXTRA_CFLAGS="-finstrument-functions" ;;
+    --dos-network) VARIANT=dosnet; EXTRA_CONF="--enable-dos-network" ;;
     *) echo "unknown arg $a" >&2; exit 2 ;;
     esac
 done

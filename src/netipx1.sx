@@ -84,7 +84,7 @@ ASM_ipx_log_on_new_players:	/* 0x0F5650 */
 		add    $0x64,%ecx
 		movb   $0x0,0x46(%edx)
 		add    %eax,%ecx
-		mov    $ascBu_1,%edx
+		mov    $EXPORT_SYMBOL(ascBu_1),%edx
 		mov    %ecx,%eax
 		call   ac_strnicmp
 		test   %eax,%eax
@@ -93,7 +93,7 @@ ASM_ipx_log_on_new_players:	/* 0x0F5650 */
 		cmp    $0x2,%eax
 		jne    jump_f56c7
 		xor    %eax,%eax
-		mov    data_1e6419,%al
+		mov    EXPORT_SYMBOL(data_1e6419),%al
 		cmp    $0x8,%eax
 		jge    jump_f56c7
 		mov    %ecx,%eax
@@ -122,10 +122,10 @@ GLOBAL_FUNC(ASM_ipx_add_new_player)	/* 0x0F5728 */
 		xor    %ah,%ah
 		mov    EXPORT_SYMBOL(data_1e641a),%dl
 		mov    %ah,EXPORT_SYMBOL(player_loggon)
-		cmp    data_1e6419,%dl
+		cmp    EXPORT_SYMBOL(data_1e6419),%dl
 		jbe    jump_f5826
 		mov    $EXPORT_SYMBOL(IPXPlayer)+0x2D,%eax
-		cmp    $data_1e6419,%eax
+		cmp    $EXPORT_SYMBOL(data_1e6419),%eax
 		jb     jump_f5765
 		jmp    jump_f5793
 	jump_f575c:
@@ -135,7 +135,7 @@ GLOBAL_FUNC(ASM_ipx_add_new_player)	/* 0x0F5728 */
 		jmp    jump_f5793
 	jump_f5765:
 		mov    (%esp),%ebx
-		mov    $data_1e6419,%ebp
+		mov    $EXPORT_SYMBOL(data_1e6419),%ebp
 		lea    0x4(%eax),%edx
 		add    $0x1c,%ebx
 		add    $0x4,%ebp
@@ -154,7 +154,7 @@ GLOBAL_FUNC(ASM_ipx_add_new_player)	/* 0x0F5728 */
 		jmp    jump_f5826
 	jump_f5793:
 		mov    $EXPORT_SYMBOL(IPXPlayer)+0x2D,%edx
-		cmp    $data_1e6419,%edx
+		cmp    $EXPORT_SYMBOL(data_1e6419),%edx
 		jb     jump_f57b5
 		add    $0x4,%esp
 		pop    %ebp
@@ -166,7 +166,7 @@ GLOBAL_FUNC(ASM_ipx_add_new_player)	/* 0x0F5728 */
 		ret
 	jump_f57aa:
 		add    $0x1c,%edx
-		cmp    $data_1e6419,%edx
+		cmp    $EXPORT_SYMBOL(data_1e6419),%edx
 		jae    jump_f5826
 	jump_f57b5:
 		cmpw   $0x0,0x1a(%edx)
@@ -213,7 +213,7 @@ GLOBAL_FUNC(ASM_ipx_add_new_player)	/* 0x0F5728 */
 		jne    jump_f5807
 	jump_f581f:
 		pop    %edi
-		incb   data_1e6419
+		incb   EXPORT_SYMBOL(data_1e6419)
 	jump_f5826:
 		add    $0x4,%esp
 		pop    %ebp
@@ -258,7 +258,7 @@ GLOBAL_FUNC(ASM_ipx_exchange_packets)	/* 0x0F5B4C */
 		test   %dl,%dl
 		je     jump_f5e14
 		xor    %edx,%edx
-		mov    data_1e6419,%dl
+		mov    EXPORT_SYMBOL(data_1e6419),%dl
 		cmp    $0x1,%edx
 		jle    jump_f5e14
 		mov    EXPORT_SYMBOL(IPXPlayer)+0x2B,%dl
@@ -277,7 +277,7 @@ GLOBAL_FUNC(ASM_ipx_exchange_packets)	/* 0x0F5B4C */
 		mov    0x80(%esp),%ebp
 		mov    $0x3,%ebx
 		mov    $0x2d,%ecx
-		mov    data_1e6419,%al
+		mov    EXPORT_SYMBOL(data_1e6419),%al
 		mov    $EXPORT_SYMBOL(IPXPlayer),%esi
 		mov    %al,EXPORT_SYMBOL(IPXPlayer)+0x2C
 		shl    $0x3,%ebp
@@ -648,11 +648,11 @@ ipx_get_players_packets_:	/* 0x0F5E2C */
 		cmp    $0x8,%eax
 		jge    jump_f6184
 		imul   $0x226,%eax,%eax
-		cmpw   $0x0,data_1e6978(%eax)
+		cmpw   $0x0,EXPORT_SYMBOL(data_1e6978)(%eax)
 		je     jump_f6184
 		mov    EXPORT_SYMBOL(IPXPlayer)+0x26,%esi
 		mov    EXPORT_SYMBOL(datagram_backup)(%eax),%edx
-		mov    data_1e6974(%eax),%ebx
+		mov    EXPORT_SYMBOL(data_1e6974)(%eax),%ebx
 		add    $EXPORT_SYMBOL(datagram_backup),%eax
 		mov    %edx,EXPORT_SYMBOL(IPXPlayer)+0x26
 		lea    0xa(%eax),%edx
@@ -689,7 +689,7 @@ ipx_get_players_packets_:	/* 0x0F5E2C */
 		movb   $0x0,0x46(%esi)
 		lea    (%edx,%eax,1),%esi
 		mov    $0x2,%ebx
-		mov    $ascBu_2,%edx
+		mov    $EXPORT_SYMBOL(ascBu_2),%edx
 		mov    %esi,%eax
 		call   ac_strnicmp
 		test   %eax,%eax
@@ -714,7 +714,7 @@ ipx_get_players_packets_:	/* 0x0F5E2C */
 	jump_f621f:
 		xor    %eax,%eax
 		mov    0xd2(%esp),%edx
-		mov    data_1e6419,%al
+		mov    EXPORT_SYMBOL(data_1e6419),%al
 		sar    $0x10,%edx
 		cmp    %eax,%edx
 		jl     jump_f5e73
@@ -738,7 +738,7 @@ ipx_send_packet_to_all_:	/* 0x0F624C */
 		sub    $0x68,%esp
 		mov    %eax,%ebp
 		mov    %edx,0x5c(%esp)
-		cmpb   $0x0,data_1e6419
+		cmpb   $0x0,EXPORT_SYMBOL(data_1e6419)
 		je     jump_f63da
 		mov    EXPORT_SYMBOL(IPXHandler),%edx
 		mov    $0x2d,%ecx
@@ -773,7 +773,7 @@ ipx_send_packet_to_all_:	/* 0x0F624C */
 		add    $0x2d,%eax
 		mov    %cx,0x64(%esp)
 		mov    %ax,-0x27c(%edx)
-		cmp    $data_1e6419,%ebx
+		cmp    $EXPORT_SYMBOL(data_1e6419),%ebx
 		jae    jump_f635b
 		lea    0x4(%ebx),%eax
 		lea    0x4(%edx),%ebp
@@ -819,11 +819,11 @@ ipx_send_packet_to_all_:	/* 0x0F624C */
 		inc    %esi
 		mov    %ecx,0x60(%esp)
 		mov    %si,0x64(%esp)
-		cmp    $data_1e6419,%ebx
+		cmp    $EXPORT_SYMBOL(data_1e6419),%ebx
 		jb     jump_f62e8
 	jump_f635b:
 		mov    EXPORT_SYMBOL(IPXHandler),%eax
-		mov    data_1e6419,%dl
+		mov    EXPORT_SYMBOL(data_1e6419),%dl
 		movw   $0x5,0x2(%eax)
 		mov    $0x32,%ebx
 		mov    %dl,0xb(%eax)
@@ -884,7 +884,7 @@ GLOBAL_FUNC(ASM_ipx_send_last_packet)	/* 0x0F65EC */
 		shl    $0x3,%eax
 		sub    %edx,%eax
 		lea    0x0(,%eax,4),%edx
-		cmpw   $0x0,data_1e6353(%edx)
+		cmpw   $0x0,EXPORT_SYMBOL(data_1e6353)(%edx)
 		je     jump_f6704
 		mov    $EXPORT_SYMBOL(last_pkt),%esi
 		mov    EXPORT_SYMBOL(IPXHandler),%edi
@@ -979,7 +979,7 @@ ipx_send_packet_to_player_:	/* 0x0F6710 */
 		mov    %eax,%edx
 		shl    $0x3,%eax
 		sub    %edx,%eax
-		cmpw   $0x0,data_1e6353(,%eax,4)
+		cmpw   $0x0,EXPORT_SYMBOL(data_1e6353)(,%eax,4)
 		je     jump_f6864
 		mov    $EXPORT_SYMBOL(IPXPlayer),%esi
 		mov    EXPORT_SYMBOL(IPXHandler),%edx
@@ -1099,7 +1099,7 @@ ipx_send_and_get_packet_:	/* 0x0F6870 */
 		mov    %eax,%edx
 		shl    $0x3,%eax
 		sub    %edx,%eax
-		cmpw   $0x0,data_1e6353(,%eax,4)
+		cmpw   $0x0,EXPORT_SYMBOL(data_1e6353)(,%eax,4)
 		je     jump_f69c4
 		mov    $EXPORT_SYMBOL(IPXPlayer),%esi
 		mov    EXPORT_SYMBOL(IPXHandler),%edx
@@ -1243,7 +1243,7 @@ ipx_get_host_packet_:	/* 0x0F69D0 */
 		pop    %edi
 		mov    0x2c(%ebp),%al
 		mov    %al,EXPORT_SYMBOL(IPXPlayer)+0x2C
-		mov    %al,data_1e6419
+		mov    %al,EXPORT_SYMBOL(data_1e6419)
 		jmp    jump_f6afc
 	jump_f6a52:
 		mov    $0xe0,%ecx
@@ -1258,7 +1258,7 @@ ipx_get_host_packet_:	/* 0x0F69D0 */
 		pop    %edi
 		mov    0x10d(%ebp),%al
 		mov    %al,EXPORT_SYMBOL(IPXPlayer)+0x2C
-		mov    %al,data_1e6419
+		mov    %al,EXPORT_SYMBOL(data_1e6419)
 		mov    0x10e(%ebp),%al
 		mov    %al,EXPORT_SYMBOL(data_1e641a)
 		jmp    jump_f6afc
@@ -1268,12 +1268,12 @@ ipx_get_host_packet_:	/* 0x0F69D0 */
 		cmp    $0x8,%ebp
 		jge    jump_f6afc
 		imul   $0x226,%ebp,%ebp
-		cmpw   $0x0,data_1e6978(%ebp)
+		cmpw   $0x0,EXPORT_SYMBOL(data_1e6978)(%ebp)
 		je     jump_f6afc
 		mov    $EXPORT_SYMBOL(datagram_backup),%edx
 		mov    EXPORT_SYMBOL(IPXPlayer)+0x26,%esi
 		mov    EXPORT_SYMBOL(datagram_backup)(%ebp),%eax
-		mov    data_1e6974(%ebp),%ebx
+		mov    EXPORT_SYMBOL(data_1e6974)(%ebp),%ebx
 		mov    %eax,EXPORT_SYMBOL(IPXPlayer)+0x26
 		add    %ebp,%edx
 		xor    %eax,%eax
@@ -1311,7 +1311,7 @@ ipx_get_host_packet_:	/* 0x0F69D0 */
 		add    $0x64,%eax
 		movb   $0x0,0x46(%ebp)
 		lea    (%eax,%esi,1),%ebp
-		mov    $ascBu_2,%edx
+		mov    $EXPORT_SYMBOL(ascBu_2),%edx
 		mov    %ebp,%eax
 		call   ac_strnicmp
 		test   %eax,%eax
@@ -1357,7 +1357,7 @@ GLOBAL_FUNC(ASM_ipx_get_player_name)	/* 0x0F6BB8 */
 		lea    0x0(,%edx,8),%eax
 		sub    %edx,%eax
 		shl    $0x2,%eax
-		cmpw   $0x0,data_1e6353(%eax)
+		cmpw   $0x0,EXPORT_SYMBOL(data_1e6353)(%eax)
 		je     jump_f6c14
 		add    $EXPORT_SYMBOL(IPXPlayer)+0x2D,%eax
 		lea    0xa(%eax),%esi
@@ -1404,7 +1404,7 @@ GLOBAL_FUNC(ASM_ipx_stop_network)	/* 0x0F6CA4 */
 		cmp    %ecx,%eax
 		jne    jump_f6d13
 		xor    %ecx,%eax
-		mov    data_1e6419,%al
+		mov    EXPORT_SYMBOL(data_1e6419),%al
 		cmp    $0x1,%eax
 		jle    jump_f6d13
 		call   ac_dos_clock
@@ -1446,7 +1446,7 @@ GLOBAL_FUNC(ASM_ipx_stop_network)	/* 0x0F6CA4 */
 		mov    $EXPORT_SYMBOL(IPXPlayer)+0x2D,%eax
 		mov    %bh,EXPORT_SYMBOL(IPXPlayer)+0x2B
 		mov    $0xe0,%ebx
-		mov    %ch,data_1e6419
+		mov    %ch,EXPORT_SYMBOL(data_1e6419)
 		call   ac_memset
 		mov    $0x8,%ebx
 		mov    $EXPORT_SYMBOL(IPXPlayer)+0x04,%eax
@@ -1467,15 +1467,15 @@ GLOBAL_FUNC(ASM_ipx_stop_network)	/* 0x0F6CA4 */
 		shl    $0x5,%edx
 		shl    $0x5,%ebx
 		mov    %esi,EXPORT_SYMBOL(ipx_send_packet_count)(%edx,%ecx,4)
-		mov    data_1e6419,%ah
+		mov    EXPORT_SYMBOL(data_1e6419),%ah
 		mov    %esi,EXPORT_SYMBOL(ipx_send_packet_count)(%ebx,%ecx,4)
 		test   %ah,%ah
 		je     jump_f6e2f
-		mov    data_1e6419,%dl
+		mov    EXPORT_SYMBOL(data_1e6419),%dl
 		mov    %ecx,%ebx
 		dec    %dl
 		lea    0x0(,%ebx,8),%eax
-		mov    %dl,data_1e6419
+		mov    %dl,EXPORT_SYMBOL(data_1e6419)
 		sub    %ebx,%eax
 		mov    $0x1c,%ebx
 		shl    $0x2,%eax
@@ -1496,7 +1496,7 @@ GLOBAL_FUNC(ASM_ipx_stop_network)	/* 0x0F6CA4 */
 		cmp    $0x8,%eax
 		jge    jump_f6e03
 		imul   $0x1c,%eax,%eax
-		cmpw   $0x0,data_1e6353(%eax)
+		cmpw   $0x0,EXPORT_SYMBOL(data_1e6353)(%eax)
 		je     jump_f6de5
 		mov    EXPORT_SYMBOL(IPXHandler),%eax
 		mov    %dl,0xd(%eax)
@@ -1529,70 +1529,6 @@ GLOBAL_FUNC(ASM_ipx_stop_network)	/* 0x0F6CA4 */
 
 /*----------------------------------------------------------------*/
 .section .rodata
-
-ascBu:	/* 0x15F598 */
-		.string "BU"
-ascBu_0:	/* 0x15F59B */
-		.string "BU"
-ascBu_1:	/* 0x15F59E */
-		.string "BU"
-ascBu_2:	/* 0x15F5A1 */
-		.string "BU"
-
-ascRt:	/* 0x15F7A0 */
-		.string "rt"
-ascT:	/* 0x15F7A3 */
-		.string "T"
-ascP:	/* 0x15F7A5 */
-		.string "P"
-data_15f7a7:
-		.string "+++"
-ascC_1:	/* 0x15F7AB */
-		.string "%c"
-
-/*----------------------------------------------------------------*/
+/* data moved to C (sx_data2c.py) */
 .data
-
-ipx_update__start_time:	/* 0x1E6300 */
-		.long	0x0
-ipx_update__end_time:	/* 0x1E6304 */
-		.long	0x0
-GLOBAL (IPXHandler)	/* 0x1E6308 */
-		.long	0x0
-GLOBAL (IPXPlayer)	/* 0x1E630C */
-		.byte	0x0
-		.byte	0x0
-		.short  0x0
-		.fill   0x8
-		.fill   0x1a
-		.long	0x0
-		.byte	0x0
-		.byte	0x0
-		.byte	0x0
-IPXPlayer__Data:	/* 0x1e6339 IPXPlayer+0x2D */
-		.fill   0x1a
-data_1e6353:
-		.fill   0xc6
-data_1e6419:
-		.byte	0x0
-GLOBAL (data_1e641a)
-		.short  0x0
-
-GLOBAL (loggon_header)	/* 0x1E641C */
-		.fill   0x2d
-GLOBAL (player_loggon)	/* 0x1E6449 */
-		.ascii  "\x00\x00\x00"
-GLOBAL (last_pkt_size)	/* 0x1E644C */
-		.long	0x0
-GLOBAL (last_pkt)	/* 0x1E6450 */
-		.fill   0x400
-GLOBAL (ipx_send_packet_count)	/* 0x1E6850 */
-		.fill   0x100
-GLOBAL (ipx_got_player_send_packet_count)	/* 0x1E6950 */
-		.fill   0x20
-GLOBAL (datagram_backup)	/* 0x1E6970 */
-		.long	0x0
-data_1e6974:
-		.long	0x0
-data_1e6978:
-		.fill   0x1128
+/* data moved to C (sx_data2c.py) */

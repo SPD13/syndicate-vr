@@ -81,21 +81,17 @@ GLOBAL_FUNC(ASM_net_unkn_func_12)	/* 0x0E57B0 */
 
 /*----------------------------------------------------------------*/
 .section .rodata
-data_e5890:
-		.ascii  "con\x00"
+/* data moved to C (sx_data2c.py) */
 .text
 
 
 /*----------------------------------------------------------------*/
 GLOBAL_FUNC (____GETDS)	/* 0xe5ae8 */
 /*----------------------------------------------------------------*/
-		data16 		mov    %cs:data_e5af1,%ds
+		data16 		mov    %cs:EXPORT_SYMBOL(data_e5af1),%ds
 		ret
 .data
-data_e5af1:
-		.short  0x0
-data_e5af3:
-		.fill   0xd
+/* data moved to C (sx_data2c.py) */
 .text
 
 
@@ -212,13 +208,13 @@ GLOBAL_FUNC(ASM_run_exchange_func)	/* 0x0FA89F */
 		mov    %esp,%ebp
 		sub    $0x4,%esp
 		call   ac_dos_clock
-		mov    %eax,run_exchange_func__end_time
-		mov    run_exchange_func__end_time,%eax
-		sub    run_exchange_func__start_time,%eax
+		mov    %eax,EXPORT_SYMBOL(run_exchange_func__end_time)
+		mov    EXPORT_SYMBOL(run_exchange_func__end_time),%eax
+		sub    EXPORT_SYMBOL(run_exchange_func__start_time),%eax
 		cmp    $0xa,%eax
 		jbe    jump_fa8e5
-		mov    run_exchange_func__end_time,%eax
-		mov    %eax,run_exchange_func__start_time
+		mov    EXPORT_SYMBOL(run_exchange_func__end_time),%eax
+		mov    %eax,EXPORT_SYMBOL(run_exchange_func__start_time)
 		cmpl   $0x0,EXPORT_SYMBOL(NetworkServicePtr)+0x14	/* NetworkServicePtr.F.SessionExchange */
 		je     jump_fa8e5
 		call   *EXPORT_SYMBOL(NetworkServicePtr)+0x14	/* NetworkServicePtr.F.SessionExchange */
@@ -1749,7 +1745,7 @@ net_unkn_sub_335:	/* 0x10D7F6 */
 		add    $0x8,%esp
 		jmp    jump_10d839
 	jump_10d861:
-		mov    $data_1616c1,%eax
+		mov    $EXPORT_SYMBOL(data_1616c1),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
@@ -1770,7 +1766,7 @@ net_unkn_sub_335:	/* 0x10D7F6 */
 		add    -0x14(%ebp),%eax
 		movzbl (%eax),%eax
 		push   %eax
-		mov    $asc02x_0,%eax
+		mov    $EXPORT_SYMBOL(asc02x_0),%eax
 		push   %eax
 		imul   $0x3,-0x14(%ebp),%eax
 		lea    -0x214(%ebp),%edx
@@ -1998,7 +1994,7 @@ net_unkn_func_339:	/* 0x10D8FC */
 		mov    -0x10(%ebp),%eax
 		cmpl   $0x0,0x1a7(%eax)
 		je     jump_10dbca
-		mov    $ascRxData,%eax
+		mov    $EXPORT_SYMBOL(ascRxData),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
@@ -2015,13 +2011,13 @@ net_unkn_func_339:	/* 0x10D8FC */
 		add    -0x18(%ebp),%eax
 		movzbl (%eax),%eax
 		push   %eax
-		mov    $asc02x_1,%eax
+		mov    $EXPORT_SYMBOL(asc02x_1),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x8,%esp
 		jmp    jump_10db94
 	jump_10dbbc:
-		mov    $data_1616d9,%eax
+		mov    $EXPORT_SYMBOL(data_1616d9),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
@@ -2068,38 +2064,38 @@ net_unkn_change_state:	/* 0x10DC04 */
 		push   %edi
 		enter  $0x4,$0x0
 		mov    %eax,-0x4(%ebp)
-		mov    $aStateChangeWai,%eax
+		mov    $EXPORT_SYMBOL(aStateChangeWai),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
 		mov    -0x4(%ebp),%eax
 		cmpl   $0x0,0x2(%eax)
 		je     jump_10dc37
-		mov    $ascTrue_0,%eax
+		mov    $EXPORT_SYMBOL(ascTrue_0),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
 		jmp    jump_10dc45
 	jump_10dc37:
-		mov    $ascFalse_0,%eax
+		mov    $EXPORT_SYMBOL(ascFalse_0),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
 	jump_10dc45:
-		mov    $aWaiting_for_da,%eax
+		mov    $EXPORT_SYMBOL(aWaiting_for_da),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
 		mov    -0x4(%ebp),%eax
 		cmpl   $0x0,0x6(%eax)
 		je     jump_10dc6c
-		mov    $ascTrue_1,%eax
+		mov    $EXPORT_SYMBOL(ascTrue_1),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
 		jmp    jump_10dc7a
 	jump_10dc6c:
-		mov    $ascFalse_1,%eax
+		mov    $EXPORT_SYMBOL(ascFalse_1),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x4,%esp
@@ -2178,7 +2174,7 @@ net_unkn_func_337:	/* 0x10DCA1 */
 		je     jump_10dd7c
 		movzbl -0xc(%ebp),%eax
 		push   %eax
-		mov    $aSingleErrorDet,%eax
+		mov    $EXPORT_SYMBOL(aSingleErrorDet),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x8,%esp
@@ -2190,7 +2186,7 @@ net_unkn_func_337:	/* 0x10DCA1 */
 		je     jump_10dd9d
 		movzbl -0xc(%ebp),%eax
 		push   %eax
-		mov    $aDoubleErrorDet,%eax
+		mov    $EXPORT_SYMBOL(aDoubleErrorDet),%eax
 		push   %eax
 		call   ac_printf
 		add    $0x8,%esp
@@ -2276,8 +2272,8 @@ GLOBAL_FUNC(ASM_net_unkn_func_338)	/* 0x10DDF6 */
 /*----------------------------------------------------------------*/
 GLOBAL_FUNC(ASM_func_11f3f3)	/* 0x11f3f3 */
 /*----------------------------------------------------------------*/
-		movw   $0xffff,data_15ac11
-		movl   $0xa,data_15ac13
+		movw   $0xffff,EXPORT_SYMBOL(data_15ac11)
+		movl   $0xa,EXPORT_SYMBOL(data_15ac13)
 	jump_11f406:
 		cli
 		mov    $0xb0,%al
@@ -2313,16 +2309,16 @@ GLOBAL_FUNC(ASM_func_11f3f3)	/* 0x11f3f3 */
 		sti
 		mov    $0xffff,%ax
 		sub    %dx,%ax
-		cmp    %ax,data_15ac11
+		cmp    %ax,EXPORT_SYMBOL(data_15ac11)
 		jb     jump_11f463
-		mov    %ax,data_15ac11
+		mov    %ax,EXPORT_SYMBOL(data_15ac11)
 	jump_11f463:
-		decl   data_15ac13
-		cmpl   $0x0,data_15ac13
+		decl   EXPORT_SYMBOL(data_15ac13)
+		cmpl   $0x0,EXPORT_SYMBOL(data_15ac13)
 		je     jump_11f474
 		jmp    jump_11f406
 	jump_11f474:
-		mov    data_15ac11,%bx
+		mov    EXPORT_SYMBOL(data_15ac11),%bx
 		movzwl %bx,%eax
 		mov    $0x20bd,%ebx
 		mul    %ebx
@@ -2339,8 +2335,8 @@ GLOBAL_FUNC(ASM_func_11f3f3)	/* 0x11f3f3 */
 /*----------------------------------------------------------------*/
 GLOBAL_FUNC(ASM_func_11f4b8)
 /*----------------------------------------------------------------*/
-		movw   $0xffff,data_15ac11
-		movl   $0xa,data_15ac13
+		movw   $0xffff,EXPORT_SYMBOL(data_15ac11)
+		movl   $0xa,EXPORT_SYMBOL(data_15ac13)
 	jump_11f4cb:
 		cli
 		mov    $0xb0,%al
@@ -2367,16 +2363,16 @@ GLOBAL_FUNC(ASM_func_11f4b8)
 		sti
 		mov    $0xffff,%ax
 		sub    %dx,%ax
-		cmp    %ax,data_15ac11
+		cmp    %ax,EXPORT_SYMBOL(data_15ac11)
 		jb     jump_11f50d
-		mov    %ax,data_15ac11
+		mov    %ax,EXPORT_SYMBOL(data_15ac11)
 	jump_11f50d:
-		decl   data_15ac13
-		cmpl   $0x0,data_15ac13
+		decl   EXPORT_SYMBOL(data_15ac13)
+		cmpl   $0x0,EXPORT_SYMBOL(data_15ac13)
 		je     jump_11f51e
 		jmp    jump_11f4cb
 	jump_11f51e:
-		mov    data_15ac11,%bx
+		mov    EXPORT_SYMBOL(data_15ac11),%bx
 		movzwl %bx,%eax
 		mov    $0x20bd,%ebx
 		mul    %ebx
@@ -2395,7 +2391,7 @@ func_11f547:
 /*----------------------------------------------------------------*/
 		push   %ds
 		call   ____GETDS
-		incw   data_15ac1b
+		incw   EXPORT_SYMBOL(data_15ac1b)
 		push   %dx
 		mov    $0x20,%dx
 		mov    $0x67,%al
@@ -2473,7 +2469,7 @@ GLOBAL_FUNC(ASM_func_11f561)	/* 0x11f561 */
 		mov    $0x67,%al
 		out    %al,(%dx)
 		pop    %dx
-		movw   $0x0,data_15ac1b
+		movw   $0x0,EXPORT_SYMBOL(data_15ac1b)
 		sti
 		inc    %dx
 		inc    %dx
@@ -2488,9 +2484,9 @@ GLOBAL_FUNC(ASM_func_11f561)	/* 0x11f561 */
 	jump_11f623:
 		dec    %edi
 		jne    jump_11f623
-		cmpw   $0x1,data_15ac1b
+		cmpw   $0x1,EXPORT_SYMBOL(data_15ac1b)
 		je     jump_11f640
-		cmpw   $0x0,data_15ac1b
+		cmpw   $0x0,EXPORT_SYMBOL(data_15ac1b)
 		je     jump_11f6ca
 		jmp    jump_11f670
 	jump_11f640:
@@ -2507,7 +2503,7 @@ GLOBAL_FUNC(ASM_func_11f561)	/* 0x11f561 */
 	jump_11f65e:
 		dec    %edi
 		jne    jump_11f65e
-		cmpw   $0x1,data_15ac1b
+		cmpw   $0x1,EXPORT_SYMBOL(data_15ac1b)
 		cli
 		je     jump_11f72c
 	jump_11f670:
@@ -2620,92 +2616,4 @@ GLOBAL_FUNC(ASM__chain_intr_)	/* 0x11F748 */
 /*----------------------------------------------------------------*/
 
 .data
-
-GLOBAL (aGettingHeaderB)	/* 0x161630 */
-		.string "Getting header byte\n"
-GLOBAL (aResendingD)	/* 0x161645 */
-		.string "Resending %d\n"
-GLOBAL (aResendingDelta)	/* 0x161653 */
-		.string "Resending delta %d\n"
-GLOBAL (aStartingExchan)	/* 0x161667 */
-		.string "\nStarting exchange # %d\n"
-GLOBAL (aCompletedExcha)	/* 0x161680 */
-		.string "Completed exchange - Return Code = "
-GLOBAL (aTrue)	/* 0x1616A4 */
-		.string "TRUE\n"
-GLOBAL (aFalse)	/* 0x1616AA */
-		.string "FALSE\n"
-GLOBAL (aTxData)	/* 0x1616B1 */
-		.string "TX DATA: "
-GLOBAL (asc02x)	/* 0x1616BB */
-		.string "%02X "
-data_1616c1:
-		.ascii  "\x0a\x00"
-GLOBAL (asc02x_0)	/* 0x1616C3 */
-		.string "%02X "
-ascRxData:	/* 0x1616C9 */
-		.string "RX DATA: "
-GLOBAL (asc02x_1)	/* 0x1616D3 */
-		.string "%02X "
-data_1616d9:
-		.ascii  "\x0a\x00"
-aStateChangeWai:	/* 0x1616DB */
-		.string "State Change: WAITING_FOR_ACK = "
-ascTrue_0:	/* 0x1616FC */
-		.string "TRUE"
-ascFalse_0:	/* 0x161701 */
-		.string "FALSE"
-aWaiting_for_da:	/* 0x161707 */
-		.string "  WAITING_FOR_DATA = "
-ascTrue_1:	/* 0x16171D */
-		.string "TRUE\n"
-ascFalse_1:	/* 0x161723 */
-		.string "FALSE\n"
-aSingleErrorDet:	/* 0x16172A */
-		.string "Single error detected, syndrome = %02X\n"
-aDoubleErrorDet:	/* 0x161752 */
-		.string "Double error detected, syndrome = %02X\n"
-		.align  4
-
-
-
-GLOBAL (NetTimeoutTicks)	/* 0x1561C4 */
-		.ascii  "\xff\xff\xff\xff"
-
-GLOBAL (__cbyte)	/* 0x159118 */
-		.fill   0x8
-
-data_159608:
-		.short  0x0
-
-data_15ac11:
-		.ascii  "\xff\xff"
-data_15ac13:
-		.ascii  "\x0a\x00\x00\x00"
-data_15ac17:
-		.long	0x0
-data_15ac1b:
-		.short  0x0
-		.align  4
-
-
-run_exchange_func__start_time:	/* 0x1E8128 */
-		.long	0x0
-run_exchange_func__end_time:	/* 0x1E812C */
-		.fill   0x10
-GLOBAL (g_count)	/* 0x1E81DC */
-		.long	0x0
-GLOBAL (netunkst_1E81E0)	/* 0x1E81E0 */
-		.fill   0x403
-GLOBAL (dword_1E85E3)	/* 0x1e85e3 */
-		.fill   0x5
-
-
-GLOBAL (_wc_errno)
-		.long	0x0
-GLOBAL (_doserrno)	/* 0x1EA484 */
-		.long	0x0
-
-_loop_count:
-		.long	0x0
-
+/* data moved to C (sx_data2c.py) */

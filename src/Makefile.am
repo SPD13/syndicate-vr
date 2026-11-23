@@ -149,9 +149,9 @@ syndwarsfx_SOURCES = \
 	mouse.h \
 	mydraw.c \
 	mydraw.h \
-	netipx1.sx \
-	netser1.sx \
-	netdos.sx \
+	netipx1_data.c \
+	netser1_data.c \
+	netdos_data.c \
 	network.c \
 	network.h \
 	pathtrig.c \
@@ -177,9 +177,9 @@ syndwarsfx_SOURCES = \
 	purpldrw.h \
 	purpldrwlst.c \
 	purpldrwlst.h \
-	radica1.sx \
-	radica2.sx \
-	radica3.sx \
+	radica1_data.c \
+	radica2_data.c \
+	radica3_data.c \
 	research.c \
 	research.h \
 	rules.c \
@@ -238,6 +238,19 @@ syndwarsfx_WRAPPERS = wrappers_dos.o wrappers_game.o wrappers_libc.o wrappers_ut
 syndwarsfx_RCFLAGS = \
   -I"$(top_srcdir)/src" -I"$(builddir)" \
   $(RCFLAGS)
+
+# The DOS network services (IPX, serial, RADICA) are asm using DOS
+# interrupts; only built with --enable-dos-network. Without them the
+# network service functions report failure (single player).
+if DOS_NETWORK
+syndwarsfx_SOURCES += \
+	netipx1.sx \
+	netser1.sx \
+	netdos.sx \
+	radica1.sx \
+	radica2.sx \
+	radica3.sx
+endif
 
 # The asm of remade functions is kept only as the difftest reference
 if ENABLE_DIFFTEST

@@ -235,8 +235,12 @@ void setup_bullfrog_header(struct TbIPXPlayerHeader *ipxhead, int a2)
 
 void ipx_add_new_player(struct TbIPXPlayerHeader *p_ipxhead)
 {
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_ipx_add_new_player\n"
         : : "a" (p_ipxhead) );
+#else
+    // DOS network services not built
+#endif
 }
 
 void ipx_log_on_new_players(void)
@@ -610,15 +614,23 @@ int ipx_get_player_number(void)
 int ipx_exchange_packets(void *a1, int a2)
 {
     int ret;
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_ipx_exchange_packets\n"
         : "=r" (ret) : "a" (a1), "d" (a2) );
+#else
+    ret = Lb_FAIL; // DOS network services not built
+#endif
     return ret;
 }
 
 void ipx_send_last_packet(int a1)
 {
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_ipx_send_last_packet\n"
         : : "a" (a1) );
+#else
+    // DOS network services not built
+#endif
 }
 
 void ipx_shutdown(ushort a1)
@@ -956,8 +968,12 @@ int net_unkn_func_352(void)
 {
     int ret;
     LOGDBG("Starting");
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_net_unkn_func_352\n"
         : "=r" (ret) :  );
+#else
+    ret = Lb_FAIL; // DOS network services not built
+#endif
     return ret;
 }
 
@@ -965,8 +981,12 @@ int net_unkn_func_338(struct TbUnknCommSt *p_a1)
 {
     int ret;
     LOGDBG("Starting");
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_net_unkn_func_338\n"
         : "=r" (ret) : "a" (p_a1) );
+#else
+    ret = Lb_FAIL; // DOS network services not built
+#endif
     return ret;
 }
 
@@ -974,8 +994,12 @@ int radica_create_session(struct TbNetworkSession *session, const char *a2)
 {
     int ret;
     LOGDBG("Starting");
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_radica_create_session\n"
         : "=r" (ret) : "a" (session), "d" (a2) );
+#else
+    ret = Lb_FAIL; // DOS network services not built
+#endif
     return ret;
 }
 
@@ -983,8 +1007,12 @@ int radica_join_session(struct TbNetworkSession *session, char *a2)
 {
     int ret;
     LOGDBG("Starting");
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_radica_join_session\n"
         : "=r" (ret) : "a" (session), "d" (a2) );
+#else
+    ret = Lb_FAIL; // DOS network services not built
+#endif
     return ret;
 }
 
@@ -998,8 +1026,12 @@ TbResult radica_service_init(struct NetworkServiceInfo *p_nsvc)
 {
     TbResult ret;
     LOGDBG("Starting");
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_radica_service_init\n"
         : "=r" (ret) : "a" (p_nsvc) );
+#else
+    ret = Lb_FAIL; // DOS network services not built
+#endif
     return ret;
 }
 
@@ -1007,16 +1039,24 @@ int radica_session_list(struct TbNetworkSessionList *p_nslist, int listlen)
 {
     int ret;
     LOGDBG("Starting");
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_radica_session_list\n"
         : "=r" (ret) : "a" (p_nslist), "d" (listlen) );
+#else
+    ret = Lb_FAIL; // DOS network services not built
+#endif
     return ret;
 }
 
 int radica_exchange_packets(void *a1, int a2)
 {
     int ret;
+#if defined(ENABLE_DOS_NETWORK) && ENABLE_DOS_NETWORK
     asm volatile ("call ASM_radica_exchange_packets\n"
         : "=r" (ret) : "a" (a1), "d" (a2) );
+#else
+    ret = Lb_FAIL; // DOS network services not built
+#endif
     return ret;
 }
 

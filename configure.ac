@@ -215,6 +215,15 @@ AS_IF([test "x$enable_difftest" = "xyes"], [
 ])
 AM_CONDITIONAL([ENABLE_DIFFTEST], [test "x$enable_difftest" = "xyes"])
 
+AC_ARG_ENABLE([dos-network],
+  AS_HELP_STRING([--enable-dos-network],
+    [build the original DOS network services (IPX, serial, RADICA) asm @<:@default=no@:>@]),
+  [enable_dos_network=$enableval], [enable_dos_network=no])
+AS_IF([test "x$enable_dos_network" = "xyes"], [
+  AC_DEFINE([ENABLE_DOS_NETWORK], [1], [Define to build the DOS network services asm])
+])
+AM_CONDITIONAL([DOS_NETWORK], [test "x$enable_dos_network" = "xyes"])
+
 # libraries from within this project are only built after `make` is executed
 AC_SUBST(BFLIBRARY_LIBS, "-L\"\$(top_builddir)/lib\" -lbullfrog")
 # the 2nd include folder is just a temp workaround

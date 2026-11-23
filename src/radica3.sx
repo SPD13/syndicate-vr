@@ -102,16 +102,16 @@ GLOBAL_FUNC(ASM_net_int_unkn1_handler)	/* 0x118A80 */
 		call   func_11b220
 		jmp    jump_118e4a
 	jump_118ad9:
-		mov    %edx,data_15ab7c
+		mov    %edx,EXPORT_SYMBOL(data_15ab7c)
 	jump_118adf:
-		movl   $EXPORT_SYMBOL(data_1edb94),data_15abbd
+		movl   $EXPORT_SYMBOL(data_1edb94),EXPORT_SYMBOL(data_15abbd)
 		call   func_119e23
 		mov    %eax,EXPORT_SYMBOL(data_1edb88)
 		test   %eax,%eax
 		jne    jump_118b39
 		cmpl   $0x0,EXPORT_SYMBOL(data_1edb98)
 		je     jump_118b18
-		cmpl   $0x0,data_15ab7c
+		cmpl   $0x0,EXPORT_SYMBOL(data_15ab7c)
 		jne    jump_118b18
 		mov    $0x40,%eax
 		call   func_11b220
@@ -120,7 +120,7 @@ GLOBAL_FUNC(ASM_net_int_unkn1_handler)	/* 0x118A80 */
 		imul   $0x10b,EXPORT_SYMBOL(data_1ed188),%eax
 		add    $EXPORT_SYMBOL(data_1ebcac),%eax
 		add    $0xc,%eax
-		mov    %eax,data_15abbd
+		mov    %eax,EXPORT_SYMBOL(data_15abbd)
 		call   func_11a46e
 		mov    %eax,EXPORT_SYMBOL(data_1edb88)
 	jump_118b39:
@@ -152,13 +152,13 @@ func_118b8e:
 		xor    %edx,%edx
 		mov    %edx,EXPORT_SYMBOL(data_1ebc90)(,%edi,4)
 	jump_118ba9:
-		mov    data_15ab7c,%esi
+		mov    EXPORT_SYMBOL(data_15ab7c),%esi
 		mov    %ebx,EXPORT_SYMBOL(data_1edba8)
 		mov    %ecx,EXPORT_SYMBOL(data_1edbac)
 		test   %esi,%esi
 		je     jump_118e4a
 	jump_118bc3:
-		movl   $0x1,data_15ab7c
+		movl   $0x1,EXPORT_SYMBOL(data_15ab7c)
 		jmp    jump_118adf
 /*----------------------------------------------------------------*/
 func_118bd2:
@@ -167,7 +167,7 @@ func_118bd2:
 		inc    %eax
 		mov    %ecx,EXPORT_SYMBOL(data_1edbac)
 		mov    %eax,EXPORT_SYMBOL(data_1ed18c)
-		movl   $0x1,data_15ab7c
+		movl   $0x1,EXPORT_SYMBOL(data_15ab7c)
 		jmp    jump_118adf
 /*----------------------------------------------------------------*/
 func_118bf8:
@@ -215,12 +215,12 @@ func_118c16:
 	jump_118c9d:
 		xor    %eax,%eax
 		mov    EXPORT_SYMBOL(data_1edb90),%edx
-		mov    %eax,data_15ab80
+		mov    %eax,EXPORT_SYMBOL(data_15ab80)
 		cmpb   $0x0,0x4(%edx)
 		jne    jump_118ceb
 		imul   $0x10b,EXPORT_SYMBOL(data_1ed188),%eax
 		mov    $0x1,%ebx
-		mov    %ebx,data_15ab80
+		mov    %ebx,EXPORT_SYMBOL(data_15ab80)
 		mov    %ebx,EXPORT_SYMBOL(data_1596c0)
 		mov    %ebx,EXPORT_SYMBOL(data_1ebcac)(%eax)
 		xor    %ebx,%ebx
@@ -306,7 +306,7 @@ func_118c16:
 		mov    %al,0x39(%esi)
 		test   %al,%al
 		jne    jump_118d8d
-		mov    data_15ab80,%esi
+		mov    EXPORT_SYMBOL(data_15ab80),%esi
 		mov    %ebx,EXPORT_SYMBOL(data_1edba8)
 		mov    %ecx,EXPORT_SYMBOL(data_1edbac)
 		test   %esi,%esi
@@ -378,10 +378,10 @@ func_118e76:
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
 		and    $0xcf,%cl
 		mov    %cl,%al
 		out    %al,(%dx)
@@ -511,7 +511,7 @@ func_118e76:
 		jne    jump_118f32
 		movl   $0x0,EXPORT_SYMBOL(data_15abb6)
 	jump_118fa1:
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -559,12 +559,12 @@ GLOBAL_FUNC(ASM_func_118ff7)
 		call   func_118e64
 		call   ASM_func_11f3f3
 		cli
-		mov    %eax,data_15aba9
+		mov    %eax,EXPORT_SYMBOL(data_15aba9)
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		inc    %dx
 		inc    %dx
 		in     (%dx),%al
-		mov    %al,data_15abb5
+		mov    %al,EXPORT_SYMBOL(data_15abb5)
 		and    $0x1f,%al
 		or     $0x4,%al
 		mov    %al,EXPORT_SYMBOL(data_15abb3)
@@ -626,7 +626,7 @@ GLOBAL_FUNC(ASM_func_118ff7)
 		out    %al,(%dx)
 		inc    %dx
 		inc    %dx
-		mov    data_15abb5,%al
+		mov    EXPORT_SYMBOL(data_15abb5),%al
 		out    %al,(%dx)
 		cmp    $0xc,%ebp
 		je     jump_119349
@@ -755,7 +755,7 @@ GLOBAL_FUNC(ASM_func_118ff7)
 	jump_1191d5:
 		dec    %edi
 		jne    jump_1191d5
-		mov    data_15aba9,%edi
+		mov    EXPORT_SYMBOL(data_15aba9),%edi
 		shl    $0x8,%edi
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		inc    %dx
@@ -768,19 +768,19 @@ GLOBAL_FUNC(ASM_func_118ff7)
 		jmp    jump_119355
 	jump_1191fa:
 		mov    $0xbf,%al
-		mov    %al,data_15abb4
+		mov    %al,EXPORT_SYMBOL(data_15abb4)
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		out    %al,(%dx)
 		mov    $0x4,%al
 		shl    $0x2,%al
-		mov    %al,data_15abad
+		mov    %al,EXPORT_SYMBOL(data_15abad)
 		mov    %ebp,%edi
 		shl    $0x11,%edi
 	jump_119218:
 		dec    %edi
 		je     jump_119375
 		call   func_118e76
-		mov    data_15abb4,%cl
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
 		cmp    $0x0,%eax
 		je     jump_11924e
 		or     $0x30,%cl
@@ -806,9 +806,9 @@ GLOBAL_FUNC(ASM_func_118ff7)
 		cmp    $0x0,%ch
 		jne    jump_11926f
 		mov    $0x1,%ch
-		mov    %ch,data_15abad
+		mov    %ch,EXPORT_SYMBOL(data_15abad)
 	jump_11926f:
-		movb   $0x8,data_15abbc
+		movb   $0x8,EXPORT_SYMBOL(data_15abbc)
 	jump_119276:
 		mov    $0x0,%bh
 		and    $0xf0,%cl
@@ -821,7 +821,7 @@ GLOBAL_FUNC(ASM_func_118ff7)
 	jump_11928b:
 		dec    %edi
 		jne    jump_11928b
-		mov    data_15abbc,%bh
+		mov    EXPORT_SYMBOL(data_15abbc),%bh
 		and    $0xf0,%cl
 		or     %bh,%cl
 		and    $0xbf,%cl
@@ -849,9 +849,9 @@ GLOBAL_FUNC(ASM_func_118ff7)
 		or     %al,%bh
 		mov    %bh,%al
 		and    $0xf,%al
-		cmp    data_15abbc,%al
+		cmp    EXPORT_SYMBOL(data_15abbc),%al
 		jne    jump_1192d8
-		shrb   data_15abbc
+		shrb   EXPORT_SYMBOL(data_15abbc)
 		jb     jump_1192e2
 		jmp    jump_119276
 	jump_1192d8:
@@ -859,15 +859,15 @@ GLOBAL_FUNC(ASM_func_118ff7)
 		je     jump_119375
 		jmp    jump_119276
 	jump_1192e2:
-		mov    %ch,data_15abad
+		mov    %ch,EXPORT_SYMBOL(data_15abad)
 		call   ASM_func_11f561
 		cmpl   $0x0,EXPORT_SYMBOL(data_15abb6)
 		jne    jump_11935f
 		mov    $0x5f302e31,%eax
 		mov    %eax,EXPORT_SYMBOL(data_15ab99)
 		mov    $0x73422f41,%eax
-		mov    %eax,data_15ab9d
-		movb   $0x0,data_15aba1
+		mov    %eax,EXPORT_SYMBOL(data_15ab9d)
+		movb   $0x0,EXPORT_SYMBOL(data_15aba1)
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		or     $0x20,%cl
 		and    $0xbf,%cl
@@ -885,9 +885,9 @@ GLOBAL_FUNC(ASM_func_118ff7)
 		and    $0xef,%cl
 		mov    %cl,%al
 		out    %al,(%dx)
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 	jump_11933a:
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -904,7 +904,7 @@ GLOBAL_FUNC(ASM_func_118ff7)
 		out    %al,(%dx)
 		inc    %dx
 		inc    %dx
-		mov    data_15abb5,%al
+		mov    EXPORT_SYMBOL(data_15abb5),%al
 		out    %al,(%dx)
 		jmp    jump_11933a
 	jump_119375:
@@ -919,10 +919,10 @@ func_119381:
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
 		inc    %dx
 		inc    %dx
 		mov    EXPORT_SYMBOL(data_15abb3),%al
@@ -971,7 +971,7 @@ func_119381:
 		or     $0x40,%cl
 		mov    %cl,%al
 		out    %al,(%dx)
-		mov    data_15abad,%ch
+		mov    EXPORT_SYMBOL(data_15abad),%ch
 		bt     $0xf,%cx
 		jb     jump_119426
 		bt     $0xe,%cx
@@ -996,16 +996,16 @@ func_119381:
 		or     %al,%bh
 		shl    $0x2,%bh
 		mov    0xc(%esi),%eax
-		mov    %eax,data_15abc1
+		mov    %eax,EXPORT_SYMBOL(data_15abc1)
 		or     %al,%bh
-		mov    %bh,data_15abc9
+		mov    %bh,EXPORT_SYMBOL(data_15abc9)
 		movzbw %bh,%dx
 		add    EXPORT_SYMBOL(data_15aba4),%dl
 		mov    0x10(%esi),%eax
 		and    $0xff,%eax
-		mov    %eax,data_15abc5
+		mov    %eax,EXPORT_SYMBOL(data_15abc5)
 		add    %ax,%dx
-		mov    %dx,data_15abba
+		mov    %dx,EXPORT_SYMBOL(data_15abba)
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		mov    %ebp,%edi
 		shl    $0x11,%edi
@@ -1037,7 +1037,7 @@ func_119381:
 	jump_1194c0:
 		dec    %edi
 		jne    jump_1194c0
-		mov    data_15abc9,%bh
+		mov    EXPORT_SYMBOL(data_15abc9),%bh
 		or     $0x30,%cl
 		mov    %cl,%al
 		out    %al,(%dx)
@@ -1496,7 +1496,7 @@ func_119381:
 		movl   $0x21,EXPORT_SYMBOL(data_15abb6)
 		jmp    jump_119857
 	jump_119857:
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -1511,10 +1511,10 @@ func_119866:
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
 		call   func_11a444
 		or     $0x30,%cl
 		mov    %cl,%al
@@ -1528,10 +1528,10 @@ func_119866:
 		jne    jump_119897
 		pop    %edi
 		rol    $0x10,%edx
-		mov    data_15abba,%dx
+		mov    EXPORT_SYMBOL(data_15abba),%dx
 		rol    $0x10,%edx
 		ror    $0x10,%ecx
-		mov    data_15abc5,%cx
+		mov    EXPORT_SYMBOL(data_15abc5),%cx
 		cmp    $0x0,%cx
 		ror    $0x10,%ecx
 		je     jump_119a99
@@ -2150,7 +2150,7 @@ func_119866:
 		jne    jump_119d44
 		pop    %edi
 		movl   $0x0,EXPORT_SYMBOL(data_15abb6)
-		movb   $0x0,data_15abae
+		movb   $0x0,EXPORT_SYMBOL(data_15abae)
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		or     $0x20,%cl
 		and    $0xbf,%cl
@@ -2169,7 +2169,7 @@ func_119866:
 		mov    %cl,%al
 		out    %al,(%dx)
 	jump_119d7e:
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		inc    %dx
 		inc    %dx
 		mov    EXPORT_SYMBOL(data_15abb3),%al
@@ -2244,11 +2244,11 @@ func_119e23:
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
-		mov    data_15abad,%ch
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
+		mov    EXPORT_SYMBOL(data_15abad),%ch
 		bt     $0xf,%cx
 		jb     jump_119e5e
 		bt     $0xe,%cx
@@ -2465,7 +2465,7 @@ func_119e23:
 		mov    %bh,%al
 		not    %al
 		and    $0xf,%al
-		mov    %ax,data_15abba
+		mov    %ax,EXPORT_SYMBOL(data_15abba)
 		mov    %eax,(%esi)
 		and    $0xef,%cl
 		or     $0x20,%cl
@@ -2617,10 +2617,10 @@ func_119e23:
 		bt     $0x8,%bx
 		rcl    %eax
 		mov    %eax,0xc(%esi)
-		mov    %eax,data_15abc1
+		mov    %eax,EXPORT_SYMBOL(data_15abc1)
 		movzbw %bh,%ax
 		and    $0xf,%al
-		add    %ax,data_15abba
+		add    %ax,EXPORT_SYMBOL(data_15abba)
 		mov    %ebp,%edi
 		shl    $0x5,%edi
 		inc    %edi
@@ -2871,9 +2871,9 @@ func_119e23:
 		nop
 		mov    $0x0,%eax
 		movzbw %bh,%ax
-		add    %ax,data_15abba
+		add    %ax,EXPORT_SYMBOL(data_15abba)
 		mov    %eax,0x10(%esi)
-		mov    %eax,data_15abc5
+		mov    %eax,EXPORT_SYMBOL(data_15abc5)
 		movl   $0x0,EXPORT_SYMBOL(data_15abb6)
 		jmp    jump_11a338
 	jump_11a30f:
@@ -2895,7 +2895,7 @@ func_119e23:
 		out    %al,(%dx)
 		pop    %dx
 	jump_11a338:
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -3038,8 +3038,8 @@ func_119e23:
 /*----------------------------------------------------------------*/
 func_11a444:
 /*----------------------------------------------------------------*/
-		mov    data_15abad,%ch
-		mov    data_15abc1,%eax
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15abc1),%eax
 		cmp    $0x0,%al
 		je     jump_11a46d
 		bt     $0xf,%cx
@@ -3064,16 +3064,16 @@ func_11a46e:
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
 		ror    $0x10,%edx
-		mov    data_15abba,%dx
+		mov    EXPORT_SYMBOL(data_15abba),%dx
 		ror    $0x10,%edx
 		call   func_11a444
 		ror    $0x10,%ecx
-		mov    data_15abc5,%cx
+		mov    EXPORT_SYMBOL(data_15abc5),%cx
 		cmp    $0x0,%cx
 		ror    $0x10,%ecx
 		je     jump_11a6a3
@@ -3587,7 +3587,7 @@ func_11a46e:
 		nop
 		shr    $0x4,%bx
 		and    $0xf0,%bl
-		mov    %bx,data_15abba
+		mov    %bx,EXPORT_SYMBOL(data_15abba)
 		mov    %ebp,%edi
 		shl    $0x5,%edi
 		inc    %edi
@@ -3610,7 +3610,7 @@ func_11a46e:
 		or     %al,%bh
 		and    $0xf,%bh
 		movzbw %bh,%ax
-		add    data_15abba,%ax
+		add    EXPORT_SYMBOL(data_15abba),%ax
 		and    $0xfff,%ax
 		ror    $0x10,%edx
 		and    $0xfff,%dx
@@ -3717,7 +3717,7 @@ func_11a46e:
 		mov    %al,%cl
 		nop
 		movl   $0x0,EXPORT_SYMBOL(data_15abb6)
-		movb   $0x0,data_15abae
+		movb   $0x0,EXPORT_SYMBOL(data_15abae)
 		jmp    jump_11aa87
 	jump_11a99c:
 		movl   $0x10,EXPORT_SYMBOL(data_15abb6)
@@ -3855,7 +3855,7 @@ func_11a46e:
 		mov    $0x67,%al
 		out    %al,(%dx)
 		pop    %dx
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -3870,10 +3870,10 @@ func_11aabf:
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		or     $0x20,%cl
 		and    $0xbf,%cl
@@ -3908,7 +3908,7 @@ func_11aabf:
 		mov    $0x67,%al
 		out    %al,(%dx)
 		pop    %dx
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -3923,10 +3923,10 @@ func_11ab3c:
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		or     $0x20,%cl
 		and    $0xbf,%cl
@@ -3972,7 +3972,7 @@ func_11ab3c:
 		mov    $0x67,%al
 		out    %al,(%dx)
 		pop    %dx
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -3994,10 +3994,10 @@ func_11accb:
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
 		movl   $0x0,EXPORT_SYMBOL(data_15abb6)
 		mov    %cl,%al
 		and    $0x30,%al
@@ -4040,9 +4040,9 @@ func_11accb:
 		pop    %edi
 		bt     $0x5,%bx
 		jb     jump_11ad95
-		cmpb   $0x0,data_15abae
+		cmpb   $0x0,EXPORT_SYMBOL(data_15abae)
 		jne    jump_11ad58
-		movb   $0x1,data_15abae
+		movb   $0x1,EXPORT_SYMBOL(data_15abae)
 		jmp    jump_11ad9c
 	jump_11ad58:
 		and    $0x7f,%cl
@@ -4077,19 +4077,19 @@ func_11accb:
 		jne    jump_11ad87
 		jmp    jump_11ad95
 	jump_11ad8c:
-		movb   $0x0,data_15abae
+		movb   $0x0,EXPORT_SYMBOL(data_15abae)
 		jmp    jump_11ada5
 	jump_11ad95:
-		movb   $0x0,data_15abae
+		movb   $0x0,EXPORT_SYMBOL(data_15abae)
 	jump_11ad9c:
-		mov    data_15abb4,%cl
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
 		mov    %cl,%al
 		out    %al,(%dx)
 	jump_11ada5:
 		or     $0x80,%cl
 		mov    %cl,%al
 		out    %al,(%dx)
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -4104,10 +4104,10 @@ GLOBAL_FUNC(ASM_func_11adba)	/* 0x11adba */
 		push   %ds
 		push   %es
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
-		mov    data_15abb4,%cl
-		mov    data_15abad,%ch
-		mov    data_15aba9,%ebp
-		mov    data_15abbd,%esi
+		mov    EXPORT_SYMBOL(data_15abb4),%cl
+		mov    EXPORT_SYMBOL(data_15abad),%ch
+		mov    EXPORT_SYMBOL(data_15aba9),%ebp
+		mov    EXPORT_SYMBOL(data_15abbd),%esi
 		mov    EXPORT_SYMBOL(data_15aba2),%dx
 		or     $0x20,%cl
 		and    $0xbf,%cl
@@ -4136,7 +4136,7 @@ GLOBAL_FUNC(ASM_func_11adba)	/* 0x11adba */
 		dec    %edi
 		jne    jump_11ae09
 		pop    %edi
-		mov    data_15abb5,%al
+		mov    EXPORT_SYMBOL(data_15abb5),%al
 		and    $0xfe,%al
 		or     $0x4,%al
 		inc    %dx
@@ -4172,7 +4172,7 @@ GLOBAL_FUNC(ASM_func_11adba)	/* 0x11adba */
 		pop    %dx
 		mov    $0xff,%al
 		out    %al,(%dx)
-		mov    %cl,data_15abb4
+		mov    %cl,EXPORT_SYMBOL(data_15abb4)
 		pop    %es
 		pop    %ds
 		popa
@@ -4246,7 +4246,7 @@ func_11aef0:
 		push   %esi
 		push   %edi
 		push   %ebp
-		mov    data_1edbc0,%esi
+		mov    EXPORT_SYMBOL(data_1edbc0),%esi
 		mov    EXPORT_SYMBOL(data_1ed188),%edi
 		cmpl   $0x0,EXPORT_SYMBOL(data_1ed344)
 		jne    jump_11b211
@@ -4258,7 +4258,7 @@ func_11aef0:
 		mov    EXPORT_SYMBOL(data_1ed33c),%ecx
 		mov    EXPORT_SYMBOL(data_1ed188),%edi
 		inc    %ecx
-		mov    data_1edbc0,%esi
+		mov    EXPORT_SYMBOL(data_1edbc0),%esi
 		mov    %ecx,EXPORT_SYMBOL(data_1ed33c)
 		cmp    $0xa,%ecx
 		jge    jump_11af49
@@ -4267,7 +4267,7 @@ func_11aef0:
 		je     jump_11afeb
 	jump_11af49:
 		mov    EXPORT_SYMBOL(data_1ed33c),%ebp
-		mov    %esi,data_1edbc0
+		mov    %esi,EXPORT_SYMBOL(data_1edbc0)
 		mov    %edi,EXPORT_SYMBOL(data_1ed188)
 		cmp    $0x14,%ebp
 		jge    jump_11af79
@@ -4282,24 +4282,24 @@ func_11aef0:
 		mov    $EXPORT_SYMBOL(data_1ed3ac),%eax
 		mov    EXPORT_SYMBOL(data_1ed198),%edx
 		call   ASM_func_11b270
-		mov    %eax,data_1edbbc
+		mov    %eax,EXPORT_SYMBOL(data_1edbbc)
 		test   %eax,%eax
 		je     jump_11afc4
 		cmpl   $0x28,EXPORT_SYMBOL(data_1ed33c)
 		jl     jump_11afc4
 		call   func_11acc5
-		mov    %eax,data_1edbbc
+		mov    %eax,EXPORT_SYMBOL(data_1edbbc)
 		test   %eax,%eax
 		je     jump_11afc4
 		movl   $0x61,EXPORT_SYMBOL(data_1ebca8)
 		jmp    jump_11b0bc
 	jump_11afc4:
-		mov    data_1edbbc,%ecx
+		mov    EXPORT_SYMBOL(data_1edbbc),%ecx
 		test   %ecx,%ecx
 		jne    jump_11b211
 		mov    %ecx,EXPORT_SYMBOL(data_1ed33c)
 		mov    %ecx,EXPORT_SYMBOL(data_1596c0)
-		mov    data_1edbc0,%esi
+		mov    EXPORT_SYMBOL(data_1edbc0),%esi
 		pop    %ebp
 		pop    %edi
 		pop    %esi
@@ -4315,7 +4315,7 @@ func_11aef0:
 		jl     jump_11b211
 		mov    $0xc0,%ebx
 		mov    %eax,EXPORT_SYMBOL(data_1596a8)
-		mov    %eax,data_1edbb4
+		mov    %eax,EXPORT_SYMBOL(data_1edbb4)
 	jump_11b010:
 		cmpl   $0x0,EXPORT_SYMBOL(data_1ea494)(%ebx)
 		je     jump_11b04b
@@ -4326,19 +4326,19 @@ func_11aef0:
 		mov    %esi,%eax
 		sar    $0x1f,%edx
 		idiv   %ebp
-		mov    data_1edbb4,%edx
+		mov    EXPORT_SYMBOL(data_1edbb4),%edx
 		mov    %esi,EXPORT_SYMBOL(data_1ea490)(%ebx)
 		add    %eax,%edx
 		mov    %eax,EXPORT_SYMBOL(data_1ea490)(%ebx)
-		mov    %edx,data_1edbb4
+		mov    %edx,EXPORT_SYMBOL(data_1edbb4)
 	jump_11b04b:
 		add    $0xc,%ebx
 		cmp    $0x480,%ebx
 		jne    jump_11b010
 		mov    $0x60,%esi
 		xor    %ebx,%ebx
-		mov    data_1edbb4,%ecx
-		mov    %ebx,data_1edbb0
+		mov    EXPORT_SYMBOL(data_1edbb4),%ecx
+		mov    %ebx,EXPORT_SYMBOL(data_1edbb0)
 		test   %ecx,%ecx
 		je     jump_11b08c
 		mov    EXPORT_SYMBOL(data_1ed35c),%ebp
@@ -4349,14 +4349,14 @@ func_11aef0:
 		mov    %ecx,%eax
 		sar    $0x1f,%edx
 		idiv   %ebx
-		mov    %eax,data_1edbb0
+		mov    %eax,EXPORT_SYMBOL(data_1edbb0)
 	jump_11b08c:
-		mov    data_1edbb0,%eax
+		mov    EXPORT_SYMBOL(data_1edbb0),%eax
 		cmp    EXPORT_SYMBOL(data_1ed1a0),%eax
 		jle    jump_11b0e5
 		mov    EXPORT_SYMBOL(data_1ed1a8),%ebp
 		mov    EXPORT_SYMBOL(data_1ed1a4),%edx
-		mov    %esi,data_1edbc0
+		mov    %esi,EXPORT_SYMBOL(data_1edbc0)
 		inc    %ebp
 		mov    %edi,EXPORT_SYMBOL(data_1ed188)
 		mov    %ebp,EXPORT_SYMBOL(data_1ed1a8)
@@ -4368,7 +4368,7 @@ func_11aef0:
 		call   func_11ab3c
 		mov    %edx,EXPORT_SYMBOL(data_1ed340)
 		mov    %ebx,EXPORT_SYMBOL(data_1ed344)
-		mov    data_1edbc0,%esi
+		mov    EXPORT_SYMBOL(data_1edbc0),%esi
 		pop    %ebp
 		pop    %edi
 		pop    %esi
@@ -4416,12 +4416,12 @@ func_11aef0:
 		mov    $0x1,%esi
 		mov    $0x42,%ebx
 		mov    $0x4,%ecx
-		mov    %esi,data_1edbc0
+		mov    %esi,EXPORT_SYMBOL(data_1edbc0)
 		mov    %eax,EXPORT_SYMBOL(data_1ed364)
 	jump_11b172:
 		mov    EXPORT_SYMBOL(data_1ed188),%edi
 		mov    EXPORT_SYMBOL(data_1ed1b4)(%ebx),%ah
-		mov    data_1edbc0,%esi
+		mov    EXPORT_SYMBOL(data_1edbc0),%esi
 		test   %ah,%ah
 		je     jump_11b1f5
 		mov    EXPORT_SYMBOL(data_1ed1b0)(%ebx),%eax
@@ -4457,11 +4457,11 @@ func_11aef0:
 		add    $0x4,%ecx
 		inc    %esi
 		mov    %edi,EXPORT_SYMBOL(data_1ed188)
-		mov    %esi,data_1edbc0
+		mov    %esi,EXPORT_SYMBOL(data_1edbc0)
 		cmp    $0x5,%esi
 		jle    jump_11b172
 	jump_11b211:
-		mov    data_1edbc0,%esi
+		mov    EXPORT_SYMBOL(data_1edbc0),%esi
 		pop    %ebp
 		pop    %edi
 		pop    %esi
@@ -4529,10 +4529,10 @@ GLOBAL_FUNC(ASM_func_11b270)	/* 0x11b270 */
 		test   %ecx,%ecx
 		jne    jump_11b4ac
 		movl   $0x1,EXPORT_SYMBOL(data_1596b0)
-		mov    %ecx,data_1edbdc
+		mov    %ecx,EXPORT_SYMBOL(data_1edbdc)
 	jump_11b29f:
 		call   func_118e76
-		mov    %eax,data_1edbc4
+		mov    %eax,EXPORT_SYMBOL(data_1edbc4)
 		test   %eax,%eax
 		je     jump_11b33e
 		mov    %eax,EXPORT_SYMBOL(data_1ebca8)
@@ -4579,54 +4579,54 @@ GLOBAL_FUNC(ASM_func_11b270)	/* 0x11b270 */
 		jne    jump_11b314
 		cli
 	jump_11b318:
-		mov    data_1edbdc,%eax
+		mov    EXPORT_SYMBOL(data_1edbdc),%eax
 		inc    %eax
-		mov    %eax,data_1edbdc
+		mov    %eax,EXPORT_SYMBOL(data_1edbdc)
 		cmp    $0x3,%eax
 		jg     jump_11b4a4
 		cmpl   $0x0,EXPORT_SYMBOL(data_1ed340)
 		jne    jump_11b4a4
 		jmp    jump_11b29f
 	jump_11b33e:
-		mov    %eax,data_1edbc8
-		mov    %eax,data_1edbcc
-		mov    %ebp,data_1edbd0
+		mov    %eax,EXPORT_SYMBOL(data_1edbc8)
+		mov    %eax,EXPORT_SYMBOL(data_1edbcc)
+		mov    %ebp,EXPORT_SYMBOL(data_1edbd0)
 		mov    (%esp),%eax
 		mov    EXPORT_SYMBOL(data_1ed348),%ebp
-		mov    %eax,data_1edbd8
+		mov    %eax,EXPORT_SYMBOL(data_1edbd8)
 		cmp    %ebp,%ebx
 		jge    jump_11b362
 		mov    %ebp,%ebx
 	jump_11b362:
 		xor    %eax,%eax
-		mov    %eax,data_1edbdc
+		mov    %eax,EXPORT_SYMBOL(data_1edbdc)
 		mov    $0x15,%ebp
 	jump_11b36e:
 		mov    EXPORT_SYMBOL(data_1ed18c),%eax
 		cmp    $0x64,%eax
 		jle    jump_11b384
-		movl   $0x2,data_1edbd4
+		movl   $0x2,EXPORT_SYMBOL(data_1edbd4)
 		jmp    jump_11b3a0
 	jump_11b384:
 		cmp    $0x32,%eax
 		jle    jump_11b39a
 		cmp    $0x2,%ebx
 		jge    jump_11b39a
-		movl   $0x1,data_1edbd4
+		movl   $0x1,EXPORT_SYMBOL(data_1edbd4)
 		jmp    jump_11b3a0
 	jump_11b39a:
-		mov    %ebx,data_1edbd4
+		mov    %ebx,EXPORT_SYMBOL(data_1edbd4)
 	jump_11b3a0:
-		movl   $data_1edbc8,data_15abbd
+		movl   $EXPORT_SYMBOL(data_1edbc8),EXPORT_SYMBOL(data_15abbd)
 		call   func_119381
-		mov    %eax,data_1edbc4
+		mov    %eax,EXPORT_SYMBOL(data_1edbc4)
 		test   %eax,%eax
 		jne    jump_11b3c8
-		mov    %esi,data_15abbd
+		mov    %esi,EXPORT_SYMBOL(data_15abbd)
 		call   func_119866
-		mov    %eax,data_1edbc4
+		mov    %eax,EXPORT_SYMBOL(data_1edbc4)
 	jump_11b3c8:
-		mov    data_1edbc4,%edi
+		mov    EXPORT_SYMBOL(data_1edbc4),%edi
 		test   %edi,%edi
 		je     jump_11b489
 		mov    %edi,EXPORT_SYMBOL(data_1ebca8)
@@ -4650,7 +4650,7 @@ GLOBAL_FUNC(ASM_func_11b270)	/* 0x11b270 */
 		incl   EXPORT_SYMBOL(data_1ed18c)
 		jmp    jump_11b4a4
 	jump_11b419:
-		cmpl   $0x21,data_1edbc4
+		cmpl   $0x21,EXPORT_SYMBOL(data_1edbc4)
 		je     jump_11b44a
 		test   %edx,%edx
 		jne    jump_11b43a
@@ -4677,15 +4677,15 @@ GLOBAL_FUNC(ASM_func_11b270)	/* 0x11b270 */
 		dec    %edi
 		jne    jump_11b447
 	jump_11b44a:
-		mov    data_1edbdc,%eax
+		mov    EXPORT_SYMBOL(data_1edbdc),%eax
 		inc    %eax
-		mov    %eax,data_1edbdc
+		mov    %eax,EXPORT_SYMBOL(data_1edbdc)
 		cmp    $0x3,%eax
 		jg     jump_11b463
 		cmpl   $0x0,EXPORT_SYMBOL(data_1ed340)
 		je     jump_11b47a
 	jump_11b463:
-		mov    data_1edbc4,%edx
+		mov    EXPORT_SYMBOL(data_1edbc4),%edx
 		cmp    $0x20,%edx
 		je     jump_11b473
 		cmp    $0x21,%edx
@@ -4694,7 +4694,7 @@ GLOBAL_FUNC(ASM_func_11b270)	/* 0x11b270 */
 		call   func_11aabf
 		jmp    jump_11b4a4
 	jump_11b47a:
-		movl   $0x1,data_1edbcc
+		movl   $0x1,EXPORT_SYMBOL(data_1edbcc)
 		jmp    jump_11b36e
 	jump_11b489:
 		mov    EXPORT_SYMBOL(data_1ed35c),%eax
@@ -4719,101 +4719,6 @@ GLOBAL_FUNC(ASM_func_11b270)	/* 0x11b270 */
 
 /*----------------------------------------------------------------*/
 .section .rodata
-
-
-
-/*----------------------------------------------------------------*/
+/* data moved to C (sx_data2c.py) */
 .data
-
-data_15ab7c:
-		.long	0x0
-data_15ab80:
-		.long	0x0
-		.ascii  "(c) 1996 Diadem Inc. "
-GLOBAL (data_15ab99)
-		.long	0x0
-data_15ab9d:
-		.long	0x0
-data_15aba1:
-		.byte	0x0
-GLOBAL (data_15aba2)
-		.short  0x0
-GLOBAL (data_15aba4)
-		.byte	0x0
-GLOBAL (data_15aba5)
-		.long	0x0
-data_15aba9:
-		.ascii  "\x0a\x00\x00\x00"
-data_15abad:
-		.byte	0xa
-data_15abae:
-		.byte	0x0
-GLOBAL (data_15abaf)	/* 0x15abaf */
-		.ascii  "\x0a\x00\x00\x00"
-GLOBAL (data_15abb3)
-		.byte	0x0
-data_15abb4:
-		.byte	0x0
-data_15abb5:
-		.byte	0x0
-GLOBAL (data_15abb6)	/* 0x15abb6 */
-		.ascii  "\xff\x00\x00\x00"
-data_15abba:
-		.short  0x0
-data_15abbc:
-		.byte	0x0
-data_15abbd:
-		.long	0x0
-data_15abc1:
-		.long	0x0
-data_15abc5:
-		.long	0x0
-data_15abc9:
-		.fill   0x7
-
-
-GLOBAL (data_1edb88)	/* 0x1edb88 */
-		.long	0x0
-GLOBAL (data_1edb8c)
-		.long	0x0
-GLOBAL (data_1edb90)
-		.long	0x0
-GLOBAL (data_1edb94)	/* 0x1edb94 */
-		.long	0x0
-GLOBAL (data_1edb98)
-		.long	0x0
-GLOBAL (data_1edb9c)
-		.fill   0x8
-GLOBAL (data_1edba4)
-		.long	0x0
-GLOBAL (data_1edba8)	/* 0x1edba8 */
-		.long	0x0
-GLOBAL (data_1edbac)	/* 0x1edbac */
-		.long	0x0
-data_1edbb0:
-		.long	0x0
-data_1edbb4:
-		.fill   0x8
-data_1edbbc:
-		.long	0x0
-data_1edbc0:
-		.long	0x0
-data_1edbc4:
-		.long	0x0
-data_1edbc8:
-		.long	0x0
-data_1edbcc:
-		.long	0x0
-data_1edbd0:
-		.long	0x0
-data_1edbd4:
-		.long	0x0
-data_1edbd8:
-		.long	0x0
-data_1edbdc:
-		.long	0x0
-data_1edbe0:
-		.fill   0x400
-data_1edfe0:
-		.fill   0x2000
-
+/* data moved to C (sx_data2c.py) */

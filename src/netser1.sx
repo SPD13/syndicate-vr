@@ -64,7 +64,7 @@ com_handler0:	/* 0x0F9D46 */
 		sub    $0x0,%esp
 		cld
 		call   ____GETDS
-		mov    com_dev0__Field0,%eax
+		mov    EXPORT_SYMBOL(com_dev0__Field0),%eax
 		call   handle_com
 		mov    $0x20,%edx
 		mov    $0x20,%eax
@@ -89,7 +89,7 @@ com_handler1:	/* 0x0F9D7C */
 		sub    $0x0,%esp
 		cld
 		call   ____GETDS
-		mov    com_dev1__Field0,%eax
+		mov    EXPORT_SYMBOL(com_dev1__Field0),%eax
 		call   handle_com
 		mov    $0x20,%edx
 		mov    $0x20,%eax
@@ -114,7 +114,7 @@ com_handler2:	/* 0x0F9DB2 */
 		sub    $0x0,%esp
 		cld
 		call   ____GETDS
-		mov    com_dev2__Field0,%eax
+		mov    EXPORT_SYMBOL(com_dev2__Field0),%eax
 		call   handle_com
 		mov    $0x20,%edx
 		mov    $0x20,%eax
@@ -139,7 +139,7 @@ com_handler3:	/* 0x0F9DE8 */
 		sub    $0x0,%esp
 		cld
 		call   ____GETDS
-		mov    com_dev3__Field0,%eax
+		mov    EXPORT_SYMBOL(com_dev3__Field0),%eax
 		call   handle_com
 		mov    $0x20,%edx
 		mov    $0x20,%eax
@@ -485,86 +485,6 @@ ser_end_:
 
 /*----------------------------------------------------------------*/
 .section .rodata
-
-
-/*----------------------------------------------------------------*/
+/* data moved to C (sx_data2c.py) */
 .data
-
-/* ComHandlerInfo com_dev[4]
- */
-GLOBAL (com_dev)	/* 0x158DE4 */
-com_dev0__Field0:
-		.long	0x0
-com_dev0__Field1:
-		.short  0x3f8
-com_dev0__Field2:
-		.short  0x0c
-com_dev0__Field3:
-		.short  0x04
-com_dev0__Field4:
-		.fill   0x8
-com_dev0__Field5:
-		.long	0x0
-com_dev0__Field6:
-		.short  0x0
-com_dev0__Field7:
-		.short  0x0
-com_dev0__Field8:
-		.short  0x0
-com_dev1__Field0:
-		.long	0x0
-		.short  0x2f8
-		.short  0x0b
-		.short  0x03
-		.fill   0x8
-		.long	0x0
-		.short  0x0
-		.short  0x0
-		.short  0x0
-com_dev2__Field0:
-		.long	0x0
-		.short  0x3e8
-		.short  0x0c
-		.short  0x04
-		.fill   0x8
-		.long	0x0
-		.short  0x0
-		.short  0x0
-		.short  0x0
-com_dev3__Field0:
-		.long	0x0
-		.short  0x2e8
-		.short  0x0b
-		.short  0x03
-		.fill   0x8
-		.long	0x0
-		.short  0x0
-		.short  0x0
-		.short  0x0
-
-/* ComResult com_results[]
- */
-com_results:
-		.string "OK"
-		.fill   0x25
-		.long	0x1
-		.string "CONNECT"
-		.fill   0x20
-		.long	0x2
-		.string "RING"
-		.fill   0x23
-		.long	0x3
-		.string "BUSY"
-		.fill   0x23
-		.long	0x4
-		.string "ERROR"
-		.fill   0x22
-		.long	0x5
-		.string "NO CARRIER"
-		.fill   0x1d
-		.long	0x6
-		.string "NO DIALTONE"
-		.fill   0x1c
-		.long	0x7
-		.fill   0x28
-		.long	0x0
+/* data moved to C (sx_data2c.py) */

@@ -40,32 +40,32 @@ GLOBAL_FUNC(ASM_radica_service_init)	/* 0x0F7D40 */
 		sub    $0x50,%esp
 		mov    %eax,%ecx
 		mov    $0x7d,%ebx
-		mov    $data_1e7aa8,%eax
+		mov    $EXPORT_SYMBOL(data_1e7aa8),%eax
 		xor    %edx,%edx
 		call   ac_memset
-		movb   $0x42,data_1e7ab4
+		movb   $0x42,EXPORT_SYMBOL(data_1e7ab4)
 		mov    0x4(%ecx),%ax
-		mov    %ax,data_1e7ab6
+		mov    %ax,EXPORT_SYMBOL(data_1e7ab6)
 		xor    %eax,%eax
-		mov    data_1e7ab6,%ax
+		mov    EXPORT_SYMBOL(data_1e7ab6),%ax
 		push   %eax
-		push   $ascBuxxX
+		push   $EXPORT_SYMBOL(ascBuxxX)
 		lea    0x8(%esp),%eax
 		mov    $0x55,%dl
 		push   %eax
-		mov    %dl,data_1e7ab5
+		mov    %dl,EXPORT_SYMBOL(data_1e7ab5)
 		call   ac_sprintf
 		add    $0xc,%esp
-		mov    $asc1_0,%edx
+		mov    $EXPORT_SYMBOL(asc1_0),%edx
 		mov    $0x1,%eax
 		call   ASM_net_unkn_func_353
 		mov    %esp,%edx
 		mov    $0x3,%eax
 		call   ASM_net_unkn_func_353
-		mov    $aStation,%edx
+		mov    $EXPORT_SYMBOL(aStation),%edx
 		mov    $0x2,%eax
 		call   ASM_net_unkn_func_353
-		mov    $aNone,%edx
+		mov    $EXPORT_SYMBOL(aNone),%edx
 		mov    $0x4,%eax
 		call   ASM_net_unkn_func_353
 		xor    %edx,%edx
@@ -74,19 +74,19 @@ GLOBAL_FUNC(ASM_radica_service_init)	/* 0x0F7D40 */
 		test   %eax,%eax
 		jne    jump_f7dfc
 		call   ASM_net_unkn_func_354
-		mov    %al,data_1e7abd
+		mov    %al,EXPORT_SYMBOL(data_1e7abd)
 		and    $0xff,%eax
 		push   %eax
 		lea    0x4(%esp),%eax
 		push   %eax
-		push   $aSStationNoD
+		push   $EXPORT_SYMBOL(aSStationNoD)
 		call   ac_printf
 		mov    $0x1,%eax
 		add    $0xc,%esp
 		jmp    jump_f7e0f
 	jump_f7dfc:
 		push   %eax
-		push   $aRadicaReturned
+		push   $EXPORT_SYMBOL(aRadicaReturned)
 		call   ac_printf
 		mov    $0xffffffff,%eax
 		add    $0x8,%esp
@@ -101,7 +101,7 @@ GLOBAL_FUNC(ASM_radica_service_init)	/* 0x0F7D40 */
 /*----------------------------------------------------------------*/
 GLOBAL_FUNC(ASM_radica_shutdown)	/* 0x0F7E18 */
 /*----------------------------------------------------------------*/
-		push   $aQuittingRadica
+		push   $EXPORT_SYMBOL(aQuittingRadica)
 		call   ac_printf
 		add    $0x4,%esp
 		jmp    ac_net_unkn_func_352
@@ -118,7 +118,7 @@ GLOBAL_FUNC(ASM_radica_create_session)	/* 0x0F7E2C */
 		sub    $0x80,%esp
 		mov    %eax,%ebp
 		mov    %edx,%esi
-		mov    data_1e7abc,%dl
+		mov    EXPORT_SYMBOL(data_1e7abc),%dl
 		mov    $0xffffffff,%eax
 		test   %dl,%dl
 		jne    jump_f7f41
@@ -140,7 +140,7 @@ GLOBAL_FUNC(ASM_radica_create_session)	/* 0x0F7E2C */
 		cmpb   $0x55,0xd(%esp)
 		jne    jump_f7eb4
 		mov    0xe(%esp),%eax
-		cmp    data_1e7ab6,%ax
+		cmp    EXPORT_SYMBOL(data_1e7ab6),%ax
 		jne    jump_f7eb4
 		xor    %eax,%eax
 		mov    0x13(%esp),%al
@@ -160,17 +160,17 @@ GLOBAL_FUNC(ASM_radica_create_session)	/* 0x0F7E2C */
 		jbe    jump_f7e58
 		mov    $0x1,%dl
 		xor    %ah,%ah
-		mov    $data_1e7acb,%edi
-		mov    %ah,data_1e7ac8
-		mov    %dl,data_1e7abc
+		mov    $EXPORT_SYMBOL(data_1e7acb),%edi
+		mov    %ah,EXPORT_SYMBOL(data_1e7ac8)
+		mov    %dl,EXPORT_SYMBOL(data_1e7abc)
 		mov    0x10(%ebp),%al
-		mov    %dl,data_1e7ac9
-		mov    %al,data_1e7aca
-		mov    data_1e7abd,%al
-		mov    %dl,ipx_update_2__end_time
-		mov    %al,data_1e7aba
-		mov    %al,data_1e7adb
-		mov    %ah,data_1e7adc
+		mov    %dl,EXPORT_SYMBOL(data_1e7ac9)
+		mov    %al,EXPORT_SYMBOL(data_1e7aca)
+		mov    EXPORT_SYMBOL(data_1e7abd),%al
+		mov    %dl,EXPORT_SYMBOL(ipx_update_2__end_time)
+		mov    %al,EXPORT_SYMBOL(data_1e7aba)
+		mov    %al,EXPORT_SYMBOL(data_1e7adb)
+		mov    %ah,EXPORT_SYMBOL(data_1e7adc)
 		push   %edi
 	jump_f7f01:
 		mov    (%esi),%al
@@ -185,7 +185,7 @@ GLOBAL_FUNC(ASM_radica_create_session)	/* 0x0F7E2C */
 		jne    jump_f7f01
 	jump_f7f19:
 		pop    %edi
-		mov    $str1,%edi
+		mov    $EXPORT_SYMBOL(str1),%edi
 		lea    0x6(%ebp),%esi
 		push   %edi
 	jump_f7f23:
@@ -243,7 +243,7 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 		mov    %dh,0x13(%esp)
 		mov    %dh,0x1f(%esp)
 		lea    0x6(%ecx),%edx
-		mov    data_1e7abd,%al
+		mov    EXPORT_SYMBOL(data_1e7abd),%al
 		mov    %edx,%esi
 		mov    %al,0x15(%esp)
 		push   %edi
@@ -260,7 +260,7 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 		jne    jump_f7fac
 	jump_f7fc4:
 		pop    %edi
-		mov    $str1,%edi
+		mov    $EXPORT_SYMBOL(str1),%edi
 		mov    %edx,%esi
 		push   %edi
 	jump_f7fcd:
@@ -305,7 +305,7 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 		test   %eax,%eax
 		je     jump_f803e
 		push   %eax
-		push   $aSendingMyJoinP
+		push   $EXPORT_SYMBOL(aSendingMyJoinP)
 		call   ac_printf
 		add    $0x8,%esp
 	jump_f803e:
@@ -329,7 +329,7 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 		test   %eax,%eax
 		je     jump_f808b
 		push   %eax
-		push   $aSendingMyJoi_0
+		push   $EXPORT_SYMBOL(aSendingMyJoi_0)
 		call   ac_printf
 		add    $0x8,%esp
 	jump_f808b:
@@ -338,7 +338,7 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 		sub    %edi,%eax
 		cmp    $0x12c,%eax
 		ja     jump_f81c8
-		mov    $data_1e7acb,%edi
+		mov    $EXPORT_SYMBOL(data_1e7acb),%edi
 	jump_f80a3:
 		call   ASM_net_unkn_func_351
 		cmp    $0x80,%eax
@@ -355,16 +355,16 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 		mov    $0xffffffff,%ebx
 		test   %edx,%edx
 		jne    jump_f811c
-		cmpl   $0x15,data_1e7da0
+		cmpl   $0x15,EXPORT_SYMBOL(data_1e7da0)
 		jb     jump_f811c
-		cmpb   $0x42,data_1e7da8
+		cmpb   $0x42,EXPORT_SYMBOL(data_1e7da8)
 		jne    jump_f811c
-		cmpb   $0x55,data_1e7da9
+		cmpb   $0x55,EXPORT_SYMBOL(data_1e7da9)
 		jne    jump_f811c
-		mov    data_1e7daa,%ax
-		cmp    data_1e7ab6,%ax
+		mov    EXPORT_SYMBOL(data_1e7daa),%ax
+		cmp    EXPORT_SYMBOL(data_1e7ab6),%ax
 		jne    jump_f811c
-		mov    $str1,%eax
+		mov    $EXPORT_SYMBOL(str1),%eax
 		mov    %ebp,%edx
 		call   ac_stricmp
 		test   %eax,%eax
@@ -374,7 +374,7 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 		cmp    $0x1,%ebx
 		jne    jump_f80a3
 		xor    %eax,%eax
-		mov    data_1e7daf,%al
+		mov    EXPORT_SYMBOL(data_1e7daf),%al
 		cmp    %ebx,%eax
 		je     jump_f813f
 		jmp    jump_f80a3
@@ -387,26 +387,26 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 	jump_f813f:
 		mov    $EXPORT_SYMBOL(RADICAHandler),%ecx
 		xor    %ebx,%eax
-		mov    data_1e7abd,%bh
+		mov    EXPORT_SYMBOL(data_1e7abd),%bh
 		mov    %ecx,%edx
 	jump_f814e:
 		cmp    0x33(%edx),%bh
 		jne    jump_f8131
 		mov    0x12(%ecx),%ah
-		mov    %ah,data_1e7aba
+		mov    %ah,EXPORT_SYMBOL(data_1e7aba)
 		mov    0x14(%ecx),%ah
 		lea    0x23(%ecx),%esi
-		mov    %ah,data_1e7abc
+		mov    %ah,EXPORT_SYMBOL(data_1e7abc)
 		mov    $0x2,%ah
 		mov    0x10(%ecx),%dx
-		mov    %ah,ipx_update_2__end_time
-		mov    %al,data_1e7ac8
+		mov    %ah,EXPORT_SYMBOL(ipx_update_2__end_time)
+		mov    %al,EXPORT_SYMBOL(data_1e7ac8)
 		mov    0x21(%ecx),%al
-		mov    %dx,data_1e7ab8
-		mov    %al,data_1e7ac9
+		mov    %dx,EXPORT_SYMBOL(data_1e7ab8)
+		mov    %al,EXPORT_SYMBOL(data_1e7ac9)
 		mov    0x22(%ecx),%al
 		mov    $0x5a,%ecx
-		mov    %al,data_1e7aca
+		mov    %al,EXPORT_SYMBOL(data_1e7aca)
 		push   %edi
 		mov    %ecx,%eax
 		shr    $0x2,%ecx
@@ -416,10 +416,10 @@ GLOBAL_FUNC(ASM_radica_join_session)	/* 0x0F7F50 */
 		repnz movsb %ds:(%esi),%es:(%edi)
 		pop    %edi
 		xor    %eax,%eax
-		mov    data_1e7ac8,%al
+		mov    EXPORT_SYMBOL(data_1e7ac8),%al
 		push   %eax
 		mov    $0x1,%esi
-		push   $aYippeyImInTheG
+		push   $EXPORT_SYMBOL(aYippeyImInTheG)
 		mov    %esi,0x4c(%esp)
 		call   ac_printf
 		add    $0x8,%esp
@@ -459,7 +459,7 @@ GLOBAL_FUNC(ASM_radica_session_list)	/* 0x0F81E4 */
 		xor    %edx,%edx
 		call   ac_memset
 		mov    $0x271,%ebx
-		mov    $data_1e7b28,%eax
+		mov    $EXPORT_SYMBOL(data_1e7b28),%eax
 		xor    %edx,%edx
 		xor    %ebp,%ebp
 		call   ac_memset
@@ -475,26 +475,26 @@ GLOBAL_FUNC(ASM_radica_session_list)	/* 0x0F81E4 */
 		call   ASM_net_unkn_func_351
 		cmp    $0x80,%eax
 		je     jump_f822e
-		mov    $data_1e7eac,%eax
+		mov    $EXPORT_SYMBOL(data_1e7eac),%eax
 		call   ASM_net_unkn_func_356
 		test   %eax,%eax
 		jne    jump_f822e
-		cmpl   $0x0,data_1e7eac
+		cmpl   $0x0,EXPORT_SYMBOL(data_1e7eac)
 		jne    jump_f822e
-		cmpb   $0x42,data_1e7eb8
+		cmpb   $0x42,EXPORT_SYMBOL(data_1e7eb8)
 		jne    jump_f822e
-		cmpb   $0x55,data_1e7eb9
+		cmpb   $0x55,EXPORT_SYMBOL(data_1e7eb9)
 		jne    jump_f822e
-		mov    data_1e7eba,%ax
-		cmp    data_1e7ab6,%ax
+		mov    EXPORT_SYMBOL(data_1e7eba),%ax
+		cmp    EXPORT_SYMBOL(data_1e7ab6),%ax
 		jne    jump_f822e
 		xor    %eax,%eax
-		mov    data_1e7ebf,%al
+		mov    EXPORT_SYMBOL(data_1e7ebf),%al
 		cmp    $0x1,%eax
 		jne    jump_f822e
 		cmpw   $0x0,0x20(%esp)
 		je     jump_f82e9
-		mov    $data_1e7b28,%ebx
+		mov    $EXPORT_SYMBOL(data_1e7b28),%ebx
 		xor    %ecx,%ecx
 		add    $0x16,%ebx
 		jmp    jump_f82a3
@@ -507,15 +507,15 @@ GLOBAL_FUNC(ASM_radica_session_list)	/* 0x0F81E4 */
 		cmp    %eax,%ecx
 		jge    jump_f82eb
 		imul   $0x7d,%ecx,%eax
-		mov    $data_1e7b28,%edi
+		mov    $EXPORT_SYMBOL(data_1e7b28),%edi
 		mov    %ebx,%edx
 		add    %eax,%edi
-		mov    $data_1e7ec2,%eax
+		mov    $EXPORT_SYMBOL(data_1e7ec2),%eax
 		call   ac_stricmp
 		test   %eax,%eax
 		jne    jump_f829f
 		mov    $0x7d,%ecx
-		mov    $data_1e7eac,%esi
+		mov    $EXPORT_SYMBOL(data_1e7eac),%esi
 		push   %edi
 		mov    %ecx,%eax
 		shr    $0x2,%ecx
@@ -534,9 +534,9 @@ GLOBAL_FUNC(ASM_radica_session_list)	/* 0x0F81E4 */
 		mov    0x1e(%esp),%eax
 		sar    $0x10,%eax
 		imul   $0x7d,%eax,%eax
-		mov    $data_1e7b28,%edi
+		mov    $EXPORT_SYMBOL(data_1e7b28),%edi
 		mov    $0x7d,%ecx
-		mov    $data_1e7eac,%esi
+		mov    $EXPORT_SYMBOL(data_1e7eac),%esi
 		add    %eax,%edi
 		push   %edi
 		mov    %ecx,%eax
@@ -565,7 +565,7 @@ GLOBAL_FUNC(ASM_radica_session_list)	/* 0x0F81E4 */
 		mov    0x8(%esp),%eax
 		add    $0x6,%eax
 		mov    %eax,0x14(%esp)
-		mov    $data_1e7b28,%eax
+		mov    $EXPORT_SYMBOL(data_1e7b28),%eax
 		xor    %ebx,%ebx
 		add    $0x16,%eax
 		mov    %ebx,0x4(%esp)
@@ -617,18 +617,18 @@ GLOBAL_FUNC(ASM_radica_session_list)	/* 0x0F81E4 */
 	jump_f8400:
 		pop    %edi
 		xor    %eax,%eax
-		mov    data_1e7b48(%edx),%al
+		mov    EXPORT_SYMBOL(data_1e7b48)(%edx),%al
 		mov    %ax,0xe(%ebx)
 		xor    %eax,%eax
-		mov    data_1e7b4a(%edx),%al
+		mov    EXPORT_SYMBOL(data_1e7b4a)(%edx),%al
 		mov    %ax,0x10(%ebx)
 		xor    %eax,%eax
-		mov    data_1e7b36(%edx),%ax
-		mov    $data_1e7b28,%ecx
+		mov    EXPORT_SYMBOL(data_1e7b36)(%edx),%ax
+		mov    $EXPORT_SYMBOL(data_1e7b28),%ecx
 		mov    %eax,0x2(%ebx)
 		xor    %eax,%eax
 		add    %edx,%ecx
-		mov    data_1e7b49(%edx),%al
+		mov    EXPORT_SYMBOL(data_1e7b49)(%edx),%al
 		lea    0x23(%ecx),%edx
 		mov    0x10(%esp),%ebp
 		mov    0x18(%esp),%ecx
@@ -689,7 +689,7 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		mov    %edx,0x1e4(%esp)
 		xor    %eax,%eax
 		mov    $0xffffffff,%edx
-		mov    data_1e7ac9,%al
+		mov    EXPORT_SYMBOL(data_1e7ac9),%al
 		mov    %edx,0x1f4(%esp)
 		cmp    $0x1,%eax
 		jle    jump_f8cb4
@@ -701,7 +701,7 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		mov    %eax,0x1e8(%esp)
 		xor    %eax,%eax
 		mov    0x1e4(%esp),%ecx
-		mov    data_1e7ac8,%al
+		mov    EXPORT_SYMBOL(data_1e7ac8),%al
 		imul   %ecx,%eax
 		lea    0x21(%esp),%edi
 		mov    0x200(%esp),%edx
@@ -734,11 +734,11 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		test   %eax,%eax
 		je     jump_f8846
 		push   %eax
-		push   $aSendingExchang
+		push   $EXPORT_SYMBOL(aSendingExchang)
 		call   ac_printf
 		add    $0x8,%esp
 	jump_f8846:
-		mov    $data_1e7aa8,%eax
+		mov    $EXPORT_SYMBOL(data_1e7aa8),%eax
 		add    $0xc,%eax
 		mov    %eax,0x1f0(%esp)
 		mov    $EXPORT_SYMBOL(RADICAHandler),%eax
@@ -752,7 +752,7 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		mov    %eax,0x1f8(%esp)
 	jump_f8886:
 		xor    %eax,%eax
-		mov    data_1e7ac9,%al
+		mov    EXPORT_SYMBOL(data_1e7ac9),%al
 		cmp    %eax,%ebp
 		jge    jump_f8afc
 		call   ac_dos_clock
@@ -787,11 +787,11 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		test   %eax,%eax
 		je     jump_f892a
 		push   %eax
-		push   $aSendingExchang
+		push   $EXPORT_SYMBOL(aSendingExchang)
 		call   ac_printf
 		add    $0x8,%esp
 	jump_f892a:
-		push   $aResendingPacke
+		push   $EXPORT_SYMBOL(aResendingPacke)
 		call   ac_printf
 		add    $0x4,%esp
 		mov    0x1fc(%esp),%eax
@@ -818,17 +818,17 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		add    %ebx,%ebp
 		jmp    jump_f896d
 	jump_f8985:
-		cmpl   $0x0,ipx_update_2__start_time
+		cmpl   $0x0,EXPORT_SYMBOL(ipx_update_2__start_time)
 		jne    jump_f8998
 		call   ac_dos_clock
-		mov    %eax,ipx_update_2__start_time
+		mov    %eax,EXPORT_SYMBOL(ipx_update_2__start_time)
 	jump_f8998:
 		xor    %eax,%eax
-		mov    ipx_update_2__end_time,%al
+		mov    EXPORT_SYMBOL(ipx_update_2__end_time),%al
 		cmp    $0x1,%eax
 		jne    jump_f8886
 		xor    %eax,%eax
-		mov    data_1e7ac9,%al
+		mov    EXPORT_SYMBOL(data_1e7ac9),%al
 		cmp    $0x2,%eax
 		jge    jump_f8aa4
 		mov    $EXPORT_SYMBOL(RADICAHandler),%edi
@@ -845,24 +845,24 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		call   ASM_net_unkn_func_356
 		test   %eax,%eax
 		jne    jump_f8a84
-		push   $aRead
+		push   $EXPORT_SYMBOL(aRead)
 		mov    $0xffffffff,%ebx
 		call   ac_printf
 		mov    EXPORT_SYMBOL(RADICAHandler),%esi
 		add    $0x4,%esp
 		cmp    %esi,%ecx
 		jne    jump_f8a4c
-		cmpl   $0x15,data_1e7da0
+		cmpl   $0x15,EXPORT_SYMBOL(data_1e7da0)
 		jb     jump_f8a4c
-		cmpb   $0x42,data_1e7da8
+		cmpb   $0x42,EXPORT_SYMBOL(data_1e7da8)
 		jne    jump_f8a4c
-		cmpb   $0x55,data_1e7da9
+		cmpb   $0x55,EXPORT_SYMBOL(data_1e7da9)
 		jne    jump_f8a4c
-		mov    data_1e7daa,%ax
-		cmp    data_1e7ab6,%ax
+		mov    EXPORT_SYMBOL(data_1e7daa),%ax
+		cmp    EXPORT_SYMBOL(data_1e7ab6),%ax
 		jne    jump_f8a4c
 		mov    0x1ec(%esp),%edx
-		mov    $str1,%eax
+		mov    $EXPORT_SYMBOL(str1),%eax
 		call   ac_stricmp
 		test   %eax,%eax
 		jne    jump_f8a4c
@@ -876,53 +876,53 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		call   radica_unkn_func_16
 		jmp    jump_f8a72
 	jump_f8a5c:
-		push   $aCheck
+		push   $EXPORT_SYMBOL(aCheck)
 		call   ac_printf
-		mov    data_1e7daf,%al
+		mov    EXPORT_SYMBOL(data_1e7daf),%al
 		add    $0x4,%esp
 		cmp    $0x2,%al
 		je     jump_f8a53
 	jump_f8a72:
-		push   $aCheckDone
+		push   $EXPORT_SYMBOL(aCheckDone)
 		call   ac_printf
 		add    $0x4,%esp
 		jmp    jump_f89bf
 	jump_f8a84:
 		push   %eax
-		push   $aBadReadX
+		push   $EXPORT_SYMBOL(aBadReadX)
 		call   ac_printf
 		add    $0x8,%esp
 		jmp    jump_f89bf
 	jump_f8a97:
-		push   $aDoneRead
+		push   $EXPORT_SYMBOL(aDoneRead)
 		call   ac_printf
 		add    $0x4,%esp
 	jump_f8aa4:
 		call   ac_dos_clock
-		mov    ipx_update_2__start_time,%edx
+		mov    EXPORT_SYMBOL(ipx_update_2__start_time),%edx
 		mov    %eax,%ebx
 		sub    %edx,%ebx
-		mov    %eax,data_1e7aa4
+		mov    %eax,EXPORT_SYMBOL(data_1e7aa4)
 		cmp    $0x64,%ebx
 		jbe    jump_f8886
 		mov    $0x7d,%edx
-		mov    %eax,ipx_update_2__start_time
+		mov    %eax,EXPORT_SYMBOL(ipx_update_2__start_time)
 		mov    $0x1,%ah
 		xor    %ebx,%ebx
-		mov    %ah,data_1e7abb
+		mov    %ah,EXPORT_SYMBOL(data_1e7abb)
 		mov    0x1f0(%esp),%eax
 		call   ASM_send_exchange_info
 		test   %eax,%eax
 		je     jump_f8886
 		push   %eax
-		push   $aSendingHostInf
+		push   $EXPORT_SYMBOL(aSendingHostInf)
 		call   ac_printf
 		add    $0x8,%esp
 		jmp    jump_f8886
 	jump_f8afc:
 		mov    0x1e4(%esp),%ecx
 		mov    0x204(%esp),%esi
-		mov    $data_1e7f2c,%edi
+		mov    $EXPORT_SYMBOL(data_1e7f2c),%edi
 		push   %edi
 		mov    %ecx,%eax
 		shr    $0x2,%ecx
@@ -931,26 +931,26 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		and    $0x3,%cl
 		repnz movsb %ds:(%esi),%es:(%edi)
 		pop    %edi
-		mov    data_1e7ab8,%bx
+		mov    EXPORT_SYMBOL(data_1e7ab8),%bx
 		xor    %eax,%eax
-		mov    ipx_update_2__start_time,%ecx
-		mov    data_1e7ab8,%ax
+		mov    EXPORT_SYMBOL(ipx_update_2__start_time),%ecx
+		mov    EXPORT_SYMBOL(data_1e7ab8),%ax
 		inc    %ebx
-		mov    %eax,data_1e8120
+		mov    %eax,EXPORT_SYMBOL(data_1e8120)
 		mov    0x1e4(%esp),%eax
-		mov    %bx,data_1e7ab8
-		mov    %eax,data_1e8124
+		mov    %bx,EXPORT_SYMBOL(data_1e7ab8)
+		mov    %eax,EXPORT_SYMBOL(data_1e8124)
 		test   %ecx,%ecx
 		jne    jump_f8b5b
 		call   ac_dos_clock
-		mov    %eax,ipx_update_2__start_time
+		mov    %eax,EXPORT_SYMBOL(ipx_update_2__start_time)
 	jump_f8b5b:
 		xor    %eax,%eax
-		mov    ipx_update_2__end_time,%al
+		mov    EXPORT_SYMBOL(ipx_update_2__end_time),%al
 		cmp    $0x1,%eax
 		jne    jump_f8e22
 		xor    %eax,%eax
-		mov    data_1e7ac9,%al
+		mov    EXPORT_SYMBOL(data_1e7ac9),%al
 		cmp    $0x2,%eax
 		jge    jump_f8c69
 		mov    $EXPORT_SYMBOL(RADICAHandler),%edi
@@ -969,23 +969,23 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		call   ASM_net_unkn_func_356
 		test   %eax,%eax
 		jne    jump_f8c49
-		push   $aRead
+		push   $EXPORT_SYMBOL(aRead)
 		mov    $0xffffffff,%ebx
 		call   ac_printf
 		mov    EXPORT_SYMBOL(RADICAHandler),%eax
 		add    $0x4,%esp
 		cmp    %eax,%ebp
 		jne    jump_f8c11
-		cmpl   $0x15,data_1e7da0
+		cmpl   $0x15,EXPORT_SYMBOL(data_1e7da0)
 		jb     jump_f8c11
-		cmpb   $0x42,data_1e7da8
+		cmpb   $0x42,EXPORT_SYMBOL(data_1e7da8)
 		jne    jump_f8c11
-		cmpb   $0x55,data_1e7da9
+		cmpb   $0x55,EXPORT_SYMBOL(data_1e7da9)
 		jne    jump_f8c11
-		mov    data_1e7daa,%ax
-		cmp    data_1e7ab6,%ax
+		mov    EXPORT_SYMBOL(data_1e7daa),%ax
+		cmp    EXPORT_SYMBOL(data_1e7ab6),%ax
 		jne    jump_f8c11
-		mov    $str1,%eax
+		mov    $EXPORT_SYMBOL(str1),%eax
 		mov    %edi,%edx
 		call   ac_stricmp
 		test   %eax,%eax
@@ -1000,40 +1000,40 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		call   radica_unkn_func_16
 		jmp    jump_f8c37
 	jump_f8c21:
-		push   $aCheck
+		push   $EXPORT_SYMBOL(aCheck)
 		call   ac_printf
-		mov    data_1e7daf,%al
+		mov    EXPORT_SYMBOL(data_1e7daf),%al
 		add    $0x4,%esp
 		cmp    $0x2,%al
 		je     jump_f8c18
 	jump_f8c37:
-		push   $aCheckDone
+		push   $EXPORT_SYMBOL(aCheckDone)
 		call   ac_printf
 		add    $0x4,%esp
 		jmp    jump_f8b8a
 	jump_f8c49:
 		push   %eax
-		push   $aBadReadX
+		push   $EXPORT_SYMBOL(aBadReadX)
 		call   ac_printf
 		add    $0x8,%esp
 		jmp    jump_f8b8a
 	jump_f8c5c:
-		push   $aDoneRead
+		push   $EXPORT_SYMBOL(aDoneRead)
 		call   ac_printf
 		add    $0x4,%esp
 	jump_f8c69:
 		call   ac_dos_clock
-		mov    ipx_update_2__start_time,%ebx
+		mov    EXPORT_SYMBOL(ipx_update_2__start_time),%ebx
 		mov    %eax,%edx
 		sub    %ebx,%edx
-		mov    %eax,data_1e7aa4
+		mov    %eax,EXPORT_SYMBOL(data_1e7aa4)
 		cmp    $0x64,%edx
 		jbe    jump_f8e22
 		mov    $0x1,%dl
-		mov    %eax,ipx_update_2__start_time
+		mov    %eax,EXPORT_SYMBOL(ipx_update_2__start_time)
 		xor    %ebx,%ebx
-		mov    $data_1e7aa8,%eax
-		mov    %dl,data_1e7abb
+		mov    $EXPORT_SYMBOL(data_1e7aa8),%eax
+		mov    %dl,EXPORT_SYMBOL(data_1e7abb)
 		mov    $0x7d,%edx
 		add    $0xc,%eax
 		call   ASM_send_exchange_info
@@ -1041,17 +1041,17 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		je     jump_f8e22
 		jmp    jump_f8e14
 	jump_f8cb4:
-		cmpl   $0x0,ipx_update_2__start_time
+		cmpl   $0x0,EXPORT_SYMBOL(ipx_update_2__start_time)
 		jne    jump_f8cc7
 		call   ac_dos_clock
-		mov    %eax,ipx_update_2__start_time
+		mov    %eax,EXPORT_SYMBOL(ipx_update_2__start_time)
 	jump_f8cc7:
 		xor    %eax,%eax
-		mov    ipx_update_2__end_time,%al
+		mov    EXPORT_SYMBOL(ipx_update_2__end_time),%al
 		cmp    $0x1,%eax
 		jne    jump_f8e22
 		xor    %eax,%eax
-		mov    data_1e7ac9,%al
+		mov    EXPORT_SYMBOL(data_1e7ac9),%al
 		cmp    $0x2,%eax
 		jge    jump_f8dd6
 		mov    $EXPORT_SYMBOL(RADICAHandler),%edi
@@ -1070,23 +1070,23 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		call   ASM_net_unkn_func_356
 		test   %eax,%eax
 		jne    jump_f8db6
-		push   $aRead
+		push   $EXPORT_SYMBOL(aRead)
 		mov    $0xffffffff,%ebx
 		call   ac_printf
 		mov    EXPORT_SYMBOL(RADICAHandler),%esi
 		add    $0x4,%esp
 		cmp    %esi,%ebp
 		jne    jump_f8d7e
-		cmpl   $0x15,data_1e7da0
+		cmpl   $0x15,EXPORT_SYMBOL(data_1e7da0)
 		jb     jump_f8d7e
-		cmpb   $0x42,data_1e7da8
+		cmpb   $0x42,EXPORT_SYMBOL(data_1e7da8)
 		jne    jump_f8d7e
-		cmpb   $0x55,data_1e7da9
+		cmpb   $0x55,EXPORT_SYMBOL(data_1e7da9)
 		jne    jump_f8d7e
-		mov    data_1e7daa,%ax
-		cmp    data_1e7ab6,%ax
+		mov    EXPORT_SYMBOL(data_1e7daa),%ax
+		cmp    EXPORT_SYMBOL(data_1e7ab6),%ax
 		jne    jump_f8d7e
-		mov    $str1,%eax
+		mov    $EXPORT_SYMBOL(str1),%eax
 		mov    %edi,%edx
 		call   ac_stricmp
 		test   %eax,%eax
@@ -1101,40 +1101,40 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		call   radica_unkn_func_16
 		jmp    jump_f8da4
 	jump_f8d8e:
-		push   $aCheck
+		push   $EXPORT_SYMBOL(aCheck)
 		call   ac_printf
-		mov    data_1e7daf,%al
+		mov    EXPORT_SYMBOL(data_1e7daf),%al
 		add    $0x4,%esp
 		cmp    $0x2,%al
 		je     jump_f8d85
 	jump_f8da4:
-		push   $aCheckDone
+		push   $EXPORT_SYMBOL(aCheckDone)
 		call   ac_printf
 		add    $0x4,%esp
 		jmp    jump_f8cf6
 	jump_f8db6:
 		push   %eax
-		push   $aBadReadX
+		push   $EXPORT_SYMBOL(aBadReadX)
 		call   ac_printf
 		add    $0x8,%esp
 		jmp    jump_f8cf6
 	jump_f8dc9:
-		push   $aDoneRead
+		push   $EXPORT_SYMBOL(aDoneRead)
 		call   ac_printf
 		add    $0x4,%esp
 	jump_f8dd6:
 		call   ac_dos_clock
-		mov    ipx_update_2__start_time,%ebx
+		mov    EXPORT_SYMBOL(ipx_update_2__start_time),%ebx
 		mov    %eax,%edx
 		sub    %ebx,%edx
-		mov    %eax,data_1e7aa4
+		mov    %eax,EXPORT_SYMBOL(data_1e7aa4)
 		cmp    $0x64,%edx
 		jbe    jump_f8e22
 		mov    $0x1,%dh
-		mov    %eax,ipx_update_2__start_time
+		mov    %eax,EXPORT_SYMBOL(ipx_update_2__start_time)
 		xor    %ebx,%ebx
-		mov    $data_1e7aa8,%eax
-		mov    %dh,data_1e7abb
+		mov    $EXPORT_SYMBOL(data_1e7aa8),%eax
+		mov    %dh,EXPORT_SYMBOL(data_1e7abb)
 		mov    $0x7d,%edx
 		add    $0xc,%eax
 		call   ASM_send_exchange_info
@@ -1142,7 +1142,7 @@ GLOBAL_FUNC(ASM_radica_exchange_packets)	/* 0x0F8768 */
 		je     jump_f8e22
 	jump_f8e14:
 		push   %eax
-		push   $aSendingHostInf
+		push   $EXPORT_SYMBOL(aSendingHostInf)
 		call   ac_printf
 		add    $0x8,%esp
 	jump_f8e22:
@@ -1166,52 +1166,52 @@ radica_unkn_func_16:	/* 0x0F8E38 */
 		mov    %eax,%ebx
 		mov    %eax,%esi
 		xor    %eax,%eax
-		mov    data_1e7abc,%al
+		mov    EXPORT_SYMBOL(data_1e7abc),%al
 		cmp    $0x1,%eax
 		jne    jump_f8f6a
-		mov    data_1e7ac9,%al
-		cmp    data_1e7aca,%al
+		mov    EXPORT_SYMBOL(data_1e7ac9),%al
+		cmp    EXPORT_SYMBOL(data_1e7aca),%al
 		jae    jump_f8f6a
 		lea    0x16(%ebx),%edi
-		mov    $str1,%eax
+		mov    $EXPORT_SYMBOL(str1),%eax
 		mov    %edi,%edx
 		call   ac_stricmp
 		test   %eax,%eax
 		jne    jump_f8f6a
-		push   $data_15f711
+		push   $EXPORT_SYMBOL(data_15f711)
 		call   ac_printf
 		xor    %eax,%eax
 		add    $0x4,%esp
-		mov    data_1e7ac9,%al
+		mov    EXPORT_SYMBOL(data_1e7ac9),%al
 		push   %eax
 		xor    %eax,%eax
-		mov    data_1e7aca,%al
+		mov    EXPORT_SYMBOL(data_1e7aca),%al
 		push   %eax
-		push   $aMaxPlayersDNoP
+		push   $EXPORT_SYMBOL(aMaxPlayersDNoP)
 		call   ac_printf
 		add    $0xc,%esp
 		lea    0x21(%ebx),%eax
 		push   %eax
-		push   $aPlayerSWishesT
+		push   $EXPORT_SYMBOL(aPlayerSWishesT)
 		call   ac_printf
 		xor    %eax,%eax
 		add    $0x8,%esp
 		mov    0x15(%ebx),%al
 		push   %eax
-		push   $aStationNoD
+		push   $EXPORT_SYMBOL(aStationNoD)
 		call   ac_printf
 		add    $0x8,%esp
 		push   %edi
-		push   $aSessionNameS
-		mov    $data_1e7acb,%edi
+		push   $EXPORT_SYMBOL(aSessionNameS)
+		mov    $EXPORT_SYMBOL(data_1e7acb),%edi
 		call   ac_printf
 		add    $0x8,%esp
-		cmp    $data_1e7b25,%edi
+		cmp    $EXPORT_SYMBOL(data_1e7b25),%edi
 		jb     jump_f8eee
 		jmp    jump_f8efc
 	jump_f8ee3:
 		add    $0x12,%edi
-		cmp    $data_1e7b25,%edi
+		cmp    $EXPORT_SYMBOL(data_1e7b25),%edi
 		jae    jump_f8efc
 	jump_f8eee:
 		mov    0x10(%edi),%al
@@ -1219,9 +1219,9 @@ radica_unkn_func_16:	/* 0x0F8E38 */
 		je     jump_f8f6a
 		jmp    jump_f8ee3
 	jump_f8efc:
-		mov    $data_1e7acb,%edi
+		mov    $EXPORT_SYMBOL(data_1e7acb),%edi
 		xor    %edx,%edx
-		cmp    $data_1e7b25,%edi
+		cmp    $EXPORT_SYMBOL(data_1e7b25),%edi
 		jb     jump_f8f1c
 		pop    %edi
 		pop    %esi
@@ -1231,7 +1231,7 @@ radica_unkn_func_16:	/* 0x0F8E38 */
 	jump_f8f10:
 		add    $0x12,%edi
 		inc    %edx
-		cmp    $data_1e7b25,%edi
+		cmp    $EXPORT_SYMBOL(data_1e7b25),%edi
 		jae    jump_f8f6a
 	jump_f8f1c:
 		xor    %eax,%eax
@@ -1258,12 +1258,12 @@ radica_unkn_func_16:	/* 0x0F8E38 */
 		pop    %edi
 		movswl %dx,%eax
 		push   %eax
-		push   $aPlayerNoD
+		push   $EXPORT_SYMBOL(aPlayerNoD)
 		call   ac_printf
-		mov    data_1e7ac9,%dh
+		mov    EXPORT_SYMBOL(data_1e7ac9),%dh
 		inc    %dh
 		add    $0x8,%esp
-		mov    %dh,data_1e7ac9
+		mov    %dh,EXPORT_SYMBOL(data_1e7ac9)
 	jump_f8f6a:
 		pop    %edi
 		pop    %esi
@@ -1288,7 +1288,7 @@ radica_unkn_func_15:	/* 0x0F8FE0 */
 		mov    %esp,%eax
 		add    $0xc,%eax
 		mov    %eax,0xfc(%esp)
-		mov    $data_1e7dc0,%eax
+		mov    $EXPORT_SYMBOL(data_1e7dc0),%eax
 		mov    $0xffffffff,%edx
 		add    $0x16,%eax
 		mov    %edx,0xf4(%esp)
@@ -1302,34 +1302,34 @@ radica_unkn_func_15:	/* 0x0F8FE0 */
 		sub    %ebx,%eax
 		cmp    $0x258,%eax
 		jbe    jump_f9069
-		push   $aTimeout
+		push   $EXPORT_SYMBOL(aTimeout)
 		call   ac_printf
 		add    $0x4,%esp
 		jmp    jump_f91fd
 	jump_f9069:
 		mov    $0xe9,%ebx
-		mov    $data_1e7dc0,%eax
+		mov    $EXPORT_SYMBOL(data_1e7dc0),%eax
 		xor    %edx,%edx
 		call   ac_memset
-		mov    $data_1e7dc0,%eax
+		mov    $EXPORT_SYMBOL(data_1e7dc0),%eax
 		call   ASM_net_unkn_func_356
 		test   %eax,%eax
 		jne    jump_f9032
-		mov    data_1e7dc0,%esi
+		mov    EXPORT_SYMBOL(data_1e7dc0),%esi
 		mov    $0xffffffff,%ecx
 		test   %esi,%esi
 		jne    jump_f90db
-		cmpl   $0x15,data_1e7dc4
+		cmpl   $0x15,EXPORT_SYMBOL(data_1e7dc4)
 		jb     jump_f90db
-		cmpb   $0x42,data_1e7dcc
+		cmpb   $0x42,EXPORT_SYMBOL(data_1e7dcc)
 		jne    jump_f90db
-		cmpb   $0x55,data_1e7dcd
+		cmpb   $0x55,EXPORT_SYMBOL(data_1e7dcd)
 		jne    jump_f90db
-		mov    data_1e7dce,%ax
-		cmp    data_1e7ab6,%ax
+		mov    EXPORT_SYMBOL(data_1e7dce),%ax
+		cmp    EXPORT_SYMBOL(data_1e7ab6),%ax
 		jne    jump_f90db
 		mov    0xf8(%esp),%edx
-		mov    $str1,%eax
+		mov    $EXPORT_SYMBOL(str1),%eax
 		call   ac_stricmp
 		test   %eax,%eax
 		jne    jump_f90db
@@ -1339,20 +1339,20 @@ radica_unkn_func_15:	/* 0x0F8FE0 */
 		je     jump_f91dd
 		jmp    jump_f9032
 	jump_f90e9:
-		mov    data_1e7dd0,%ax
-		mov    data_1e7ab8,%bx
+		mov    EXPORT_SYMBOL(data_1e7dd0),%ax
+		mov    EXPORT_SYMBOL(data_1e7ab8),%bx
 		cmp    %bx,%ax
 		jne    jump_f9153
 		xor    %eax,%eax
-		mov    data_1e7de0,%al
+		mov    EXPORT_SYMBOL(data_1e7de0),%al
 		mov    0xec(%esp),%ebp
 		mov    %eax,%edi
 		imul   %ebp,%edi
-		mov    $data_1e7de1,%esi
+		mov    $EXPORT_SYMBOL(data_1e7de1),%esi
 		xor    %ecx,%ecx
 		mov    %eax,0xf4(%esp)
 		mov    0x108(%esp),%eax
-		mov    data_1e7dde,%cl
+		mov    EXPORT_SYMBOL(data_1e7dde),%cl
 		add    %eax,%edi
 		mov    0xf4(%esp),%edx
 		push   %edi
@@ -1368,16 +1368,16 @@ radica_unkn_func_15:	/* 0x0F8FE0 */
 		movb   $0x1,(%eax)
 		jmp    jump_f9032
 	jump_f9153:
-		mov    $data_1e7f2c,%esi
+		mov    $EXPORT_SYMBOL(data_1e7f2c),%esi
 		lea    0x21(%esp),%edi
 		xor    %eax,%eax
-		mov    data_1e8124,%ebp
+		mov    EXPORT_SYMBOL(data_1e8124),%ebp
 		mov    %bx,%ax
 		xor    %edx,%edx
 		mov    %eax,0xf0(%esp)
-		mov    data_1e8120,%ax
+		mov    EXPORT_SYMBOL(data_1e8120),%ax
 		mov    $0xe9,%ebx
-		mov    %ax,data_1e7ab8
+		mov    %ax,EXPORT_SYMBOL(data_1e7ab8)
 		mov    %esp,%eax
 		mov    %ebp,%ecx
 		call   ac_memset
@@ -1400,15 +1400,15 @@ radica_unkn_func_15:	/* 0x0F8FE0 */
 		test   %eax,%eax
 		je     jump_f91cb
 		push   %eax
-		push   $aSendingExchang
+		push   $EXPORT_SYMBOL(aSendingExchang)
 		call   ac_printf
 		add    $0x8,%esp
 	jump_f91cb:
 		mov    0xf0(%esp),%eax
-		mov    %ax,data_1e7ab8
+		mov    %ax,EXPORT_SYMBOL(data_1e7ab8)
 		jmp    jump_f9032
 	jump_f91dd:
-		mov    data_1e7dd3,%al
+		mov    EXPORT_SYMBOL(data_1e7dd3),%al
 		cmp    $0x1,%al
 		jb     jump_f9032
 		jbe    jump_f9032
@@ -1432,22 +1432,22 @@ radica_unkn_func_13:	/* 0x0F9210 */
 		push   %edi
 		movb   $0x42,0xc(%eax)
 		movb   $0x55,0xd(%eax)
-		mov    data_1e7ab6,%di
+		mov    EXPORT_SYMBOL(data_1e7ab6),%di
 		mov    %di,0xe(%eax)
-		mov    data_1e7ab8,%di
+		mov    EXPORT_SYMBOL(data_1e7ab8),%di
 		mov    %di,0x10(%eax)
-		mov    data_1e7aba,%dh
+		mov    EXPORT_SYMBOL(data_1e7aba),%dh
 		mov    %dh,0x12(%eax)
 		mov    %bl,0x13(%eax)
-		mov    data_1e7abc,%dh
+		mov    EXPORT_SYMBOL(data_1e7abc),%dh
 		mov    %dh,0x14(%eax)
-		mov    data_1e7abd,%dh
+		mov    EXPORT_SYMBOL(data_1e7abd),%dh
 		mov    %dh,0x15(%eax)
 		mov    %dl,0x1e(%eax)
-		mov    ipx_update_2__end_time,%dl
+		mov    EXPORT_SYMBOL(ipx_update_2__end_time),%dl
 		mov    %dl,0x1f(%eax)
-		mov    $str1,%esi
-		mov    data_1e7ac8,%dl
+		mov    $EXPORT_SYMBOL(str1),%esi
+		mov    EXPORT_SYMBOL(data_1e7ac8),%dl
 		lea    0x16(%eax),%edi
 		mov    %dl,0x20(%eax)
 		push   %edi
@@ -1471,160 +1471,6 @@ radica_unkn_func_13:	/* 0x0F9210 */
 
 /*----------------------------------------------------------------*/
 .section .rodata
-
-ascBuxxX:	/* 0x15F5A4 */
-		.string "BUxx%x"
-asc1_0:	/* 0x15F5AB */
-		.string "1.0"
-aStation:	/* 0x15F5AF */
-		.string "STATION"
-aNone:	/* 0x15F5B7 */
-		.string "NONE"
-aSStationNoD:	/* 0x15F5BC */
-		.string "%s STATION NO %d\n"
-aRadicaReturned:	/* 0x15F5CE */
-		.string "RADICA RETURNED STATUS %x\n"
-aQuittingRadica:	/* 0x15F5E9 */
-		.string "QUITTING RADICA\n"
-aSendingMyJoinP:	/* 0x15F5FA */
-		.string "SENDING MY JOIN PKT  RETURNED ERROR CODE %x\n"
-aSendingMyJoi_0:	/* 0x15F627 */
-		.string "SENDING MY JOIN PKT  RETURNED ERROR CODE %x\n"
-aYippeyImInTheG:	/* 0x15F654 */
-		.string "YIPPEY! IM IN THE GAME PLY NO %d\n"
-aRead:	/* 0x15F676 */
-		.string "READ\n"
-aCheck:	/* 0x15F67C */
-		.string "CHECK\n"
-aCheckDone:	/* 0x15F683 */
-		.string "CHECK DONE\n"
-aBadReadX:	/* 0x15F68F */
-		.string "BAD READ %x\n"
-aDoneRead:	/* 0x15F69C */
-		.string "DONE READ\n"
-aSendingHostInf:	/* 0x15F6A7 */
-		.string "SENDING HOST INFO RETURNED ERROR CODE %x\n"
-aSendingExchang:	/* 0x15F6D1 */
-		.string "SENDING EXCHANGE INFO RETURNED ERROR CODE %x\n"
-aResendingPacke:	/* 0x15F6FF */
-		.string "RESENDING PACKET\n"
-data_15f711:
-		.string "\n************************\n"
-aMaxPlayersDNoP:	/* 0x15F72C */
-		.string "MAX PLAYERS %d NO PLAYERS %d\n"
-aPlayerSWishesT:	/* 0x15F74A */
-		.string "PLAYER %s WISHES TO JOIN\n"
-aStationNoD:	/* 0x15F764 */
-		.string "STATION NO %d\n"
-aSessionNameS:	/* 0x15F773 */
-		.string "SESSION NAME %s\n"
-aPlayerNoD:	/* 0x15F784 */
-		.string "PLAYER NO = %d\n"
-aTimeout:	/* 0x15F794 */
-		.string "TIMEOUT\n"
-		.align	4
-
-/*----------------------------------------------------------------*/
+/* data moved to C (sx_data2c.py) */
 .data
-
-ipx_update_2__start_time:	/* 0x1E7AA0 */
-		.long	0x0
-data_1e7aa4:
-		.long	0x0
-data_1e7aa8:
-		.fill   0xc
-data_1e7ab4:
-		.byte	0x0
-data_1e7ab5:
-		.byte	0x0
-data_1e7ab6:
-		.short  0x0
-data_1e7ab8:
-		.short  0x0
-data_1e7aba:
-		.byte	0x0
-data_1e7abb:
-		.byte	0x0
-data_1e7abc:
-		.byte	0x0
-data_1e7abd:
-		.byte	0x0
-str1:	/* 0x1E7ABE */
-		.fill   0x9
-ipx_update_2__end_time:	/* 0x1E7AC7 */
-		.byte	0x0
-data_1e7ac8:
-		.byte	0x0
-data_1e7ac9:
-		.byte	0x0
-data_1e7aca:
-		.byte	0x0
-data_1e7acb:
-		.fill   0x10
-data_1e7adb:
-		.byte	0x0
-data_1e7adc:
-		.fill   0x49
-data_1e7b25:
-		.ascii  "\x00\x00\x00"
-data_1e7b28:
-		.fill   0xe
-data_1e7b36:
-		.fill   0x12
-data_1e7b48:
-		.byte	0x0
-data_1e7b49:
-		.byte	0x0
-data_1e7b4a:
-		.fill   0x252
-GLOBAL (RADICAHandler)	/* 0x1E7D9C */
-		.long	0x0
-data_1e7da0:
-		.fill   0x8
-data_1e7da8:
-		.byte	0x0
-data_1e7da9:
-		.byte	0x0
-data_1e7daa:
-		.fill   0x5
-data_1e7daf:
-		.fill   0x11
-data_1e7dc0:
-		.long	0x0
-data_1e7dc4:
-		.fill   0x8
-data_1e7dcc:
-		.byte	0x0
-data_1e7dcd:
-		.byte	0x0
-data_1e7dce:
-		.short  0x0
-data_1e7dd0:
-		.ascii  "\x00\x00\x00"
-data_1e7dd3:
-		.fill   0xb
-data_1e7dde:
-		.short  0x0
-data_1e7de0:
-		.byte	0x0
-data_1e7de1:
-		.fill   0xcb
-data_1e7eac:
-		.fill   0xc
-data_1e7eb8:
-		.byte	0x0
-data_1e7eb9:
-		.byte	0x0
-data_1e7eba:
-		.fill   0x5
-data_1e7ebf:
-		.ascii  "\x00\x00\x00"
-data_1e7ec2:
-		.fill   0x6a
-data_1e7f2c:
-		.fill   0x1f4
-data_1e8120:
-		.long	0x0
-data_1e8124:
-		.long	0x0
-
+/* data moved to C (sx_data2c.py) */

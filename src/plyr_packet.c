@@ -951,12 +951,29 @@ void set_max_stats_to_all_agents(PlayerIdx plyr)
     }
 }
 
+extern struct TbIPXPlayer IPXPlayer;
+
+/** Marks in a1[0..7] the IPX player slots in use; returns 1 when the
+ * network service is IPX, -1 otherwise (a1 cleared in both cases).
+ * C version of the asm (0x0E57B0): the slots are 0x1C bytes apart from
+ * IPXPlayer+0x2D, a slot is in use when its word at +0x1A is non-zero.
+ */
 int net_unkn_func_12(void *a1)
 {
-    int ret;
-    asm volatile ("call ASM_net_unkn_func_12\n"
-        : "=r" (ret) : "a" (a1));
-    return ret;
+    ubyte *p_out = (ubyte *)a1;
+    ubyte *p_slot;
+    int i;
+
+    memset(p_out, 0, 8);
+    if (NetworkServicePtr.I.Type != 1)
+        return -1;
+    p_slot = (ubyte *)&IPXPlayer + 0x2D;
+    for (i = 0; i < 8; i++, p_slot += 0x1C)
+    {
+        if (*(ushort *)(p_slot + 0x1A) != 0)
+            p_out[i] = 1;
+    }
+    return 1;
 }
 
 void net_unkn_check_1(void)
