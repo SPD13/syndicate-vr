@@ -362,10 +362,36 @@ void monitor_all_samples(void)
     return;
 }
 
-void snd_unkn1_volume_all_samples(void)
+static DIFFTEST_REF_FUNC void snd_unkn1_volume_all_samples_asm(void)
 {
     asm volatile ("call ASM_snd_unkn1_volume_all_samples\n"
-        :  :  : "eax" );
+        :  :  : "eax", "cc", "memory" );
+}
+
+void snd_unkn1_volume_all_samples(void)
+{
+    struct SampleInfo *p_smpinfo;
+    struct SampleInfo *p_last;
+
+    DIFFTEST_SHADOW(snd_unkn1_volume_all_samples, snd_unkn1_volume_all_samples_asm());
+    if ((ingame.Flags & GamF_Unkn00020000) == 0)
+        return;
+    update_danger_music(2);
+    p_smpinfo = GetFirstSampleInfoStructure();
+    p_last = GetLastSampleInfoStructure();
+    for (; p_smpinfo <= p_last; p_smpinfo++)
+    {
+        short source_id;
+        short smp_id;
+
+        source_id = (short)p_smpinfo->SourceID;
+        if (!IsSamplePlaying(0, 0, p_smpinfo->SampleHandle))
+            continue;
+        smp_id = p_smpinfo->SampleNumber;
+        if (smp_id == 8 || smp_id == 77 || smp_id == 78)
+            continue;
+        SetSampleVolume(source_id, smp_id, 0);
+    }
 }
 
 void wait_for_sound_sample_finish(ushort smpl_id)
