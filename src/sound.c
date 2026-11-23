@@ -294,10 +294,10 @@ void heapmgr_make_newest(int a1, int a2, int a3, int a4)
 
 
 
-struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
-  ulong volume, ulong pan, ulong pitch, sbyte loop_count, ubyte stype)
+static DIFFTEST_REF_FUNC struct SampleInfo *play_sample_using_heap_asm(ulong bank_id,
+  short smptbl_id, ulong volume, ulong pan, ulong pitch, sbyte loop_count, ubyte stype)
 {
-    struct SampleInfo *ret;
+    int ra = (int)bank_id, rd = (int)smptbl_id, rb = (int)volume, rc = (int)pan;
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
     int stkargs[3];
@@ -307,14 +307,80 @@ struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
     stkargs[2] = (int)(intptr_t)stype;
 
     asm volatile (
-      "push 8(%5)\n"
-      "push 4(%5)\n"
-      "push 0(%5)\n"
+      "push 8(%4)\n"
+      "push 4(%4)\n"
+      "push 0(%4)\n"
       "call ASM_play_sample_using_heap\n"
-        : "=r" (ret)
-        : "a" (bank_id), "d" (smptbl_id), "b" (volume), "c" (pan), "S" (stkargs)
+        : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc)
+        : "S" (stkargs)
         : "cc", "memory");
-    return ret;
+    return (struct SampleInfo *)ra;
+}
+
+/** Plays a sample from the sound bank, loading it into the sound heap first
+ * if it is not there yet. To get room, frees the oldest heap items (up to 50
+ * tries). Marks the played sample (UserFlag 0x01) and locks its heap handle
+ * (flags 0x06 at 0x08).
+ */
+struct SampleInfo *play_sample_using_heap(ulong bank_id, short smptbl_id,
+  ulong volume, ulong pan, ulong pitch, sbyte loop_count, ubyte stype)
+{
+    struct SampleTable *p_smptbl;
+    struct SampleInfo *p_sinfo;
+    ubyte *p_hmhandle;
+    s32 smp_offs;
+    s32 smp_size;
+    int smp_id;
+    int freed_id;
+    int i;
+
+    DIFFTEST_SHADOW_RET(play_sample_using_heap, struct SampleInfo *,
+      play_sample_using_heap_asm(bank_id, smptbl_id, volume, pan, pitch, loop_count, stype));
+    if ((ingame.Flags & GamF_Unkn00020000) == 0)
+        DIFFTEST_RETURN((struct SampleInfo *)NULL);
+    if (sound_file == INVALID_FILE)
+        DIFFTEST_RETURN((struct SampleInfo *)NULL);
+    smp_id = smptbl_id;
+    if ((smp_id <= 0) || (smp_id >= samples_in_bank))
+        DIFFTEST_RETURN((struct SampleInfo *)NULL);
+
+    p_smptbl = &sample_table[smp_id];
+    if (p_smptbl->hmhandle == NULL)
+    {
+        smp_size = p_smptbl->field_4;
+        smp_offs = p_smptbl->field_0;
+        p_hmhandle = NULL;
+        for (i = 0; i < 50; i++)
+        {
+            p_hmhandle = (ubyte *)heapmgr_add_item((int)hmhead, smp_size, i, smp_size);
+            if (p_hmhandle != NULL)
+                break;
+            freed_id = heapmgr_free_oldest((int)hmhead, smp_size, i, smp_size);
+            if (freed_id < 0)
+                break;
+            // Store of the (null) handle into the freed sample entry
+            sample_table[freed_id].hmhandle = (struct HeapMgrHandle *)p_hmhandle;
+        }
+        if (p_hmhandle != NULL)
+        {
+            *(ushort *)(p_hmhandle + 0x0A) = smp_id;
+            LbFileSeek(sound_file, smp_offs, Lb_FILE_SEEK_BEGINNING);
+            LbFileRead(sound_file, *(void **)(p_hmhandle + 0x00), smp_size);
+        }
+        p_smptbl->hmhandle = (struct HeapMgrHandle *)p_hmhandle;
+    }
+    p_hmhandle = (ubyte *)p_smptbl->hmhandle;
+    if (p_hmhandle == NULL)
+        DIFFTEST_RETURN((struct SampleInfo *)NULL);
+    heapmgr_make_newest((int)hmhead, (int)p_hmhandle, (int)volume, (int)pan);
+    p_sinfo = PlaySampleFromAddress(bank_id, smptbl_id, volume, pan, pitch,
+      loop_count, stype, *(void **)p_smptbl->hmhandle);
+    if (p_sinfo != NULL)
+    {
+        p_sinfo->UserFlag |= 0x01;
+        p_smptbl->hmhandle->field_0[8] |= 0x06;
+    }
+    DIFFTEST_RETURN(p_sinfo);
 }
 
 static DIFFTEST_REF_FUNC void stop_sample_using_heap_asm(long source_id, ulong sample_number)
