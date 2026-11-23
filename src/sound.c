@@ -142,12 +142,41 @@ void heapmgr_free_handle(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int heapmgr_free_oldest(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC int heapmgr_free_oldest_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_heapmgr_free_oldest\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
     return ra;
+}
+
+/** Frees the oldest heap item which is not locked (flag 0x02 at 0x08).
+ * a1 is the heap header; walks the age list from the oldest (0x1C) through
+ * the newer links (0x18). Returns -1 if no item could be freed, otherwise
+ * the sample index of the freed item (ushort at 0x0A).
+ */
+int heapmgr_free_oldest(int a1, int a2, int a3, int a4)
+{
+    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
+    ubyte *p_item;
+    int smp_id;
+
+    DIFFTEST_SHADOW_RET(heapmgr_free_oldest, int, heapmgr_free_oldest_asm(a1, a2, a3, a4));
+    p_item = (ubyte *)p_hmhead->field_1C;
+    if (p_item == NULL)
+        DIFFTEST_RETURN((int)-1);
+    while ((*(p_item + 0x08) & 0x02) != 0)
+    {
+        p_item = (ubyte *)*(s32 *)(p_item + 0x18);
+        if (p_item == NULL)
+            DIFFTEST_RETURN((int)-1);
+    }
+    // The asm returns whatever eax the free_handle call leaves; the asm
+    // free_handle returns the item's ushort at 0x0A, read before it clears
+    // the item. Read it here, as heapmgr_free_handle() is declared void.
+    smp_id = *(ushort *)(p_item + 0x0A);
+    heapmgr_free_handle(a1, (int)p_item, a1, a4);
+    DIFFTEST_RETURN(smp_id);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
