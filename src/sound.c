@@ -38,6 +38,7 @@
 #include "awe32.h"
 #include "streamfx.h"
 #include "sndtimer.h"
+#include "bfsvaribl.h"
 #include "snderr.h"
 #include "ssampply.h"
 #include "ssamplst.h"
@@ -327,10 +328,31 @@ void stop_looped_weapon_sample(struct Thing *p_person, short weapon)
 }
 
 //TODO better name?
-void fill_ail_sample_ids(void)
+static DIFFTEST_REF_FUNC void fill_ail_sample_ids_asm(void)
 {
     asm volatile ("call ASM_fill_ail_sample_ids\n"
-        :  :  : "eax" );
+        :  :  : "eax", "cc", "memory" );
+}
+
+extern u32 ail_sample_ids[];
+
+void fill_ail_sample_ids(void)
+{
+    struct SampleInfo *p_smpinfo;
+    struct SampleInfo *p_last;
+    u32 i;
+
+    DIFFTEST_SHADOW(fill_ail_sample_ids, fill_ail_sample_ids_asm());
+    if (!GetSoundInstalled())
+        return;
+    p_smpinfo = GetFirstSampleInfoStructure();
+    p_last = GetLastSampleInfoStructure();
+    i = 0;
+    for (; p_smpinfo <= p_last; p_smpinfo++)
+    {
+        ail_sample_ids[(ushort)i] = *(u32 *)p_smpinfo;
+        i++;
+    }
 }
 
 void monitor_all_samples(void)
