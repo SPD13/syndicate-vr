@@ -5917,11 +5917,10 @@ void process_weapon(struct Thing *p_person)
     }
 }
 
-s32 laser_hit_at(s32 cor1_x, s32 cor1_y, s32 cor1_z,
+static DIFFTEST_REF_FUNC s32 laser_hit_at_asm(s32 cor1_x, s32 cor1_y, s32 cor1_z,
   s32 *p_cor2_x, s32 *p_cor2_y, s32 *p_cor2_z,
   struct Thing *p_shot)
 {
-#if 1
     s32 ret;
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
@@ -5936,11 +5935,87 @@ s32 laser_hit_at(s32 cor1_x, s32 cor1_y, s32 cor1_z,
       "push 4(%5)\n"
       "push 0(%5)\n"
       "call ASM_laser_hit_at\n"
-        : "=r" (ret)
-        : "a" (cor1_x), "d" (cor1_y), "b" (cor1_z), "c" (p_cor2_x), "S" (stkargs)
+        : "=a" (ret)
+        : "0" (cor1_x), "d" (cor1_y), "b" (cor1_z), "c" (p_cor2_x), "S" (stkargs)
         : "cc", "memory");
     return ret;
-#endif
+}
+
+s32 laser_hit_at(s32 cor1_x, s32 cor1_y, s32 cor1_z,
+  s32 *p_cor2_x, s32 *p_cor2_y, s32 *p_cor2_z,
+  struct Thing *p_shot)
+{
+    struct Thing *p_owner;
+    struct Thing *p_hit;
+    struct MyMapElement *p_mapel;
+    s32 orig_x, orig_y, orig_z;
+    short dx, dy, dz;
+    s32 dist, count, colide;
+    u32 dist_sq;
+
+    DIFFTEST_SHADOW_RET(laser_hit_at, s32,
+      laser_hit_at_asm(cor1_x, cor1_y, cor1_z, p_cor2_x, p_cor2_y, p_cor2_z, p_shot));
+    colide = 0;
+    dx = (short)(*p_cor2_x - cor1_x);
+    dy = (short)(*p_cor2_y - cor1_y);
+    dz = (short)(*p_cor2_z - cor1_z);
+    orig_x = *p_cor2_x;
+    orig_y = *p_cor2_y;
+    orig_z = *p_cor2_z;
+    dist_sq = (u32)((s32)dx * dx) + (u32)((s32)dz * dz)
+      + ((u32)((s32)dy * dy) << 7);
+    dist = LbSqrL(dist_sq) / 128;
+    if (dist == 0)
+        dist = 1;
+    dx = (short)(dx / dist);
+    dy = (short)(dy / dist);
+    dz = (short)(dz / dist);
+    *p_cor2_x = cor1_x;
+    *p_cor2_y = cor1_y;
+    *p_cor2_z = cor1_z;
+    for (count = dist + 1; count > 0; count--)
+    {
+        p_owner = &things[(ushort)p_shot->Owner];
+        p_hit = check_for_radius_hit_person(*p_cor2_x << 8, *p_cor2_y << 8,
+          *p_cor2_z << 8, (ushort)p_shot->Radius, p_owner, 1, 0);
+        if (p_hit != NULL)
+        {
+            if (p_hit->Type == SmTT_STATIC)
+                DIFFTEST_RETURN((s32)(-(s32)(short)p_hit->ThingOffset | 0x40000000));
+            DIFFTEST_RETURN((s32)(ushort)p_hit->ThingOffset);
+        }
+        p_mapel = &game_my_big_map[(*p_cor2_x >> 8) + ((*p_cor2_z >> 8) << 7)];
+        if (p_mapel->Alt < *p_cor2_y && p_mapel->Alt + 30 > *p_cor2_y
+          && p_mapel->ColHead != 0)
+        {
+            colide = do_fvect_colide(cor1_x, cor1_z, orig_x, orig_z,
+              (int)(intptr_t)p_mapel);
+            if (colide > 0)
+                DIFFTEST_RETURN(-colide);
+        }
+        if ((alt_at_point((short)*p_cor2_x, (short)*p_cor2_z) >> 8) > *p_cor2_y)
+            DIFFTEST_RETURN((s32)0x20000000);
+        if (!(p_mapel->Alt < *p_cor2_y && p_mapel->Alt + 30 > *p_cor2_y
+          && colide == 0))
+        {
+            if (check_col_collision(*p_cor2_x, *p_cor2_y, *p_cor2_z) != 0)
+            {
+                if (colide == 0)
+                    DIFFTEST_RETURN((s32)0x20000000);
+                DIFFTEST_RETURN(colide);
+            }
+        }
+        *p_cor2_x += dx;
+        *p_cor2_y += dy;
+        *p_cor2_z += dz;
+        if ((*p_cor2_x >> 8) < 0 || (*p_cor2_x >> 8) >= 128
+          || (*p_cor2_z >> 8) < 0 || (*p_cor2_z >> 8) >= 128)
+            DIFFTEST_RETURN((s32)0);
+    }
+    *p_cor2_x = orig_x;
+    *p_cor2_y = orig_y;
+    *p_cor2_z = orig_z;
+    DIFFTEST_RETURN((s32)0);
 }
 
 /******************************************************************************/
