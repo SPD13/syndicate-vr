@@ -1997,10 +1997,63 @@ struct Thing *new_sim_person(int x, int y, int z, ubyte subtype)
     return p_person;
 }
 
-void should_i_get_item(struct Thing *p_person, struct SimpleThing *p_sthing)
+static DIFFTEST_REF_FUNC void should_i_get_item_asm(struct Thing *p_person, struct SimpleThing *p_sthing)
 {
     asm volatile ("call ASM_should_i_get_item\n"
         : : "a" (p_person), "d" (p_sthing));
+}
+
+void should_i_get_item(struct Thing *p_person, struct SimpleThing *p_sthing)
+{
+    u32 wcarried;
+    ushort nweapons;
+    ushort wtype;
+    int i;
+
+    DIFFTEST_SHADOW(should_i_get_item, should_i_get_item_asm(p_person, p_sthing));
+    if ((p_person->Flag2 & TgF2_Unkn08000000) != 0)
+        return;
+    if (p_sthing->U.UWeapon.WeaponType == 0)
+        return;
+
+    // Count carried weapons, not including the energy shield
+    wcarried = p_person->U.UPerson.WeaponsCarried & ~(1 << (WEP_ENERGYSHLD-1));
+    nweapons = 0;
+    for (i = 0; (wcarried != 0) && (i < 32); i++)
+    {
+        if ((wcarried & 1) != 0)
+            nweapons++;
+        wcarried >>= 1;
+    }
+    if (nweapons >= 6)
+        return;
+    if (p_person->SubType == SubTT_PERS_SCIENTIST)
+        return;
+
+    wtype = p_sthing->U.UWeapon.WeaponType;
+    if ((wtype == WEP_H2HTASER) || (wtype == WEP_UNUSED1F))
+        return;
+    if ((p_person->Flag & TngF_Persuaded) != 0)
+    {
+        if ((p_person->U.UPerson.WeaponsCarried & 0x283ceff) != 0)
+            return;
+        if ((wtype > WEP_ELLASER) && (wtype != WEP_LONGRANGE) && (wtype != WEP_BEAM))
+            return;
+    }
+    if (do_i_have_weapon((int)p_person, wtype) != 0)
+        return;
+
+    p_person->State = PerSt_GET_ITEM;
+    p_person->Flag2 |= TgF2_Unkn08000000;
+    p_person->U.UPerson.GotoX = p_sthing->X >> 8;
+    p_person->U.UPerson.GotoZ = p_sthing->Z >> 8;
+    p_person->U.UPerson.ComTimer = -1;
+    p_person->SubState = 0;
+    p_person->U.UPerson.ComRange = 0;
+    p_person->GotoThingIndex = p_sthing->ThingOffset;
+    p_person->U.UPerson.StandOnThing = p_sthing->ThingOffset;
+    if (p_person->U.UPerson.PathIndex != 0)
+        remove_path(p_person);
 }
 
 /** Checks one tile for collisions. `found` is what earlier tiles found:
