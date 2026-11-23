@@ -2567,27 +2567,87 @@ struct SimpleThing *create_temp_light(int prc_x, int prc_y, int prc_z,
     return p_sthing;
 }
 
-struct SimpleThing *create_growing_e_strand(int x, int y, int z,
+static DIFFTEST_REF_FUNC struct SimpleThing *create_growing_e_strand_asm(int x, int y, int z,
   struct Thing *p_thing, int health, int owner)
 {
-#if 1
     struct SimpleThing *ret;
     // Pushed through a register holding them: a "g" operand may be placed
     // relative to the stack pointer, which each push moves.
     int stkargs[2];
+    int rd = y, rb = z, rc = (int)(intptr_t)p_thing;
 
     stkargs[0] = (int)(intptr_t)health;
     stkargs[1] = (int)(intptr_t)owner;
 
     asm volatile (
-      "push 4(%5)\n"
-      "push 0(%5)\n"
+      "push 4(%4)\n"
+      "push 0(%4)\n"
       "call ASM_create_growing_e_strand\n"
-        : "=r" (ret)
-        : "a" ((s32)x), "d" ((s32)y), "b" ((s32)z), "c" (p_thing), "S" (stkargs)
+        : "=a" (ret), "+d" (rd), "+b" (rb), "+c" (rc)
+        : "S" (stkargs), "0" ((s32)x)
         : "cc", "memory");
     return ret;
-#endif
+}
+
+struct SimpleThing *create_growing_e_strand(int x, int y, int z,
+  struct Thing *p_thing, int health, int owner)
+{
+    struct SimpleThing *p_sthing;
+    ThingIdx sthing;
+    int tx, ty, tz;
+    int damage;
+
+    DIFFTEST_SHADOW_RET(create_growing_e_strand, struct SimpleThing *,
+      create_growing_e_strand_asm(x, y, z, p_thing, health, owner));
+    sthing = get_new_sthing();
+    tx = 0;
+    ty = 0;
+    tz = 0;
+    if (sthing == 0)
+        DIFFTEST_RETURN((struct SimpleThing *)NULL);
+
+    p_thing->Flag2 |= TgF2_Unkn0020;
+    if ((p_thing->Flag & TngF_InVehicle) != 0)
+    {
+        tx = LbRandomAnyShort() % 320 - 160;
+        ty = LbRandomAnyShort() % 320 - 160;
+        tz = LbRandomAnyShort() % 320 - 160;
+        damage = 5000;
+        // Only the low byte is modified by the original code
+        things[p_thing->U.UPerson.Vehicle].U.UVehicle.WorkPlace |= 0x80;
+    }
+    else
+    {
+        damage = weapon_defs[WEP_ELEMINE].HitDamage;
+    }
+    tx += p_thing->X >> 8;
+    // TODO the original uses a different shift for Y; possibly a bug
+    ty += p_thing->Y >> 5;
+    tz += p_thing->Z >> 8;
+
+    p_sthing = &sthings[sthing];
+    p_sthing->X = x << 8;
+    p_sthing->Z = z << 8;
+    p_sthing->Y = y << 8;
+    p_sthing->U.UEffect.VX = tx;
+    p_sthing->U.UEffect.VY = ty;
+    p_sthing->U.UEffect.VZ = tz;
+    add_node_sthing(p_sthing->ThingOffset);
+    p_sthing->Timer1 = health;
+    p_sthing->StartTimer1 = health;
+    p_sthing->Type = SmTT_ELECTRIC_STRAND;
+    p_sthing->SubType = 6;
+    p_sthing->Object = arctan(tx - x, z - tz);
+    p_sthing->Radius = p_thing->ThingOffset;
+    p_sthing->Owner2 = owner;
+    play_dist_ssample(p_sthing, 0x28, 0x7F, 0x40, 100, 0, 1);
+
+    thing_hit_by_bullet(p_thing, (short)damage, (short)(x - tx),
+      (short)(y - ty), (short)(z - tz), &things[(ushort)owner], 10);
+    if ((p_thing->Flag & TngF_Persuaded) != 0)
+        stop_being_persuaded(p_thing);
+
+    DIFFTEST_RETURN(p_sthing);
 }
 
 void create_another_strand(struct SimpleThing *p_sthing)
