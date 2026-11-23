@@ -206,11 +206,78 @@ int heapmgr_add_item(int a1, int a2, int a3, int a4)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-void heapmgr_free_handle(int a1, int a2, int a3, int a4)
+static DIFFTEST_REF_FUNC void heapmgr_free_handle_asm(int a1, int a2, int a3, int a4)
 {
     int ra = a1, rd = a2, rb = a3, rc = a4;
     asm volatile ("call ASM_heapmgr_free_handle\n"
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
+}
+
+/** Frees a heap item.
+ * a1 is the heap header, a2 the item. Unlinks the item from the
+ * address-ordered list (links 0x0C/0x10); unless the next item is marked
+ * fixed (flag 0x04 at 0x08), moves the next item's data down to close the
+ * gap. Then unlinks the item from the age list (0x14/0x18), updates the
+ * header counters and clears the item. The asm leaves the item's ushort
+ * at 0x0A in eax, but the function is declared void.
+ */
+void heapmgr_free_handle(int a1, int a2, int a3, int a4)
+{
+    struct HeapMgrHeader *p_hmhead = (struct HeapMgrHeader *)a1;
+    ubyte *p_item = (ubyte *)a2;
+    ubyte *p_prev;
+    ubyte *p_next;
+    ubyte *p_older;
+    ubyte *p_newer;
+
+    DIFFTEST_SHADOW(heapmgr_free_handle, heapmgr_free_handle_asm(a1, a2, a3, a4));
+    p_prev = (ubyte *)*(s32 *)(p_item + 0x0C);
+    if (p_prev != NULL)
+        *(s32 *)(p_prev + 0x10) = *(s32 *)(p_item + 0x10);
+    else
+        p_hmhead->field_18 = *(s32 *)(p_item + 0x10);
+
+    p_next = (ubyte *)*(s32 *)(p_item + 0x10);
+    if (p_next != NULL)
+    {
+        *(s32 *)(p_next + 0x0C) = *(s32 *)(p_item + 0x0C);
+        p_next = (ubyte *)*(s32 *)(p_item + 0x10);
+        if ((*(p_next + 0x08) & 0x04) == 0)
+        {
+            p_prev = (ubyte *)*(s32 *)(p_item + 0x0C);
+            if (p_prev != NULL)
+            {
+                memmove((void *)(*(s32 *)(p_prev + 0x00) + *(s32 *)(p_prev + 0x04)),
+                  (void *)*(s32 *)(p_next + 0x00), *(s32 *)(p_next + 0x04));
+                p_prev = (ubyte *)*(s32 *)(p_item + 0x0C);
+                p_next = (ubyte *)*(s32 *)(p_item + 0x10);
+                *(s32 *)(p_next + 0x00) = *(s32 *)(p_prev + 0x00) + *(s32 *)(p_prev + 0x04);
+            }
+            else
+            {
+                memmove(p_hmhead->field_0, (void *)*(s32 *)(p_next + 0x00),
+                  *(s32 *)(p_next + 0x04));
+                p_next = (ubyte *)*(s32 *)(p_item + 0x10);
+                *(s32 *)(p_next + 0x00) = (s32)p_hmhead->field_0;
+            }
+        }
+    }
+
+    p_older = (ubyte *)*(s32 *)(p_item + 0x14);
+    if (p_older != NULL)
+        *(s32 *)(p_older + 0x18) = *(s32 *)(p_item + 0x18);
+    else
+        p_hmhead->field_1C = *(s32 *)(p_item + 0x18);
+
+    p_newer = (ubyte *)*(s32 *)(p_item + 0x18);
+    if (p_newer != NULL)
+        *(s32 *)(p_newer + 0x14) = *(s32 *)(p_item + 0x14);
+    else
+        p_hmhead->field_20 = *(s32 *)(p_item + 0x14);
+
+    p_hmhead->field_10--;
+    p_hmhead->field_14 -= *(s32 *)(p_item + 0x04);
+    memset(p_item, 0, 0x1C);
 }
 
 /** Routed asm (internal label). Arguments and return value are the
