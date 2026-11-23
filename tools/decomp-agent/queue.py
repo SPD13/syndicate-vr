@@ -160,7 +160,10 @@ def main():
     asm = parse_asm()
     live, remade_refs = parse_c()
     wr = wrappers()
-    recent = recent_upstream_names()
+    # Since 2026-11-22 we remake upstream-recent functions too (user
+    # decision: our own versions, for an asm-free single player build);
+    # set DECOMP_SKIP_UPSTREAM_RECENT=1 to exclude them again.
+    recent = recent_upstream_names() if os.environ.get('DECOMP_SKIP_UPSTREAM_RECENT') else set()
     ledger = ledger_state()
     coverage = json.load(open(COVERAGE)) if os.path.exists(COVERAGE) else None
     fuzzed = fuzz_cases()
