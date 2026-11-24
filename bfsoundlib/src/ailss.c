@@ -621,7 +621,10 @@ void AIL2OAL_API_resume_sample(SNDSAMPLE *s)
 
 uint32_t AIL2OAL_API_sample_status(SNDSAMPLE *s)
 {
-    assert(s != NULL);
+    // No sample, as when the sound device could not be opened and no
+    // sample was allocated: nothing plays
+    if (s == NULL)
+        return SNDSMP_DONE;
     return s->status;
 }
 

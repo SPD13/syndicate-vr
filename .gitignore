@@ -8,6 +8,7 @@ config.log
 Makefile.in
 aclocal.m4
 compile
+ar-lib
 configure
 depcomp
 install-sh

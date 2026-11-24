@@ -1210,12 +1210,18 @@ void engine_draw_whole_screen_top_down(void)
 
     camera_setup_view(&pos_beg_x, &pos_beg_z, &rend_beg_x, &rend_beg_z, &tlcount_x, &tlcount_z);
 
+    // Without drawing the world (game_draw_world) the things are still
+    // enlisted, as that also changes game state: the faces of moving
+    // objects get flags line of sight reads (draw_rot_object_faces()), and
+    // the thing under the pointer is found; but the draw list, the floor
+    // and explosions are not drawn. The panels still are, as they keep the
+    // player's target.
     if ((ingame.Flags & GamF_RenderScene) != 0)
     {
         engine_draw_things(pos_beg_x, pos_beg_z, rend_beg_x, rend_beg_z, tlcount_x, tlcount_z);
     }
 
-    if ((ingame.Flags & GamF_RenderScene) != 0)
+    if (((ingame.Flags & GamF_RenderScene) != 0) && game_draw_world)
     {
         if ((gamep_scene_effect_type == ScEff_SPACE) && engine_render_lights)
             draw_background_stars();
@@ -1236,7 +1242,7 @@ void engine_draw_whole_screen_top_down(void)
     face_transp_tinted_line_col = deep_radar_line_col;
 
     p_locplayer = &players[local_player_no];
-    if ((ingame.Flags & GamF_RenderScene) != 0)
+    if (((ingame.Flags & GamF_RenderScene) != 0) && game_draw_world)
     {
         draw_explode();
         draw_screen();

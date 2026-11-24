@@ -41,6 +41,8 @@ def main():
     ap.add_argument('outdir')
     ap.add_argument('--jobs', type=int, default=6)
     ap.add_argument('--ref', default=os.path.join('build', 'tr_difftest'))
+    ap.add_argument('--no-compare', action='store_true',
+                    help='only run, e.g. to make a reference from the difftest build')
     a = ap.parse_args()
     out = os.path.abspath(a.outdir)
     os.makedirs(out, exist_ok=True)
@@ -97,6 +99,8 @@ def main():
         return differ
 
     run_all(a.jobs)
+    if a.no_compare:
+        return 0
     differ = compare(scenarios())
     for _ in range(3):
         if not differ:

@@ -201,6 +201,7 @@ TbBool game_process_turn(void);
 void game_process_end(void);
 void game_shutdown(void);
 u32 game_state_hash(void);
+extern TbBool game_draw_world;
 void game_reset(void);
 void host_reset(void);
 void global_date_new_game_reset(void);

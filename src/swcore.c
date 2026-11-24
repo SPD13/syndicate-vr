@@ -628,6 +628,11 @@ void swcore_shutdown(void)
     game_shutdown();
 }
 
+void swcore_set_world_drawing(int enabled)
+{
+    game_draw_world = (enabled != 0);
+}
+
 uint32_t swcore_game_turn(void)
 {
     return (uint32_t)gameturn;

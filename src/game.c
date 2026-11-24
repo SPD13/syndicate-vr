@@ -1539,6 +1539,11 @@ ubyte get_engine_inputs(void)
     return did_inp;
 }
 
+/** Whether the world is drawn while a mission is played; a front end that
+ * draws it by itself, or a run without display, switches it off.
+ */
+TbBool game_draw_world = true;
+
 void process_engine_unk3(void)
 {
     get_engine_inputs();
@@ -1550,7 +1555,8 @@ void process_engine_unk3(void)
     // Which frame of an animated texture is on screen is not part of the game
     // state - no simulation code reads it. Advanced here, after the frame was
     // enlisted, it keeps the pace it had within process_things().
-    animate_textures();
+    if (game_draw_world)
+        animate_textures();
 }
 
 /**
@@ -4384,6 +4390,7 @@ void show_game_engine(void)
 
     compute_scanner_zoom();
     camera_apply_velocity();
+    // the camera transform, which the game also uses for the pointer
     prepare_drawlist();
     prepare_mouse_on_map();
     process_engine_unk3();
@@ -7781,10 +7788,56 @@ void game_process_orbital_station_explode(void)
     }
 }
 
+/** Fields of things which only drawing writes, or which only drawing reads
+ * (computed from what drawing changes); the game plays the same without
+ * them, so the state hash leaves them out.
+ */
+struct RenderField {
+    ubyte type; /**< Thing type the field (or union member) belongs to */
+    ushort offset;
+    ushort size;
+    u32 bits;   /**< Bits of the field (as a little endian number) to leave out */
+};
+
+static const struct RenderField state_hash_render_fields[] = {
+    // the turn a building was last drawn
+    {TT_BUILDING, offsetof(struct Thing, U.UObject.DrawTurn), sizeof(u32), 0xFFFFFFFFu},
+    // light level of a person from the map shading, which drawing changes
+    {TT_PERSON, offsetof(struct Thing, U.UPerson.Brightness), sizeof(ubyte), 0xFFu},
+    // hit flash: set by hits, read and cleared by drawing the object
+    {TT_VEHICLE, offsetof(struct Thing, Flag), sizeof(u32), TngF_Unkn01000000},
+    {TT_BUILDING, offsetof(struct Thing, Flag), sizeof(u32), TngF_Unkn01000000},
+    {TT_ROCKET, offsetof(struct Thing, Flag), sizeof(u32), TngF_Unkn01000000},
+};
+
+/** Clears the bytes of render-only fields within the word at `off`; they
+ * need not be word aligned.
+ */
+static u32 state_hash_mask_render_fields(const struct Thing *p_thing, size_t off, u32 w)
+{
+    size_t i, b;
+
+    for (i = 0; i < sizeof(state_hash_render_fields) / sizeof(state_hash_render_fields[0]); i++)
+    {
+        const struct RenderField *p_rf = &state_hash_render_fields[i];
+
+        if (p_thing->Type != p_rf->type)
+            continue;
+        for (b = 0; b < 4; b++) {
+            if ((off + b >= p_rf->offset) && (off + b < (size_t)p_rf->offset + p_rf->size)) {
+                u32 fbits = (p_rf->bits >> (8 * (off + b - p_rf->offset))) & 0xFFu;
+                w &= ~(fbits << (8 * b));
+            }
+        }
+    }
+    return w;
+}
+
 /** Hash of the world state: the things memory, with PTarget, the only
  * pointer in a thing, hashed as a thing index (runs place the things memory
- * apart) and the drawing-driven Frame and Timer1 left out. The same on every
- * target and pointer size; the state traces of the builds are compared on it.
+ * apart), and the drawing-driven Frame, Timer1 and render-only fields
+ * (state_hash_render_fields) left out. The same on every target and
+ * pointer size; the state traces of the builds are compared on it.
  */
 u32 game_state_hash(void)
 {
@@ -7818,6 +7871,7 @@ u32 game_state_hash(void)
             if ((off == offsetof(struct Thing, Frame)) ||
               (off == offsetof(struct Thing, Timer1)))
                 w &= 0xFFFF0000u;
+            w = state_hash_mask_render_fields(&things[thing], off, w);
             h = (h ^ w) * 16777619u;
         }
     }
@@ -7892,6 +7946,14 @@ TbBool game_process_turn(void)
     if (ingame.DisplayMode == DpM_PURPLEMNU) {
         LOGDBG("id=%d  trial alloc = %d turn %u", 0, triangulation, gameturn);
     }
+#if DIFFTEST_HARNESS
+    // Test runs with the pointer away from the screen, so that drawing,
+    // which picks the thing under the pointer, picks none
+    if (getenv("SWARS_DIFFTEST_NOPOINTER") != NULL) {
+        lbDisplay.MMouseX = -10000;
+        lbDisplay.MMouseY = -10000;
+    }
+#endif
     input();
     update_tick_time();
     // Faces thrown by an explosion can hit people once they land, so they

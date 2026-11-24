@@ -51,6 +51,17 @@ int swcore_step(void);
  */
 void swcore_shutdown(void);
 
+/** Switches drawing the world in missions on (the default) or off. Off,
+ * the game still lists what is in view (which in the original also
+ * changes game state, e.g. line of sight through vehicles near the map
+ * edge, and finds the thing under the pointer), but draws neither the
+ * world nor explosions; menus and the panels are still drawn. The game
+ * plays the same either way; drawing changes only its own counters, which
+ * swcore_state_hash() leaves out. A front end that draws the world from
+ * swcore_things() switches it off.
+ */
+void swcore_set_world_drawing(int enabled);
+
 /** Number of the current game turn. */
 uint32_t swcore_game_turn(void);
 

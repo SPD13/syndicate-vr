@@ -104,7 +104,15 @@ lack clobber lists and break under optimisation.
 - `SWARS_TRACE_EXE=swcore_headless python
   tools/decomp-agent/statetrace_win_par.py harness <outdir>` checks that
   a library front end plays the same game as the reference (traces and
-  the hashes read through the interface).
+  the hashes read through the interface); add `SWARS_TRACE_EXE_ARGS=--no-draw`
+  for the run without drawing the world, which must be equal too.
+- Drawing writes game state in places (face flags of vehicles that line
+  of sight reads, the thing under the pointer, the panels' target): see
+  `docs/swcore.md` before moving code out of the drawing path. Fields only
+  drawing uses go in `state_hash_render_fields` (game.c).
+- Trace runs use SDL's dummy drivers (set by `statetrace.sh`; `msys.sh`
+  passes `SWARS_*` and `SDL_*` variables only). A real window let the
+  desktop's mouse pointer change runs.
 - Never touch the `assets/tripo` branch, its worktree
   (`worktrees/assets-tripo`) or `tools/asset3d/`: another session works
   there.
