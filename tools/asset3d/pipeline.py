@@ -3,6 +3,8 @@
   python pipeline.py redraw  <type> [--tag v1] [--model seedream_v5] [--extra "..."] [--ref IMG]
       Route B step 1: the sprite views -> one clean front reference.
       Writes work/<type>/B/redraw_<tag>/. Review it before going on.
+  python pipeline.py edit    <type> --base v2 --tag v4 --extra "what to change"
+      Route B step 1b: changes an earlier redraw, keeping the rest.
   python pipeline.py model-b <type> --tag v1
       Route B step 2: approved redraw -> image-to-multiview -> 3D model.
   python pipeline.py model-a <type>
@@ -77,6 +79,26 @@ def stage_redraw(t, out, name, args):
         print("review: %s" % os.path.join(dest, "redraw.png"))
 
 
+def stage_edit(t, out, name, args):
+    """Edits an earlier redraw: it is the only input image, the prompt says
+    what to change and to keep everything else."""
+    base = os.path.join(out, "work", name, "B", "redraw_" + args.base, "redraw.png")
+    if not os.path.exists(base):
+        raise SystemExit("no redraw %s" % base)
+    prompt = ("Edit image[1]: keep the same character, materials, colours, lighting, rendering style, "
+              "front view, pose and plain white background exactly as they are. Only change: " + args.extra)
+    if len(prompt) > 1800:
+        raise SystemExit("prompt is %d characters; Tripo allows 1800" % len(prompt))
+    body = {"inputs": [t.upload(base)], "prompt": prompt, "model": args.model, "size": "2K"}
+    dest = os.path.join(out, "work", name, "B", "redraw_" + args.tag)
+    rec = t.run("/generation/image-to-image", body, dest, estimate=20,
+                label="%s edit %s from %s" % (name, args.tag, args.base))
+    img = find_image(rec.get("files", {}))
+    if img:
+        shutil.copyfile(img, os.path.join(dest, "redraw.png"))
+        print("review: %s" % os.path.join(dest, "redraw.png"))
+
+
 def stage_model_b(t, out, name, args):
     dest = os.path.join(out, "work", name, "B", "redraw_" + args.tag)
     img = os.path.join(dest, "redraw.png")
@@ -134,9 +156,10 @@ def stage_status(t, out, name, args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("stage", choices=["redraw", "model-b", "model-a", "rig", "status"])
+    ap.add_argument("stage", choices=["redraw", "edit", "model-b", "model-a", "rig", "status"])
     ap.add_argument("type", nargs="?", default="")
     ap.add_argument("--tag", default="v1")
+    ap.add_argument("--base", help="edit: the redraw tag to start from")
     ap.add_argument("--model", default="seedream_v5", help="image model for the redraw")
     ap.add_argument("--extra", default="", help="extra prompt text for the redraw")
     ap.add_argument("--ref", help="extra reference image for the redraw (image[4], e.g. box art)")
@@ -149,7 +172,7 @@ def main():
     if args.stage != "status" and args.type not in swdata.PERSON_TYPES:
         raise SystemExit("unknown person type %r" % args.type)
     t = Tripo(out, args.max_credits, args.dry_run)
-    {"redraw": stage_redraw, "model-b": stage_model_b, "model-a": stage_model_a,
+    {"redraw": stage_redraw, "edit": stage_edit, "model-b": stage_model_b, "model-a": stage_model_a,
      "rig": stage_rig, "status": stage_status}[args.stage](t, out, args.type, args)
 
 
