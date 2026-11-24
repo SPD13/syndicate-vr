@@ -4,7 +4,7 @@ blender -b --factory-startup -P blender_render_clips.py -- model.glb outdir jobs
 
 jobs.json: [{"clip": "pistol_walk", "weapon": "uzi" | null, "name": "pistol_walk_uzi"}, ...]
 Writes outdir/<name>/f###_<view>.png: 3/4 front and right side views,
-placed from the facing of each clip's first frame (chest normal), Workbench with texture colours, about 15 fps, at most 48 frames.
+placed from the facing of each clip's first frame (chest normal), Workbench with texture colours, half the scene frame rate or less, at most 48 frames.
 """
 import json
 import math
@@ -111,5 +111,5 @@ for job in jobs:
         n += 1
     with open(os.path.join(d, "info.json"), "w") as fh:
         json.dump({"clip": job["clip"], "weapon": job.get("weapon"), "frames": n,
-                   "fps": 30.0 / step}, fh)
+                   "fps": scene.render.fps / scene.render.fps_base / step}, fh)
     print("clip done", job["name"], n)
