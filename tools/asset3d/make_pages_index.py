@@ -61,6 +61,7 @@ GROUPS = [
         ("agent_shield", "Energy shield shader look on the agent", "current"),
     ]),
     ("VR interface", [
+        ("ui_inventory", "Inventory of the HUD and menu art (panels, pop-ups, weapon icons, pointers, fonts, shop and research renders, menu backgrounds) with the proposed VR upgrade per group", "current"),
         ("markers", "VR world markers M1-M9: selection ring + agent number, hover brackets, target lock, health bar, charge ring, persuaded, waypoint, damage number, objective beacon (and all together)", "current"),
     ]),
     ("Style checks and history", [
