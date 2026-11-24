@@ -95,6 +95,8 @@ def main():
     if args.name not in props:
         raise SystemExit("unknown prop %r (props.json)" % args.name)
     info = props[args.name]
+    if "same_as" in info:
+        raise SystemExit("%s reuses the model of %s (props.json)" % (args.name, info["same_as"]))
     if args.stage == "ref":
         return stage_ref(out, args.name, info, args)
     t = Tripo(out, args.max_credits, args.dry_run)

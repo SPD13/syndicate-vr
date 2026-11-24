@@ -12,6 +12,7 @@ clips.json:
   Mixamo). Clips are retargeted by world-space bone orientation and baked,
   since pack clips rest in a T-pose and our rig in an A-pose.
 - Stray helper meshes without a parent (Tripo's icosphere) are removed.
+- ranges: [[a, b], ...] keeps only those source frames, back to back.
 - in_place: removes the travel of the Hips (a linear ramp from the first to
   the last key) on location channels that drift, keeping the bob and sway.
 """
@@ -123,9 +124,30 @@ def retarget(src, name):
 
 if not arm.animation_data:
     arm.animation_data_create()
+def splice(action, ranges):
+    """Rebuilds the clip from frame ranges [[a, b], ...] played back to back
+    (keeps one squat of a longer Mixamo clip, for example)."""
+    frames = [f for a, b in ranges for f in range(int(a), int(b) + 1)]
+    for fc in action_fcurves(action):
+        vals = [fc.evaluate(f) for f in frames]
+        kp = fc.keyframe_points
+        while len(kp):
+            kp.remove(kp[0], fast=True)
+        kp.add(len(vals))
+        for i, v in enumerate(vals):
+            kp[i].co = (1 + i, v)
+            kp[i].interpolation = "LINEAR"
+        fc.update()
+    action.frame_range = (1, len(frames))
+    if hasattr(action, "use_frame_range"):
+        action.use_frame_range = True
+
+
 for name, clip in cfg["clips"].items():
     objs = import_new(clip["file"])
     src = next(o for o in objs if o.type == "ARMATURE")
+    if clip.get("ranges"):
+        splice(src.animation_data.action, clip["ranges"])
     act = retarget(src, name)
     for a in list(bpy.data.actions):
         if a is not act and a.users == 0 and not a.use_fake_user:

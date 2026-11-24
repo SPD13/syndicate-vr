@@ -95,5 +95,88 @@
   "faces": 8000,
   "hold": "light",
   "desc": "a time gun: open-frame device, a purple-and-silver rectangular rear block with a glowing slot, thin chrome rails, a ring at the front, small cyan lights."
+ },
+ "nuclgren": {
+  "fli": 5,
+  "faces": 6000,
+  "hold": "thrown",
+  "desc": "a nuclear grenade: a long dark chrome cylindrical canister with a rounded front cap, a ringed collar and short angled fins at the rear, a small hazard light."
+ },
+ "crazygas": {
+  "fli": 9,
+  "faces": 6000,
+  "hold": "thrown",
+  "desc": "a gas grenade canister: a stubby polished chrome cylinder with a ribbed screw cap on one end and a flat vented nozzle on the other, segmented bands around the body."
+ },
+ "kogas": {
+  "fli": 10,
+  "faces": 6000,
+  "hold": "thrown",
+  "desc": "a knock-out gas grenade: a stubby brushed silver cylinder with a ribbed screw cap on one end, a vented nozzle on the other and an engraved triangular warning mark on the side."
+ },
+ "elemine": {
+  "fli": 11,
+  "faces": 6000,
+  "hold": "dropped",
+  "desc": "an electric mine: a flat chunky device made of two angular chrome housings joined by a purple core block, small blocky contacts on top, sits flat on the ground."
+ },
+ "explmine": {
+  "fli": 12,
+  "faces": 6000,
+  "hold": "dropped",
+  "desc": "an explosive land mine: a flat bevelled dark grey armoured box with chunky corner blocks and a raised lid panel, sits flat on the ground."
+ },
+ "napalmmine": {
+  "fli": 12,
+  "faces": 6000,
+  "hold": "dropped",
+  "desc": "a napalm mine (NOT the box of image[1], only its style): a flat round armoured disc with a raised centre trigger and two small orange fuel canisters on its sides, dark grey metal with orange hazard stripes, sits flat on the ground."
+ },
+ "airstrike": {
+  "fli": 15,
+  "faces": 6000,
+  "hold": "carried",
+  "desc": "an airstrike designator: two long slim dark chrome tubes lying side by side, each with a rounded end cap and a small sensor head at the other end."
+ },
+ "razorwire": {
+  "fli": 17,
+  "faces": 6000,
+  "hold": "dropped",
+  "desc": "a coil of razor wire: a loose loop of steel wire studded with sharp purple-tinted blades, lying in two overlapping rings."
+ },
+ "energyshld": {
+  "same_as": "cloneshld",
+  "hold": "carried",
+  "note": "the shop art for the energy shield shows another weapon; the game reuses the clone shield model"
+ },
+ "cerebusiff": {
+  "fli": 25,
+  "faces": 6000,
+  "hold": "dropped",
+  "desc": "the Cerberus IFF unit: a small four-legged metal frame, a central square hub with four angled jointed legs ending in clawed feet, like a stand or drone base."
+ },
+ "medi1": {
+  "fli": 26,
+  "faces": 6000,
+  "hold": "carried",
+  "desc": "a medikit: a rectangular silver metal case with bevelled edges, purple corner bands and a recessed purple cross on the lid."
+ },
+ "medi2": {
+  "fli": 27,
+  "faces": 6000,
+  "hold": "carried",
+  "desc": "an advanced medikit: a rectangular silver metal case with bevelled edges, purple bands, a star-shaped emblem with a cross on the lid and a small display."
+ },
+ "explwire": {
+  "fli": 28,
+  "faces": 6000,
+  "hold": "dropped",
+  "desc": "explosive wire: a thin glowing cyan cable lying in two loose loops, with small metal connector ends."
+ },
+ "cloneshld": {
+  "fli": 29,
+  "faces": 6000,
+  "hold": "carried",
+  "desc": "a clone shield device: a flat rectangular chrome card-shaped unit with a recessed grey panel and a purple striped emitter edge on one side."
  }
 }

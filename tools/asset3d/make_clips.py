@@ -6,8 +6,8 @@ A base path outside <raw_dir> lets one character reuse another's Mixamo clips
 (the merge scales them to the hip height).
 
 <raw_dir> holds loco_pack/, pistol_pack/, rifle_pack/ (unzipped Mixamo packs)
-and single/ (shoot_pistol_v2, shoot_rifle, hit, push_back .fbx). The same
-20 clips as the agent; locomotion clips are made in place.
+and single/ (shoot_pistol_v2, shoot_rifle, hit, push_back, crouch_lift,
+throw_grenade .fbx). The same 22 clips as the agent; locomotion clips are made in place.
 """
 import json
 import os
@@ -26,12 +26,16 @@ clips = {
     "rifle_crouch": (F + "idle crouching.fbx", False), "rifle_crouch_aim": (F + "idle crouching aiming.fbx", False),
     "rifle_shoot": (S + "shoot_rifle.fbx", False),
     "hit": (S + "hit.fbx", False), "push_back": (S + "push_back.fbx", False),
+    # drop / pick up / plant a mine (the game's one crouch, anim state 13), grenade throw
+    "pickup": (S + "crouch_lift.fbx", False), "throw": (S + "throw_grenade.fbx", False),
     "death_front": (F + "death from the front.fbx", False), "death_back": (F + "death from the back.fbx", False),
     "death_headshot": (F + "death from front headshot.fbx", False),
 }
 base_path = base_name if os.path.isabs(base_name) or os.path.exists(base_name) else P + base_name
+RANGES = {"pickup": [[10, 49], [235, 300]]}  # Mixamo "Lifting Object": first squat down + final rise
 cfg = {"base_fbx": os.path.abspath(base_path).replace(os.sep, "/"), "material_glb": os.path.abspath(material).replace(os.sep, "/"),
-       "clips": {k: {"file": f, "in_place": ip} for k, (f, ip) in clips.items()}}
+       "clips": {k: dict({"file": f, "in_place": ip}, **({"ranges": RANGES[k]} if k in RANGES else {}))
+                 for k, (f, ip) in clips.items()}}
 missing = [c["file"] for c in cfg["clips"].values() if not os.path.exists(c["file"])]
 if missing or not os.path.exists(cfg["base_fbx"]):
     raise SystemExit("missing: %s" % (missing or cfg["base_fbx"]))
