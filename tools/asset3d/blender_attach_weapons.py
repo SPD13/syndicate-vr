@@ -19,6 +19,9 @@ For each weapon:
   that relative transform, so it follows every clip. Nodes are named
   weapon_<name>; the game shows one at a time.
 - "flip_up": true turns the weapon over when the grip heuristic fails.
+- "grip_at": 0..1 places the handle by hand, as a fraction of the length
+  from the back, when the lowest part is not the handle (a fuel canister,
+  a long barrel).
 - <out>_sockets.json records each weapon's matrix relative to RightHand
   (the bone tail), for attaching weapon GLBs at runtime.
 """
@@ -66,7 +69,7 @@ def bone_world(name, tail=False):
     return ev.matrix_world @ (pb.tail if tail else pb.head)
 
 
-def weapon_frame(objs, flip_up=False):
+def weapon_frame(objs, flip_up=False, grip_at=None):
     pts = np.array([tuple(o.matrix_world @ v.co) for o in objs for v in o.data.vertices])
     c = pts.mean(0)
     w, v = np.linalg.eigh(np.cov((pts - c).T))
@@ -82,6 +85,10 @@ def weapon_frame(objs, flip_up=False):
     if np.mean(pf) - (grip - c) @ fwd < 0 or (pf.max() - (grip - c) @ fwd) < ((grip - c) @ fwd - pf.min()):
         fwd = -fwd
         pf = -pf
+    if grip_at is not None:  # handle given by hand: fraction of the length from the back
+        t = (pf - pf.min()) / (pf.max() - pf.min())
+        win = np.abs(t - grip_at) < 0.05
+        grip_pts = pts[win][pu[win] < np.percentile(pu[win], 50)]
     up = up - fwd * (up @ fwd)
     up /= np.linalg.norm(up)
     # hold the grip near its top, where the hand closes
@@ -119,7 +126,7 @@ for name, w in cfg.items():
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     gun.name = "weapon_" + name
 
-    fwd, up, grip, length = weapon_frame([gun], w.get("flip_up"))
+    fwd, up, grip, length = weapon_frame([gun], w.get("flip_up"), w.get("grip_at"))
     if w.get("flip"):  # the muzzle heuristic picked the wrong end
         fwd = -fwd
     s = w["length"] / length
