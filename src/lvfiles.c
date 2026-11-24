@@ -983,15 +983,15 @@ static DIFFTEST_REF_FUNC int is_animating_asm(int a1, int a2, int a3, int a4)
  * Returns the anim tmap index (searching from 10), 0 if not found,
  * or the input unchanged if its low 16 bits are 0.
  */
-int is_animating(int a1, int a2, int a3, int a4)
+int is_animating(int texture)
 {
     short tex;
     s32 i;
 
-    DIFFTEST_SHADOW_RET(is_animating, int, is_animating_asm(a1, a2, a3, a4));
-    tex = (short)a1;
+    DIFFTEST_SHADOW_RET(is_animating, int, is_animating_asm(texture, 0, 0, 0));
+    tex = (short)texture;
     if (tex == 0)
-        DIFFTEST_RETURN(a1);
+        DIFFTEST_RETURN(texture);
     for (i = 10; (s32)(short)i < (s32)next_anim_tmap; i++)
     {
         if ((s32)game_anim_tmaps[(short)i].Texture == (s32)tex)
