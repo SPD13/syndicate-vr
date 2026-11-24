@@ -18,6 +18,9 @@ For each weapon:
 - the weapon is scaled to `length` metres and parented to RightHand with
   that relative transform, so it follows every clip. Nodes are named
   weapon_<name>; the game shows one at a time.
+- "flip_up": true turns the weapon over when the grip heuristic fails.
+- <out>_sockets.json records each weapon's matrix relative to RightHand
+  (the bone tail), for attaching weapon GLBs at runtime.
 """
 import json
 import sys
@@ -63,14 +66,14 @@ def bone_world(name, tail=False):
     return ev.matrix_world @ (pb.tail if tail else pb.head)
 
 
-def weapon_frame(objs):
+def weapon_frame(objs, flip_up=False):
     pts = np.array([tuple(o.matrix_world @ v.co) for o in objs for v in o.data.vertices])
     c = pts.mean(0)
     w, v = np.linalg.eigh(np.cov((pts - c).T))
     order = np.argsort(w)[::-1]
     fwd, up = v[:, order[0]], v[:, order[1]]
     pu = (pts - c) @ up
-    if np.mean(pu ** 3) > 0:  # the grip is the long tail: make it point down
+    if (np.mean(pu ** 3) > 0) != bool(flip_up):  # the grip is the long tail: make it point down
         up = -up
         pu = -pu
     grip_pts = pts[pu < np.percentile(pu, 15)]
@@ -96,6 +99,7 @@ def frame_matrix(fwd, up, origin):
     return m
 
 
+sockets = {}
 for name, w in cfg.items():
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=w["file"])
@@ -115,7 +119,7 @@ for name, w in cfg.items():
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     gun.name = "weapon_" + name
 
-    fwd, up, grip, length = weapon_frame([gun])
+    fwd, up, grip, length = weapon_frame([gun], w.get("flip_up"))
     if w.get("flip"):  # the muzzle heuristic picked the wrong end
         fwd = -fwd
     s = w["length"] / length
@@ -147,6 +151,8 @@ for name, w in cfg.items():
     tail_m = bone_world_m @ Matrix.Translation((0, pb.length, 0))
     gun.matrix_parent_inverse = Matrix.Identity(4)
     gun.matrix_basis = tail_m.inverted() @ target
+    sockets[name] = {"bone": "mixamorig:RightHand", "matrix": [list(r) for r in gun.matrix_basis],
+                      "pose": w["pose"], "hold": "two hands" if w.get("aim") == "hands" else "one hand"}
     print("attached %s: length %.2f m (scale %.3f), pose %s" % (name, w["length"], s, w["pose"]))
 
 ad.action = None
@@ -155,4 +161,6 @@ for t in ad.nla_tracks:
 scene.frame_set(1)
 bpy.ops.export_scene.gltf(filepath=out, export_format="GLB", export_animation_mode="NLA_TRACKS",
                           export_force_sampling=True, export_frame_range=False)
+import os  # noqa: E402
+json.dump(sockets, open(os.path.splitext(out)[0] + "_sockets.json", "w"), indent=1)
 print("exported", out)
