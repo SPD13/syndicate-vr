@@ -196,11 +196,11 @@
  },
  "tree_blossom": {
   "ref": "static sprite S7 (review/statics)",
-  "faces": 5000,
+  "faces": 20000,
   "hold": "scenery",
   "kind": "scenery",
   "static": "S7",
-  "desc": "a round ornamental tree covered in pink blossom, dark trunk"
+  "desc": "a Japanese cherry tree (sakura) in full bloom: a dark brown trunk with natural spreading branches and a soft, rounded, airy crown made of thousands of small pale pink cherry blossoms, smooth organic shapes, realistic, NO blocks, NO cubes, NO pixels, no dark leaf clumps"
  },
  "tree_willow": {
   "ref": "static sprite S9 (review/statics)",
@@ -264,7 +264,7 @@
   "hold": "scenery",
   "kind": "scenery",
   "static": "S5",
-  "desc": "a large street lamp: a thick dark metal post with a red band near the base and a wide round white lamp head on top"
+  "desc": "a large street lamp: a perfectly STRAIGHT vertical dark metal pole, exactly upright, not bent or tilted, with a red band near its base on a wide octagonal foot, and a wide round white lamp head mounted level on top, centred on the pole"
  },
  "lamp_post": {
   "ref": "static sprite S6 (review/statics)",
