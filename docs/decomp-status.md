@@ -68,9 +68,17 @@ plan is in `docs/decompilation-agent-plan.md`.
   order (all +bot traces differed); state trace
   written in binary mode (Windows traces had CRLF). Results: make check
   7/7 on both; the 52 traces of both equal the 32-bit asm reference.
-- Not verified: macOS, Android, and clang builds; game behaviour that
-  depends on the C library (e.g. msvcrt rand() outside the harness) may
-  differ between systems.
+- Cleanup, 2026-11-23: the C runtime rand() the original called (BAT,
+  network mines, seeding) is `game_rand()` in crtrand.c, the msvcrt
+  algorithm, so draws are the same on every target; the 210 `#if 0`
+  blocks keeping replaced asm calls and two unbuilt asm rasteriser files
+  removed (`drop_dead_asm.py`); 135 routed raw-register functions got
+  typed, named parameters (pointers no longer travel in ints; references
+  `*_asm` keep the raw registers). 130 with references pass the difftest
+  on 3 covering scenarios each (`difftest_batch.py`); traces unchanged.
+- Not verified: macOS, Android, and clang builds; real arm hardware
+  (only qemu); interactive play of a 64-bit build (video, sound, menus,
+  save/load); savegame compatibility across pointer sizes.
 - **Asm-free single player build, 2026-11-22/23** (user goal: no asm in a
   build without difftest; network left aside). Done so far:
   - `thing_expld_s`, `thing_fire_s`, `bflib_vidraw_s` assembled only for

@@ -29,6 +29,9 @@ Always use the scripts; they enter MSYS2 by themselves when needed.
   hits a vehicle or mounted gun hard every 32 turns. Tokens `t_*`, `p_*`, `m_*` in the
   suffix switch on hooks in `src/difftest_hook_{transport,people,misc}.c`
   that reach functions no mission runs by itself.
+- `python tools/decomp-agent/difftest_batch.py <fns.json|fn,fn> [--jobs 6]
+  [--per-fn 3]` — difftest of many functions in parallel, each on a few
+  scenarios that reach it (coverage.json), with own game data copies.
 - `python tools/decomp-agent/show_fn.py <fn>` — asm body, wrapper conf
   line, current C, callers.
 - `tools/decomp-agent/offsets.sh <header.h> <Struct> [field...]` — sizeof
@@ -70,8 +73,12 @@ lack clobber lists and break under optimisation.
   - no `long`/`ulong`: use `s32`/`u32` (`int32_t`/`uint32_t` in
     bfsoundlib) and `%d`/`%u`/`%x` formats; `long` is 64 bits on Linux.
     Same for limits: `INT32_MAX`/`UINT32_MAX`, not `LONG_MAX`/`ULONG_MAX`.
-  - never store a pointer in an int type: raw register arguments that may
-    carry pointers are `intptr_t`, address arithmetic uses `uintptr_t`.
+  - never store a pointer in an int type: parameters that carry pointers
+    are typed pointers (only `*_asm` references take raw `intptr_t`
+    registers), address arithmetic uses `uintptr_t`.
+  - no C library `rand()`/`srand()` in game code: `game_rand()`/
+    `game_srand()` (crtrand.c, the msvcrt algorithm) give the same draws
+    on every target. Game randomness is otherwise `LbRandom*`.
   - structs read from or written to files keep the file layout: if they
     hold pointers, convert records at load/save (see `thing_from_record`
     in lvfiles.c, `LbSpriteTabExpand`); never `sizeof` a struct with a
@@ -134,12 +141,19 @@ lack clobber lists and break under optimisation.
    - `#include "difftest.h"` in the .c file (alphabetical order).
 3. Keep the asm body in `.sx` untouched: it is the reference. Do not edit
    `.sx` files or `wrappers_game.conf` unless the plan step requires it.
-   - Wrappers marked "Routed asm (internal label)" take raw registers
-     (`int a1..a4` = eax, edx, ebx, ecx; often more than the asm really
-     uses; `intptr_t` where they may carry pointers). Keep that signature, since the conf line must stay as is, and
-     cast inside, e.g. `struct Thing *p_thing = (struct Thing *)a1;`. Only
-     the registers the asm reads matter; the reference function passes
-     all of them.
+   - Wrappers marked "Routed asm (internal label)" are reached from asm
+     through a generated `ac_` wrapper that pushes eax, edx, ebx, ecx
+     (then stack args) as 32-bit cdecl arguments. Give the C function real
+     parameters in those positions: typed pointers (never a pointer in an
+     int), `int`/`s32` for numbers, named after their meaning; trailing
+     registers the asm does not read may be dropped, unread middle ones
+     stay as `int unused_aN`. The conf line stays as is. Only the
+     `*_asm` reference keeps the raw `int a1..a4` signature; the shadow
+     call passes it `(intptr_t)p_thing` and 0 for dropped registers.
+     A parameter the body changes (`p_route++`) needs a local copy: at
+     -O0 gcc writes it back into the caller's argument slot, which the
+     difftest compares (MISMATCH in region `stack`).
+     (Done for all such functions on 2026-11-23, see `find_best_guardian`.)
    - Asm data exported with `GLOBAL(name)` in swars.sx (also `data_xxxx`
      labels) can be used from C: declare `extern` with the right type next
      to the function (or in its header), e.g. `extern short heap[];`. Keep

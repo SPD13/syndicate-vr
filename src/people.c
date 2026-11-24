@@ -3882,15 +3882,18 @@ static s32 triangle_route_bak_pt_dist(s32 ax, s32 ay, ushort pt)
  * route (from tri_dst back to tri_beg); the ecx register is unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_bak(int tri_dst, int tri_beg, s32 *p_route)
+int triangle_route_do_bak(int tri_dst, int tri_beg, s32 *p_route_arg)
 {
+    // a local copy: the body advances it, and the difftest compares
+    // the argument slots of the caller
+    s32 *p_route = p_route_arg;
     struct TrTriangle *p_tri;
     s32 tri_cur, tri_nxt;
     s32 ax, ay, dist, d;
     int k, n;
 
     DIFFTEST_SHADOW_RET(triangle_route_do_bak, int,
-      triangle_route_do_bak_asm(tri_dst, tri_beg, (intptr_t)p_route, 0));
+      triangle_route_do_bak_asm(tri_dst, tri_beg, (intptr_t)p_route_arg, 0));
 
     tag_current++;
     heap[1] = -1;
@@ -3977,15 +3980,18 @@ static DIFFTEST_REF_FUNC int triangle_route_do_given_asm(int a1, int a2, int a3,
  * route (from tri_dst back to tri_beg); the ecx register is unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_given(int tri_dst, int tri_beg, s32 *p_route)
+int triangle_route_do_given(int tri_dst, int tri_beg, s32 *p_route_arg)
 {
+    // a local copy: the body advances it, and the difftest compares
+    // the argument slots of the caller
+    s32 *p_route = p_route_arg;
     struct TrTriangle *p_tri;
     s32 tri_cur, tri_nxt;
     s32 ax, ay, dist, d;
     int k, n;
 
     DIFFTEST_SHADOW_RET(triangle_route_do_given, int,
-      triangle_route_do_given_asm(tri_dst, tri_beg, (intptr_t)p_route, 0));
+      triangle_route_do_given_asm(tri_dst, tri_beg, (intptr_t)p_route_arg, 0));
 
     tag_current++;
     heap[1] = -1;
@@ -4120,13 +4126,16 @@ static void triangle_route_unkn3_expand(s32 tri_cur)
  * route (from tri_dst back to tri_beg); the ecx register is unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn3(int tri_dst, int tri_beg, s32 *p_route)
+int triangle_route_do_unkn3(int tri_dst, int tri_beg, s32 *p_route_arg)
 {
+    // a local copy: the body advances it, and the difftest compares
+    // the argument slots of the caller
+    s32 *p_route = p_route_arg;
     s32 tri_cur, tri_cur2;
     int n;
 
     DIFFTEST_SHADOW_RET(triangle_route_do_unkn3, int,
-      triangle_route_do_unkn3_asm(tri_dst, tri_beg, (intptr_t)p_route, 0));
+      triangle_route_do_unkn3_asm(tri_dst, tri_beg, (intptr_t)p_route_arg, 0));
 
     tag_current++;
     heap[1] = -1;
@@ -4244,13 +4253,16 @@ static void triangle_route_unkn4_expand(s32 tri_cur)
  * route (from tri_dst back to tri_beg); the ecx register is unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn4(int tri_dst, int tri_beg, s32 *p_route)
+int triangle_route_do_unkn4(int tri_dst, int tri_beg, s32 *p_route_arg)
 {
+    // a local copy: the body advances it, and the difftest compares
+    // the argument slots of the caller
+    s32 *p_route = p_route_arg;
     s32 tri_cur, tri_cur2;
     int n;
 
     DIFFTEST_SHADOW_RET(triangle_route_do_unkn4, int,
-      triangle_route_do_unkn4_asm(tri_dst, tri_beg, (intptr_t)p_route, 0));
+      triangle_route_do_unkn4_asm(tri_dst, tri_beg, (intptr_t)p_route_arg, 0));
 
     tag_current++;
     heap[1] = -1;
@@ -5795,15 +5807,18 @@ static DIFFTEST_REF_FUNC int triangle_route_do_unkn5_asm(int a1, int a2, int a3,
  * route (from tri_dst back to tri_beg); the ecx register is unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn5(int tri_dst, int tri_beg, s32 *p_route)
+int triangle_route_do_unkn5(int tri_dst, int tri_beg, s32 *p_route_arg)
 {
+    // a local copy: the body advances it, and the difftest compares
+    // the argument slots of the caller
+    s32 *p_route = p_route_arg;
     struct TrTriangle *p_tri;
     s32 tri_cur, tri_sec, tri_nxt;
     s32 ax, ay, dist, d;
     int k, n;
 
     DIFFTEST_SHADOW_RET(triangle_route_do_unkn5, int,
-      triangle_route_do_unkn5_asm(tri_dst, tri_beg, (intptr_t)p_route, 0));
+      triangle_route_do_unkn5_asm(tri_dst, tri_beg, (intptr_t)p_route_arg, 0));
 
     tag_current++;
     heap[1] = -1;
@@ -5910,15 +5925,18 @@ static DIFFTEST_REF_FUNC int triangle_route_do_unkn6_asm(int a1, int a2, int a3,
  * route (from tri_dst back to tri_beg); the ecx register is unused.
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn6(int tri_dst, int tri_beg, s32 *p_route)
+int triangle_route_do_unkn6(int tri_dst, int tri_beg, s32 *p_route_arg)
 {
+    // a local copy: the body advances it, and the difftest compares
+    // the argument slots of the caller
+    s32 *p_route = p_route_arg;
     struct TrTriangle *p_tri;
     s32 tri_cur, tri_sec, tri_nxt;
     s32 ax, ay, dist, d;
     int k, n;
 
     DIFFTEST_SHADOW_RET(triangle_route_do_unkn6, int,
-      triangle_route_do_unkn6_asm(tri_dst, tri_beg, (intptr_t)p_route, 0));
+      triangle_route_do_unkn6_asm(tri_dst, tri_beg, (intptr_t)p_route_arg, 0));
 
     tag_current++;
     heap[1] = -1;

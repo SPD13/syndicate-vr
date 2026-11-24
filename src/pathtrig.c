@@ -1316,8 +1316,11 @@ static s32 triangle_route_unkn7_pt_dist(s32 ax, s32 ay, ushort pt)
  * tri, route output (from tri_dst back to tri_beg).
  * Returns number of route steps, or -1 if not found.
  */
-int triangle_route_do_unkn7(s32 tri_dst, s32 tri_beg, s32 *p_route)
+int triangle_route_do_unkn7(s32 tri_dst, s32 tri_beg, s32 *p_route_arg)
 {
+    // a local copy: the body advances it, and the difftest compares
+    // the argument slots of the caller
+    s32 *p_route = p_route_arg;
     struct TrTriangle *p_tri;
     s32 tri_cur, tri_nxt;
     s32 ax, ay, dist, d;
@@ -1325,7 +1328,7 @@ int triangle_route_do_unkn7(s32 tri_dst, s32 tri_beg, s32 *p_route)
     int k, n;
 
     DIFFTEST_SHADOW_RET(triangle_route_do_unkn7, int,
-      triangle_route_do_unkn7_asm(tri_dst, tri_beg, (intptr_t)p_route, 0));
+      triangle_route_do_unkn7_asm(tri_dst, tri_beg, (intptr_t)p_route_arg, 0));
 
     extra_steps = 0;
     dst_dad = 0;
