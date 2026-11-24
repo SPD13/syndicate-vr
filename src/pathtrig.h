@@ -82,7 +82,7 @@ void unkn_path_func_001(struct Thing *p_thing, ubyte a2);
 /** Checks whether line segment (x1,y1)-(x2,y2) intersects segment (x3,y3)-(x4,y4).
  */
 TbBool two4_line_intersection(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
-int fov_region(int a1, int a2, intptr_t a3, int a4);
+int fov_region(s32 x, s32 y, s32 *p_fov);
 
 void init_col_vects_linked_list(void);
 

@@ -144,14 +144,14 @@ static DIFFTEST_REF_FUNC int heapmgr_add_item_asm(int a1, int a2, int a3, int a4
 }
 
 /** Allocates a heap item of the given size.
- * a1 is the heap header, a2 the size in bytes. Takes the first unused
+ * p_hmhead (eax) is the heap header, size (edx) the size in bytes; the asm
+ * does not read ebx, ecx. Takes the first unused
  * handle (ushort flags at 0x08 zero) from the array at 0x24, places it in
  * the first gap large enough in the address-ordered list (first at 0x18,
  * links 0x0C/0x10), and appends it as the newest in the age list.
  * Returns the item, or 0 if there is no room or no free handle.
  */
-struct HeapMgrHandle *heapmgr_add_item(struct HeapMgrHeader *p_hmhead, s32 size,
-  int a3, int a4)
+struct HeapMgrHandle *heapmgr_add_item(struct HeapMgrHeader *p_hmhead, s32 size)
 {
     struct HeapMgrHandle *p_item;
     struct HeapMgrHandle *p_prev;
@@ -160,7 +160,7 @@ struct HeapMgrHandle *heapmgr_add_item(struct HeapMgrHeader *p_hmhead, s32 size,
     ubyte *gap_end;
 
     DIFFTEST_SHADOW_RET(heapmgr_add_item, struct HeapMgrHandle *,
-      (struct HeapMgrHandle *)heapmgr_add_item_asm((int)p_hmhead, size, a3, a4));
+      (struct HeapMgrHandle *)heapmgr_add_item_asm((intptr_t)p_hmhead, size, 0, 0));
     if (size > p_hmhead->field_8 - p_hmhead->field_14)
         DIFFTEST_RETURN((struct HeapMgrHandle *)NULL);
     if (p_hmhead->field_10 >= p_hmhead->samples_count)
@@ -228,15 +228,15 @@ static DIFFTEST_REF_FUNC ushort heapmgr_free_handle_asm(int a1, int a2, int a3, 
 }
 
 /** Frees a heap item.
- * a1 is the heap header, a2 the item. Unlinks the item from the
+ * p_hmhead (eax) is the heap header, p_item (edx) the item; the asm does
+ * not read ebx, ecx. Unlinks the item from the
  * address-ordered list (links 0x0C/0x10); unless the next item is marked
  * fixed (flag 0x04 at 0x08), moves the next item's data down to close the
  * gap. Then unlinks the item from the age list (0x14/0x18), updates the
  * header counters and clears the item. Returns the item's SmpId, which
  * the asm leaves in ax; heapmgr_free_oldest() returns it.
  */
-ushort heapmgr_free_handle(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p_item,
-  intptr_t a3, int a4)
+ushort heapmgr_free_handle(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p_item)
 {
     ushort smp_id;
     struct HeapMgrHandle *p_prev;
@@ -245,7 +245,7 @@ ushort heapmgr_free_handle(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle 
     struct HeapMgrHandle *p_newer;
 
     DIFFTEST_SHADOW_RET(heapmgr_free_handle, ushort,
-      heapmgr_free_handle_asm((int)p_hmhead, (int)p_item, a3, a4));
+      heapmgr_free_handle_asm((intptr_t)p_hmhead, (intptr_t)p_item, 0, 0));
     p_prev = p_item->Prev;
     if (p_prev != NULL)
         p_prev->Next = p_item->Next;
@@ -308,17 +308,18 @@ static DIFFTEST_REF_FUNC int heapmgr_free_oldest_asm(int a1, int a2, int a3, int
 }
 
 /** Frees the oldest heap item which is not locked (flag 0x02 at 0x08).
- * a1 is the heap header; walks the age list from the oldest (0x1C) through
+ * p_hmhead (eax) is the heap header; the asm reads no other register.
+ * Walks the age list from the oldest (0x1C) through
  * the newer links (0x18). Returns -1 if no item could be freed, otherwise
  * the sample index of the freed item (ushort at 0x0A).
  */
-int heapmgr_free_oldest(struct HeapMgrHeader *p_hmhead, int a2, int a3, int a4)
+int heapmgr_free_oldest(struct HeapMgrHeader *p_hmhead)
 {
     struct HeapMgrHandle *p_item;
     int smp_id;
 
     DIFFTEST_SHADOW_RET(heapmgr_free_oldest, int,
-      heapmgr_free_oldest_asm((int)p_hmhead, a2, a3, a4));
+      heapmgr_free_oldest_asm((intptr_t)p_hmhead, 0, 0, 0));
     p_item = p_hmhead->field_1C;
     if (p_item == NULL)
         DIFFTEST_RETURN((int)-1);
@@ -329,7 +330,7 @@ int heapmgr_free_oldest(struct HeapMgrHeader *p_hmhead, int a2, int a3, int a4)
             DIFFTEST_RETURN((int)-1);
     }
     // The asm returns the eax the free_handle call leaves: the SmpId
-    smp_id = heapmgr_free_handle(p_hmhead, p_item, (intptr_t)p_hmhead, a4);
+    smp_id = heapmgr_free_handle(p_hmhead, p_item);
     DIFFTEST_RETURN(smp_id);
 }
 /** Routed asm (internal label). Arguments and return value are the
@@ -344,18 +345,18 @@ static DIFFTEST_REF_FUNC void heapmgr_make_newest_asm(int a1, int a2, int a3, in
 }
 
 /** Moves a heap item to the newest end of the age list.
- * a1 is the heap header, a2 the item; the item keeps the older neighbour
+ * p_hmhead (eax) is the heap header, p_item (edx) the item; the asm does
+ * not read ebx, ecx. The item keeps the older neighbour
  * at 0x14 and the newer one at 0x18.
  */
-void heapmgr_make_newest(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p_item,
-  int a3, int a4)
+void heapmgr_make_newest(struct HeapMgrHeader *p_hmhead, struct HeapMgrHandle *p_item)
 {
     struct HeapMgrHandle *p_newer;
     struct HeapMgrHandle *p_older;
     struct HeapMgrHandle *p_newest;
 
     DIFFTEST_SHADOW(heapmgr_make_newest,
-      heapmgr_make_newest_asm((int)p_hmhead, (int)p_item, a3, a4));
+      heapmgr_make_newest_asm((intptr_t)p_hmhead, (intptr_t)p_item, 0, 0));
     p_newer = p_item->Newer;
     if (p_newer == NULL)
         return;
@@ -433,10 +434,10 @@ struct SampleInfo *play_sample_using_heap(u32 bank_id, short smptbl_id,
         p_hmhandle = NULL;
         for (i = 0; i < 50; i++)
         {
-            p_hmhandle = heapmgr_add_item(hmhead, smp_size, i, smp_size);
+            p_hmhandle = heapmgr_add_item(hmhead, smp_size);
             if (p_hmhandle != NULL)
                 break;
-            freed_id = heapmgr_free_oldest(hmhead, smp_size, i, smp_size);
+            freed_id = heapmgr_free_oldest(hmhead);
             if (freed_id < 0)
                 break;
             // Store of the (null) handle into the freed sample entry
@@ -453,7 +454,7 @@ struct SampleInfo *play_sample_using_heap(u32 bank_id, short smptbl_id,
     p_hmhandle = p_smptbl->hmhandle;
     if (p_hmhandle == NULL)
         DIFFTEST_RETURN((struct SampleInfo *)NULL);
-    heapmgr_make_newest(hmhead, p_hmhandle, (int)volume, (int)pan);
+    heapmgr_make_newest(hmhead, p_hmhandle);
     p_sinfo = PlaySampleFromAddress(bank_id, smptbl_id, volume, pan, pitch,
       loop_count, stype, p_smptbl->hmhandle->Data);
     if (p_sinfo != NULL)
@@ -531,14 +532,13 @@ static DIFFTEST_REF_FUNC int snd_unkn3_find_stop_sample_asm(int a1, int a2, int 
     return ra;
 }
 
-/** Routed asm (internal label). Arguments and return value are the
- * raw registers the asm takes (eax, edx, ebx, ecx); only eax (sample
- * number) and edx (volume) are read.
+/** Routed asm (internal label). Parameters come from eax (sample
+ * number) and edx (volume); the asm does not read ebx, ecx.
  *
  * Stops the quietest playing instance of given sample, if it is quieter
  * than given volume. Returns 1 if a sample was stopped.
  */
-int snd_unkn3_find_stop_sample(int a1, int a2, int a3, int a4)
+int snd_unkn3_find_stop_sample(int smp_no, int volume)
 {
     struct SampleInfo *p_sinfo;
     struct SampleInfo *p_first;
@@ -549,9 +549,9 @@ int snd_unkn3_find_stop_sample(int a1, int a2, int a3, int a4)
     short best_vol;
 
     DIFFTEST_SHADOW_RET(snd_unkn3_find_stop_sample, int,
-      snd_unkn3_find_stop_sample_asm(a1, a2, a3, a4));
-    smp_id = (ushort)a1;
-    vol = (ushort)a2;
+      snd_unkn3_find_stop_sample_asm(smp_no, volume, 0, 0));
+    smp_id = (ushort)smp_no;
+    vol = (ushort)volume;
     best_source = 9999;
     best_vol = 9999;
     p_first = GetFirstSampleInfoStructure();
@@ -655,8 +655,7 @@ void play_dist_sample(struct Thing *p_thing, ushort smptbl_id, ushort vol,
 
     if (p_smp_type[smptbl_id] > 2)
     {
-        if ((short)snd_unkn3_find_stop_sample(smptbl_id, (ushort)sc_vol,
-          sc_vol, sc_pan) == 0)
+        if ((short)snd_unkn3_find_stop_sample(smptbl_id, (ushort)sc_vol) == 0)
             return;
     }
     play_sample_using_heap(p_thing->ThingOffset, (short)smptbl_id, sc_vol,
@@ -743,8 +742,7 @@ void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vo
 
     if (p_smp_type[smptbl_id] > 2)
     {
-        if ((short)snd_unkn3_find_stop_sample(smptbl_id, (ushort)sc_vol,
-          sc_vol, sc_pan) == 0)
+        if ((short)snd_unkn3_find_stop_sample(smptbl_id, (ushort)sc_vol) == 0)
             return;
     }
     play_sample_using_heap(p_sthing->ThingOffset, (short)smptbl_id, sc_vol,
@@ -1186,19 +1184,20 @@ static DIFFTEST_REF_FUNC void heapmgr_defrag_asm(int a1, int a2, int a3, int a4)
 }
 
 /** Closes one gap in the heap, by moving a single item down.
- * a1 is the heap header; walks the address-ordered item list from 0x18
+ * p_hmhead (eax) is the heap header; the asm reads no other register.
+ * Walks the address-ordered item list from 0x18
  * through the next links (0x10). The first item whose data (pointer at
  * 0x00) starts above the end of the previous item (0x00 + size at 0x04),
  * and which is not pinned (flag 0x04 at 0x08), has its data moved to
  * close the gap; then stops.
  */
-void heapmgr_defrag(struct HeapMgrHeader *p_hmhead, int a2, int a3, int a4)
+void heapmgr_defrag(struct HeapMgrHeader *p_hmhead)
 {
     struct HeapMgrHandle *p_item;
     struct HeapMgrHandle *p_next;
     ubyte *prev_end;
 
-    DIFFTEST_SHADOW(heapmgr_defrag, heapmgr_defrag_asm((int)p_hmhead, a2, a3, a4));
+    DIFFTEST_SHADOW(heapmgr_defrag, heapmgr_defrag_asm((intptr_t)p_hmhead, 0, 0, 0));
     if (p_hmhead == NULL)
         return;
     if (p_hmhead->field_10 == 0)
@@ -1264,7 +1263,7 @@ void process_sound_heap(void)
         if (p_hmhandle != NULL)
             p_hmhandle->Flags |= 0x06;
     }
-    heapmgr_defrag(hmhead, 0, 0, 0);
+    heapmgr_defrag(hmhead);
 }
 
 /******************************************************************************/
