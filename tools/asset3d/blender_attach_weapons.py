@@ -24,6 +24,7 @@ For each weapon:
   a long barrel); "grip_h": 0..1 the hand's height on it.
 - "fit": "fist" (default) lines the handle's axis up with the knuckles and
   centres it in the curled fingers; "palm" only puts the grip at the palm.
+  "palm_gap" (0.025 m): how far the handle's axis is out from the palm.
 - two-handed weapons get an empty lhand_<name> on top of the body at
   "support_at" (default 0.62 of the length from the back), "support_up"
   (0.03 m) above it: the left hand's IK target.
@@ -185,9 +186,15 @@ for name, w in cfg.items():
         # finger), centred in the curl of the fingers; the muzzle as close to the aim
         # as the handle's slant allows
         knuck = (bone_world("mixamorig:RightHandPinky1") - bone_world("mixamorig:RightHandIndex1")).normalized()
-        curl = [bone_world("mixamorig:RightHandMiddle%d" % i) for i in (1, 2, 3)]
-        curl.append(bone_world("mixamorig:RightHandMiddle3", tail=True))
-        hole = (sum(curl, Vector()) / 4).lerp(palm, 0.5)
+        # the top of the handle sits against the palm at the index finger's level, a
+        # handle's half-thickness out from the palm (palm normal: towards the thumb's curl)
+        evr, rpb = pose_bone("mixamorig:RightHand")
+        hy = ((evr.matrix_world @ rpb.matrix).to_3x3().col[1]).normalized()
+        i1, m1 = bone_world("mixamorig:RightHandIndex1"), bone_world("mixamorig:RightHandMiddle1")
+        n = hy.cross(i1 - bone_world("mixamorig:RightHandPinky1")).normalized()
+        if n.dot(bone_world("mixamorig:RightHandThumb3") - m1) < 0:
+            n = -n
+        hole = palm + (i1 - m1) + n * w.get("palm_gap", 0.025)
         # aim first (muzzle along the aim), then the roll: the handle as close to the knuckles as it goes
         y = Vector((0, 1, 0))
         hp = (hd - y * hd.dot(y)).normalized()
