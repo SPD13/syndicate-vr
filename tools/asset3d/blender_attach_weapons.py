@@ -76,7 +76,7 @@ def bone_world(name, tail=False):
     return ev.matrix_world @ (pb.tail if tail else pb.head)
 
 
-def weapon_frame(objs, flip_up=False, grip_at=None, pitch=0.0, grip_h=None, support_at=None):
+def weapon_frame(objs, flip_up=False, grip_at=None, pitch=0.0, grip_h=None, support_at=None, flip=False):
     pts = np.array([tuple(o.matrix_world @ v.co) for o in objs for v in o.data.vertices])
     c = pts.mean(0)
     w, v = np.linalg.eigh(np.cov((pts - c).T))
@@ -92,6 +92,8 @@ def weapon_frame(objs, flip_up=False, grip_at=None, pitch=0.0, grip_h=None, supp
     if np.mean(pf) - (grip - c) @ fwd < 0 or (pf.max() - (grip - c) @ fwd) < ((grip - c) @ fwd - pf.min()):
         fwd = -fwd
         pf = -pf
+    if flip:  # the muzzle heuristic picked the wrong end: turn round before placing grip and support
+        fwd, pf = -fwd, -pf
     up = up - fwd * (up @ fwd)
     up /= np.linalg.norm(up)
     if pitch:  # raise the nose by `pitch` degrees (PCA follows the diagonal of L-shaped guns)
@@ -136,6 +138,73 @@ def frame_matrix(fwd, up, origin):
     return m
 
 
+def drop_stray_parts(obj, max_frac=0.15):
+    """Removes small loose parts floating away from the weapon (generation debris):
+    parts under max_frac of the vertices that do not come near the main part."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bm.verts.ensure_lookup_table()
+    seen, islands = set(), []
+    for v in bm.verts:
+        if v.index in seen:
+            continue
+        stack, isl = [v], []
+        seen.add(v.index)
+        while stack:
+            x = stack.pop()
+            isl.append(x)
+            for e in x.link_edges:
+                o = e.other_vert(x)
+                if o.index not in seen:
+                    seen.add(o.index)
+                    stack.append(o)
+        islands.append(isl)
+    # the mesh comes in many pieces split at texture seams: pieces sharing seam
+    # vertices form one part; a small part far from the main one is debris
+    from mathutils.kdtree import KDTree
+    kd = KDTree(len(bm.verts))
+    for v in bm.verts:
+        kd.insert(v.co, v.index)
+    kd.balance()
+    allp = np.array([tuple(v.co) for v in bm.verts])
+    size = (allp.max(0) - allp.min(0)).max()
+    owner = {}
+    for k, isl in enumerate(islands):
+        for v in isl:
+            owner[v.index] = k
+    parent = list(range(len(islands)))
+
+    def root(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+    for v in bm.verts:
+        for (_, i, _) in kd.find_range(v.co, 1e-4 * size):
+            a_, b_ = root(owner[v.index]), root(owner[i])
+            if a_ != b_:
+                parent[a_] = b_
+    parts = {}
+    for k, isl in enumerate(islands):
+        parts.setdefault(root(k), []).extend(isl)
+    parts = sorted(parts.values(), key=len, reverse=True)
+    main = {v.index for v in parts[0]}
+    gone = []
+    for part in parts[1:]:
+        if len(part) > max_frac * len(bm.verts):
+            continue
+        step = max(1, len(part) // 60)
+        near = any(i in main for v in part[::step] for (_, i, _) in kd.find_range(v.co, 0.015 * size))
+        if not near:
+            gone.extend(part)
+    if gone:
+        bmesh.ops.delete(bm, geom=gone, context="VERTS")
+        bm.to_mesh(obj.data)
+        print("  %s: dropped %d stray vertices" % (obj.name, len(gone)))
+    bm.free()
+
+
 sockets = {}
 for name, w in cfg.items():
     before = set(bpy.data.objects)
@@ -155,13 +224,12 @@ for name, w in cfg.items():
     gun.parent = None
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     gun.name = "weapon_" + name
+    drop_stray_parts(gun)
 
     two_hands = w.get("aim") == "hands"
     fwd, up, grip, length, hax, sup = weapon_frame(
         [gun], w.get("flip_up"), w.get("grip_at"), w.get("pitch", 0.0), w.get("grip_h"),
-        w.get("support_at", 0.62) if two_hands else None)
-    if w.get("flip"):  # the muzzle heuristic picked the wrong end
-        fwd = -fwd
+        w.get("support_at", 0.62) if two_hands else None, w.get("flip", False))
     s = w["length"] / length
     # weapon-local frame: grip at origin, Y forward, Z up, scaled to size
     local = frame_matrix(fwd, up, grip).inverted()
