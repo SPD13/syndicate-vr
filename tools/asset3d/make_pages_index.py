@@ -52,6 +52,7 @@ GROUPS = [
         ("ashpile_redraw", "I15 ash pile redraw next to the game's ash frame", "current"),
     ]),
     ("Scenery (static map sprites)", [
+        ("buildings", "Catalog of the moving and special map parts (shuttle loaders, domes, mounted guns, gates, rotors, stations, track, raised roads) from the map files", "current"),
         ("statics", "Inventory: the 32 static sprites placed in the maps, S numbers, use counts", "current"),
         ("scenery_redraw", "22 scenery redraws next to their sprites (S numbers)", "current"),
         ("scenery_models", "22 scenery 3D models from four sides", "current"),
