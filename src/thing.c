@@ -4978,7 +4978,7 @@ static DIFFTEST_REF_FUNC void do_explode_asm(int a1, int a2, int a3, int a4)
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void explode_thing_object(int a1, int a2, int a3, int a4);
+void explode_thing_object(int thing);
 
 void do_explode(int a1, int a2, int a3, int a4)
 {
@@ -5041,7 +5041,7 @@ void do_explode(int a1, int a2, int a3, int a4)
 
                     p_sthing = &sthings[thing];
                     if (p_sthing->Type == TT_BUILDING)
-                        explode_thing_object(thing, x, y, z);
+                        explode_thing_object(thing);
                     thing = p_sthing->Next;
                 }
             }
