@@ -536,12 +536,12 @@ static DIFFTEST_REF_FUNC void bang_set_detail_asm(int a1)
         : : "a" (a1));
 }
 
-/** Set explosion detail parameters; a1=0 high detail, a1=1 low detail.
+/** Set explosion detail parameters; detail=0 high detail, detail=1 low detail.
  */
-void bang_set_detail(int a1)
+void bang_set_detail(int detail)
 {
-    DIFFTEST_SHADOW(bang_set_detail, bang_set_detail_asm(a1));
-    if (a1 == 0)
+    DIFFTEST_SHADOW(bang_set_detail, bang_set_detail_asm(detail));
+    if (detail == 0)
     {
         bangdetail.circle[0].dangle = 0x200;
         bangdetail.circle[0].babynumber = 4;
@@ -568,7 +568,7 @@ void bang_set_detail(int a1)
         minimum_explode_depth = 1;
         minimum_explode_size = 0x1bc;
     }
-    else if (a1 == 1)
+    else if (detail == 1)
     {
         bangdetail.circle[0].dangle = 0x2aa;
         bangdetail.circle[0].babynumber = 3;
@@ -1128,12 +1128,11 @@ static DIFFTEST_REF_FUNC int can_the_tank_run_over_asm(int a1, int a2)
     return ra;
 }
 
-int can_the_tank_run_over(intptr_t a1, int a2)
+int can_the_tank_run_over(struct SimpleThing *p_sthing)
 {
-    struct SimpleThing *p_sthing = (struct SimpleThing *)a1;
     ushort frame;
 
-    DIFFTEST_SHADOW_RET(can_the_tank_run_over, int, can_the_tank_run_over_asm(a1, a2));
+    DIFFTEST_SHADOW_RET(can_the_tank_run_over, int, can_the_tank_run_over_asm((intptr_t)p_sthing, 0));
     frame = (ushort)p_sthing->StartFrame;
     if ((frame > 1024) && (frame < 1029))
         DIFFTEST_RETURN((int)1);
@@ -1303,7 +1302,7 @@ void process_map_crater(int crater)
                 struct SimpleThing *p_sthing;
 
                 p_sthing = &sthings[thing];
-                if (can_the_tank_run_over((intptr_t)p_sthing, 0))
+                if (can_the_tank_run_over(p_sthing))
                 {
                     sthings[thing].Y = alt_at_point((short)(sthings[thing].X >> 8),
                       (short)(sthings[thing].Z >> 8));
@@ -1998,21 +1997,21 @@ static void face_point_lights_scale(ushort qlight, s32 intens)
 }
 
 /** Darkens one point of an object face: scales the lights chained to it and
- * its shade by intens (clipped to 0..256) * 140/256 / 256.
+ * its shade by intensity (clipped to 0..256) * 140/256 / 256.
  * Positive face is an index into game_object_faces3, negative into
  * game_object_faces4. The 4th register (ecx) is not used.
  */
-void unkn_obj_faces4_lights_func_10(int a1, int a2, int a3, int a4)
+void unkn_obj_faces4_lights_func_10(int face_idx, int point, int intensity)
 {
     short face;
     ushort pt;
     s32 intens;
 
     DIFFTEST_SHADOW(unkn_obj_faces4_lights_func_10,
-      unkn_obj_faces4_lights_func_10_asm(a1, a2, a3, a4));
-    face = (short)a1;
-    pt = (ushort)a2;
-    intens = a3;
+      unkn_obj_faces4_lights_func_10_asm(face_idx, point, intensity, 0));
+    face = (short)face_idx;
+    pt = (ushort)point;
+    intens = intensity;
     if (intens < 0)
         intens = 0;
     if (intens > 0x100)
@@ -2124,13 +2123,13 @@ static void map_lights_face_point_edge(short face, short pt, s32 cor_x, s32 cor_
 {
     // The asm leaves the point index in ecx as well
     if (cor_x < 0x600)
-        unkn_obj_faces4_lights_func_10(face, pt, cor_x - 0x100, (ushort)pt);
+        unkn_obj_faces4_lights_func_10(face, pt, cor_x - 0x100);
     if (cor_x > 0x7a00)
-        unkn_obj_faces4_lights_func_10(face, pt, 0x500 - (cor_x - 0x7900), (ushort)pt);
+        unkn_obj_faces4_lights_func_10(face, pt, 0x500 - (cor_x - 0x7900));
     if (cor_z < 0x600)
-        unkn_obj_faces4_lights_func_10(face, pt, cor_z - 0x100, (ushort)pt);
+        unkn_obj_faces4_lights_func_10(face, pt, cor_z - 0x100);
     if (cor_z > 0x7a00)
-        unkn_obj_faces4_lights_func_10(face, pt, 0x500 - (cor_z - 0x7900), (ushort)pt);
+        unkn_obj_faces4_lights_func_10(face, pt, 0x500 - (cor_z - 0x7900));
 }
 
 void map_lights_update(void)
@@ -2218,18 +2217,17 @@ static DIFFTEST_REF_FUNC int train_related_func_01_asm(int a1, int a2, int a3, i
     return ra;
 }
 
-/** Routed asm (internal label). Arguments are the raw registers the asm
- * takes (eax, edx, ebx, ecx); only eax (the train thing) is used.
+/** Routed asm (internal label); the train thing comes in eax, the other
+ * registers are not used.
  */
-int train_related_func_01(intptr_t a1, int a2, int a3, int a4)
+int train_related_func_01(struct Thing *p_train)
 {
-    struct Thing *p_train = (struct Thing *)a1;
     struct Thing *p_station;
     ThingIdx station;
     short face1, face2;
 
     DIFFTEST_SHADOW_RET(train_related_func_01, int,
-      train_related_func_01_asm(a1, a2, a3, a4));
+      train_related_func_01_asm((intptr_t)p_train, 0, 0, 0));
     station = search_for_station(p_train->X >> 8, p_train->Z >> 8);
     if (station == 0)
         DIFFTEST_RETURN((int)0);
@@ -2290,7 +2288,7 @@ void func_74934(void)
 
                         p_thing->U.UObject.ComHead = 0;
                         p_thing->U.UObject.ComCur = 0;
-                        ret = train_related_func_01((intptr_t)p_thing, thing, 0, tile_z);
+                        ret = train_related_func_01(p_thing);
                         if ((ushort)ret != 0)
                             ingame.TrainMode |= 0x02;
                     }
@@ -2311,7 +2309,7 @@ static DIFFTEST_REF_FUNC void rotate_texture_asm(int a1, int a2, int a3, int a4)
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-int is_animating(int a1, int a2, int a3, int a4);
+int is_animating(int texture);
 
 /** Rotates the UV coordinates of a floor texture by one corner, so
  * corner 2 becomes corner 1, etc.
@@ -2332,21 +2330,21 @@ static void rotate_floor_texture_uv(struct SingleFloorTexture *p_fltex)
     p_fltex->TMapY4 = y1;
 }
 
-/** Rotates floor texture `a1` by one corner. If the texture (ignoring
+/** Rotates floor texture `texture` by one corner. If the texture (ignoring
  * flag bits 0xC000) is animated, rotates every frame of the animation.
  */
-void rotate_texture(int a1, int a2, int a3, int a4)
+void rotate_texture(int texture)
 {
     short tex;
     short anim;
     short i;
 
-    DIFFTEST_SHADOW(rotate_texture, rotate_texture_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(rotate_texture, rotate_texture_asm(texture, 0, 0, 0));
 
-    tex = (short)a1;
+    tex = (short)texture;
     if (tex == 0)
         return;
-    anim = (short)is_animating((s32)(short)(a1 & 0x3FFF), a1, a3, a4);
+    anim = (short)is_animating((s32)(short)(texture & 0x3FFF));
     if (anim != 0)
     {
         for (i = 0; (s32)i <= (s32)(sbyte)game_anim_tmaps[anim].field_23; i++)
@@ -2395,7 +2393,7 @@ static void crater_texture_copy_rotate(ushort tx)
 {
     game_textures[tx] = game_textures[(int)tx - 1];
     next_floor_texture = tx + 1;
-    rotate_texture((short)tx, 0, 0, 0);
+    rotate_texture((short)tx);
 }
 
 /** Adds a base crater texture at next_floor_texture, followed by
@@ -2439,7 +2437,7 @@ void init_crater_textures(void)
     tx = next_floor_texture;
     crater_texture_set(tx, 2, 0xff, 0x20, 0xff, 0x3f, 0xe0, 0x3f, 0xe0, 0x20);
     data_1c4300 = tx;
-    rotate_texture((short)tx, 0, 0, 0);
+    rotate_texture((short)tx);
     crater_texture_copy_rotate(next_floor_texture + 1);
     crater_texture_copy_rotate(next_floor_texture);
     crater_texture_copy_rotate(next_floor_texture);
@@ -2463,7 +2461,7 @@ static DIFFTEST_REF_FUNC int calc_object_height_asm(int a1, int a2, int a3, int 
     return ra;
 }
 
-int calc_object_height(int a1, int a2, int a3, int a4)
+int calc_object_height(int object)
 {
     struct SingleObject *p_sobj;
     struct SinglePoint *p_spoints;
@@ -2471,9 +2469,9 @@ int calc_object_height(int a1, int a2, int a3, int a4)
     s32 height, y;
 
     DIFFTEST_SHADOW_RET(calc_object_height, int,
-      calc_object_height_asm(a1, a2, a3, a4));
+      calc_object_height_asm(object, 0, 0, 0));
     p_spoints = game_object_points;
-    p_sobj = &game_objects[(ushort)a1];
+    p_sobj = &game_objects[(ushort)object];
     height = 0;
     pt_end = p_sobj->EndPoint;
     for (pt = p_sobj->StartPoint; pt <= pt_end; pt++)
@@ -2514,7 +2512,7 @@ void find_the_tall_buildings(void)
                     p_thing = &things[thing];
                     if (p_thing->Type == TT_BUILDING)
                         p_thing->U.UObject.BHeight = calc_object_height(
-                          (ushort)p_thing->U.UObject.Object, 0, 0, 0);
+                          (ushort)p_thing->U.UObject.Object);
                     thing = things[thing].Next;
                 }
                 else
@@ -2554,23 +2552,23 @@ static DIFFTEST_REF_FUNC void create_unkn_building_subtp27_asm(int a1, int a2, i
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void create_unkn_building_subtp27(int a1, int a2, int a3, int a4)
+void create_unkn_building_subtp27(int cor_x, int cor_z, int object, int cor_y)
 {
     struct Thing *p_thing;
     ThingIdx thing;
     ushort obj;
 
     DIFFTEST_SHADOW(create_unkn_building_subtp27,
-      create_unkn_building_subtp27_asm(a1, a2, a3, a4));
+      create_unkn_building_subtp27_asm(cor_x, cor_z, object, cor_y));
     thing = get_new_thing();
     p_thing = &things[thing];
     p_thing->U.UObject.NumbObjects = 1;
-    p_thing->Y = (s32)(short)a4 << 8;
+    p_thing->Y = (s32)(short)cor_y << 8;
     p_thing->Type = TT_BUILDING;
     p_thing->SubType = SubTT_BLD_STANDARD;
-    p_thing->Z = (s32)(ushort)a2 << 8;
-    p_thing->X = (s32)(ushort)a1 << 8;
-    obj = (ushort)a3;
+    p_thing->Z = (s32)(ushort)cor_z << 8;
+    p_thing->X = (s32)(ushort)cor_x << 8;
+    obj = (ushort)object;
     p_thing->U.UObject.Object = obj;
     game_objects[obj].ThingNo = thing;
     add_node_thing(thing);
@@ -2589,7 +2587,7 @@ static DIFFTEST_REF_FUNC int func_4225c_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int func_4225c(int a1, int a2, int a3, int a4)
+int func_4225c(int object)
 {
     struct SingleObject *p_sobj;
     struct SinglePoint *p_spt;
@@ -2597,8 +2595,8 @@ int func_4225c(int a1, int a2, int a3, int a4)
     s32 dist, v;
 
     DIFFTEST_SHADOW_RET(func_4225c, int,
-      func_4225c_asm(a1, a2, a3, a4));
-    p_sobj = &game_objects[(ushort)a1];
+      func_4225c_asm(object, 0, 0, 0));
+    p_sobj = &game_objects[(ushort)object];
     dist = 0;
     pt_end = p_sobj->EndPoint;
     for (pt = p_sobj->StartPoint; pt <= pt_end; pt++)
@@ -2687,7 +2685,7 @@ int create_train_carriage(short cor_dx, short cor_dy, short cor_dz, short otype)
     p_thing->SubType = SubTT_VEH_TRAIN;
     p_thing->Y = cor_y << 5;
     word_1C83E2 = thing;
-    radius = func_4225c((ushort)p_thing->U.UVehicle.Object, 0, 0, 0);
+    radius = func_4225c((ushort)p_thing->U.UVehicle.Object);
 
     p_thing = &things[(ushort)thing];
     p_thing->Health = 2000;

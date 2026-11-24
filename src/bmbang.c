@@ -544,25 +544,25 @@ static DIFFTEST_REF_FUNC void unused_func_192_asm(int a1, int a2, int a3, int a4
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
 }
 
-/** Routed asm (internal label). Arguments are the raw registers the
- * asm takes (eax, edx, ebx, ecx); only eax (X) and edx (Y) are used.
+/** Routed asm (internal label); pos_x comes in eax, pos_y in edx, the
+ * other registers are not used.
  *
  * Adds a crater walker at index map_crater_last, at the given position,
  * moving diagonally with a step of data_1c476c / 10 (at least 1) in
  * random directions, then advances map_crater_last.
  */
-void unused_func_192(int a1, int a2, int a3, int a4)
+void unused_func_192(int pos_x, int pos_y)
 {
     s32 idx;
     ubyte step;
 
-    DIFFTEST_SHADOW(unused_func_192, unused_func_192_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(unused_func_192, unused_func_192_asm(pos_x, pos_y, 0, 0));
     step = (ubyte)(data_1c476c / 10);
     if (step == 0)
         step = 1;
     idx = (sbyte)map_crater_last * 5;
-    map_cratunkn2[idx + 0] = (short)a1;
-    map_cratunkn2[idx + 1] = (short)a2;
+    map_cratunkn2[idx + 0] = (short)pos_x;
+    map_cratunkn2[idx + 1] = (short)pos_y;
     map_cratunkn2[idx + 2] = step;
     map_cratunkn2[idx + 3] = step;
     if (LbRandomAnyShort() % 9 > 4) {
@@ -639,8 +639,7 @@ ubyte unused_func_026(ubyte a1)
         last = (sbyte)map_crater_last;
         p_bytes[last * 10 + 9] = a1;
         p_bytes[a1 * 10 + 8] = map_crater_last;
-        unused_func_192(map_cratunkn2[idx + 0], map_cratunkn2[idx + 1],
-          next, 0x200 | a1);
+        unused_func_192(map_cratunkn2[idx + 0], map_cratunkn2[idx + 1]);
         ret = 2;
     }
 
@@ -733,22 +732,21 @@ static DIFFTEST_REF_FUNC int del_thing_vectors_from_mapwho_asm(int a1, int a2, i
 /** Remove the first ColVectList entry owned by given thing from the
  * collision list of a map element, returning it to the empty list.
  *
- * @param a1 Pointer to the MyMapElement.
- * @param a2 Index of the thing owning the vectors (low 16 bits used).
+ * @param p_mapel Pointer to the MyMapElement (eax).
+ * @param thing_idx Index of the thing owning the vectors (edx, low 16 bits used).
  * @return 1 if an entry was removed, 0 otherwise.
  */
-int del_thing_vectors_from_mapwho(intptr_t a1, int a2, intptr_t a3, int a4)
+int del_thing_vectors_from_mapwho(struct MyMapElement *p_mapel, int thing_idx)
 {
-    struct MyMapElement *p_mapel = (struct MyMapElement *)a1;
     struct ColVectList *p_list;
     short thing;
     ushort cvlist, prev_cvlist, next;
 
     DIFFTEST_SHADOW_RET(del_thing_vectors_from_mapwho, int,
-      del_thing_vectors_from_mapwho_asm(a1, a2, a3, a4));
+      del_thing_vectors_from_mapwho_asm((intptr_t)p_mapel, thing_idx, 0, 0));
 
     p_list = game_col_vects_list;
-    thing = (short)a2;
+    thing = (short)thing_idx;
     prev_cvlist = 0;
     cvlist = p_mapel->ColHead;
     while (cvlist != 0)
@@ -861,8 +859,7 @@ void do_shockwave(int x, int y, int z, int radius_arg, int intensity, struct Thi
                     }
                     else if (obj < 1000)
                     {
-                        del_thing_vectors_from_mapwho((intptr_t)p_mapel,
-                          (short)obj, 0, 0);
+                        del_thing_vectors_from_mapwho(p_mapel, (short)obj);
                     }
                     else
                     {

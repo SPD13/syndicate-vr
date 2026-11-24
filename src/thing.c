@@ -527,19 +527,19 @@ static void quick_light_unlink_from_chain(struct QuickLight *p_qlights,
 /** Unlinks from the QuickLight chains of all face points of given object
  * all entries referencing given light.
  */
-void quick_light_unkn_func_07(int a1, int a2, int a3, int a4)
+void quick_light_unkn_func_07(int object, int light_idx)
 {
     struct SingleObject *p_sobj;
     struct QuickLight *p_qlights;
-    ushort light = (ushort)a2;
+    ushort light = (ushort)light_idx;
     ushort count;
     ushort start_face, numb_faces, i;
 
-    DIFFTEST_SHADOW(quick_light_unkn_func_07, quick_light_unkn_func_07_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(quick_light_unkn_func_07, quick_light_unkn_func_07_asm(object, light_idx, 0, 0));
 
     p_qlights = game_quick_lights;
     count = next_quick_light;
-    p_sobj = &game_objects[(ushort)a1];
+    p_sobj = &game_objects[(ushort)object];
 
     start_face = p_sobj->StartFace;
     numb_faces = p_sobj->NumbFaces;
@@ -584,14 +584,13 @@ static DIFFTEST_REF_FUNC void quick_light_unkn_func_09_asm(int a1, int a2, int a
 /** Unlinks from the map element's QuickLight chain all entries
  * referencing given light.
  */
-void quick_light_unkn_func_09(intptr_t a1, int a2, int a3, int a4)
+void quick_light_unkn_func_09(struct MyMapElement *p_mapel, int light_idx)
 {
-    struct MyMapElement *p_mapel = (struct MyMapElement *)a1;
-    ushort light = (ushort)a2;
+    ushort light = (ushort)light_idx;
     struct QuickLight *p_qlights;
     ushort qlight, prev_qlight;
 
-    DIFFTEST_SHADOW(quick_light_unkn_func_09, quick_light_unkn_func_09_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(quick_light_unkn_func_09, quick_light_unkn_func_09_asm((intptr_t)p_mapel, light_idx, 0, 0));
 
     p_qlights = game_quick_lights;
     prev_qlight = 0;
@@ -633,17 +632,17 @@ static DIFFTEST_REF_FUNC void quick_light_unkn_func_04_asm(short a1, int a2, sho
 /** Removes given light from map elements and building objects within
  * 7 tiles of given position, and decrements full lights count.
  */
-void quick_light_unkn_func_04(short a1, int a2, short a3, short a4)
+void quick_light_unkn_func_04(short pos_x, int unused_a2, short pos_z, short light_idx)
 {
-    ushort light = (ushort)a4;
+    ushort light = (ushort)light_idx;
     short tile_x, tile_z;
     short dx, dz;
 
-    DIFFTEST_SHADOW(quick_light_unkn_func_04, quick_light_unkn_func_04_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(quick_light_unkn_func_04, quick_light_unkn_func_04_asm(pos_x, unused_a2, pos_z, light_idx));
 
-    // Parameter a2 is not used by the asm
-    tile_x = a1 >> 8;
-    tile_z = a3 >> 8;
+    // Parameter unused_a2 is not used by the asm
+    tile_x = pos_x >> 8;
+    tile_z = pos_z >> 8;
     for (dx = -7; dx < 7; dx++)
     {
         for (dz = -7; dz < 7; dz++)
@@ -660,7 +659,7 @@ void quick_light_unkn_func_04(short a1, int a2, short a3, short a4)
                 continue;
             p_mapel = &game_my_big_map[(mz << 7) + mx];
             if (p_mapel->Shade != 0)
-                quick_light_unkn_func_09((intptr_t)p_mapel, light, 0, 0);
+                quick_light_unkn_func_09(p_mapel, light);
 
             thing = p_mapel->Child;
             while (thing != 0)
@@ -679,7 +678,7 @@ void quick_light_unkn_func_04(short a1, int a2, short a3, short a4)
                         {
                             quick_light_unkn_func_07(
                               (ushort)(p_thing->U.UObject.Object + i),
-                              light, thing, i);
+                              light);
                         }
                     }
                     thing = things[thing].Next;
@@ -755,7 +754,8 @@ static void quick_light_unkn_func_06_point(ushort *p_qlgt, ushort *p_chain,
     (*p_qlgt)++;
 }
 
-void quick_light_unkn_func_06(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+void quick_light_unkn_func_06(int object, int pos_x, int pos_y, int pos_z,
+  int unused_a5, int unused_a6, int light_idx)
 {
     struct SingleObject *p_sobj;
     struct SingleObjectFace3 *p_face3;
@@ -769,13 +769,14 @@ void quick_light_unkn_func_06(int a1, int a2, int a3, int a4, int a5, int a6, in
     s32 vx, vy, vz, ratio;
 
     DIFFTEST_SHADOW(quick_light_unkn_func_06,
-      quick_light_unkn_func_06_asm(a1, a2, a3, a4, a5, a6, a7));
-    // a5 and a6 are not used by the asm; a7 is the full light index
-    x = a2;
-    y = a3;
-    z = a4;
-    light = (ushort)a7;
-    p_sobj = &game_objects[(ushort)a1];
+      quick_light_unkn_func_06_asm(object, pos_x, pos_y, pos_z,
+        unused_a5, unused_a6, light_idx));
+    // unused_a5 and unused_a6 are not used by the asm
+    x = pos_x;
+    y = pos_y;
+    z = pos_z;
+    light = (ushort)light_idx;
+    p_sobj = &game_objects[(ushort)object];
     start_face4 = p_sobj->StartFace4;
     numb_faces4 = p_sobj->NumbFaces4;
     start_face = p_sobj->StartFace;
@@ -889,7 +890,8 @@ static DIFFTEST_REF_FUNC void quick_light_unkn_func_08_asm(int a1, int a2, int a
 
 extern s32 dword_176D6C;
 
-void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
+void quick_light_unkn_func_08(int map_x, int map_z, int pos_x, int pos_y,
+  int pos_z, int light_idx)
 {
     struct MyMapElement *p_mapel;
     struct QuickLight *p_qlight;
@@ -898,14 +900,14 @@ void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
     s32 intens;
 
     DIFFTEST_SHADOW(quick_light_unkn_func_08,
-      quick_light_unkn_func_08_asm(a1, a2, a3, a4, a5, a6));
-    tile_x = (ushort)a1;
-    tile_z = (ushort)a2;
+      quick_light_unkn_func_08_asm(map_x, map_z, pos_x, pos_y, pos_z, light_idx));
+    tile_x = (ushort)map_x;
+    tile_z = (ushort)map_z;
     p_mapel = &game_my_big_map[(u32)tile_z * 128 + tile_x];
 
-    dx = (s32)((u32)a3 - ((u32)tile_x << 8));
-    dy = (s32)(((u32)a4 - ((u32)(s32)p_mapel->Alt << 3)) << 4);
-    dz = (s32)((u32)a5 - ((u32)tile_z << 8));
+    dx = (s32)((u32)pos_x - ((u32)tile_x << 8));
+    dy = (s32)(((u32)pos_y - ((u32)(s32)p_mapel->Alt << 3)) << 4);
+    dz = (s32)((u32)pos_z - ((u32)tile_z << 8));
     dist_sq = (s32)((u32)dy * (u32)dy + (u32)dx * (u32)dx + (u32)dz * (u32)dz);
     if (dist_sq > 0x4640000)
     {
@@ -928,7 +930,7 @@ void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
     if (ratio > 0x100)
         ratio = 0x100;
 
-    lgt = (ushort)a6;
+    lgt = (ushort)light_idx;
     intens = (s32)((u32)(s32)game_full_lights[lgt].Intensity * (u32)ratio) >> 8;
     if (intens <= 3)
         return;
@@ -936,7 +938,7 @@ void quick_light_unkn_func_08(int a1, int a2, int a3, int a4, int a5, int a6)
     p_qlight = &game_quick_lights[next_quick_light];
     p_qlight->NextQuick = p_mapel->Shade;
     p_mapel->Shade = next_quick_light;
-    p_qlight->Light = (ushort)a6;
+    p_qlight->Light = (ushort)light_idx;
     next_quick_light++;
     p_qlight->Ratio = (ushort)ratio;
 }
@@ -952,10 +954,10 @@ static DIFFTEST_REF_FUNC void quick_light_unkn_func_05_asm(int a1, int a2, int a
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-/** Adds a new full light at given position (a1=X, a2=Y, a3=Z, a4=intensity),
+/** Adds a new full light at given position, with given intensity,
  * and applies it to map elements and building objects within 7 tiles.
  */
-void quick_light_unkn_func_05(int a1, int a2, int a3, int a4)
+void quick_light_unkn_func_05(int pos_x, int pos_y, int pos_z, int intensity)
 {
     struct FullLight *p_fulight;
     short x, y, z;
@@ -963,16 +965,16 @@ void quick_light_unkn_func_05(int a1, int a2, int a3, int a4)
     short dx, dz;
 
     DIFFTEST_SHADOW(quick_light_unkn_func_05,
-      quick_light_unkn_func_05_asm(a1, a2, a3, a4));
-    x = (short)a1;
-    y = (short)a2;
-    z = (short)a3;
+      quick_light_unkn_func_05_asm(pos_x, pos_y, pos_z, intensity));
+    x = (short)pos_x;
+    y = (short)pos_y;
+    z = (short)pos_z;
     p_fulight = &game_full_lights[next_full_light];
     p_fulight->lgtfld_10 = 0;
     p_fulight->lgtfld_12 = 0;
-    p_fulight->Intensity = (short)a4;
-    p_fulight->TrueIntensity = (short)a4;
-    p_fulight->lgtfld_E = (short)a4;
+    p_fulight->Intensity = (short)intensity;
+    p_fulight->TrueIntensity = (short)intensity;
+    p_fulight->lgtfld_E = (short)intensity;
     p_fulight->Z = z;
     p_fulight->X = x;
     p_fulight->Y = y;
@@ -1376,16 +1378,15 @@ static DIFFTEST_REF_FUNC void light_cmd_unkn_func_06_asm(int a1, int a2, int a3,
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void light_cmd_unkn_func_06(intptr_t a1, int a2, int a3, int a4)
+void light_cmd_unkn_func_06(struct LightCommand *p_lcmd)
 {
-    struct LightCommand *p_lcmd = (struct LightCommand *)a1;
     ubyte *p_fld = p_lcmd->lcfld_0;
     s32 tile_x, tile_z;
     s32 row_beg, row_end, offs;
     TbBool found;
 
     DIFFTEST_SHADOW(light_cmd_unkn_func_06,
-      light_cmd_unkn_func_06_asm(a1, a2, a3, a4));
+      light_cmd_unkn_func_06_asm((intptr_t)p_lcmd, 0, 0, 0));
     found = false;
     // The asm tests (flags | 0x20) for zero, which is never true
     p_fld[0x14]--;
@@ -1446,18 +1447,18 @@ static DIFFTEST_REF_FUNC int light_cmd_unkn_func_05_asm(int a1, int a2, int a3, 
 }
 
 /** Sets Intensity of a full light, or of every full light in the list of
- * a scenery sthing (negative index), to TrueIntensity * a2 / 256.
+ * a scenery sthing (negative index), to TrueIntensity * intens_mult / 256.
  * The return value is whatever the asm left in eax; no caller uses it.
  */
-int light_cmd_unkn_func_05(int a1, int a2, int a3, int a4)
+int light_cmd_unkn_func_05(int light_idx, int intens_mult)
 {
-    short light = (short)a1;
-    ushort mult = (ushort)a2;
+    short light = (short)light_idx;
+    ushort mult = (ushort)intens_mult;
     struct FullLight *p_fulight;
     u32 ret;
 
     DIFFTEST_SHADOW_RET(light_cmd_unkn_func_05, int,
-      light_cmd_unkn_func_05_asm(a1, a2, a3, a4));
+      light_cmd_unkn_func_05_asm(light_idx, intens_mult, 0, 0));
     if (light >= 0)
     {
         p_fulight = &game_full_lights[light];
@@ -1584,7 +1585,7 @@ void unkn_update_lights(void)
                 else
                     p_fld[8] = light_cmd_random_between(p_fld[5], p_fld[6]);
                 p_fld[2] = p_fld[8];
-                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3], 0, 0);
+                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3]);
                 flags = p_fld[0] & 0xF9;
                 p_fld[0] = flags;
                 p_fld[0] = flags | 0x02;
@@ -1599,7 +1600,7 @@ void unkn_update_lights(void)
                 else
                     p_fld[7] = light_cmd_random_between(p_fld[5], p_fld[6]);
                 p_fld[2] = 0;
-                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4], 0, 0);
+                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4]);
                 flags = p_fld[0] & 0xF9;
                 p_fld[0] = flags;
                 p_fld[0] = flags | 0x04;
@@ -1627,7 +1628,7 @@ void unkn_update_lights(void)
                 }
             }
             light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12),
-              (ushort)LCMD_SHORT(p_fld, 0xA), 0, 0);
+              (ushort)LCMD_SHORT(p_fld, 0xA));
             break;
         case 2:
         case 3:
@@ -1644,7 +1645,7 @@ void unkn_update_lights(void)
                 p_fld[8] = p_fld[6];
                 p_fld[2] = p_fld[6];
                 if ((sbyte)p_fld[6] > 0)
-                    light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3], 0, 0);
+                    light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3]);
                 flags = p_fld[0] & 0xF9;
                 p_fld[0] = flags;
                 p_fld[0] = flags | 0x02;
@@ -1657,7 +1658,7 @@ void unkn_update_lights(void)
                 p_fld[7] = p_fld[5];
                 p_fld[2] = p_fld[5];
                 if ((sbyte)p_fld[5] > 0)
-                    light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4], 0, 0);
+                    light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4]);
                 flags = p_fld[0] & 0xF9;
                 p_fld[0] = flags;
                 p_fld[0] = flags | 0x04;
@@ -1679,7 +1680,7 @@ void unkn_update_lights(void)
                 frame = game_anim_tmaps[LCMD_SHORT(p_fld, 0x10)].field_22 + 1;
                 if ((frame != p_fld[6]) && (frame != p_fld[5]))
                     break;
-                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3], 0, 0);
+                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[3]);
                 flags = p_fld[0] & 0xF9;
                 p_fld[0] = flags;
                 p_fld[0] = flags | 0x02;
@@ -1691,21 +1692,21 @@ void unkn_update_lights(void)
                 frame = game_anim_tmaps[LCMD_SHORT(p_fld, 0x10)].field_22 + 1;
                 if ((frame == p_fld[6]) || (frame == p_fld[5]))
                     break;
-                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4], 0, 0);
+                light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), p_fld[4]);
                 flags = p_fld[0] & 0xF9;
                 p_fld[0] = flags;
                 p_fld[0] = flags | 0x04;
             }
             break;
         default:
-            light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), 0x100, 0, 0);
+            light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), 0x100);
             break;
         }
 tail:
         if ((p_fld[0] & 0x10) != 0)
-            light_cmd_unkn_func_06((intptr_t)p_fld, 0, 0, 0);
+            light_cmd_unkn_func_06(&game_light_commands[cmd]);
         if ((p_fld[0] & 0x20) != 0)
-            light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), 0, 0, 0);
+            light_cmd_unkn_func_05(LCMD_SHORT(p_fld, 0x12), 0);
     }
 }
 
@@ -2136,15 +2137,14 @@ static DIFFTEST_REF_FUNC void init_electricity_bomb_asm(int a1, int a2, int a3, 
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void init_electricity_bomb(int a1, int a2, int a3, int a4)
+void init_electricity_bomb(int x, int y, int z, int owner_idx)
 {
-    int x = a1, y = a2, z = a3;
-    ushort owner = (ushort)a4;
+    ushort owner = (ushort)owner_idx;
     ThingIdx person;
     int dist;
     ushort i;
 
-    DIFFTEST_SHADOW(init_electricity_bomb, init_electricity_bomb_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(init_electricity_bomb, init_electricity_bomb_asm(x, y, z, owner_idx));
     dist = 0;
     for (i = 0; i < 4; i++)
     {
@@ -3163,7 +3163,7 @@ void process_time_pod(struct SimpleThing *p_sthing)
     }
 }
 
-int move_smapwho(intptr_t a1, intptr_t a2, int a3, intptr_t a4);
+int move_smapwho(struct SimpleThing *p_sthing, s32 *p_x, s32 new_y, s32 *p_z);
 
 static DIFFTEST_REF_FUNC void process_soul_asm(struct SimpleThing *p_sthing)
 {
@@ -3239,7 +3239,7 @@ void process_soul(struct SimpleThing *p_sthing)
         new_y += p_sthing->U.UEffect.VY * p_sthing->Timer1 * 4;
         new_z += p_sthing->U.UEffect.VZ * p_sthing->Timer1 * 4;
     }
-    move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
+    move_smapwho(p_sthing, &new_x, new_y, &new_z);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -3253,19 +3253,23 @@ static DIFFTEST_REF_FUNC int get_some_phwoar_asm(int a1, int a2, int a3)
     return ra;
 }
 
-int get_some_phwoar(int a1, int a2, int a3)
+/** Takes a phwoar entry from the free list; returns its index, or 0.
+ * Parameters are eax (not used) and edx, whose upper half ends up in
+ * the upper half of the return value.
+ */
+int get_some_phwoar(int unused_a1, int prev_edx)
 {
     ushort ph_idx;
 
-    DIFFTEST_SHADOW_RET(get_some_phwoar, int, get_some_phwoar_asm(a1, a2, a3));
+    DIFFTEST_SHADOW_RET(get_some_phwoar, int, get_some_phwoar_asm(unused_a1, prev_edx, 0));
     ph_idx = phwoar_free;
     if (ph_idx == 0)
         DIFFTEST_RETURN((int)0);
     phwoar_free = phwoar[ph_idx].child;
     phwoar_num_used++;
     phwoar_num_free--;
-    // The asm only sets the low word of edx; upper half of eax comes from a2
-    DIFFTEST_RETURN((int)(((u32)a2 & 0xFFFF0000) | ph_idx));
+    // The asm only sets the low word of edx; upper half of eax comes from prev_edx
+    DIFFTEST_RETURN((int)(((u32)prev_edx & 0xFFFF0000) | ph_idx));
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -3278,13 +3282,13 @@ static DIFFTEST_REF_FUNC void give_some_phwoar_asm(int a1, int a2, int a3)
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
 }
 
-void give_some_phwoar(int a1, int a2, int a3)
+void give_some_phwoar(int phwoar_idx)
 {
     ushort ph_idx;
     ushort old_free;
 
-    DIFFTEST_SHADOW(give_some_phwoar, give_some_phwoar_asm(a1, a2, a3));
-    ph_idx = (ushort)a1;
+    DIFFTEST_SHADOW(give_some_phwoar, give_some_phwoar_asm(phwoar_idx, 0, 0));
+    ph_idx = (ushort)phwoar_idx;
     old_free = phwoar_free;
     phwoar_free = ph_idx;
     phwoar[ph_idx].child = old_free;
@@ -3302,11 +3306,11 @@ static DIFFTEST_REF_FUNC void give_some_shrapnel_asm(int a1, int a2, int a3)
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "cc", "memory");
 }
 
-void give_some_shrapnel(int a1, int a2, int a3)
+void give_some_shrapnel(int shrapnel_idx)
 {
-    ushort shr = (ushort)a1;
+    ushort shr = (ushort)shrapnel_idx;
 
-    DIFFTEST_SHADOW(give_some_shrapnel, give_some_shrapnel_asm(a1, a2, a3));
+    DIFFTEST_SHADOW(give_some_shrapnel, give_some_shrapnel_asm(shrapnel_idx, 0, 0));
     shrapnel[shr].child = shrapnel_free;
     shrapnel_free = shr;
 }
@@ -3328,7 +3332,7 @@ static struct Phwoar *bang_phwoar_child_new(ushort *p_head)
     struct Phwoar *p_child;
     ushort child;
 
-    child = (ushort)get_some_phwoar(0, 0, 0);
+    child = (ushort)get_some_phwoar(0, 0);
     if (child == 0)
         return NULL;
     p_child = &phwoar[child];
@@ -3527,7 +3531,7 @@ void process_bang(struct SimpleThing *p_sthing)
         if (p_phwoar->die <= 0)
         {
             *p_head = child;
-            give_some_phwoar(phw, 0, 0);
+            give_some_phwoar(phw);
             phw = child;
             continue;
         }
@@ -3608,7 +3612,7 @@ void process_bang(struct SimpleThing *p_sthing)
         if ((tile_x < 0) || (tile_x >= 128) || (tile_z < 0) || (tile_z >= 128))
         {
             *p_shead = p_shrapnel->child;
-            give_some_shrapnel(shr, 0, 0);
+            give_some_shrapnel(shr);
             shr = next;
             continue;
         }
@@ -3656,7 +3660,7 @@ void process_bang(struct SimpleThing *p_sthing)
             create_sound_effect(p_shrapnel->x >> 8, 0, p_shrapnel->z >> 8,
               sample, 0, 0);
             *p_shead = p_shrapnel->child;
-            give_some_shrapnel(shr, 0, 0);
+            give_some_shrapnel(shr);
             shr = next;
             continue;
         }
@@ -3664,7 +3668,7 @@ void process_bang(struct SimpleThing *p_sthing)
         if ((p_shrapnel->type == 4) && (p_shrapnel->vy <= 20))
         {
             *p_shead = p_shrapnel->child;
-            give_some_shrapnel(shr, 0, 0);
+            give_some_shrapnel(shr);
             bang_new4(p_shrapnel->x, p_shrapnel->y, p_shrapnel->z, 20);
             shr = next;
             continue;
@@ -3681,7 +3685,7 @@ void finish_bang(struct SimpleThing *p_sthing, ThingIdx thing)
 }
 
 extern s32 dword_1E08BC;
-void snap_razor_wire(intptr_t a1, int a2, int a3, int a4);
+void snap_razor_wire(struct Thing *p_wire);
 
 static DIFFTEST_REF_FUNC void FIRE_process_flame_asm(struct SimpleThing *p_sthing)
 {
@@ -3809,7 +3813,7 @@ void FIRE_process_flame(struct SimpleThing *p_sthing)
                 do_shockwave(p_sthing->X >> 8, p_sthing->Y >> 8, p_sthing->Z >> 8,
                   0x400, 1000, &things[(ushort)p_thing->Owner]);
             }
-            snap_razor_wire((intptr_t)p_thing, 0, 0, 0);
+            snap_razor_wire(p_thing);
         }
     }
 
@@ -4057,16 +4061,13 @@ static DIFFTEST_REF_FUNC int move_smapwho_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int move_smapwho(intptr_t a1, intptr_t a2, int a3, intptr_t a4)
+int move_smapwho(struct SimpleThing *p_sthing, s32 *p_x, s32 new_y, s32 *p_z)
 {
-    struct SimpleThing *p_sthing = (struct SimpleThing *)a1;
-    s32 *p_x = (s32 *)a2;
-    s32 new_y = (s32)a3;
-    s32 *p_z = (s32 *)a4;
     ushort *p_tile_x = (ushort *)p_x + 1;
     ushort *p_tile_z = (ushort *)p_z + 1;
 
-    DIFFTEST_SHADOW_RET(move_smapwho, int, move_smapwho_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW_RET(move_smapwho, int, move_smapwho_asm((intptr_t)p_sthing,
+      (intptr_t)p_x, new_y, (intptr_t)p_z));
     if (((*p_x >> 16) >= 128) || ((*p_z >> 16) >= 128) ||
       ((*p_x >> 16) < 0) || ((*p_z >> 16) < 0))
     {
@@ -4130,7 +4131,7 @@ void process_spark(struct SimpleThing *p_sthing)
     p_sthing->U.UEffect.OY = p_sthing->Y >> 8;
     p_sthing->U.UEffect.VY -= 0x20;
     p_sthing->U.UEffect.OZ = p_sthing->Z >> 8;
-    move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
+    move_smapwho(p_sthing, &new_x, new_y, &new_z);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -4143,17 +4144,17 @@ static DIFFTEST_REF_FUNC void apply_texture_to_face_asm(int a1, int a2, int a3, 
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
 }
 
-void apply_texture_to_face(int a1, int a2, int a3, int a4)
+void apply_texture_to_face(int frame_idx, int anim_idx, int face_idx)
 {
-    ushort frame = (ushort)a1;
-    ushort anim = (ushort)a2;
-    ushort face = (ushort)a3;
+    ushort frame = (ushort)frame_idx;
+    ushort anim = (ushort)anim_idx;
+    ushort face = (ushort)face_idx;
     struct SingleObjectFace4 *p_face4;
     struct SingleFloorTexture *p_fltextr;
     struct AnimPage *p_anpg;
     ubyte x, y, x2, y2;
 
-    DIFFTEST_SHADOW(apply_texture_to_face, apply_texture_to_face_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(apply_texture_to_face, apply_texture_to_face_asm(frame_idx, anim_idx, face_idx, 0));
     p_face4 = &game_object_faces4[face];
     p_fltextr = &game_textures[p_face4->Texture];
     p_anpg = &door_anim_page[anim];
@@ -4205,7 +4206,7 @@ void process_intelligent_door(struct SimpleThing *p_sthing)
         p_sthing->Frame = frame;
         if ((s32)frame < (s32)door_anim_page[anim].No)
         {
-            apply_texture_to_face(frame, anim, (ushort)p_sthing->Parent, frame);
+            apply_texture_to_face(frame, anim, (ushort)p_sthing->Parent);
         }
         else
         {
@@ -4221,7 +4222,7 @@ void process_intelligent_door(struct SimpleThing *p_sthing)
         p_sthing->Frame = frame;
         if ((s32)frame <= (s32)door_anim_page[anim].No)
         {
-            apply_texture_to_face(frame, anim, (ushort)p_sthing->Parent, 0);
+            apply_texture_to_face(frame, anim, (ushort)p_sthing->Parent);
         }
         else
         {
@@ -4347,14 +4348,12 @@ static DIFFTEST_REF_FUNC void person_go_insane_asm(int a1, int a2, int a3, int a
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
 }
 
-/** Routed asm (internal label). Arguments are the raw registers the asm
- * takes (eax, edx, ebx, ecx); only eax (the person) is used.
+/** Makes given person go insane.
+ * Routed asm (internal label); the person comes in eax.
  */
-void person_go_insane(intptr_t a1, int a2, int a3, int a4)
+void person_go_insane(struct Thing *p_person)
 {
-    struct Thing *p_person = (struct Thing *)a1;
-
-    DIFFTEST_SHADOW(person_go_insane, person_go_insane_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(person_go_insane, person_go_insane_asm((intptr_t)p_person, 0, 0, 0));
     if ((p_person->Flag & TngF_Destroyed) != 0)
         return;
     if ((p_person->Flag2 & TgF2_Unkn0008) != 0)
@@ -4420,7 +4419,7 @@ void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
             }
             else
             {
-                move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
+                move_smapwho(p_sthing, &new_x, new_y, &new_z);
             }
             p_sthing->U.UEffect.VX += p_sthing->U.UEffect.OX;
             p_sthing->U.UEffect.VY += p_sthing->U.UEffect.OY;
@@ -4458,7 +4457,7 @@ void process_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_item)
                 if ((p_person->Flag2 & TgF2_Unkn0001) != 0)
                     finalise_razor_wire(p_person);
                 if ((p_sthing->Flag & TngF_Unkn0010) != 0)
-                    person_go_insane((intptr_t)p_person, 0, 0, 0);
+                    person_go_insane(p_person);
                 else
                     person_go_sleep(p_person);
             }
@@ -4536,7 +4535,7 @@ void process_mushroom(struct SimpleThing *p_sthing, ThingIdx thing_item)
     if (p_sthing->U.UEffect.VY < -2000)
         p_sthing->U.UEffect.VY = -2000;
     new_y = p_sthing->Y + (p_sthing->U.UEffect.VY >> 1);
-    move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
+    move_smapwho(p_sthing, &new_x, new_y, &new_z);
     p_sthing->Object += 4;
     if (p_sthing->Timer1 > 0)
     {
@@ -4575,7 +4574,7 @@ void process_special_drift_smoke(struct SimpleThing *p_sthing, ThingIdx thing_it
     dz = (lbSinTable[angle] * radius) >> 11;
     new_x += dx;
     new_z += dz;
-    move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
+    move_smapwho(p_sthing, &new_x, new_y, &new_z);
     p_sthing->Object += p_sthing->StartFrame;
     if (p_sthing->StartTimer1 > 0)
     {
@@ -4701,7 +4700,7 @@ void process_napalm_flame(struct SimpleThing *p_sthing, ThingIdx thing_item)
             if (check_col_collision(new_x >> 8, (new_y >> 8) + 8, new_z >> 8) != 0)
                 p_sthing->Flag |= TngF_Unkn0008;
             else
-                move_smapwho((intptr_t)p_sthing, (intptr_t)&new_x, new_y, (intptr_t)&new_z);
+                move_smapwho(p_sthing, &new_x, new_y, &new_z);
             p_sthing->U.UEffect.VX += p_sthing->U.UEffect.OX;
             p_sthing->U.UEffect.VY += p_sthing->U.UEffect.OY;
             p_sthing->U.UEffect.VZ += p_sthing->U.UEffect.OZ;
@@ -4980,17 +4979,17 @@ static DIFFTEST_REF_FUNC void do_explode_asm(int a1, int a2, int a3, int a4)
 
 void explode_thing_object(int a1, int a2, int a3, int a4);
 
-void do_explode(int a1, int a2, int a3, int a4)
+void do_explode(int pos_x, int pos_y, int pos_z)
 {
     short x, y, z;
     short tile_x, tile_z;
     short dx, dz;
 
-    DIFFTEST_SHADOW(do_explode, do_explode_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(do_explode, do_explode_asm(pos_x, pos_y, pos_z, 0));
 
-    x = (short)a1;
-    y = (short)a2;
-    z = (short)a3;
+    x = (short)pos_x;
+    y = (short)pos_y;
+    z = (short)pos_z;
 
     if (current_map == 11)
     {
@@ -5095,7 +5094,7 @@ void process_nuclear_bomb(struct SimpleThing *p_sthing, ThingIdx thing_item)
         ushort angle;
         int intensity;
 
-        do_explode((short)x, (short)y, (short)z, 0);
+        do_explode((short)x, (short)y, (short)z);
         quick_crater(x >> 8, z >> 8, 2);
         p_owner = &things[(ushort)p_sthing->Owner2];
         if ((p_sthing->Flag & TngF_Persuaded) != 0)

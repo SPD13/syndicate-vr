@@ -318,16 +318,12 @@ static DIFFTEST_REF_FUNC void apply_unkn_vehicle50_damage_asm(int a1, int a2, in
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void apply_unkn_vehicle50_damage(int a1, int a2, int a3, int a4)
+void apply_unkn_vehicle50_damage(s32 x, s32 z, s32 damage)
 {
-    s32 x, z, damage;
     s32 tile_x, tile_z;
     s32 tl_x, tl_z;
 
-    DIFFTEST_SHADOW(apply_unkn_vehicle50_damage, apply_unkn_vehicle50_damage_asm(a1, a2, a3, a4));
-    x = a1;
-    z = a2;
-    damage = a3;
+    DIFFTEST_SHADOW(apply_unkn_vehicle50_damage, apply_unkn_vehicle50_damage_asm(x, z, damage, 0));
     tile_x = x >> 16;
     tile_z = z >> 16;
 
@@ -542,7 +538,7 @@ void set_static_on_fire(struct SimpleThing *p_static)
             bang_new4(p_static->X, p_static->Y, p_static->Z, 115);
             damage = 5000;
         }
-        apply_unkn_vehicle50_damage(p_static->X, p_static->Z, damage, 0);
+        apply_unkn_vehicle50_damage(p_static->X, p_static->Z, damage);
         p_static->StartFrame = 0x41C;
         do_shockwave(p_static->X >> 8, p_static->Y >> 8, p_static->Z >> 8,
           0x300, 100, NULL);

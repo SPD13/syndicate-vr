@@ -303,16 +303,14 @@ static DIFFTEST_REF_FUNC int sit_on_my_face_asm(int a1, int a2, int a3, int a4)
 /** Checks whether given face belongs to one of the objects of given thing.
  * Negative face index refers to a quad face (SingleObjectFace4).
  *
- * Routed asm (internal label): a1 = face, a2 = thing pointer.
+ * Routed asm (internal label): face in eax, thing pointer in edx.
  */
-int sit_on_my_face(int a1, intptr_t a2, int a3, int a4)
+int sit_on_my_face(int face, struct Thing *p_thing)
 {
-    int face = a1;
-    struct Thing *p_thing = (struct Thing *)a2;
     struct SingleObject *p_objects;
     int i;
 
-    DIFFTEST_SHADOW_RET(sit_on_my_face, int, sit_on_my_face_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW_RET(sit_on_my_face, int, sit_on_my_face_asm(face, (intptr_t)p_thing, 0, 0));
     p_objects = game_objects;
     for (i = 0; i < (int)p_thing->U.UObject.NumbObjects; i++)
     {
@@ -353,16 +351,17 @@ static DIFFTEST_REF_FUNC void do_people_on_exploding_building_asm(int a1, int a2
 /** Updates people standing on faces of an exploding building: drops them
  * to the ground, and kills them if the ground tile is marked MEF2_Unkn04.
  *
- * Routed asm (internal label): a1 = building thing index.
+ * Routed asm (internal label): building thing index in eax, the other
+ * registers are not used.
  */
-void do_people_on_exploding_building(int a1, int a2, int a3, intptr_t a4)
+void do_people_on_exploding_building(int building)
 {
     struct Thing *p_building;
     int thing;
     int remain;
 
     DIFFTEST_SHADOW(do_people_on_exploding_building,
-      do_people_on_exploding_building_asm(a1, a2, a3, a4));
+      do_people_on_exploding_building_asm(building, 0, 0, 0));
     thing = (ushort)things_used_head;
     remain = things_used;
     if (thing <= 0)
@@ -382,8 +381,8 @@ void do_people_on_exploding_building(int a1, int a2, int a3, intptr_t a4)
             continue;
         if (p_thing->U.UPerson.OnFace == 0)
             continue;
-        p_building = &things[(short)a1];
-        if (sit_on_my_face(p_thing->U.UPerson.OnFace, (intptr_t)p_building, 0, 0) == 0)
+        p_building = &things[(short)building];
+        if (sit_on_my_face(p_thing->U.UPerson.OnFace, p_building) == 0)
             continue;
         {
             int alt;
@@ -404,7 +403,7 @@ void do_people_on_exploding_building(int a1, int a2, int a3, intptr_t a4)
 }
 
 
-int del_thing_vectors_from_mapwho(intptr_t a1, int a2, intptr_t a3, int a4);
+int del_thing_vectors_from_mapwho(struct MyMapElement *p_mapel, int thing_idx);
 
 /** Scanner areas to redraw; defined in asm, same layout as in scanner.c. */
 extern ubyte redo_scanner[128][4];
@@ -463,8 +462,7 @@ ushort explode_thing_building(short thing, short x, short y, short z)
         }
         else
         {
-            do_people_on_exploding_building(thing, numb_faces, start_face,
-              (intptr_t)p_building);
+            do_people_on_exploding_building(thing);
             ofs_x = p_sobj->MapX;
             ofs_y = p_sobj->OffsetY;
             ofs_z = p_sobj->MapZ;
@@ -675,8 +673,7 @@ ushort explode_thing_building(short thing, short x, short y, short z)
                 }
             }
 
-            while (del_thing_vectors_from_mapwho((intptr_t)p_mapel, thing,
-              (intptr_t)p_mapel, 0) != 0)
+            while (del_thing_vectors_from_mapwho(p_mapel, thing) != 0)
                 ;
 
             child = p_mapel->Child;
@@ -1304,18 +1301,19 @@ static DIFFTEST_REF_FUNC int rotate_obj_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int rotate_obj(int a1, int a2, int a3, intptr_t a4)
+int rotate_obj(int angle_x, int angle_y, int angle_z, struct M33 *p_m33)
 {
-    s32 *p_mat = (s32 *)a4;
+    s32 *p_mat = &p_m33->R[0][0];
     ushort ang_x, ang_y, ang_z;
     s32 sin_x, cos_x, sin_y, cos_y, sin_z, cos_z;
     s32 cxcy, czcy, czcx, cxsz, sxsz, sxcy;
     s32 v;
 
-    DIFFTEST_SHADOW_RET(rotate_obj, int, rotate_obj_asm(a1, a2, a3, a4));
-    ang_x = a1 & 0x7FF;
-    ang_y = a2 & 0x7FF;
-    ang_z = a3 & 0x7FF;
+    DIFFTEST_SHADOW_RET(rotate_obj, int, rotate_obj_asm(angle_x, angle_y, angle_z,
+      (intptr_t)p_m33));
+    ang_x = angle_x & 0x7FF;
+    ang_y = angle_y & 0x7FF;
+    ang_z = angle_z & 0x7FF;
 
     sin_x = lbSinTable[ang_x] >> 1;
     cos_x = lbSinTable[ang_x + LbFPMath_PI/2] >> 1;
@@ -1366,7 +1364,7 @@ void rotate_object(struct Thing *p_object)
     p_mat = &local_mats[p_object->U.UMGun.MatrixIndex];
     if (p_object->U.UMGun.AngleX > 0x400)
         p_object->U.UMGun.AngleX -= 0x800;
-    rotate_obj(0, (short)(-p_object->U.UMGun.AngleY), 0, (intptr_t)p_mat);
+    rotate_obj(0, (short)(-p_object->U.UMGun.AngleY), 0, p_mat);
     rotate_object_axis(p_mat, 0, (short)(-p_object->U.UMGun.AngleX), 0);
 }
 
@@ -1462,13 +1460,12 @@ static DIFFTEST_REF_FUNC int kill_flags_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int kill_flags(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
+int kill_flags(struct Thing *p_thing, struct Thing *p_target)
 {
-    struct Thing *p_thing = (struct Thing *)a1;
-    struct Thing *p_target = (struct Thing *)a2;
     ubyte group, tgt_group;
 
-    DIFFTEST_SHADOW_RET(kill_flags, int, kill_flags_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW_RET(kill_flags, int, kill_flags_asm((intptr_t)p_thing,
+      (intptr_t)p_target, 0, 0));
     if ((p_target->Type == TT_PERSON) && (p_target->Flag2 & TgF2_AlteredSubType))
         DIFFTEST_RETURN((int)0);
 
@@ -1537,7 +1534,7 @@ ThingIdx aquire_target(struct Thing *p_gun)
                     continue;
                 }
                 p_thing = &things[thing];
-                if ((short)kill_flags((intptr_t)p_gun, (intptr_t)p_thing, (intptr_t)p_thing, (intptr_t)p_gun) != 0
+                if ((short)kill_flags(p_gun, p_thing) != 0
                   && p_thing->Type == TT_PERSON
                   && (p_thing->Flag & TngF_Destroyed) == 0)
                 {
@@ -1713,11 +1710,12 @@ static DIFFTEST_REF_FUNC int apply_object_morph_asm(int a1, int a2, int a3, int 
     return ra;
 }
 
-/** Routed asm (internal label). Arguments are the raw registers the asm
- * takes: a1 = object index, a2 = X shift, a3 = Z shift, a4 = which set
- * of points to move. The return value is the leftover eax of the asm.
+/** Routed asm (internal label). Shifts a set of points of given object
+ * (index in eax) by shift_x (edx) or shift_z (ebx); point_set (ecx)
+ * selects which set of points to move. The return value is the leftover
+ * eax of the asm.
  */
-int apply_object_morph(int a1, int a2, int a3, int a4)
+int apply_object_morph(int object, int shift_x, int shift_z, int point_set)
 {
     static const ubyte pts_set1[] = {0, 3, 4, 7, 9};
     static const ubyte pts_set0[] = {1, 2, 5, 6, 8};
@@ -1728,11 +1726,11 @@ int apply_object_morph(int a1, int a2, int a3, int a4)
     int i;
 
     DIFFTEST_SHADOW_RET(apply_object_morph, int,
-      apply_object_morph_asm(a1, a2, a3, a4));
-    dx = (short)a2;
-    dz = (short)a3;
-    p_sobj = &game_objects[(ushort)a1];
-    pts = ((short)a4 != 0) ? pts_set1 : pts_set0;
+      apply_object_morph_asm(object, shift_x, shift_z, point_set));
+    dx = (short)shift_x;
+    dz = (short)shift_z;
+    p_sobj = &game_objects[(ushort)object];
+    pts = ((short)point_set != 0) ? pts_set1 : pts_set0;
 
     // Only one axis is shifted; X takes precedence over Z
     if (dx != 0)
@@ -1753,7 +1751,7 @@ int apply_object_morph(int a1, int a2, int a3, int a4)
     }
     else
     {
-        DIFFTEST_RETURN(a1);
+        DIFFTEST_RETURN(object);
     }
     // The asm leaves the scaled last point index in eax
     DIFFTEST_RETURN((int)(pt * 5));

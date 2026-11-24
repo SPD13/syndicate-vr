@@ -959,8 +959,8 @@ void VNAV_find_start_dropoff_point(intptr_t a1, intptr_t a2, intptr_t a3, int a4
 
 
 
-int func_4225c(int a1, int a2, int a3, int a4);
-int rotate_obj(int a1, int a2, int a3, intptr_t a4);
+int func_4225c(int object);
+int rotate_obj(int angle_x, int angle_y, int angle_z, struct M33 *p_m33);
 
 static DIFFTEST_REF_FUNC void VNAV_unkn_func_207_asm(struct Thing *p_thing)
 {
@@ -973,7 +973,7 @@ static void VNAV_unkn_func_207_radius_health(struct Thing *p_thing)
     ushort radius;
     s32 health;
 
-    radius = func_4225c(p_thing->U.UVehicle.Object, 0, 0, 0);
+    radius = func_4225c(p_thing->U.UVehicle.Object);
     p_thing->Radius = radius;
     health = 5 * (s32)radius * p_thing->U.UVehicle.Armour;
     if (health > 0x7d00)
@@ -1097,7 +1097,7 @@ void VNAV_unkn_func_207(struct Thing *p_thing)
           p_tnode2->Z - (p_thing->Z >> 8));
         p_thing->U.UVehicle.AngleY = angle;
         p_mat = &local_mats[p_thing->U.UVehicle.MatrixIndex];
-        rotate_obj(0, (short)(-p_thing->U.UVehicle.AngleY), 0, (intptr_t)p_mat);
+        rotate_obj(0, (short)(-p_thing->U.UVehicle.AngleY), 0, p_mat);
     }
     else
     {
@@ -2235,7 +2235,7 @@ static DIFFTEST_REF_FUNC int check_tank_collision_asm(int a1, int a2, int a3, in
     return ra;
 }
 
-int can_the_tank_run_over(intptr_t a1, int a2);
+int can_the_tank_run_over(struct SimpleThing *p_sthing);
 
 int check_tank_collision(intptr_t a1, int a2, int a3, int a4)
 {
@@ -2371,7 +2371,7 @@ int check_tank_collision(intptr_t a1, int a2, int a3, int a4)
                     if (dx == 2 || dz == 2)
                         continue;
                     // The asm passes edx = sign of the last abs value, which is always 0
-                    if (can_the_tank_run_over((intptr_t)p_sthing, 0))
+                    if (can_the_tank_run_over(p_sthing))
                         set_static_on_fire(p_sthing);
                 }
             }
@@ -2396,7 +2396,7 @@ void process_tank_stationary(struct Thing *p_vehicle)
     DIFFTEST_SHADOW(process_tank_stationary, process_tank_stationary_asm(p_vehicle));
     p_turret = &things[p_vehicle->U.UVehicle.SubThing];
     rotate_obj(0, p_turret->U.UVehicle.AngleY, 0,
-      (intptr_t)&local_mats[p_turret->U.UVehicle.MatrixIndex]);
+      &local_mats[p_turret->U.UVehicle.MatrixIndex]);
 
     if ((gameturn & 7) == 0)
     {
@@ -2521,8 +2521,8 @@ void process_tank(struct Thing *p_vehicle)
     p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
     p_turret = &things[(ushort)p_vehicle->U.UVehicle.SubThing];
     rotate_obj(0, p_turret->U.UVehicle.AngleY, 0,
-      (intptr_t)&local_mats[p_turret->U.UVehicle.MatrixIndex]);
-    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (intptr_t)p_mat);
+      &local_mats[p_turret->U.UVehicle.MatrixIndex]);
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, p_mat);
 
     p_vehicle->VX = (-p_mat->R[0][2] * p_vehicle->Speed) >> 10;
     p_vehicle->VY = (-p_mat->R[1][2] * p_vehicle->Speed) >> 10;
@@ -2621,7 +2621,7 @@ void swoosh_veh(intptr_t a1, int a2, int a3, int a4)
 }
 
 
-int rotate_obj(int a1, int a2, int a3, intptr_t a4);
+int rotate_obj(int angle_x, int angle_y, int angle_z, struct M33 *p_m33);
 
 static DIFFTEST_REF_FUNC void move_flying_vehicle_asm(struct Thing *p_vehicle)
 {
@@ -2668,7 +2668,7 @@ void move_flying_vehicle(struct Thing *p_vehicle)
 
     p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
     rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY),
-      (short)(-(p_vehicle->U.UVehicle.AngleZ >> 1)), (intptr_t)p_mat);
+      (short)(-(p_vehicle->U.UVehicle.AngleZ >> 1)), p_mat);
     if (p_vehicle->U.UVehicle.AngleX != 0)
         rotate_object_axis(p_mat, 0, p_vehicle->U.UVehicle.AngleX, 0);
 
@@ -2995,7 +2995,7 @@ void process_ship(struct Thing *p_vehicle)
     p_vehicle->U.UVehicle.AngleY &= 0x7FF;
 
     p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
-    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (intptr_t)p_mat);
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, p_mat);
     p_vehicle->VX = (-p_mat->R[0][2] * p_vehicle->Speed) >> 10;
     p_vehicle->VY = (-p_mat->R[1][2] * p_vehicle->Speed) >> 10;
     p_vehicle->VZ = (-p_mat->R[2][2] * p_vehicle->Speed) >> 10;
@@ -3061,7 +3061,7 @@ void process_mech_stationary(struct Thing *p_vehicle)
     // The asm masks only the high byte of AngleY
     p_vehicle->U.UVehicle.AngleY &= 0x7ff;
     p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
-    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (intptr_t)p_mat);
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, p_mat);
 }
 
 static DIFFTEST_REF_FUNC void process_mech_asm(struct Thing *p_vehicle)
@@ -3169,7 +3169,7 @@ void process_mech(struct Thing *p_vehicle)
     p_vehicle->U.UVehicle.AngleY = ((p_vehicle->U.UVehicle.AngleDY >> 3)
       + p_vehicle->U.UVehicle.AngleY) & 0x7ff;
     p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
-    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, (intptr_t)p_mat);
+    rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY), 0, p_mat);
 
     p_vehicle->VX = (-p_mat->R[0][2] * p_vehicle->Speed) >> 10;
     p_vehicle->VY = (-p_mat->R[1][2] * p_vehicle->Speed) >> 10;
@@ -4005,7 +4005,7 @@ void move_vehicle(struct Thing *p_vehicle)
 
     p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
     rotate_obj(0, (short)(-p_vehicle->U.UVehicle.AngleY),
-      (short)(-(p_vehicle->U.UVehicle.AngleZ >> 1)), (intptr_t)p_mat);
+      (short)(-(p_vehicle->U.UVehicle.AngleZ >> 1)), p_mat);
     // The asm also rotates a second matrix pointer here, which is always NULL
     if (p_vehicle->U.UVehicle.AngleX != 0)
         rotate_object_axis(p_mat, 0, p_vehicle->U.UVehicle.AngleX, 0);

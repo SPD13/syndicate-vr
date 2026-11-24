@@ -2417,13 +2417,12 @@ static DIFFTEST_REF_FUNC void snap_razor_wire_asm(int a1, int a2, int a3, int a4
 }
 
 /** Remove a razor wire thing, together with its collision vector.
- * Routed asm (internal label); only a1 (eax) is used, as the wire thing.
+ * Routed asm (internal label); the wire thing comes in eax, the other
+ * registers are not used.
  */
-void snap_razor_wire(intptr_t a1, int a2, int a3, int a4)
+void snap_razor_wire(struct Thing *p_wire)
 {
-    struct Thing *p_wire = (struct Thing *)a1;
-
-    DIFFTEST_SHADOW(snap_razor_wire, snap_razor_wire_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(snap_razor_wire, snap_razor_wire_asm((intptr_t)p_wire, 0, 0, 0));
     delete_vect((short)(p_wire->X >> 8), (short)((p_wire->Y >> 5) + 60),
       (short)(p_wire->Z >> 8), (short)(p_wire->VX + 50),
       (short)(p_wire->VY * 8 + 60), (short)p_wire->VZ,
