@@ -1,0 +1,69 @@
+{
+ "_doc": "VR world markers: replace the original's in-world HUD (target brackets, health bars, numbers, progress bars) and add what VR needs without the 2D panels. Units metres and seconds; colours linear RGB, drawn emissive and partly transparent, depth-tested but never hidden completely (draw a faint copy without depth test so markers show through walls). Billboard parts face the eye. Sizes are for street scale (1:1); scale with the world in table-top mode but keep a minimum angular size.",
+ "colours": {
+  "friend": [0.15, 0.85, 1.0],
+  "neutral": [0.92, 0.95, 1.0],
+  "acquiring": [1.0, 0.72, 0.15],
+  "hostile": [1.0, 0.18, 0.15],
+  "persuaded": [0.85, 0.3, 1.0],
+  "charge": [0.35, 1.0, 0.85],
+  "health_ok": [0.3, 1.0, 0.35],
+  "health_mid": [1.0, 0.85, 0.2],
+  "health_low": [1.0, 0.2, 0.15],
+  "damage_trail": [1.0, 0.95, 0.9],
+  "objective": [1.0, 0.8, 0.25]
+ },
+ "markers": {
+  "selection": {
+   "label": "M1", "replaces": "the selected agent shown in the 2D agent panels",
+   "shape": "ground ring under each player agent (radius 0.45 m, 4 cm wide) with four tick arcs, rotating 90 degrees per 2 s; agent number 1-4 on a billboard plate 2.2 m up with corner brackets",
+   "radius": 0.45, "states": {"selected": "full brightness, pulse 2.5-4", "in_group": "ring only, half brightness", "other_agents": "ring only, 30% alpha", "dead": "none"},
+   "game": "SwcAgent (swcore_agents), SwcTF_SELECTED"
+  },
+  "hover": {
+   "label": "M2", "replaces": "target brackets on the thing under the mouse (draw_hud_target_mouse)",
+   "shape": "four corner brackets around the person (0.9 x 2.0 m) or vehicle (its bounds), billboard, gentle 6% breathing",
+   "width": 0.9, "height": 2.0, "colour_rule": "neutral for people, hostile for enemies in range, friend for own agents",
+   "game": "the thing the controller ray points at (VR pointer)"
+  },
+  "lock": {
+   "label": "M3", "replaces": "shrinking target frame of targeting weapons (draw_hud_target2: size 4 * (18 - WeaponTimer))",
+   "shape": "brackets start at 2x and shrink to 1x while the weapon aims (acquiring colour), then turn hostile red with a flash and a small diamond in the centre",
+   "time": "follows WeaponTimer: size = max(1, (18 - WeaponTimer) / 9) of the base frame",
+   "game": "current_weapon_has_targetting, PTarget, WeaponTimer (needs swcore additions)"
+  },
+  "health": {
+   "label": "M4", "replaces": "vehicle health bars (draw_vehicle_health); also for people in VR",
+   "shape": "billboard bar 0.6 x 0.07 m, 2.25 m above people (above the bounds for vehicles), dark back, 5 segments; on damage the fill drops at once and a white trail follows after 0.25 s over 0.75 s",
+   "width": 0.6, "height": 0.07,
+   "colour_rule": "health_ok above 60 %, health_mid 30-60 %, health_low below 30 %",
+   "show": "own agents always; others for 3 s after being hit or while hovered",
+   "game": "SwcThing.health / max_health"
+  },
+  "charge": {
+   "label": "M5", "replaces": "long progress bars (draw_sort_sprite_long_prop_bar), e.g. weapon charge",
+   "shape": "ring of 32 segments at waist height around the agent (radius 0.55 m) filling clockwise; flashes when full",
+   "radius": 0.55, "game": "weapon charge state (TngF_WepCharging and its timer; needs swcore additions)"
+  },
+  "persuaded": {
+   "label": "M6", "replaces": "nothing in the original (its persuaded people just follow)",
+   "shape": "spinning diamond 2.2 m above each persuaded person, ground ring, and a dashed tether to the persuader whose dashes flow towards them",
+   "game": "persuaded flag and owner (needs swcore additions)"
+  },
+  "waypoint": {
+   "label": "M7", "replaces": "nothing visible in the original (move orders are clicks)",
+   "shape": "destination: a dot with three rings pulsing outwards; path: chevrons on the ground lighting up in sequence towards the destination; disappears on arrival",
+   "game": "the GOTO command the player gave (front end side) or the person's goto position"
+  },
+  "damage": {
+   "label": "M8", "replaces": "floating numbers and short texts (draw_sort_sprite_number / short_text)",
+   "shape": "billboard text rising 0.8 m over 1.8 s and fading; red for damage to enemies, white for others; also used for short tags (e.g. PERSUADED, NO AMMO)",
+   "game": "health change between turns"
+  },
+  "objective": {
+   "label": "M9", "replaces": "the objective text and map marker in the 2D panels",
+   "shape": "light column 6 m high fading upwards, spinning diamond on top, ground ring; visible through buildings",
+   "height": 6.0, "game": "SwcWorldInfo.objective (text) and the objective's thing / place"
+  }
+ }
+}

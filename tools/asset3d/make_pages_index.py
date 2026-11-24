@@ -60,6 +60,9 @@ GROUPS = [
         ("effects", "12 particle effects simulated from effects.json: explosions (small, large with shrapnel secondaries), ground fire, burning person, barrel fire, gas cloud, smoke plume, dark smoke, bullet impacts on ground / water / sludge, sparkle", "current"),
         ("agent_shield", "Energy shield shader look on the agent", "current"),
     ]),
+    ("VR interface", [
+        ("markers", "VR world markers M1-M9: selection ring + agent number, hover brackets, target lock, health bar, charge ring, persuaded, waypoint, damage number, objective beacon (and all together)", "current"),
+    ]),
     ("Style checks and history", [
         ("characters_v1", "First one-pose redraws of the 11 remaining characters (style validation)", "superseded"),
         ("zealot", "Church agent v1: scanned drapes on the Tripo rig (re-rendered bright)", "superseded"),
