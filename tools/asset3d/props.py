@@ -48,7 +48,7 @@ def stage_redraw(t, out, name, info, args):
     d = os.path.join(out, "work", "props", name)
     token = t.upload(os.path.join(d, "ref.png"))
     props = load_props()
-    prompt = props["_common"] + info["desc"] + ((" " + args.extra) if args.extra else "")
+    prompt = props["_common_scenery" if info.get("kind") == "scenery" else "_common"] + info["desc"] + ((" " + args.extra) if args.extra else "")
     dest = os.path.join(d, "redraw_" + args.tag)
     rec = t.run("/generation/image-to-image", {"inputs": [token], "prompt": prompt, "model": args.model, "size": "2K"},
                 dest, estimate=20, label="%s redraw %s" % (name, args.tag))

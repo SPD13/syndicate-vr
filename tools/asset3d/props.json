@@ -184,5 +184,182 @@
   "faces": 5000,
   "hold": "dropped",
   "desc": "(NOT a weapon: image[1] is the last frame of a burnt-to-ash death in the game, a small black char mark seen from above) the remains of a person burnt to ash: a low, flat, roughly person-length patch of black and dark grey ash lying on the ground, a loose mound in the middle with charred fragments and a few splayed streaks spreading out like limbs, a few tiny glowing orange embers, flakes of grey ash; no recognisable body, no bones, no flames, seen from three-quarter above."
+ },
+ "_common_scenery": "image[1] is a tiny 1996 game sprite of a piece of city scenery, seen from about 30 degrees above. Redraw this exact object as one clean, detailed, high-resolution product render for a 3D model: the same shape, proportions and colours, the whole object visible, standing upright, three-quarter view from slightly above, neutral studio lighting, plain white background, no shadow, no ground, no text, NOT pixel art. Realistic gritty 1990s cyberpunk city style. Object: ",
+ "tree_conifer": {
+  "ref": "static sprite S1 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S1",
+  "desc": "a tall dark green conifer tree, narrow cone shape, dense needles, short brown trunk"
+ },
+ "tree_blossom": {
+  "ref": "static sprite S7 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S7",
+  "desc": "a round ornamental tree covered in pink blossom, dark trunk"
+ },
+ "tree_willow": {
+  "ref": "static sprite S9 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S9",
+  "desc": "a weeping willow tree with long hanging yellow-green branches down to the ground"
+ },
+ "tree_round": {
+  "ref": "static sprite S11 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S11",
+  "desc": "a small tree with a dense rounded dark green crown on a short trunk"
+ },
+ "bush": {
+  "ref": "static sprite S16 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S16",
+  "desc": "a low wide rounded green hedge bush"
+ },
+ "tree_planter": {
+  "ref": "static sprite S17 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S17",
+  "desc": "a small round dark green tree growing in a round dark red stone planter"
+ },
+ "tree_dead": {
+  "ref": "static sprite S21 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S21",
+  "desc": "a dead bare black tree with twisted drooping branches, no leaves"
+ },
+ "tree_dead_planter": {
+  "ref": "static sprite S27 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S27",
+  "desc": "a dead black spiky bare tree in a round dark red stone planter"
+ },
+ "tree_red": {
+  "ref": "static sprite S32 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S32",
+  "desc": "a small tree with dark red autumn foliage"
+ },
+ "lamp_large": {
+  "ref": "static sprite S5 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S5",
+  "desc": "a large street lamp: a thick dark metal post with a red band near the base and a wide round white lamp head on top"
+ },
+ "lamp_post": {
+  "ref": "static sprite S6 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S6",
+  "desc": "a tall thin black metal street lamp post with a small round lamp at the top and a small yellow light near the base"
+ },
+ "lamp_post_red": {
+  "ref": "static sprite S8 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S8",
+  "desc": "a tall thin black metal street lamp post with red bands along the pole and a small round lamp on top"
+ },
+ "lamp_post_globe": {
+  "ref": "static sprite S10 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S10",
+  "desc": "a tall street lamp with a grey metal pole and a dark globe lamp on top, wider base"
+ },
+ "neon_pole": {
+  "ref": "static sprite S12 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S12",
+  "desc": "a tall glowing cyan neon light tube on a short dark purple metal base"
+ },
+ "bin_grey": {
+  "ref": "static sprite S13 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S13",
+  "desc": "a tall grey metal street litter bin with a domed lid"
+ },
+ "bin_white": {
+  "ref": "static sprite S23 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S23",
+  "desc": "a white-grey metal street bin with a rounded lid and a dark band"
+ },
+ "barrel_yellow": {
+  "ref": "static sprite S18 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S18",
+  "desc": "a yellow metal industrial barrel with dark bands"
+ },
+ "barrel_blue": {
+  "ref": "static sprite S19 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S19",
+  "desc": "a blue-purple metal industrial barrel with dark bands"
+ },
+ "barrel_burning": {
+  "ref": "static sprite S30 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S30",
+  "desc": "a rusty red metal barrel with fire burning out of its open top"
+ },
+ "planter_hazard": {
+  "ref": "static sprite S20 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S20",
+  "desc": "a short round grey metal street planter or bollard with yellow and black hazard markings on its rim"
+ },
+ "fountain_base": {
+  "ref": "static sprite S29 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S29",
+  "desc": "a low round dark blue-grey stone fountain basin"
+ },
+ "bowl_chrome": {
+  "ref": "static sprite S31 (review/statics)",
+  "faces": 5000,
+  "hold": "scenery",
+  "kind": "scenery",
+  "static": "S31",
+  "desc": "a large polished chrome bowl-shaped street urn or fountain on a short base"
  }
 }
