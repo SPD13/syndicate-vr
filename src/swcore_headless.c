@@ -14,6 +14,10 @@
  *     turns; "--no-draw" leaves out drawing the world in missions;
  *     "--fixes N" sets which fixes of original bugs are on (SwcFixes bits;
  *         by default SWCORE_FIXES_DEFAULT, or as the game options set);
+ *     "--core-turn" steps with swcore_core_step() (the game core only,
+ *         no input and no drawing) instead of swcore_step();
+ *     "--status" also prints "# turn N status S" when the mission status
+ *         changes;
  *     "--world" also prints a summary of the world every 100 turns.
  *     Use SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy for no window.
  * @author   SyndicateVR decomp agent
@@ -65,7 +69,8 @@ static void print_world(void)
 int main(int argc, char **argv)
 {
     uint32_t turns = 0, done = 0, fixes = 0;
-    int world = 0, no_draw = 0, set_fixes = 0;
+    int world = 0, no_draw = 0, set_fixes = 0, core_turn = 0, status = 0;
+    uint32_t last_status = 0;
 
     while (argc > 1)
     {
@@ -85,6 +90,16 @@ int main(int argc, char **argv)
             argv[2] = argv[0];
             argv += 2;
             argc -= 2;
+        } else if (strcmp(argv[1], "--core-turn") == 0) {
+            core_turn = 1;
+            argv[1] = argv[0];
+            argv++;
+            argc--;
+        } else if (strcmp(argv[1], "--status") == 0) {
+            status = 1;
+            argv[1] = argv[0];
+            argv++;
+            argc--;
         } else if (strcmp(argv[1], "--world") == 0) {
             world = 1;
             argv[1] = argv[0];
@@ -100,7 +115,7 @@ int main(int argc, char **argv)
         swcore_set_world_drawing(0);
     if (set_fixes)
         swcore_set_fixes(fixes);
-    while (swcore_step())
+    while (core_turn ? swcore_core_step() : swcore_step())
     {
         struct SwcWorldInfo info;
 
@@ -108,6 +123,9 @@ int main(int argc, char **argv)
         swcore_world_info(&info);
         swcore_things(things_buf, THINGS_BUF);
         printf("%u %08x\n", swcore_game_turn(), swcore_state_hash());
+        if (status && (info.mission_status != last_status))
+            printf("# turn %u status %u\n", info.gameturn, info.mission_status);
+        last_status = info.mission_status;
         if (world && (info.gameturn % 100 == 0))
             print_world();
         fflush(stdout);

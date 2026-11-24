@@ -561,6 +561,7 @@ struct Thing *new_sim_person(int x, int y, int z, ubyte subtype);
 
 void people_intel(ubyte flag);
 void alert_peeps(int x, int y, int z, struct Thing *p_madman);
+void update_dropped_item_under_agent_exists(short agent);
 
 /******************************************************************************/
 #ifdef __cplusplus

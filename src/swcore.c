@@ -22,6 +22,7 @@
 
 #include "game.h"
 #include "game_speed.h"
+#include "game_turn.h"
 #include "people.h"
 /******************************************************************************/
 
@@ -37,6 +38,11 @@ uint32_t swcore_get_fixes(void)
     if (game_fix_los_face_read)
         fixes |= SWCORE_FIX_LOS_FACE_READ;
     return fixes;
+}
+
+int swcore_core_step(void)
+{
+    return game_core_turn() ? 1 : 0;
 }
 
 uint32_t swcore_game_turn(void)

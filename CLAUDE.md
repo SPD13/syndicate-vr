@@ -117,6 +117,13 @@ lack clobber lists and break under optimisation.
   `swapp.c` (options, config, the main loop) is front end.
   `tools/decomp-agent/coreprobe.sh` links the core alone and lists what it
   still misses.
+- `game_core_turn()` (`src/game_turn.c`, `swcore_core_step()`) is a mission
+  turn without input devices, screens or drawing; it must play the same
+  game as the desktop turn: `python tools/decomp-agent/coreturn_compare.py
+  harness --jobs 2`. When the desktop turn (`game_process_turn()`) gets a
+  new step that changes the game, the core turn needs it too (watch for
+  hidden random draws, e.g. the rain effect, and packets the input builds
+  every turn).
 - Drawing writes game state in places (face flags of vehicles that line
   of sight reads, the thing under the pointer, the panels' target): see
   `docs/swcore.md` before moving code out of the drawing path. Fields only

@@ -19,6 +19,7 @@
 #include "game_options.h"
 #include "game_save.h"
 #include "game_speed.h"
+#include "game_turn.h"
 #include "keyboard.h"
 #include "lvfiles.h"
 #include "lvobjctv.h"
@@ -607,6 +608,7 @@ int swcore_init(int argc, char **argv)
 
     if (!process_options(&argc, &argv))
         return 1;
+    game_turn_test_hook = difftest_bot_turn;
 
     fixup_options();
     LOGSYNC_F("Fixes of original bugs: 0x%x%s", (unsigned)swcore_get_fixes(),

@@ -184,28 +184,6 @@ TbResult load_small_font_for_current_ingame_mode(void)
     return ret;
 }
 
-//TODO not the best location for agent state update
-void update_dropped_item_under_agent_exists(short agent)
-{
-    struct SimpleThing *p_pickup;
-    struct Thing *p_agent;
-    ThingIdx thing;
-
-    p_agent = &things[agent];
-
-    if ((p_agent->Flag & TngF_Unkn08000000) == 0)
-        return;
-
-    thing = p_agent->U.UPerson.StandOnThing;
-    if (thing < 0)
-        p_pickup = &sthings[thing];
-    else
-        p_pickup = NULL;
-    if ((p_pickup == NULL) || (p_pickup->Type != SmTT_DROPPED_ITEM)) {
-        p_agent->Flag &= ~TngF_Unkn08000000;
-    }
-}
-
 /** Set scanner size to given panel size, but limit both to what the scanner supports.
  */
 void srm_scanner_set_size_to_panel_with_limit(struct GamePanel *p_panel)

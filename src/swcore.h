@@ -31,7 +31,7 @@ extern "C" {
 /******************************************************************************/
 
 /** Version of this interface; grows when functions are added. */
-#define SWCORE_API_VERSION 1
+#define SWCORE_API_VERSION 2
 
 /** Sets the game up as the executable would: reads the command line options
  * (the same as syndwarsfx, e.g. "-m 1,2" to start a mission), the config
@@ -45,6 +45,16 @@ int swcore_init(int argc, char **argv);
  * exit (then call swcore_shutdown()).
  */
 int swcore_step(void);
+
+/** Runs one game turn of a mission with the game core only: the world,
+ * the camera and the commands of swcore_command(), without reading input,
+ * drawing, sound or the wait for the turn's time. Plays as swcore_step()
+ * with the world not drawn and no input (with the default fixes) until the
+ * mission is decided; the mission's end (end screen, fade, leaving the
+ * mission) is not played yet. Returns 1 while a mission is played, 0 once
+ * the game asked to exit or no mission is played. Since version 2.
+ */
+int swcore_core_step(void);
 
 /** Frees what the game set up. The process may continue afterwards, but
  * the game cannot be initialised again.

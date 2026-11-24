@@ -120,6 +120,10 @@ libswarscore_a_SOURCES = \
 	guitext.c \
 	guitext.h \
 	game.c \
+	game_camera.c \
+	game_camera.h \
+	game_turn.c \
+	game_turn.h \
 	game_world.c \
 	game_world.h \
 	game_state.c \

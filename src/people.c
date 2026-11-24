@@ -16838,4 +16838,29 @@ void process_person(struct Thing *p_person)
     }
 }
 
+/** Clears the agent's flag of standing on a dropped item once the item is
+ * gone. The desktop calls it while drawing the panels (with the panels
+ * visible); the core turn every turn the world is viewed.
+ */
+void update_dropped_item_under_agent_exists(short agent)
+{
+    struct SimpleThing *p_pickup;
+    struct Thing *p_agent;
+    ThingIdx thing;
+
+    p_agent = &things[agent];
+
+    if ((p_agent->Flag & TngF_Unkn08000000) == 0)
+        return;
+
+    thing = p_agent->U.UPerson.StandOnThing;
+    if (thing < 0)
+        p_pickup = &sthings[thing];
+    else
+        p_pickup = NULL;
+    if ((p_pickup == NULL) || (p_pickup->Type != SmTT_DROPPED_ITEM)) {
+        p_agent->Flag &= ~TngF_Unkn08000000;
+    }
+}
+
 /******************************************************************************/

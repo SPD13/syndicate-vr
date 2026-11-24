@@ -16,15 +16,18 @@ out of scope for now: the library is for solo play.
   a test front end that links the library as any front end would. It
   takes the `syndwarsfx` options, reads the world through the interface
   every turn, and prints `<turn> <state hash>`. `--turns N` stops after N
-  turns; `--no-draw` leaves out drawing the world; `--world` prints a
-  summary of the world every 100 turns.
+  turns; `--no-draw` leaves out drawing the world; `--core-turn` steps
+  with `swcore_core_step()` instead; `--status` prints `# turn N status S`
+  when the mission status changes; `--world` prints a summary of the world
+  every 100 turns.
 
-## Interface (SWCORE_API_VERSION 1)
+## Interface (SWCORE_API_VERSION 2)
 
 | Function | Does |
 | --- | --- |
 | `swcore_init(argc, argv)` | Sets the game up from the `syndwarsfx` options (e.g. `-m 1,2` starts a mission) |
 | `swcore_step()` | One game turn; 1 while the game runs, 0 once it asked to exit |
+| `swcore_core_step()` | One turn of the game core only, in a mission: no input devices, screens or drawing; 0 outside a mission or once the game asked to exit (API 2) |
 | `swcore_shutdown()` | Frees what the game set up; it cannot be set up again |
 | `swcore_set_world_drawing(on)` | Draws the world in missions or not; the game plays the same |
 | `swcore_game_turn()`, `swcore_state_hash()` | Turn number and the hash the state traces compare |
@@ -141,16 +144,13 @@ layer stays with the core (no devices; multiplayer is out of scope).
 
 What the core still needs from the desktop front end and the libraries:
 
-- The camera and the mission flow are in the shell's input code
-  (`game.c`): following the selected agent (`track_player()`,
-  `move_camera()`), the mission status (`test_missions()` in
-  `load_packet()`) and the mission end. The game's camera belongs to the
-  core: the view pass (`game_view_pass()`) sets the face flags line of
-  sight reads only for vehicles in the camera's view, and the view area
-  (`render_area_a/b`, `overall_scale`) follows the screen size.
-- Setting up and stepping a mission without the shell: the core's parts of
-  `game_setup()`, `setup_host()`, `prep_single_mission()` and
-  `game_process_turn()`.
+- The mission end (the end screen, the fade, leaving the mission) is in
+  the shell's `load_packet()`; the core turn plays a mission until it is
+  decided.
+- The view area (`render_area_a/b`, `overall_scale`) follows the screen
+  size, set up by the shell.
+- Setting up a mission without the shell: the core's parts of
+  `game_setup()`, `setup_host()` and `prep_single_mission()`.
 - `libswrender` holds world data the core uses: objects, faces and
   textures (`enginsngobjs`, `enginsngtxtr`, `enginpriobjs`), lights,
   explosion faces, shrapnel, animation frames (`frame_sprani`), the camera
@@ -158,6 +158,39 @@ What the core still needs from the desktop front end and the libraries:
   drawing code in.
 - `libbullfrog`'s platform layer (SDL): `lbDisplay` (screen size, pointer),
   logging time, the mouse sprite.
+
+### The core turn
+
+`game_core_turn()` (`game_turn.c`, `swcore_core_step()`) is one turn of a
+mission without input devices, screens or drawing. It does what the
+desktop turn (`game_process_turn()`) changes in the game, in the same
+order, and plays the same game: `coreturn_compare.py` (see Verification)
+checks it on the trace scenarios. What it takes from the desktop turn:
+
+- The camera (`game_camera.c`): the zoom for the agent's weapon, following
+  the selected agent, scrolling and rotating with the velocities the input
+  set (`game_camera_update()`, `game_camera_input()`; the shell's
+  `do_scroll_map()`/`do_rotate_map()` only read keys and the pointer). The
+  game's camera belongs to the core: the view pass (`game_view_pass()`)
+  sets the face flags line of sight reads only for vehicles in its view.
+- What showing the game screen changed in the game (`game_turn_camera()`,
+  `game_turn_world_view()`, `game_turn_view_end()`): mechs, craters, the
+  view pass, the BAT game, navigation counters; and what drawing the
+  panels changed: the agent's flag of standing on a dropped item, cleared
+  once the item is gone (`update_dropped_item_under_agent_exists()`, now
+  in `people.c`; the core calls it every viewed turn, the desktop while
+  the panels are visible, which they always are in play).
+- The player's turn without input: the commands of `swcore_command()`, or
+  else the packet the input builds when nothing is pressed (no action,
+  trigger released, `input_user_control_agent()`); processing it stops the
+  controlled agent's shooting, so leaving it out changes the game.
+- The rain and snow on the floor textures (`scene_post_effect_prepare()`,
+  in `libswrender`): the rain draws from the game's random numbers
+  (`LbRandomAnyShort()`) every turn, so it is game state although it only
+  changes a texture.
+- The test hooks of the desktop turn (`difftest_bot_turn()`) through
+  `game_turn_test_hook`, which the front end sets (`swapp.c`), and the state
+  trace (`game_turn_statetrace()`, `SWARS_STATETRACE`).
 
 ## Still in the library
 
@@ -185,6 +218,17 @@ reference traces of the original asm, and its printed hashes those traces:
 SWARS_TRACE_EXE=swcore_headless python tools/decomp-agent/statetrace_win_par.py harness build/tr_lib --jobs 6
 SWARS_TRACE_EXE=swcore_headless SWARS_TRACE_EXE_ARGS=--no-draw python tools/decomp-agent/statetrace_win_par.py harness build/tr_lib_nd --jobs 6
 ```
+
+The core turn must play the same game as the desktop turn until the
+mission is decided:
+
+```
+python tools/decomp-agent/coreturn_compare.py harness --jobs 2
+```
+
+runs `swcore_headless` with `--no-draw` and with `--core-turn` (both with
+the default fixes) and compares their hashes turn by turn, up to the turn
+the desktop run decides the mission (`--status`).
 
 `statetrace_win_par.py` runs the 52 scenarios of `statetrace.sh` in
 parallel on Windows and compares them with `build/tr_difftest` (made from

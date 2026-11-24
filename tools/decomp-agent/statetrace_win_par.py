@@ -41,12 +41,14 @@ def main():
     ap.add_argument('outdir')
     ap.add_argument('--jobs', type=int, default=6)
     ap.add_argument('--ref', default=os.path.join('build', 'tr_difftest'))
+    ap.add_argument('--scenarios', help='scenarios separated by spaces, '
+                    'e.g. "0,1 1,2+bot"; default all of statetrace.sh')
     ap.add_argument('--no-compare', action='store_true',
                     help='only run, e.g. to make a reference from the difftest build')
     a = ap.parse_args()
     out = os.path.abspath(a.outdir)
     os.makedirs(out, exist_ok=True)
-    todo = scenarios()
+    todo = a.scenarios.split() if a.scenarios else scenarios()
     lock = threading.Lock()
     bash = GIT_BASH if os.path.exists(GIT_BASH) else 'bash'
 
@@ -101,7 +103,7 @@ def main():
     run_all(a.jobs)
     if a.no_compare:
         return 0
-    differ = compare(scenarios())
+    differ = compare(a.scenarios.split() if a.scenarios else scenarios())
     for _ in range(3):
         if not differ:
             break
@@ -111,7 +113,7 @@ def main():
         todo.extend(sc.replace('(api)', '') for sc in differ)
         run_all(1)
         differ = compare([sc.replace('(api)', '') for sc in differ])
-    print('%d scenarios, %d differ%s' % (len(scenarios()), len(differ),
+    print('%d scenarios, %d differ%s' % (len(a.scenarios.split() if a.scenarios else scenarios()), len(differ),
                                          (': ' + ' '.join(differ)) if differ else ''))
     return 1 if differ else 0
 
