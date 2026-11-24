@@ -133,7 +133,16 @@ def stage_model_b(t, out, name, args):
     if args.views_only:
         print("views: %s" % ", ".join(mv.get("files", {}).values()))
         return
-    body = dict({"inputs": [{"task_id": mv["task_id"]}], "model": MODEL_3D}, **GEN_OPTS)
+    if args.from_edit:
+        # the edit task holds only the edited views: send all four as files
+        import glob
+        views = []
+        for v in ("front", "left", "back", "right"):
+            cand = glob.glob(os.path.join(dest, "multiview_edit%d" % args.from_edit, "*%s_view*" % v)) or                 glob.glob(os.path.join(dest, "multiview", "*%s_view*" % v))
+            views.append({v: t.upload(cand[0])})
+        body = dict({"inputs": views, "model": MODEL_3D}, **GEN_OPTS)
+    else:
+        body = dict({"inputs": [{"task_id": mv["task_id"]}], "model": MODEL_3D}, **GEN_OPTS)
     sub = "model" if not args.from_edit else "model_edit%d" % args.from_edit
     rec = t.run("/generation/multiview-to-model", body, os.path.join(dest, sub),
                 estimate=50, label="%s model B %s%s" % (name, args.tag, "" if not args.from_edit else " edit%d" % args.from_edit))
