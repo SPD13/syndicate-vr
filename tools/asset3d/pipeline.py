@@ -107,6 +107,9 @@ def stage_model_b(t, out, name, args):
     token = t.upload(img) if os.path.exists(img) else "dry"
     mv = t.run("/generation/image-to-multiview", {"input": token}, os.path.join(dest, "multiview"),
                estimate=10, label="%s multiview %s" % (name, args.tag))
+    if args.views_only:
+        print("views: %s" % ", ".join(mv.get("files", {}).values()))
+        return
     body = dict({"inputs": [{"task_id": mv["task_id"]}], "model": MODEL_3D}, **GEN_OPTS)
     rec = t.run("/generation/multiview-to-model", body, os.path.join(dest, "model"),
                 estimate=50, label="%s model B %s" % (name, args.tag))
@@ -160,6 +163,7 @@ def main():
     ap.add_argument("type", nargs="?", default="")
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--base", help="edit: the redraw tag to start from")
+    ap.add_argument("--views-only", action="store_true", help="model-b: stop after the four views")
     ap.add_argument("--model", default="seedream_v5", help="image model for the redraw")
     ap.add_argument("--extra", default="", help="extra prompt text for the redraw")
     ap.add_argument("--ref", help="extra reference image for the redraw (image[4], e.g. box art)")
