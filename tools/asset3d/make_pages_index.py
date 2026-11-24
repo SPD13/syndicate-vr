@@ -57,7 +57,7 @@ GROUPS = [
         ("scenery_models", "22 scenery 3D models from four sides", "current"),
     ]),
     ("Effects (particles and shaders, not assets)", [
-        ("effects", "Fires and explosions simulated from effects.json: small / large (with shrapnel secondaries) explosion, ground fire, burning person, barrel fire", "current"),
+        ("effects", "12 particle effects simulated from effects.json: explosions (small, large with shrapnel secondaries), ground fire, burning person, barrel fire, gas cloud, smoke plume, dark smoke, bullet impacts on ground / water / sludge, sparkle", "current"),
         ("agent_shield", "Energy shield shader look on the agent", "current"),
     ]),
     ("Style checks and history", [

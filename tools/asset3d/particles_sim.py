@@ -270,13 +270,30 @@ def figure(buf, light):
 
 def render(parts, insts, t, d):
     buf = background()
+    if d.get("preview_surface"):  # water / sludge patch under impacts (preview only), under the ring
+        sx, sy, _ = proj((0, 0, 0))
+        rx = 0.9 * SCALE
+        patch = Image.new("L", (int(2 * rx), int(2 * rx * math.sin(PITCH))), 0)
+        ImageDraw.Draw(patch).ellipse([0, 0, 2 * rx - 1, 2 * rx * math.sin(PITCH) - 1], fill=255)
+        patch = np.array(patch.filter(ImageFilter.GaussianBlur(6)), dtype=float) / 255.0
+        splat(buf, patch, sx, sy, np.array(list(d["preview_surface"]) + [1.0]), "alpha")
     # light: glow on the ground + figure lighting
     light = 0.0
     for ins in insts:
         L = ins.d.get("light")
+        lt = t - ins.t0
+        R = ins.d.get("ring")
+        if R and 0 <= lt < R["life"]:
+            sx, sy, _ = proj(ins.origin)
+            rr = float(curve(R["radius"], lt / R["life"])) * SCALE
+            a = R["color"][3] * (1 - lt / R["life"])
+            ring = Image.new("L", (int(2 * rr) + 8, int(2 * rr * math.sin(PITCH)) + 8), 0)
+            ImageDraw.Draw(ring).ellipse([4, 4, 4 + 2 * rr, 4 + 2 * rr * math.sin(PITCH)], outline=255,
+                                         width=max(2, int(rr * 0.08)))
+            ring = np.array(ring.filter(ImageFilter.GaussianBlur(2)), dtype=float) / 255.0
+            splat(buf, ring, sx, sy, np.array(R["color"][:3] + [a]), "add")
         if not L:
             continue
-        lt = t - ins.t0
         inten = float(curve(L["intensity"], lt))
         if L.get("flicker"):
             inten *= 1 + L["flicker"] * (math.sin(lt * 23.0) * 0.6 + math.sin(lt * 37.0 + 1.3) * 0.4)
@@ -288,15 +305,8 @@ def render(parts, insts, t, d):
         k = kernel("soft", 2 * rx)
         k2 = np.array(Image.fromarray((k * 255).astype(np.uint8)).resize((int(2 * rx), max(2, int(2 * rx * math.sin(PITCH)))))) / 255.0
         splat(buf, k2, sx, sy, np.array(L["color"] + [min(0.45, inten * 0.03)]), "add")
-        R = ins.d.get("ring")
-        if R and lt < R["life"]:
-            rr = float(curve(R["radius"], lt / R["life"])) * SCALE
-            a = R["color"][3] * (1 - lt / R["life"])
-            ring = Image.new("L", (int(2 * rr) + 8, int(2 * rr * math.sin(PITCH)) + 8), 0)
-            ImageDraw.Draw(ring).ellipse([4, 4, 4 + 2 * rr, 4 + 2 * rr * math.sin(PITCH)], outline=255, width=max(2, int(rr * 0.08)))
-            ring = np.array(ring.filter(ImageFilter.GaussianBlur(2)), dtype=float) / 255.0
-            splat(buf, ring, sx, sy, np.array(R["color"][:3] + [a]), "add")
-    figure(buf, light)
+    if SCALE < 200:
+        figure(buf, light)
     items = []
     for p in parts:
         em = p.em
@@ -339,7 +349,9 @@ def main():
     os.makedirs(out, exist_ok=True)
     cards = []
     for name in names:
-        SCALE = {"explosion_large": 26.0, "fire_ground": 64.0, "burning_person": 80.0, "barrel_fire": 110.0}.get(name, 62.0)
+        SCALE = {"explosion_large": 26.0, "fire_ground": 64.0, "burning_person": 80.0, "barrel_fire": 110.0,
+                 "gas_cloud": 48.0, "smoke_plume": 58.0, "smoke_dark": 52.0, "impact_dust": 300.0,
+                 "impact_water": 260.0, "impact_sludge": 260.0, "sparkle": 220.0}.get(name, 62.0)
         CY = H * {"explosion_large": 0.8, "burning_person": 0.86, "barrel_fire": 0.86}.get(name, 0.76)
         global FIG, BARREL
         FIG = np.array({"burning_person": [0, 0, 0], "fire_ground": [2.5, 0, 1.2],
@@ -350,7 +362,13 @@ def main():
         p = os.path.join(out, name + ".png")
         frames[0].save(p, save_all=True, append_images=frames[1:], loop=0, duration=int(1000 / FPS))
         strip = Image.new("RGB", (W * 6 // 2, H // 2))
-        moments = [0.05, 0.15, 0.35, 0.7, 1.4, 2.6] if name.startswith("explosion") else [0.3, 1.0, 2.0, 3.0, 4.5, 6.5]
+        dur = fx[name].get("duration", 3)
+        if name.startswith("explosion"):
+            moments = [0.05, 0.15, 0.35, 0.7, 1.4, 2.6]
+        elif dur <= 2:
+            moments = [m * dur for m in (0.02, 0.08, 0.16, 0.3, 0.5, 0.8)]
+        else:
+            moments = [m * dur for m in (0.05, 0.15, 0.3, 0.5, 0.7, 0.9)]
         for i, k in enumerate([min(len(frames) - 1, int(m * FPS)) for m in moments]):
             strip.paste(frames[k].resize((W // 2, H // 2)), (i * W // 2, 0))
         strip.save(os.path.join(out, name + "_strip.jpg"), quality=88)
