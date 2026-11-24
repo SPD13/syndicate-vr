@@ -181,8 +181,9 @@ def stage_rig(t, out, name, args):
     print("rigged: %s" % ", ".join(rig.get("files", {}).values()))
     if args.skip_anims:
         return
-    anim = t.run("/animations/retarget", {"input": rig["task_id"], "animations": ANIMS, "out_format": "glb"},
-                 os.path.join(dest, "anims"), estimate=10 * len(ANIMS), label="%s anims %s" % (name, args.route))
+    anims = args.anims.split(",") if args.anims else ANIMS
+    anim = t.run("/animations/retarget", {"input": rig["task_id"], "animations": anims, "out_format": "glb"},
+                 os.path.join(dest, "anims"), estimate=10 * len(anims), label="%s anims %s" % (name, args.route))
     print("anims: %s" % ", ".join(anim.get("files", {}).values()))
 
 
@@ -203,6 +204,7 @@ def main():
     ap.add_argument("--views-json", help="edit-views: json {view: prompt}")
     ap.add_argument("--edit", type=int, default=1, help="edit-views: number of this edit")
     ap.add_argument("--from-edit", type=int, default=0, help="model-b: use edited views #n")
+    ap.add_argument("--anims", help="rig: comma list of presets (max 5), e.g. preset:idle,preset:walk")
     ap.add_argument("--skip-anims", action="store_true", help="rig: no Tripo preset animations (Mixamo instead)")
     ap.add_argument("--model", default="seedream_v5", help="image model for the redraw")
     ap.add_argument("--extra", default="", help="extra prompt text for the redraw")
