@@ -262,14 +262,16 @@ static DIFFTEST_REF_FUNC void clear_player_protectors_paths_asm(int a1, int a2, 
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void clear_player_protectors_paths(intptr_t a1, int a2, int a3, int a4)
+/** Removes the paths of the player's agents which protect p_thing (eax);
+ * the asm does not read edx, ebx, ecx.
+ */
+void clear_player_protectors_paths(struct Thing *p_thing)
 {
-    struct Thing *p_thing = (struct Thing *)a1;
     ushort plyr;
     ushort i;
 
     DIFFTEST_SHADOW(clear_player_protectors_paths,
-      clear_player_protectors_paths_asm(a1, a2, a3, a4));
+      clear_player_protectors_paths_asm((intptr_t)p_thing, 0, 0, 0));
     plyr = p_thing->U.UPerson.ComCur >> 2;
     for (i = 0; i < playable_agents; i++)
     {
@@ -327,7 +329,7 @@ void thing_goto_point(struct Thing *p_thing, short x, short y, short z)
     }
 
     if ((p_thing->Flag & TngF_SelectedAgent) != 0)
-        clear_player_protectors_paths((intptr_t)p_thing, 0, 0, 0);
+        clear_player_protectors_paths(p_thing);
 
     if ((p_thing->Flag & TngF_PlayerAgent) != 0)
         players[p_thing->U.UPerson.ComCur >> 2].GotoFace = 0;
@@ -418,18 +420,20 @@ static DIFFTEST_REF_FUNC void find_bezier_nav_point_asm(int a1, int a2, int a3, 
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void find_bezier_nav_point(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
+/** Picks the end of the bezier road owning face `face_no` (eax) farther
+ * from p_vehicle (edx), and stores its X and Z coordinates >> 8 at
+ * p_nav_x (ebx) and p_nav_z (ecx).
+ */
+void find_bezier_nav_point(int face_no, struct Thing *p_vehicle, short *p_nav_x, short *p_nav_z)
 {
-    short face = (short)a1;
-    struct Thing *p_vehicle = (struct Thing *)a2;
-    short *p_nav_x = (short *)a3;
-    short *p_nav_z = (short *)a4;
+    short face = (short)face_no;
     struct Thing *p_first;
     struct Thing *p_last;
     ushort obj;
     s32 dx, dz, dist_first, dist_last;
 
-    DIFFTEST_SHADOW(find_bezier_nav_point, find_bezier_nav_point_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(find_bezier_nav_point, find_bezier_nav_point_asm(face_no,
+      (intptr_t)p_vehicle, (intptr_t)p_nav_x, (intptr_t)p_nav_z));
     if (face > 0)
         obj = game_object_faces3[face].Object;
     else
@@ -500,7 +504,8 @@ void thing_goto_point_on_face(struct Thing *p_thing, short x, short z, short fac
             {
                 nav_x = 0;
                 nav_z = 0;
-                find_bezier_nav_point(face, (intptr_t)p_vehicle, (intptr_t)&nav_x, (intptr_t)&nav_z);
+                // Stores shorts into the low halves of the s32 variables
+                find_bezier_nav_point(face, p_vehicle, (short *)&nav_x, (short *)&nav_z);
             }
             else
             {
@@ -1133,25 +1138,26 @@ static DIFFTEST_REF_FUNC void player_chat_message_add_key_asm(ushort a1, int a2)
         :  : "a" (a1), "d" (a2));
 }
 
-void player_chat_message_add_key(ushort a1, int a2)
+/** Adds a key to the chat message of player `plyr` (from ax); `keycode`
+ * (edx) holds the key code, with shift in bit 0x100.
+ */
+void player_chat_message_add_key(ushort plyr, int keycode)
 {
-    ushort plyr;
     u32 key;
     u32 shift;
     s32 len;
     int c;
 
     DIFFTEST_SHADOW(player_chat_message_add_key,
-      player_chat_message_add_key_asm(a1, a2));
-    plyr = a1;
+      player_chat_message_add_key_asm(plyr, keycode));
     if (player_message_timer[plyr] != 0)
     {
         player_message_timer[plyr] = 0;
         player_message_text[plyr][0] = '\0';
     }
     len = strlen(player_message_text[plyr]);
-    shift = (ushort)a2 & 0x100;
-    key = (ushort)a2 & 0xFEFF;
+    shift = (ushort)keycode & 0x100;
+    key = (ushort)keycode & 0xFEFF;
 
     if (key == 0x0E) // backspace
     {

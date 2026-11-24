@@ -579,17 +579,17 @@ static DIFFTEST_REF_FUNC void BAT_unknsub_28_asm(int a1, int a2)
         : "+a" (ra), "+d" (rd) : : "cc", "memory");
 }
 
-/** Routed asm (internal label). Arguments are the raw registers the asm
- * takes (eax, edx); it maybe spawns a bonus at that position.
+/** Routed asm (internal label). Maybe spawns a bonus at position
+ * (pos_x, pos_y), which come from eax, edx.
  */
-void BAT_unknsub_28(int a1, int a2)
+void BAT_unknsub_28(int pos_x, int pos_y)
 {
     struct BATBonus *p_bonus;
     struct BATBonus *p_next;
     int kind;
     int rnd;
 
-    DIFFTEST_SHADOW(BAT_unknsub_28, BAT_unknsub_28_asm(a1, a2));
+    DIFFTEST_SHADOW(BAT_unknsub_28, BAT_unknsub_28_asm(pos_x, pos_y));
     if ((game_rand() & 0xff) > 0x2a)
         return;
     rnd = game_rand() % 32;
@@ -635,8 +635,8 @@ void BAT_unknsub_28(int a1, int a2)
     }
     if (p_bonus == NULL)
         return;
-    p_bonus->Y = a1;
-    p_bonus->UnkDw2 = a2;
+    p_bonus->Y = pos_x;
+    p_bonus->UnkDw2 = pos_y;
     p_bonus->X = kind;
     p_bonus->UnkDw3 = (game_rand() & 0x3f) + 0x5f;
 }
@@ -1297,14 +1297,16 @@ static DIFFTEST_REF_FUNC void BAT_bricks_load_asm(int a1)
         : "+a" (ra) : : "cc", "memory");
 }
 
-void BAT_bricks_load(int a1)
+/** Loads the bricks of level `level_no` (from eax), counting from 1.
+ */
+void BAT_bricks_load(int level_no)
 {
     struct BreakoutLevel *p_level;
     int remain;
     int r, c;
 
-    DIFFTEST_SHADOW(BAT_bricks_load, BAT_bricks_load_asm(a1));
-    p_level = &BAT_levels[a1 - 1];
+    DIFFTEST_SHADOW(BAT_bricks_load, BAT_bricks_load_asm(level_no));
+    p_level = &BAT_levels[level_no - 1];
     remain = 0;
     for (r = 0; r < BAT_BRICK_ROWS; r++)
     {
@@ -1485,28 +1487,33 @@ static DIFFTEST_REF_FUNC void BAT_unknsub_20_asm(int a1, int a2, int a3, int a4,
         : : "a" (a1), "d" (a2), "b" (a3), "c" (a4), "g" (p_screen));
 }
 
-void BAT_unknsub_20(int a1, int a2, int a3, int a4, ubyte *p_screen)
+/** Sets the map tile range (x from eax to ebx, z from edx to ecx) and the
+ * colours, and resets the bricks, balls and bonuses.
+ */
+void BAT_unknsub_20(int tile_x_min, int tile_z_min, int tile_x_max, int tile_z_max,
+  ubyte *p_screen)
 {
     ubyte *p_brick_colours;
     int i;
 
-    DIFFTEST_SHADOW(BAT_unknsub_20, BAT_unknsub_20_asm(a1, a2, a3, a4, p_screen));
+    DIFFTEST_SHADOW(BAT_unknsub_20, BAT_unknsub_20_asm(tile_x_min, tile_z_min,
+      tile_x_max, tile_z_max, p_screen));
     // The brick colours table (data_1e2710, 9 bytes) is not exported from
     // the asm; it directly follows the 4-byte BAT_bricks_remain.
     p_brick_colours = (ubyte *)&BAT_bricks_remain + 4;
 
-    bat_unknvalA_min = a1;
+    bat_unknvalA_min = tile_x_min;
     p_brick_colours[0] = colour_lookup[2];
     p_brick_colours[1] = colour_lookup[3];
     p_brick_colours[2] = colour_lookup[4];
     p_brick_colours[3] = colour_lookup[1];
     p_brick_colours[4] = colour_lookup[9];
     p_brick_colours[5] = colour_lookup[5];
-    bat_unknvalB_min = a2;
+    bat_unknvalB_min = tile_z_min;
     p_brick_colours[6] = colour_lookup[8];
-    bat_unknvalA_max = a3;
+    bat_unknvalA_max = tile_x_max;
     p_brick_colours[7] = colour_lookup[7];
-    bat_unknvalB_max = a4;
+    bat_unknvalB_max = tile_z_max;
     p_brick_colours[8] = colour_lookup[10];
 
     for (i = 0; i < 8; i++)

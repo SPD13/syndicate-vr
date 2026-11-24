@@ -254,7 +254,7 @@ static void fuzz_fov_region(u32 *p_seed)
     default:
         break;
     }
-    fov_region(x, y, (int)p, 0);
+    fov_region(x, y, p);
 }
 
 void VNAV_qwertyuiop(s32 *p_dist, s32 *p_frac, int x1, int z1, int x2, int z2, int px, int pz);
@@ -343,7 +343,7 @@ static void fuzz_mech_unkn_func_20(u32 *p_seed)
     }
 }
 
-int func_5cff0(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4);
+int func_5cff0(short *p_x, short *p_z, short *p_vect);
 
 static void fuzz_func_5cff0(u32 *p_seed)
 {
@@ -366,11 +366,13 @@ static void fuzz_func_5cff0(u32 *p_seed)
     if (difftest_fuzz_rand(p_seed) % 2 == 0)
         pts[0] = (pts[0] & 0xFFFF0000) | (ushort)(x +
           (short)(difftest_fuzz_rand(p_seed) % 64) - 32);
-    func_5cff0((int)&x, (int)&z, (int)pts, difftest_fuzz_rand(p_seed));
+    // Keeps the random sequence of the former (unused) ecx argument
+    difftest_fuzz_rand(p_seed);
+    func_5cff0(&x, &z, (short *)pts);
 }
 
-void line_intersect8(int a1, int a2, int a3, int a4, int a5, int a6, int a7,
-  int a8, intptr_t a9, intptr_t a10);
+void line_intersect8(s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3,
+  s32 x4, s32 y4, s32 *p_out_x, s32 *p_out_y);
 
 static void fuzz_line_intersect8(u32 *p_seed)
 {
@@ -401,7 +403,7 @@ static void fuzz_line_intersect8(u32 *p_seed)
     out_x = fuzz_int(p_seed);
     out_z = fuzz_int(p_seed);
     line_intersect8(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
-      (int)&out_x, (int)&out_z);
+      &out_x, &out_z);
 }
 
 void save_crypto_make_hashtable(ubyte simple_salt);

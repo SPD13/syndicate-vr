@@ -67,7 +67,7 @@ extern ubyte map_crater_last;
 /* Breakout minigame (bat.c) */
 extern int BAT_state;
 extern ubyte BAT_bricks[];
-void BAT_unknsub_28(int a1, int a2);
+void BAT_unknsub_28(int pos_x, int pos_y);
 #define HK_BAT_COLUMNS 12
 #define HK_BAT_ROWS 10
 #define HK_BATSt_Gameplay 2

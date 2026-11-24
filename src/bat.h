@@ -32,7 +32,8 @@ extern "C" {
 
 void BAT_play(void);
 
-void BAT_unknsub_20(int a1, int a2, int a3, int a4, ubyte *p_screen);
+void BAT_unknsub_20(int tile_x_min, int tile_z_min, int tile_x_max, int tile_z_max,
+  ubyte *p_screen);
 
 /******************************************************************************/
 #ifdef __cplusplus
