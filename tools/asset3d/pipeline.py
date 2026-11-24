@@ -1,6 +1,6 @@
 """Drives Tripo for one person type. Run the stages in order:
 
-  python pipeline.py redraw  <type> [--tag v1] [--model seedream_v5] [--extra "..."]
+  python pipeline.py redraw  <type> [--tag v1] [--model seedream_v5] [--extra "..."] [--ref IMG]
       Route B step 1: the sprite views -> one clean front reference.
       Writes work/<type>/B/redraw_<tag>/. Review it before going on.
   python pipeline.py model-b <type> --tag v1
@@ -59,7 +59,12 @@ def find_model(files):
 def stage_redraw(t, out, name, args):
     refs = os.path.join(out, "refs", name)
     tokens = [t.upload(os.path.join(refs, v + ".png")) for v in ("front", "front34", "right")]
-    body = {"inputs": tokens, "prompt": prompt_for(name, args.extra),
+    extra = args.extra
+    if args.ref:
+        tokens.append(t.upload(args.ref))
+        chars = json.load(open(os.path.join(HERE, "characters.json"), encoding="utf-8"))
+        extra = (chars.get("_ref_note", "") + " " + extra).strip()
+    body = {"inputs": tokens, "prompt": prompt_for(name, extra),
             "model": args.model, "size": "2K"}
     dest = os.path.join(out, "work", name, "B", "redraw_" + args.tag)
     rec = t.run("/generation/image-to-image", body, dest, estimate=20, label="%s redraw %s" % (name, args.tag))
@@ -131,6 +136,7 @@ def main():
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--model", default="seedream_v5", help="image model for the redraw")
     ap.add_argument("--extra", default="", help="extra prompt text for the redraw")
+    ap.add_argument("--ref", help="extra reference image for the redraw (image[4], e.g. box art)")
     ap.add_argument("--route", choices=["A", "B"], default="B")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--max-credits", type=int, default=800)
