@@ -7,9 +7,10 @@ clips.json:
    "material_glb": "...agent_rigged.glb",    # Tripo model with the textures
    "clips": {"rifle_walk": {"file": "...walk forward.fbx", "in_place": true}, ...}}
 
-- The base armature and mesh come from the Mixamo FBX, so every clip has
-  the same rest pose; the textured material comes from the Tripo GLB (the
-  mesh and UVs are unchanged by Mixamo).
+- The base armature and mesh come from the Mixamo FBX; the textured
+  material comes from the Tripo GLB (the mesh and UVs are unchanged by
+  Mixamo). Clips are retargeted by world-space bone orientation and baked,
+  since pack clips rest in a T-pose and our rig in an A-pose.
 - Stray helper meshes without a parent (Tripo's icosphere) are removed.
 - in_place: removes the travel of the Hips (a linear ramp from the first to
   the last key) on location channels that drift, keeping the bob and sway.
@@ -76,12 +77,52 @@ for a in list(bpy.data.actions):
 # ---- clips ---------------------------------------------------------------
 if not arm.animation_data:
     arm.animation_data_create()
+def retarget(src, name):
+    """Bakes the clip of armature `src` onto `arm` by world-space bone
+    orientation (Copy Rotation) and hips position (Copy Location). The clip
+    files from Mixamo packs rest in a T-pose while our rig rests in Tripo's
+    A-pose, so their local rotations cannot be copied as they are."""
+    src_act = src.animation_data.action
+    f0, f1 = int(src_act.frame_range[0]), int(src_act.frame_range[1])
+    cons = []
+    for pb in arm.pose.bones:
+        if pb.name not in src.pose.bones:
+            continue
+        c = pb.constraints.new("COPY_ROTATION")
+        c.target, c.subtarget = src, pb.name
+        c.target_space = c.owner_space = "WORLD"
+        cons.append((pb, c))
+        if pb.name == "mixamorig:Hips":
+            c = pb.constraints.new("COPY_LOCATION")
+            c.target, c.subtarget = src, pb.name
+            c.target_space = c.owner_space = "WORLD"
+            cons.append((pb, c))
+    arm.animation_data.action = None
+    bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.ops.object.select_all(action="DESELECT")
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="POSE")
+    bpy.ops.pose.select_all(action="SELECT")
+    bpy.ops.nla.bake(frame_start=f0, frame_end=f1, only_selected=True, visual_keying=True,
+                     clear_constraints=True, use_current_action=False, bake_types={"POSE"})
+    bpy.ops.object.mode_set(mode="OBJECT")
+    act = arm.animation_data.action
+    arm.animation_data.action = None
+    act.name = name
+    act.use_fake_user = True
+    return act
+
+
+if not arm.animation_data:
+    arm.animation_data_create()
 for name, clip in cfg["clips"].items():
     objs = import_new(clip["file"])
     src = next(o for o in objs if o.type == "ARMATURE")
-    act = src.animation_data.action
-    act.name = name
-    act.use_fake_user = True
+    act = retarget(src, name)
+    for a in list(bpy.data.actions):
+        if a is not act and a.users == 0 and not a.use_fake_user:
+            bpy.data.actions.remove(a)
     if clip.get("in_place"):
         for fc in action_fcurves(act):
             if fc.data_path.endswith('"mixamorig:Hips"].location') and len(fc.keyframe_points) > 1:
