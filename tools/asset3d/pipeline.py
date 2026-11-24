@@ -144,9 +144,11 @@ def stage_rig(t, out, name, args):
     rig = t.run("/animations/rig", {"input": src, "model": RIG_MODEL, "rig_type": "biped",
                                      "spec": "mixamo", "out_format": "glb"},
                 os.path.join(dest, "rigged"), estimate=25, label="%s rig %s" % (name, args.route))
+    print("rigged: %s" % ", ".join(rig.get("files", {}).values()))
+    if args.skip_anims:
+        return
     anim = t.run("/animations/retarget", {"input": rig["task_id"], "animations": ANIMS, "out_format": "glb"},
                  os.path.join(dest, "anims"), estimate=10 * len(ANIMS), label="%s anims %s" % (name, args.route))
-    print("rigged: %s" % ", ".join(rig.get("files", {}).values()))
     print("anims: %s" % ", ".join(anim.get("files", {}).values()))
 
 
@@ -164,6 +166,7 @@ def main():
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--base", help="edit: the redraw tag to start from")
     ap.add_argument("--views-only", action="store_true", help="model-b: stop after the four views")
+    ap.add_argument("--skip-anims", action="store_true", help="rig: no Tripo preset animations (Mixamo instead)")
     ap.add_argument("--model", default="seedream_v5", help="image model for the redraw")
     ap.add_argument("--extra", default="", help="extra prompt text for the redraw")
     ap.add_argument("--ref", help="extra reference image for the redraw (image[4], e.g. box art)")
