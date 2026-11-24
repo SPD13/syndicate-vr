@@ -102,6 +102,21 @@ for job in jobs:
     for o in bpy.data.objects:
         if o.name.startswith("weapon_"):
             o.hide_render = job.get("weapon") is None or o.name != "weapon_" + job["weapon"]
+    # two-handed weapons: the left hand reaches the weapon's lhand_<name> target (IK)
+    lb = arm.pose.bones.get("mixamorig:LeftHand")
+    lf = arm.pose.bones.get("mixamorig:LeftForeArm")
+    for pbn in (lb, lf):
+        for c in [c for c in pbn.constraints if c.name.startswith("lhand_")]:
+            pbn.constraints.remove(c)
+    lht = bpy.data.objects.get("lhand_%s" % job.get("weapon"))
+    if lht and job["clip"].startswith("rifle_") and os.environ.get("CLIP_LHAND_IK", "1") == "1":
+        ik = lf.constraints.new("IK")  # the wrist (forearm tail) reaches the target
+        ik.name = "lhand_ik"
+        ik.target = lht
+        ik.chain_count = 2
+        cr = lb.constraints.new("COPY_ROTATION")  # the hand lies on the gun
+        cr.name = "lhand_rot"
+        cr.target = lht
     f0, f1 = int(act.frame_range[0]), int(act.frame_range[1])
     scene.frame_set(f0)
     fwd = facing()

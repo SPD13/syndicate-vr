@@ -22,6 +22,11 @@ For each weapon:
 - "grip_at": 0..1 places the handle by hand, as a fraction of the length
   from the back, when the lowest part is not the handle (a fuel canister,
   a long barrel); "grip_h": 0..1 the hand's height on it.
+- "fit": "fist" (default) lines the handle's axis up with the knuckles and
+  centres it in the curled fingers; "palm" only puts the grip at the palm.
+- two-handed weapons get an empty lhand_<name> on top of the body at
+  "support_at" (default 0.62 of the length from the back), "support_up"
+  (0.03 m) above it: the left hand's IK target.
 - "pitch": degrees to raise the nose when the main axis is off (L shapes).
 - <out>_sockets.json records each weapon's matrix relative to RightHand
   (the bone tail), for attaching weapon GLBs at runtime.
@@ -70,7 +75,7 @@ def bone_world(name, tail=False):
     return ev.matrix_world @ (pb.tail if tail else pb.head)
 
 
-def weapon_frame(objs, flip_up=False, grip_at=None, pitch=0.0, grip_h=None):
+def weapon_frame(objs, flip_up=False, grip_at=None, pitch=0.0, grip_h=None, support_at=None):
     pts = np.array([tuple(o.matrix_world @ v.co) for o in objs for v in o.data.vertices])
     c = pts.mean(0)
     w, v = np.linalg.eigh(np.cov((pts - c).T))
@@ -104,7 +109,21 @@ def weapon_frame(objs, flip_up=False, grip_at=None, pitch=0.0, grip_h=None):
         # hold the grip near its top, where the hand closes
         top = grip_pts[((grip_pts - c) @ up) > np.percentile((grip_pts - c) @ up, 60)].mean(0)
     length = pf.max() - pf.min()
-    return Vector(fwd), Vector(up), Vector(top), length
+    # handle axis: main axis of the handle's points, pointing down (index -> little finger)
+    g = grip_pts - grip_pts.mean(0)
+    gw, gv = np.linalg.eigh(np.cov(g.T))
+    hax = gv[:, np.argmax(gw)]
+    if gw.max() < 2.5 * np.sort(gw)[-2] or abs(hax @ up) < 0.5:
+        hax = -up  # no clear handle shape: straight down
+    if hax @ up > 0:
+        hax = -hax
+    # support point for the other hand: on top of the body, `support_at` of the length from the back
+    sup = None
+    if support_at is not None:
+        t = (pf - pf.min()) / (pf.max() - pf.min())
+        win = np.abs(t - support_at) < 0.04
+        sup = Vector(pts[win][pu[win] > np.percentile(pu[win], 85)].mean(0))
+    return Vector(fwd), Vector(up), Vector(top), length, Vector(hax), sup
 
 
 def frame_matrix(fwd, up, origin):
@@ -136,13 +155,18 @@ for name, w in cfg.items():
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     gun.name = "weapon_" + name
 
-    fwd, up, grip, length = weapon_frame([gun], w.get("flip_up"), w.get("grip_at"), w.get("pitch", 0.0), w.get("grip_h"))
+    two_hands = w.get("aim") == "hands"
+    fwd, up, grip, length, hax, sup = weapon_frame(
+        [gun], w.get("flip_up"), w.get("grip_at"), w.get("pitch", 0.0), w.get("grip_h"),
+        w.get("support_at", 0.62) if two_hands else None)
     if w.get("flip"):  # the muzzle heuristic picked the wrong end
         fwd = -fwd
     s = w["length"] / length
     # weapon-local frame: grip at origin, Y forward, Z up, scaled to size
     local = frame_matrix(fwd, up, grip).inverted()
-    gun.data.transform(Matrix.Scale(s, 4) @ local)
+    to_local = Matrix.Scale(s, 4) @ local
+    gun.data.transform(to_local)
+    hd = (local.to_3x3() @ hax).normalized()  # handle axis (down) in the weapon frame
 
     set_pose(w["pose"], w.get("frac", 0.5))
     hand = bone_world("mixamorig:RightHand")
@@ -156,6 +180,21 @@ for name, w in cfg.items():
     if abs(f.dot(u)) > 0.95:
         u = Vector((0, 1, 0))
     target = frame_matrix(f, u, palm + f * w.get("grip_in", 0.0))
+    if w.get("fit", "fist") == "fist":
+        # the handle runs through the closed fist: along the knuckles (index -> little
+        # finger), centred in the curl of the fingers; the muzzle as close to the aim
+        # as the handle's slant allows
+        knuck = (bone_world("mixamorig:RightHandPinky1") - bone_world("mixamorig:RightHandIndex1")).normalized()
+        curl = [bone_world("mixamorig:RightHandMiddle%d" % i) for i in (1, 2, 3)]
+        curl.append(bone_world("mixamorig:RightHandMiddle3", tail=True))
+        hole = (sum(curl, Vector()) / 4).lerp(palm, 0.5)
+        # aim first (muzzle along the aim), then the roll: the handle as close to the knuckles as it goes
+        y = Vector((0, 1, 0))
+        hp = (hd - y * hd.dot(y)).normalized()
+        src_m = Matrix((y, hp, y.cross(hp))).transposed()
+        kp = (knuck - f * knuck.dot(f)).normalized()
+        dst_m = Matrix((f, kp, f.cross(kp))).transposed()
+        target = Matrix.Translation(hole + f * w.get("grip_in", 0.0)) @ (dst_m @ src_m.transposed()).to_4x4()
     print("  %s frame %d hand %s lhand %s fwd %s" % (name, scene.frame_current, tuple(round(v, 2) for v in hand),
           tuple(round(v, 2) for v in bone_world("mixamorig:LeftHand")), tuple(round(v, 2) for v in f)))
 
@@ -169,7 +208,39 @@ for name, w in cfg.items():
     gun.matrix_parent_inverse = Matrix.Identity(4)
     gun.matrix_basis = tail_m.inverted() @ target
     sockets[name] = {"bone": "mixamorig:RightHand", "matrix": [list(r) for r in gun.matrix_basis],
-                      "pose": w["pose"], "hold": "two hands" if w.get("aim") == "hands" else "one hand"}
+                      "pose": w["pose"], "hold": "two hands" if two_hands else "one hand"}
+    if sup is not None:
+        # left-hand target: an empty on top of the body, a hand's thickness above it
+        lh = bpy.data.objects.new("lhand_" + name, None)
+        scene.collection.objects.link(lh)
+        lh.parent = gun
+        # the left hand bone's wanted pose: palm down on the top, fingers over the far side
+        # (forward and to the right), wrist behind the palm; its location is the wrist
+        set_pose(w["pose"], w.get("frac", 0.5))
+        ev, lpb = pose_bone("mixamorig:LeftHand")
+        hm = (ev.matrix_world @ lpb.matrix).to_3x3()
+        hy = hm.col[1].normalized()
+        across = bone_world("mixamorig:LeftHandIndex1") - bone_world("mixamorig:LeftHandPinky1")
+        n = hy.cross(across).normalized()
+        if n.dot(bone_world("mixamorig:LeftHandThumb3") - bone_world("mixamorig:LeftHandMiddle1")) < 0:
+            n = -n  # n: palm normal
+        axes = [(i, sg) for i in (0, 2) for sg in (1, -1)]
+        pi, ps = max(axes, key=lambda a: a[1] * hm.col[a[0]].normalized().dot(n))
+        gw = gun.matrix_world.to_3x3()
+        fwd_w, right_w, up_w = gw.col[1].normalized(), gw.col[0].normalized(), gw.col[2].normalized()
+        fy = (fwd_w * w.get("support_fwd", 0.45) + right_w).normalized()
+        cols = [None, fy, None]
+        cols[pi] = -up_w * ps  # palm axis looks down onto the gun
+        k = 2 - pi
+        cols[k] = (cols[(k + 1) % 3].cross(cols[(k + 2) % 3])).normalized()
+        cols[pi] = cols[(pi + 1) % 3].cross(cols[(pi + 2) % 3]).normalized()
+        rot = Matrix((cols[0], cols[1], cols[2])).transposed()
+        palm_c = gun.matrix_world @ (to_local @ sup) + up_w * w.get("support_up", 0.025)
+        wrist = palm_c - fy * lpb.length * 0.55
+        lh.matrix_world = Matrix.Translation(wrist) @ rot.to_4x4()
+        sockets[name]["left_hand_target"] = [list(r) for r in lh.matrix_basis]
+        print("  %s left hand target at %.2f of the length, palm axis %s%s" % (name, w.get("support_at", 0.62),
+              "-+"[ps > 0], "XYZ"[pi]))
     print("attached %s: length %.2f m (scale %.3f), pose %s" % (name, w["length"], s, w["pose"]))
 
 ad.action = None
