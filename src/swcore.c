@@ -18,20 +18,17 @@
 #include "game_data.h"
 #include "game_options.h"
 #include "game_save.h"
+#include "game_speed.h"
 #include "keyboard.h"
 #include "lvfiles.h"
 #include "lvobjctv.h"
 #include "network.h"
 #include "packet.h"
+#include "swcore.h"
 #include "swlog.h"
 #include "thing.h"
 #include "tngcolisn.h"
 #include "util.h"
-
-#if defined WIN32 && defined main
-// Anti SDL
-# undef main
-#endif
 
 enum ConfigCmd {
     ConfCmd_CD = 1,
@@ -573,8 +570,10 @@ void read_conf_file(void)
     LbIniParseEnd(&parser);
 }
 
-int
-main (int argc, char **argv)
+/******************************************************************************/
+/* The library API, see swcore.h; main() of the executable is in swmain.c. */
+
+int swcore_init(int argc, char **argv)
 {
     // the initial mode will be overwritten in game_setup()
     lbDisplay.ScreenMode = Lb_SCREEN_MODE_320_200_8;
@@ -607,8 +606,18 @@ main (int argc, char **argv)
     if (!game_setup())
         return 1;
 
-    game_process();
+    game_process_begin();
+    return 0;
+}
 
+int swcore_step(void)
+{
+    return game_process_turn() ? 1 : 0;
+}
+
+void swcore_shutdown(void)
+{
+    game_process_end();
     game_reset();
     if ( in_network_game ) {
         LbNetworkReset();
@@ -616,7 +625,17 @@ main (int argc, char **argv)
     JoyDriverShutdown();
     reset_log();
     LbMemoryReset();
-    game_quit();
-    // the above function never returns
-    return 0;
+    game_shutdown();
 }
+
+uint32_t swcore_game_turn(void)
+{
+    return (uint32_t)gameturn;
+}
+
+uint32_t swcore_state_hash(void)
+{
+    return game_state_hash();
+}
+
+/******************************************************************************/

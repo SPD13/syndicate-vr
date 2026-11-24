@@ -53,6 +53,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -148,6 +149,7 @@
 #include "mydraw.h"
 #include "network.h"
 #include "sound.h"
+#include "swcore_game.h"
 #include "osunix.h"
 #include "oswindws.h"
 #include "util.h"
@@ -7610,6 +7612,9 @@ void load_packet(void)
     if (ingame.DisplayMode == DpM_ENGINEPLY || ingame.DisplayMode == DpM_UNKN_3B)
     {
         did_inp |= do_user_interface();
+        // commands of a front end using the game library, as mouse clicks
+        if (((did_inp & GINPUT_PACKET) == 0) && swcore_input_packet(p_pckt))
+            did_inp |= GINPUT_PACKET;
         if ((did_inp & GINPUT_PACKET) == 0)
             did_inp |= input_agents_cheats();
         if ((did_inp & GINPUT_PACKET) == 0)
@@ -7776,31 +7781,18 @@ void game_process_orbital_station_explode(void)
     }
 }
 
-#if DIFFTEST_HARNESS
-/** Writes a hash of the things memory and the random seed each turn to the
- * file named by $SWARS_STATETRACE, so that two builds can be compared turn
- * by turn (e.g. after routing asm through C wrappers). PTarget, the only
- * pointer in a thing, is hashed as a thing index, since runs place the
- * things memory apart.
+/** Hash of the world state: the things memory, with PTarget, the only
+ * pointer in a thing, hashed as a thing index (runs place the things memory
+ * apart) and the drawing-driven Frame and Timer1 left out. The same on every
+ * target and pointer size; the state traces of the builds are compared on it.
  */
-static void statetrace_turn(void)
+u32 game_state_hash(void)
 {
-    static FILE *fp = NULL;
-    static TbBool tried = false;
-    const u32 *p, *beg, *end;
+    const u32 *p, *beg;
     ThingIdx thing;
     u32 h;
 
-    if (!tried) {
-        const char *fname = getenv("SWARS_STATETRACE");
-        tried = true;
-        if (fname != NULL)
-            fp = fopen(fname, "wb"); // LF on every OS, for diffing
-    }
-    if (fp == NULL)
-        return;
     beg = (const u32 *)((ubyte *)sthings - STHINGS_LIMIT * sizeof(struct SimpleThing));
-    end = (const u32 *)((ubyte *)things + THINGS_LIMIT * sizeof(struct Thing));
     h = 2166136261u;
     for (p = beg; p < (const u32 *)things; p++)
         h = (h ^ *p) * 16777619u;
@@ -7829,13 +7821,37 @@ static void statetrace_turn(void)
             h = (h ^ w) * 16777619u;
         }
     }
-    fprintf(fp, "%u %08x %08x\n", (u32)gameturn, (uint)h, (u32)lbSeed);
+    return h;
+}
+
+#if DIFFTEST_HARNESS
+/** Writes game_state_hash() and the random seed each turn to the file
+ * named by $SWARS_STATETRACE, so that two builds can be compared turn by
+ * turn (e.g. after routing asm through C wrappers).
+ */
+static void statetrace_turn(void)
+{
+    static FILE *fp = NULL;
+    static TbBool tried = false;
+    const u32 *beg, *end;
+
+    if (!tried) {
+        const char *fname = getenv("SWARS_STATETRACE");
+        tried = true;
+        if (fname != NULL)
+            fp = fopen(fname, "wb"); // LF on every OS, for diffing
+    }
+    if (fp == NULL)
+        return;
+    fprintf(fp, "%u %08x %08x\n", (u32)gameturn, (uint)game_state_hash(), (u32)lbSeed);
     fflush(fp);
     if ((getenv("SWARS_STATETRACE_DUMP") != NULL) &&
       (strtoul(getenv("SWARS_STATETRACE_DUMP"), NULL, 0) == gameturn))
     {
         char fname[256];
         FILE *dfp;
+        beg = (const u32 *)((ubyte *)sthings - STHINGS_LIMIT * sizeof(struct SimpleThing));
+        end = (const u32 *)((ubyte *)things + THINGS_LIMIT * sizeof(struct Thing));
         snprintf(fname, sizeof(fname), "%s.dump", getenv("SWARS_STATETRACE"));
         dfp = fopen(fname, "wb");
         if (dfp != NULL) {
@@ -7852,78 +7868,103 @@ static void statetrace_turn(void)
 }
 #endif
 
-void game_process(void)
+void game_process_begin(void)
 {
     debug_multicolor_sprite(193);
     LOGDBG("WSCREEN 0x%p", (void *)lbDisplay.WScreen);
+}
 
-    while ( !exit_game )
-    {
-        process_sound_heap();
-        navi2_unkn_counter -= 2;
-        if (navi2_unkn_counter < 0)
-            navi2_unkn_counter = 0;
-        if (navi2_unkn_counter > navi2_unkn_counter_max)
-            navi2_unkn_counter_max = navi2_unkn_counter;
-        if (keyboard_mode_direct)
-            input_char = LbKeyboard();
-        if (ingame.DisplayMode == DpM_PURPLEMNU) {
-            LOGDBG("id=%d  trial alloc = %d turn %u", 0, triangulation, gameturn);
-        }
-        input();
-        update_tick_time();
-        // Faces thrown by an explosion can hit people once they land, so they
-        // are world state and progress with the world - not from within the
-        // renderer, where this used to be called from.
-        if ((ingame.DisplayMode == DpM_ENGINEPLY)
-          && ((ingame.Flags & TngF_ProgressAction) != 0))
-            process_explode();
-        draw_game();
-        debug_trace_turn_bound(gameturn);
-        load_packet();
-        difftest_bot_turn();
-        if ( ((active_flags_general_unkn01 & 0x8000) != 0) !=
-          ((ingame.Flags & GamF_ThermalView) != 0) )
-            LbPaletteSet(display_palette);
-        active_flags_general_unkn01 = ingame.Flags;
-        if ((ingame.DisplayMode == DpM_ENGINEPLY)
-          || (ingame.DisplayMode == DpM_UNKN_1)
-          || (ingame.DisplayMode == DpM_UNKN_3B))
-            process_things();
-        if (debug_hud_things) {
-            bad_tile_debug();
-            things_debug_hud();
-        }
-        if (ingame.DisplayMode != DpM_PURPLEMNU)
-            process_packets();
-        joy_input();
-
-        if (ingame.DisplayMode == DpM_PURPLEMNU)
-        {
-            game_update();
-            swap_wscreen();
-        }
-        else if (!skip_redraw_this_turn())
-        {
-            game_update();
-            LbScreenSwapClear(0);
-        }
-
-        update_unkn_changing_colors();
-        game_process_orbital_station_explode();
-        gameturn++;
-        difftest_game_turn();
-        statetrace_turn();
-        scene_post_effect_prepare();
+/** One turn of the main loop: input, world update, drawing, sound.
+ * Returns false once the game asked to exit.
+ */
+TbBool game_process_turn(void)
+{
+    if (exit_game)
+        return false;
+    process_sound_heap();
+    navi2_unkn_counter -= 2;
+    if (navi2_unkn_counter < 0)
+        navi2_unkn_counter = 0;
+    if (navi2_unkn_counter > navi2_unkn_counter_max)
+        navi2_unkn_counter_max = navi2_unkn_counter;
+    if (keyboard_mode_direct)
+        input_char = LbKeyboard();
+    if (ingame.DisplayMode == DpM_PURPLEMNU) {
+        LOGDBG("id=%d  trial alloc = %d turn %u", 0, triangulation, gameturn);
     }
+    input();
+    update_tick_time();
+    // Faces thrown by an explosion can hit people once they land, so they
+    // are world state and progress with the world - not from within the
+    // renderer, where this used to be called from.
+    if ((ingame.DisplayMode == DpM_ENGINEPLY)
+      && ((ingame.Flags & TngF_ProgressAction) != 0))
+        process_explode();
+    draw_game();
+    debug_trace_turn_bound(gameturn);
+    load_packet();
+    difftest_bot_turn();
+    if ( ((active_flags_general_unkn01 & 0x8000) != 0) !=
+      ((ingame.Flags & GamF_ThermalView) != 0) )
+        LbPaletteSet(display_palette);
+    active_flags_general_unkn01 = ingame.Flags;
+    if ((ingame.DisplayMode == DpM_ENGINEPLY)
+      || (ingame.DisplayMode == DpM_UNKN_1)
+      || (ingame.DisplayMode == DpM_UNKN_3B))
+        process_things();
+    if (debug_hud_things) {
+        bad_tile_debug();
+        things_debug_hud();
+    }
+    if (ingame.DisplayMode != DpM_PURPLEMNU)
+        process_packets();
+    joy_input();
+
+    if (ingame.DisplayMode == DpM_PURPLEMNU)
+    {
+        game_update();
+        swap_wscreen();
+    }
+    else if (!skip_redraw_this_turn())
+    {
+        game_update();
+        LbScreenSwapClear(0);
+    }
+
+    update_unkn_changing_colors();
+    game_process_orbital_station_explode();
+    gameturn++;
+    difftest_game_turn();
+    statetrace_turn();
+    scene_post_effect_prepare();
+    return !exit_game;
+}
+
+void game_process_end(void)
+{
     PacketRecord_Close();
     LbPaletteFade(NULL, 0x10u, 1);
 }
 
-void game_quit(void)
+void game_process(void)
+{
+    game_process_begin();
+    while (game_process_turn())
+        ;
+    game_process_end();
+}
+
+/** Frees what the game set up, without ending the process.
+ */
+void game_shutdown(void)
 {
     host_reset();
     LbBaseReset();
+}
+
+void game_quit(void)
+{
+    game_shutdown();
     exit(0);
 }
 

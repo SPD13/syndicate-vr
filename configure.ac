@@ -15,7 +15,7 @@ AC_INIT([Syndicate Wars Fan Expansion], [syndwarsfx_version], [unavowed@vexilliu
 
 AC_CONFIG_SUBDIRS([bflibrary bfsoundlib swrendersoft])
 
-AC_CONFIG_SRCDIR([src/main.c])
+AC_CONFIG_SRCDIR([src/swmain.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_MACRO_DIRS([m4])
 
@@ -75,6 +75,8 @@ AS_IF([test "$exec_prefix" = "NONE"], [
 AC_PROG_CC
 AC_PROG_CXX
 AM_PROG_AS
+AM_PROG_AR
+AC_PROG_RANLIB
 AM_PATH_PYTHON([3.1])
 PKG_PROG_PKG_CONFIG
 AC_CHECK_PROGS(WINDRES, $WINDRES "${target_alias}-windres" "${target}-windres", "windres", :)

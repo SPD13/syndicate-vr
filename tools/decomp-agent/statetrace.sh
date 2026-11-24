@@ -21,8 +21,12 @@ GAMEDATA="${SWARS_GAMEDATA:-$(dirname "$(dirname "$COMMON")")/gamedata}"
 # SWARS_TRACE_BUILD: build/ folder to run, default difftest; harness and
 # x64 (build.sh --harness/--x64) have the trace without the asm
 BUILD="${SWARS_TRACE_BUILD:-difftest}"
-EXE="$REPO/build/$BUILD/src/syndwarsfx.exe"
-[ -f "$EXE" ] || EXE="$REPO/build/$BUILD/src/syndwarsfx"
+# SWARS_TRACE_EXE=swcore_headless runs the test front end of the game
+# library instead; its output (turn and state hash read through swcore.h)
+# goes to <outdir>/<scenario>.out
+PROG="${SWARS_TRACE_EXE:-syndwarsfx}"
+EXE="$REPO/build/$BUILD/src/$PROG.exe"
+[ -f "$EXE" ] || EXE="$REPO/build/$BUILD/src/$PROG"
 if [ ! -f "$EXE" ]; then echo "ERROR: no $BUILD build at $EXE"; exit 1; fi
 for d in "$GAMEDATA"/*.dll; do
     [ -f "$d" ] && [ ! -f "$(dirname "$EXE")/$(basename "$d")" ] && cp "$d" "$(dirname "$EXE")/"
@@ -44,10 +48,11 @@ for SC in $SCENARIOS; do
     WRK=""; case "$SC" in *+wreck*) WRK=1 ;; esac
     SUF=""; case "$SC" in *+*) SUF="+${SC#*+}" ;; esac
     T="$OUTDIR/${SC/,/_}.trace"
+    OUTF=/dev/null; [ -n "${SWARS_TRACE_EXE:-}" ] && OUTF="$OUTDIR/${SC/,/_}.out"
     # A function name that matches nothing enables the turn limit only
     SWARS_DIFFTEST_FN=statetrace_none SWARS_DIFFTEST_TURNS="$TURNS" \
     SWARS_DIFFTEST_FAST=1 SWARS_DIFFTEST_LOG="$OUTDIR/${SC/,/_}.log" \
-    SWARS_STATETRACE="$T" SWARS_SEED="${SWARS_SEED:-12345}" timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} ${SUF:+SWARS_DIFFTEST_SUFFIX=$SUF} "$EXE" -q -W -m "${SC%%+*}" > /dev/null 2>&1
+    SWARS_STATETRACE="$T" SWARS_SEED="${SWARS_SEED:-12345}" timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} ${SUF:+SWARS_DIFFTEST_SUFFIX=$SUF} "$EXE" -q -W -m "${SC%%+*}" > "$OUTF" 2>&1
     RC=$?
     echo "  scenario $SC: rc=$RC turns=$(wc -l < "$T" 2>/dev/null || echo 0)"
     # 4: no calls of the (absent) function, the normal end

@@ -3,7 +3,16 @@ bindir = $(prefix)/$(PACKAGE)
 
 MKW = $(PYTHON) $(top_srcdir)/util/mkwrappers
 
+# The game is a library, libswarscore (interface: swcore.h), which front
+# ends link; syndwarsfx is the SDL desktop front end, its main() only runs
+# the library turn by turn.
+noinst_LIBRARIES = libswarscore.a
+
 syndwarsfx_SOURCES = \
+	swcore.h \
+	swmain.c
+
+libswarscore_a_SOURCES = \
 	bflib_vidraw.c \
 	bflib_vidraw.h \
 	../bfariadne/include/trfringe.h \
@@ -141,7 +150,6 @@ syndwarsfx_SOURCES = \
 	lvfiles.h \
 	lvwalk.c \
 	lvwalk.h \
-	main.c \
 	matrix.c \
 	matrix.h \
 	misstat.c \
@@ -187,6 +195,10 @@ syndwarsfx_SOURCES = \
 	sound.h \
 	specblit.c \
 	specblit.h \
+	swcore.c \
+	swcore.h \
+	swcore_game.h \
+	swcore_world.c \
 	swlog.h \
 	thing.c \
 	thing.h \
@@ -222,10 +234,12 @@ syndwarsfx_SOURCES = \
 	wrcities.c \
 	wrcities.h
 
-syndwarsfx_CPPFLAGS = \
+libswarscore_a_CPPFLAGS = \
   -I"$(top_srcdir)/bfsmacklib/include" \
   -I"$(top_srcdir)/swrendersoft/include" \
   -I"$(top_srcdir)/bfariadne/include"
+
+syndwarsfx_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
 
 # Watcom-to-C wrappers (ac_*) are called only from asm, which builds
 # without difftest and DOS network do not have
@@ -248,7 +262,7 @@ syndwarsfx_RCFLAGS = \
 # that asm (*_data.c) is its byte layout; other builds define the variables
 # C uses with their types, in the C files.
 if DOS_NETWORK
-syndwarsfx_SOURCES += \
+libswarscore_a_SOURCES += \
 	netipx1_data.c \
 	netser1_data.c \
 	netdos_data.c \
@@ -267,7 +281,7 @@ endif
 # its data as the byte layout it needs (*_data.c); other builds define the
 # variables C uses with their types, in the C files.
 if ENABLE_DIFFTEST
-syndwarsfx_SOURCES += \
+libswarscore_a_SOURCES += \
 	../bfsmacklib/src/bfsmacklib_data.c \
 	bat_data.c \
 	swars_data.c \
@@ -294,10 +308,26 @@ nodist_EXTRA_syndwarsfx_SOURCES = dummy.cxx
 # Libraries included with the project
 syndwarsfx_PROJECT_LIBS = ../lib/libbullfrog.a ../lib/libbfsound.a ../lib/libswrender.a
 
-$(syndwarsfx_OBJECTS) $(bin_PROGRAMS): $(syndwarsfx_PROJECT_LIBS)
+$(libswarscore_a_OBJECTS) $(syndwarsfx_OBJECTS) $(bin_PROGRAMS): $(syndwarsfx_PROJECT_LIBS)
 
+# The whole library goes in, as when its objects were linked directly: the
+# asm reference and the wrappers reach functions nothing else references
+syndwarsfx_LDFLAGS = -Wl,--whole-archive libswarscore.a -Wl,--no-whole-archive
 syndwarsfx_LDADD = \
   $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS)
+syndwarsfx_DEPENDENCIES = libswarscore.a \
+  $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS)
+
+# A minimal front end for tests: links the library as any front end does,
+# and prints the state hash of every turn (swcore_headless.c). Builds with
+# asm have the wrappers outside the library, so only builds without asm.
+if !ASM_WRAPPERS
+noinst_PROGRAMS = swcore_headless
+swcore_headless_SOURCES = swcore.h swcore_headless.c
+nodist_EXTRA_swcore_headless_SOURCES = dummy.cxx
+swcore_headless_LDADD = libswarscore.a
+$(swcore_headless_OBJECTS): $(syndwarsfx_PROJECT_LIBS)
+endif
 
 ../lib/libbullfrog.a: ../bflibrary/libbullfrog.a
 	$(MAKE) -C $(<D) DESTDIR="../" prefix="" install

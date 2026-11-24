@@ -91,6 +91,24 @@ lack clobber lists and break under optimisation.
   64-bit builds; a build with `-Wconversion` shows pointers passed into
   narrower ints (`conversion from 'intptr_t' ... to 'int'`).
 
+## Game library (since 2026-11-23)
+
+- The game is `src/libswarscore.a` with the interface `src/swcore.h`
+  (see `docs/swcore.md`). `syndwarsfx` is `src/swmain.c` plus the whole
+  library; `swcore_headless` is a test front end (builds without asm).
+  New game sources go into `libswarscore_a_SOURCES` in `src/Makefile.am`.
+- The direction: one C core, front ends per target (SDL desktop, VR,
+  mobile), solo play only. Keep `swcore.h` free of game headers
+  (`<stdint.h>` types only) and add to it, don't change it
+  (`SWCORE_API_VERSION`).
+- `SWARS_TRACE_EXE=swcore_headless python
+  tools/decomp-agent/statetrace_win_par.py harness <outdir>` checks that
+  a library front end plays the same game as the reference (traces and
+  the hashes read through the interface).
+- Never touch the `assets/tripo` branch, its worktree
+  (`worktrees/assets-tripo`) or `tools/asset3d/`: another session works
+  there.
+
 ## Calling convention of the asm (Watcom register)
 
 - Arguments in `eax`, `edx`, `ebx`, `ecx`, in that order; more arguments
