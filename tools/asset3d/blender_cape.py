@@ -81,6 +81,10 @@ axis = Vector((hips.x, hips.y, 0))
 H = rest_head("Head").z + 0.25
 floor_z = min(rest_head("LeftToeBase").z, rest_head("RightToeBase").z) - 0.03
 attach_z = (l_sh.z + r_sh.z) / 2 + opt["attach_dz"] * H
+U = H / 1.95  # metre-valued options are for a ~1.95 m character; scale them
+for k in ("clearance", "top_clear", "robe_margin", "under"):
+    if k in opt:
+        opt[k] = opt[k] * U
 print("height %.2f attach_z %.2f floor %.2f" % (H, attach_z, floor_z))
 
 # shape the cape around a relaxed pose (first frame of idle, arms down), not

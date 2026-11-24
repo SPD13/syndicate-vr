@@ -84,6 +84,13 @@ def retarget(src, name):
     A-pose, so their local rotations cannot be copied as they are."""
     src_act = src.animation_data.action
     f0, f1 = int(src_act.frame_range[0]), int(src_act.frame_range[1])
+    # clips made on another character: scale them to this character's hip
+    # height, so the copied hips position (and stride) fits the legs
+    a_h = (arm.matrix_world @ arm.data.bones["mixamorig:Hips"].head_local).z
+    s_h = (src.matrix_world @ src.data.bones["mixamorig:Hips"].head_local).z
+    if s_h > 1e-4 and abs(a_h / s_h - 1) > 0.01:
+        src.scale = [v * a_h / s_h for v in src.scale]
+        bpy.context.view_layer.update()
     cons = []
     for pb in arm.pose.bones:
         if pb.name not in src.pose.bones:

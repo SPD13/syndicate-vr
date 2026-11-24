@@ -1,6 +1,9 @@
 """Writes the clip list for blender_merge_anims.py from a Mixamo download folder.
 
-python make_clips.py <raw_dir> <base_fbx_name> <material_glb> <out.json>
+python make_clips.py <raw_dir> <base_fbx_name or path> <material_glb> <out.json>
+
+A base path outside <raw_dir> lets one character reuse another's Mixamo clips
+(the merge scales them to the hip height).
 
 <raw_dir> holds loco_pack/, pistol_pack/, rifle_pack/ (unzipped Mixamo packs)
 and single/ (shoot_pistol_v2, shoot_rifle, hit, push_back .fbx). The same
@@ -26,7 +29,8 @@ clips = {
     "death_front": (F + "death from the front.fbx", False), "death_back": (F + "death from the back.fbx", False),
     "death_headshot": (F + "death from front headshot.fbx", False),
 }
-cfg = {"base_fbx": P + base_name, "material_glb": os.path.abspath(material).replace(os.sep, "/"),
+base_path = base_name if os.path.isabs(base_name) or os.path.exists(base_name) else P + base_name
+cfg = {"base_fbx": os.path.abspath(base_path).replace(os.sep, "/"), "material_glb": os.path.abspath(material).replace(os.sep, "/"),
        "clips": {k: {"file": f, "in_place": ip} for k, (f, ip) in clips.items()}}
 missing = [c["file"] for c in cfg["clips"].values() if not os.path.exists(c["file"])]
 if missing or not os.path.exists(cfg["base_fbx"]):
