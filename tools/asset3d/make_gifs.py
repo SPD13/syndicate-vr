@@ -22,16 +22,19 @@ def build(clips_dir, out_dir, title):
             continue
         info = json.load(open(info_p))
         frames = []
+        nviews = 0
+        while os.path.exists(os.path.join(d, "f000_%d.png" % nviews)):
+            nviews += 1
+        labels = info.get("views_labels") or ["3/4 front", "right side", "back", "view 4"]
         for i in range(info["frames"]):
-            a = Image.open(os.path.join(d, "f%03d_0.png" % i)).convert("RGB")
-            b = Image.open(os.path.join(d, "f%03d_1.png" % i)).convert("RGB")
-            im = Image.new("RGB", (a.width + b.width, a.height))
-            im.paste(a, (0, 0))
-            im.paste(b, (a.width, 0))
+            tiles = [Image.open(os.path.join(d, "f%03d_%d.png" % (i, k))).convert("RGB") for k in range(nviews)]
+            w0, h0 = tiles[0].size
+            im = Image.new("RGB", (w0 * nviews, h0))
             dr = ImageDraw.Draw(im)
+            for k, t in enumerate(tiles):
+                im.paste(t, (k * w0, 0))
+                dr.text((k * w0 + 6, h0 - 14), labels[k] if k < len(labels) else "", fill=(200, 200, 200))
             dr.text((6, 4), name, fill=(255, 255, 255))
-            dr.text((6, a.height - 14), "3/4 front", fill=(200, 200, 200))
-            dr.text((a.width + 6, a.height - 14), "right side", fill=(200, 200, 200))
             frames.append(im.quantize(colors=128, method=Image.Quantize.MEDIANCUT))
         gif = os.path.join(out_dir, name + ".gif")
         frames[0].save(gif, save_all=True, append_images=frames[1:], loop=0,
@@ -50,7 +53,7 @@ def build(clips_dir, out_dir, title):
 <style>body{background:#1d1e22;color:#ddd;font:14px system-ui;margin:20px}
 .grid{display:flex;flex-wrap:wrap;gap:12px}figure{margin:0;background:#2a2b31;padding:6px;border-radius:6px}
 figcaption{text-align:center;padding-top:4px;color:#aaa}img{display:block}</style></head>
-<body><h1>%s</h1><p>Left: 3/4 front view. Right: right side view (character faces left).
+<body><h1>%s</h1><p>Views left to right: 3/4 front, right side (character faces left), and back when rendered.
 Orthographic camera, Workbench render with texture colours.</p>%s%s</body></html>""" % (
         title, title, section("With weapon", armed), section("Without weapon", plain))
     open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8").write(html)

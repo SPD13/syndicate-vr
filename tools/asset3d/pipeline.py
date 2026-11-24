@@ -158,8 +158,8 @@ def stage_model_a(t, out, name, args):
     print("model: %s" % find_model(rec.get("files", {})))
 
 
-def model_task(t, name, route, tag):
-    label = "%s model A" % name if route == "A" else "%s model B %s" % (name, tag)
+def model_task(t, name, route, tag, from_edit=0):
+    label = "%s model A" % name if route == "A" else "%s model B %s%s" % (name, tag, " edit%d" % from_edit if from_edit else "")
     for e in reversed(t._entries()):
         if e.get("kind") == "task" and e.get("label") == label and e.get("status") == "success":
             return e["task_id"]
@@ -167,16 +167,17 @@ def model_task(t, name, route, tag):
 
 
 def stage_rig(t, out, name, args):
-    src = model_task(t, name, args.route, args.tag) if not args.dry_run else "dry_model"
-    dest = os.path.join(out, "work", name, args.route if args.route == "A" else "B/redraw_" + args.tag, "rig")
+    src = model_task(t, name, args.route, args.tag, args.from_edit) if not args.dry_run else "dry_model"
+    dest = os.path.join(out, "work", name, args.route if args.route == "A" else "B/redraw_" + args.tag,
+                        "rig" if not args.from_edit else "rig_edit%d" % args.from_edit)
     chk = t.run("/animations/rig-check", {"input": src}, os.path.join(dest, "check"), estimate=0,
-                label="%s rigcheck %s" % (name, args.route))
+                label="%s rigcheck %s%s" % (name, args.route, " e%d" % args.from_edit if args.from_edit else ""))
     print("rig check: %s" % json.dumps(chk.get("output")))
     if not args.dry_run and chk.get("output", {}).get("riggable") is False:
         raise SystemExit("Tripo says the model is not riggable")
     rig = t.run("/animations/rig", {"input": src, "model": RIG_MODEL, "rig_type": "biped",
                                      "spec": "mixamo", "out_format": "glb"},
-                os.path.join(dest, "rigged"), estimate=25, label="%s rig %s" % (name, args.route))
+                os.path.join(dest, "rigged"), estimate=25, label="%s rig %s%s" % (name, args.route, " e%d" % args.from_edit if args.from_edit else ""))
     print("rigged: %s" % ", ".join(rig.get("files", {}).values()))
     if args.skip_anims:
         return
