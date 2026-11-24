@@ -54,7 +54,9 @@ def main():
     cards = []
     for label, name, typ, page, glb in CHARS:
         gp = os.path.join(ROOT, glb)
-        idle = os.path.join(rev, page, "idle.gif")
+        idle = os.path.join(rev, page, "idle.png")
+        if not os.path.exists(idle):
+            idle = os.path.join(rev, page, "idle.gif")
         if not (os.path.exists(gp) and os.path.exists(idle)):
             print("not ready:", typ)
             continue

@@ -4,7 +4,8 @@ blender -b --factory-startup -P blender_render_clips.py -- model.glb outdir jobs
 
 jobs.json: [{"clip": "pistol_walk", "weapon": "uzi" | null, "name": "pistol_walk_uzi"}, ...]
 Writes outdir/<name>/f###_<view>.png: 3/4 front and right side views,
-placed from the facing of each clip's first frame (chest normal), Workbench with texture colours, half the scene frame rate or less, at most 48 frames.
+placed from the facing of each clip's first frame (chest normal), Workbench with texture colours, bright exposure (env
+CLIP_EXPOSURE, default 1.2) at 1.5x size (CLIP_RES), half the scene frame rate or less, at most 48 frames.
 """
 import json
 import math
@@ -34,10 +35,17 @@ sh.light = "STUDIO"
 sh.color_type = "TEXTURE"
 sh.show_shadows = True
 sh.show_cavity = True
-scene.render.resolution_x, scene.render.resolution_y = 300, 380
+_res = float(os.environ.get("CLIP_RES", "1.5"))
+scene.render.resolution_x, scene.render.resolution_y = int(300 * _res), int(380 * _res)
+# bright review lighting: dark clothes and gunmetal must show their detail
+scene.view_settings.view_transform = "Standard"
+scene.view_settings.exposure = float(os.environ.get("CLIP_EXPOSURE", "1.2"))
+scene.view_settings.gamma = 1.1
+sh.show_specular_highlight = True
+sh.cavity_type = "BOTH"
 world = bpy.data.worlds.new("w")
 scene.world = world
-world.color = (0.32, 0.33, 0.37)
+world.color = (0.20, 0.21, 0.23)  # light grey after the exposure
 scene.render.film_transparent = False
 
 def posed(name):
