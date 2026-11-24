@@ -122,6 +122,7 @@ libswarscore_a_SOURCES = \
 	game.c \
 	game_world.c \
 	game_world.h \
+	game_state.c \
 	swfe.h \
 	game_bstype.h \
 	game_data.c \

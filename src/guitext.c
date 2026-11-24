@@ -32,7 +32,6 @@
 #include "wadfile.h"
 #include "weapon.h"
 /******************************************************************************/
-char *gui_strings[STRINGS_MAX];
 char *gui_strings_data = NULL;
 char *gui_strings_data_end = NULL;
 

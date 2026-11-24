@@ -122,8 +122,17 @@ Tools (on the objects of a `--harness` build):
 Done so far: the mission setup and world functions of `game.c` are in
 `game_world.c` (core; `game.c` is the shell: main loop, screens, menus);
 the player input state is in `plyr_usrstate.c` (core; reading keys stays in
-`plyr_usrinp.c`). From about 370 references the core had into front-end
-code, about 110 are left.
+`plyr_usrinp.c`); the core's global state that was defined in front-end
+files is in `game_state.c`. Apart from `swcore.c`, which still runs the
+whole application (options, screens, menus, the main loop), the core now
+reaches front-end code only through the functions of `swfe.h` (about 370
+references before). The network layer stays with the core (no devices;
+multiplayer is out of scope).
+
+Next: a core-only API to start and step a mission, a null front end
+(`swfe_null.c`) and a test program linking only the core. The game's
+camera belongs to the core: the view pass (`game_view_pass()`) sets the
+face flags line of sight reads only for vehicles in the camera's view.
 
 ## Still in the library
 

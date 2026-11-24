@@ -43,6 +43,7 @@ struct CarGlare { // sizeof=7
 /** Array for mapping person SubTypes to multicolor shadow packs.
  */
 extern ubyte pers_subtype_to_shpak[2 * 16];
+extern ubyte byte_1C83E4;
 /******************************************************************************/
 
 void generate_shadows_for_multicolor_sprites(void);

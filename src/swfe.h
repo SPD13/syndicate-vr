@@ -28,6 +28,8 @@
 
 #include "bftypes.h"
 #include "game_bstype.h"
+#include "bfkeybd.h"
+#include "keyboard.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,6 +58,8 @@ void monitor_all_samples(void);
 /** Whether the sample started by the given source is still playing. The
  * game only uses it to decide whether to start a sound again. */
 TbBool swfe_sample_is_playing(ThingIdx source_id, ushort sample_number);
+/** Music following the danger level of the mission. */
+void update_danger_music(ubyte a1);
 
 /* Messages and panels (hud_panel.c, hud_target.c, drawtext_wrp.c) */
 void show_message(const char *text);
@@ -64,6 +68,27 @@ void player_chat_clear(void);
 void show_goto_point(u32 flag);
 void init_scanner(void);
 TbBool panel_any_visible(void);
+/** The number of agents in cryo changed (cryo_agents.NumAgents). */
+void swfe_cryo_agents_changed(void);
+/** Research progressed; the research screen redraws its lists. */
+void clear_research_screen(void);
+/** Number of lines the text takes on screen (it depends on the font). */
+ushort my_count_lines(const char *text);
+
+/* Replays (packetfe.c) */
+/** Writes the player setup at the start of a recorded replay. */
+void packet_write_whole_player_init(void);
+
+/* Input (keyboard.c, plyr_usrinp.c). The core still reads a few keys
+ * directly: debug and cheat keys, the game speed keys and the restart
+ * key. A front end without a keyboard reports none pressed. Planned to
+ * become commands. */
+ubyte is_key_pressed(TbKeyCode key, TbKeyMods kmodif);
+void clear_key_pressed(TbKeyCode key);
+ubyte is_gamekey_pressed(GameKey gkey);
+void clear_gamekey_pressed(GameKey gkey);
+/** Sets up which local user controls with the mouse. */
+void init_user_input_local_controls(void);
 
 /* Display (display.c) */
 void change_brightness(short val);
@@ -93,6 +118,8 @@ TbBool enlist_hud_draw_line_from_thing_ptr_to_mapcoord(struct Thing *p_thing,
   short cor2_x, short cor2_y_m8, short cor2_z, ushort drwflags, ubyte colkp);
 void draw_mark_over_tile_with_number(short tl_x, short tl_z, sbyte ln,
   int num);
+void count_fnavs(TbBool now_draw);
+void navi_onscreen_debug(TbBool a1);
 
 /******************************************************************************/
 #ifdef __cplusplus

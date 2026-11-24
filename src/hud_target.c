@@ -52,7 +52,6 @@ struct TbSprite *target_person_frame_elements_spr[5];
 static const ushort target_vehicle_frame_elements_sprno[] = { 84, 85, 87, 86 };
 struct TbSprite *target_vehicle_frame_elements_spr[5];
 
-TbBool hud_show_target_health = false;
 
 s32 target_old_frameno = 0;
 

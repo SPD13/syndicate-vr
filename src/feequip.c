@@ -70,7 +70,6 @@ ubyte equip_agent_name_draw_state = 0;
 ubyte display_box_content = DiBoxCt_ANIM;
 
 ubyte mo_from_agent = 0;
-ubyte refresh_equip_list = 0;
 
 char equip_cost_text[20];
 

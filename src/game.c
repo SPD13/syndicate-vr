@@ -221,13 +221,10 @@ struct OutroHotChar {
 #pragma pack()
 
 extern char *fadedat_fname;
-char session_name[20] = "SWARA";
 
-char user_name[50] = "TEMP";
 
 s32 dword_153194 = 0x100;
 
-ushort word_1531E0 = 1;
 
 
 TbPixel linear_vec_pal[PALETTE_8b_COLORS];
@@ -246,7 +243,6 @@ extern ushort data_1c8468;
 
 extern struct GamePanel unknstrct7_arr2[];
 
-ubyte mouser = 0;
 
 
 s32 flyby_cam_x = TILE_TO_MAPCOORD(MAP_TILE_WIDTH/2, 0);
@@ -260,23 +256,13 @@ ubyte clear_wheel_up;
 ubyte clear_wheel_down;
 ubyte post_render_action;
 
-int mouse_map_x = 0x3200;
-int mouse_map_y = 0;
-int mouse_map_z = 0x3200;
 
-struct LoginControl login_control[4];
 
-struct LevelDef level_def;
 
-sbyte mission_result;
 char mission_status_text[100];
 
-ubyte net_player_teams[8];
-ubyte group_factions[8];
 ubyte byte_1C6D4A;
 
-s32 navi2_unkn_counter = 0;
-s32 navi2_unkn_counter_max = 0;
 
 s32 flyby_cam_yaw = 0;
 s32 flyby_cam_tilt = 0;
@@ -285,12 +271,7 @@ ubyte old_screentype;
 ubyte screentype = 0;
 ubyte data_1c498d = 0;
 
-ubyte exit_game = 0;
 
-ubyte in_network_game = 0;
-ubyte is_single_game = 0;
-ubyte cmdln_colour_tables = 0;
-ubyte cmdln_param_bcg = 0;
 
 ubyte start_into_mission = false;
 ubyte edit_flag = 0;

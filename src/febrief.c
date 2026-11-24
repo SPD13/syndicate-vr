@@ -52,9 +52,7 @@
 #include "swlog.h"
 /******************************************************************************/
 
-short next_brief = 0;
 short old_mission_brief = 0;
-short open_brief = 0;
 ubyte open_ref = 0;
 
 struct ScreenTextBox brief_mission_text_box = {0};

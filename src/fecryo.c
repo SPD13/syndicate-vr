@@ -51,10 +51,16 @@
 #include "purpldrwlst.h"
 #include "research.h"
 #include "sound.h"
+#include "swfe.h"
 #include "swlog.h"
 /******************************************************************************/
 struct ScreenBox cryo_blokey_box = {0};
 struct ScreenTextBox cryo_agent_list_box = {0};
+
+void swfe_cryo_agents_changed(void)
+{
+    cryo_agent_list_box.Lines = cryo_agents.NumAgents;
+}
 struct ScreenTextBox cryo_cybmod_list_box = {0};
 struct ScreenButton cryo_offer_cancel_button = {0};
 

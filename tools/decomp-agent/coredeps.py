@@ -24,7 +24,6 @@ GROUPS = {
     'shell': 'game swmain'.split(),
     'input': 'keyboard mouse plyr_usrinp'.split(),
     'sound': 'sound fmvplay bfsmack smailfile smkdec'.split(),
-    'network': 'network plyr_net'.split(),
     'test': '''difftest difftest_bot difftest_fuzz difftest_hook_misc
         difftest_hook_people difftest_hook_transport thing_debug pathtrig_debug'''.split(),
 }

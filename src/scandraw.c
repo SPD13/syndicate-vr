@@ -414,13 +414,10 @@ ubyte SCANNER_lop_sh_y;
 ubyte SCANNER_lop_sh_x;
 ubyte SCANNER_brig;
 ubyte SCANNER_cont;
-TbPixel SCANNER_people_colours[15];
-ubyte SCANNER_colour[5];
 s32 SCANNER_unknarr_1DBB6C[512];
 #endif /* typed asm data */
 extern u32 SCANNER_keep_arcs;
 
-ubyte net_player_colours[8];
 
 void SCANNER_dnt_ln_width_update(ushort flags1)
 {
@@ -2010,6 +2007,12 @@ void SCANNER_draw_new_transparent(void)
     SCANNER_draw_new_transparent_map();
     SCANNER_draw_signals();
     SCANNER_draw_area_frame();
+}
+
+void SCANNER_data_to_screen(void)
+{
+    SCANNER_fe_process_turn();
+    SCANNER_fe_draw_solid();
 }
 
 /******************************************************************************/

@@ -34,6 +34,7 @@
 #include "packet.h"
 #include "player.h"
 #include "plyr_net.h"
+#include "swfe.h"
 #include "swlog.h"
 /******************************************************************************/
 #pragma pack(1)

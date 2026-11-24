@@ -332,66 +332,6 @@ void player_debug(const char *text)
     // TODO place debug/verification code
 }
 
-void update_danger_music(ubyte a1)
-{
-    short hurt_agents;
-    struct Thing *p_agent;
-
-    switch (a1)
-    {
-    case 1: // force start danger music
-        dword_1DDECC = 101;
-        ingame.fld_unkC8B = 1;
-        break;
-    case 2: // stop danger music
-        ingame.fld_unkC8B = 0;
-        dword_1DDECC = 0;
-        SetMusicVolume(3000, 0);
-        break;
-    case 0: // standard ingame check for the music
-        dword_1DDECC++;
-        break;
-    }
-    if (dword_1DDECC > 100)
-    {
-        hurt_agents = ingame.fld_unkC8B;
-        if (hurt_agents == 0)
-        {
-            short i;
-            for (i = 0; i < playable_agents; i++)
-            {
-                p_agent = players[local_player_no].MyAgent[i];
-                if (p_agent->Type != TT_PERSON) continue;
-                if (((p_agent->Flag & TngF_Destroyed) == 0) &&
-                  (p_agent->Health < p_agent->U.UPerson.MaxHealth / 2)) {
-                    dword_1DDECC = -100;
-                    hurt_agents++;
-                }
-            }
-        }
-        if (ingame.fld_unk7DA == 1)
-        {
-            if (hurt_agents) {
-                dword_1DDECC = 101;
-            } else {
-                SetMusicVolume(3000, 0);
-                ingame.fld_unk7DA = 0;
-            }
-        }
-        if (ingame.fld_unk7DA == 0)
-        {
-            if (hurt_agents) {
-                SetMusicVolume(300, 127);
-                dword_1DDECC = -40;
-                ingame.fld_unk7DA = 1;
-            } else {
-                dword_1DDECC = 101;
-            }
-        }
-    }
-    ingame.fld_unkC8B = 0;
-}
-
 void fill_floor_textures(void)
 {
     struct SingleFloorTexture *p_fltextr;

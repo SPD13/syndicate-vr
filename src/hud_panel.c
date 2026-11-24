@@ -66,8 +66,6 @@
 #include "thing.h"
 #include "swlog.h"
 /******************************************************************************/
-char player_message_text[PLAYERS_LIMIT][128];
-ubyte player_message_timer[PLAYERS_LIMIT];
 
 extern char panel_objective_text[360];
 
@@ -83,7 +81,6 @@ char panel_objective_text[360];
  */
 sbyte agent_with_mouse_over_weapon = -1;
 
-ubyte byte_153198 = 1;
 
 int scrollinfo_vel = 0;
 

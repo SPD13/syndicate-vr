@@ -78,7 +78,6 @@ ubyte pers_subtype_to_shpak[] = {
   10, 11,
 };
 
-ubyte byte_1C83E4 = 0;
 
 //TODO make some kind of config file for 3D objects, which would include glare locations
 struct CarGlare car_glare[] = {

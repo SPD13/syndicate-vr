@@ -38,6 +38,7 @@
 #include "sound.h"
 #include "thing.h"
 #include "weapon.h"
+#include "swfe.h"
 #include "swlog.h"
 /******************************************************************************/
 ubyte default_agent_tiles_x[8] = {
@@ -499,8 +500,6 @@ const char *get_cryo_agent_name(short cryo_no)
     return gui_strings[strid];
 }
 
-extern struct ScreenTextBox cryo_agent_list_box;
-
 static DIFFTEST_REF_FUNC void remove_agent_asm(ubyte cryo_no)
 {
     DIFFTEST_ASM("call ASM_remove_agent\n"
@@ -540,7 +539,7 @@ void remove_agent(ubyte cryo_no)
     }
     cryo_agents.RandomName[CRYO_PODS_MAX_COUNT - 1] = rndname;
     cryo_agents.NumAgents--;
-    cryo_agent_list_box.Lines = cryo_agents.NumAgents;
+    swfe_cryo_agents_changed();
 
     for (n = 0; n < 4; n++)
     {
@@ -608,7 +607,7 @@ void add_agent(u32 weapons, ushort mods)
         cryo_agents.Sex |= (1u << n);
 
     cryo_agents.NumAgents++;
-    cryo_agent_list_box.Lines = cryo_agents.NumAgents;
+    swfe_cryo_agents_changed();
 }
 
 ThingIdx direct_control_thing_for_player(PlayerIdx plyr)

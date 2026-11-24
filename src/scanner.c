@@ -935,12 +935,6 @@ short SCANNER_init_arcpoint(int x1, int z1, int x2, int z2, int c)
     return arc_idx;
 }
 
-void SCANNER_data_to_screen(void)
-{
-    SCANNER_fe_process_turn();
-    SCANNER_fe_draw_solid();
-}
-
 void SCANNER_set_screen_box(short x, short y, short width, short height, short cutout)
 {
     short i;

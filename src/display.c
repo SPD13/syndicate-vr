@@ -57,7 +57,6 @@ TbScreenMode screen_mode_fmvid_hi = Lb_SCREEN_MODE_640_480_8;
 ushort text_window_x1, text_window_y1;
 ushort text_window_x2, text_window_y2;
 
-ubyte game_high_resolution = 0;
 
 /******************************************************************************/
 

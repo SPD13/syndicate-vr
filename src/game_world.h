@@ -46,6 +46,8 @@ extern s32 gamep_unknval_14;
 extern s32 gamep_unknval_15;
 extern s32 gamep_unknval_16;
 extern ushort word_1AABD0;
+extern s32 navi2_unkn_counter;
+extern s32 navi2_unkn_counter_max;
 extern const char *primvehobj_fname;
 
 void debug_trace_setup(int place);

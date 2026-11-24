@@ -146,6 +146,8 @@ struct TbPoint;
 #pragma pack()
 /******************************************************************************/
 extern struct GamePanel *game_panel;
+extern char player_message_text[][128];
+extern ubyte player_message_timer[];
 extern struct PanelStyle *game_panel_style;
 extern struct TbPoint *game_panel_shifts;
 extern ubyte byte_153198;

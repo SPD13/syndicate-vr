@@ -34,9 +34,16 @@ PROG="${SWARS_TRACE_EXE:-syndwarsfx}"
 EXE="$REPO/build/$BUILD/src/$PROG.exe"
 [ -f "$EXE" ] || EXE="$REPO/build/$BUILD/src/$PROG"
 if [ ! -f "$EXE" ]; then echo "ERROR: no $BUILD build at $EXE"; exit 1; fi
-for d in "$GAMEDATA"/*.dll; do
-    [ -f "$d" ] && [ ! -f "$(dirname "$EXE")/$(basename "$d")" ] && cp "$d" "$(dirname "$EXE")/"
-done
+# The DLLs next to the game data are 32-bit; a 64-bit build gets its own
+# from MINGW64 (a 32-bit one copied there stops the exe from starting)
+case "$BUILD" in
+x64*) ;;
+*)
+    for d in "$GAMEDATA"/*.dll; do
+        [ -f "$d" ] && [ ! -f "$(dirname "$EXE")/$(basename "$d")" ] && cp "$d" "$(dirname "$EXE")/"
+    done
+    ;;
+esac
 
 cd "$GAMEDATA"
 RCALL=0

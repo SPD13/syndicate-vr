@@ -30,9 +30,7 @@
 #include "swlog.h"
 
 /******************************************************************************/
-struct InGame ingame;
 
-ubyte net_game_play_flags = 0;
 
 ubyte game_gfx_advanced_lights;
 ubyte game_billboard_movies;
