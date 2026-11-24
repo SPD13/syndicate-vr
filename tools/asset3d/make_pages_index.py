@@ -52,6 +52,7 @@ GROUPS = [
         ("ashpile_redraw", "I15 ash pile redraw next to the game's ash frame", "current"),
     ]),
     ("Scenery (static map sprites)", [
+        ("vehicle_v1", "Vehicle V1 rebuild test: original, three redraws (v3 from a flat-colour blockout)", "current"),
         ("vehicles", "Catalog of the 39 vehicle meshes of primveh.obj (V1-V39) with the vehicle types placed with each in the levels", "current"),
         ("buildings", "Catalog of the moving and special map parts (shuttle loaders, domes, mounted guns, gates, rotors, stations, track, raised roads) from the map files", "current"),
         ("statics", "Inventory: the 32 static sprites placed in the maps, S numbers, use counts", "current"),

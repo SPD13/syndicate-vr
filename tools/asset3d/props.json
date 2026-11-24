@@ -361,5 +361,14 @@
   "kind": "scenery",
   "static": "S31",
   "desc": "a large polished chrome bowl-shaped street urn or fountain on a short base"
+ },
+ "_common_vehicle": "image[1] is a low-poly vehicle from a 1996 game, seen three-quarter from the front. Redraw this exact vehicle as one clean, detailed, high-resolution product render for a 3D model: the same silhouette, proportions, parts, colours and markings, the whole vehicle visible, three-quarter front view from slightly above, neutral studio lighting, plain white background, no shadow, no ground, no people, no text, NOT pixel art, NOT low-poly. Modernise the detail (panel lines, materials, lights, vents) in a gritty realistic 1990s cyberpunk style. Vehicle: ",
+ "vehicle_v1": {
+  "ref": "primveh.obj object V1, textured render (work/props/vehicle_v1/ref.png, ref_sheet.png)",
+  "faces": 12000,
+  "hold": "vehicle",
+  "kind": "vehicle",
+  "prim": 1,
+  "desc": "a low, wide wedge-shaped hover car with no wheels: dark gunmetal grey armoured body with flat angular panels, a sunken cockpit canopy of dark blue tinted glass with a fine grid pattern, a raised flat rear deck with vent grilles, horizontal vent grilles on both flanks, the front face is a recessed panel with a white segmented light block between two vertical green-and-white light stripes and a thin red trim along the nose edge, angled dark skids / hover pads underneath at the four corners, a dark gap under the nose; sleek, heavy, futuristic city car."
  }
 }
