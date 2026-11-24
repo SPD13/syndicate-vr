@@ -26,6 +26,7 @@ DT = 1.0 / FPS
 W, H = 520, 440
 YAW, PITCH = math.radians(45), math.radians(30)
 RNG = np.random.default_rng(7)
+STATS = {}  # peak live particles per effect
 
 
 # --- curves -------------------------------------------------------------------
@@ -165,6 +166,7 @@ def simulate(fx, name):
             alive.append(p)
         parts = alive
         insts += new_insts
+        STATS[name] = max(STATS.get(name, 0), len(parts))
         if t >= 0:
             frames.append(render(parts, insts, t, d))
         t += DT
@@ -367,6 +369,8 @@ def main():
     html.append("</body></html>")
     if len(sys.argv) == 1:
         open(os.path.join(out, "index.html"), "w", encoding="utf-8").write("\n".join(html))
+        json.dump({"peak_live_particles": STATS, "fps": FPS}, open(os.path.join(out, "stats.json"), "w"), indent=1)
+        print("peak particles:", STATS)
     print("page", os.path.join(out, "index.html"))
 
 
