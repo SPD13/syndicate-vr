@@ -131,6 +131,10 @@ print_help (const char *argv0)
 "                -q        Skip intro movie\n"
 "                -r        Record replay packets to file in savegame dir;\n"
 "                          next unused filename for selected map will be used\n"
+"  --fix-bugs              Fix bugs of the original game that change how it\n"
+"                          plays (default); now: line of sight through\n"
+"                          buildings depended on what was drawn on screen\n"
+"  --original-bugs         Keep those bugs, to play exactly as the original\n"
 "  --level-deep-fix -L     Perform deeper fixes to the loaded levels; this may\n"
 "                          fix some glitches, but such autamatic rework may\n"
 "                          also break stuff; non-damaging fixes are applied\n"
@@ -196,6 +200,12 @@ static void tests_execute(void)
     exit(0);
 }
 
+/** Long options without a short letter. */
+enum LongOnlyOptions {
+    OPT_FIX_BUGS = 0x100,
+    OPT_ORIGINAL_BUGS,
+};
+
 static TbBool process_options(int *argc, char ***argv)
 {
     int index;
@@ -208,6 +218,8 @@ static TbBool process_options(int *argc, char ***argv)
       {"windowed",    0, NULL, 'W'},
       {"no-stretch",  0, NULL, 'S'},
       {"level-deep-fix", 0, NULL, 'L'},
+      {"fix-bugs",    0, NULL, OPT_FIX_BUGS},
+      {"original-bugs", 0, NULL, OPT_ORIGINAL_BUGS},
       {"self-test",   0, NULL, 't'},
       {"help",        0, NULL, 'h'},
       {NULL,          0, NULL,  0 },
@@ -293,6 +305,14 @@ static TbBool process_options(int *argc, char ***argv)
 
         case 'L':
             level_deep_fix = true;
+            break;
+
+        case OPT_FIX_BUGS:
+            swcore_set_fixes(SWCORE_FIXES_DEFAULT);
+            break;
+
+        case OPT_ORIGINAL_BUGS:
+            swcore_set_fixes(0);
             break;
 
         case 'l':
@@ -589,6 +609,8 @@ int swcore_init(int argc, char **argv)
         return 1;
 
     fixup_options();
+    LOGSYNC_F("Fixes of original bugs: 0x%x%s", (unsigned)swcore_get_fixes(),
+        (swcore_get_fixes() == 0) ? " (plays as the original)" : "");
     adjust_memory_use();
 
     if (!game_initialise())
@@ -637,6 +659,15 @@ void swcore_set_world_drawing(int enabled)
 void swcore_set_fixes(uint32_t fixes)
 {
     game_fix_los_face_read = ((fixes & SWCORE_FIX_LOS_FACE_READ) != 0);
+}
+
+uint32_t swcore_get_fixes(void)
+{
+    uint32_t fixes = 0;
+
+    if (game_fix_los_face_read)
+        fixes |= SWCORE_FIX_LOS_FACE_READ;
+    return fixes;
 }
 
 uint32_t swcore_game_turn(void)

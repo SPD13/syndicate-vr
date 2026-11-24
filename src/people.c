@@ -1448,7 +1448,7 @@ static DIFFTEST_REF_FUNC short do_vect_colide_asm(struct MyMapElement *p_me,
  * original reads before the start of the faces array, in memory drawing
  * writes, so that what was drawn changes what people see.
  */
-TbBool game_fix_los_face_read = false;
+TbBool game_fix_los_face_read = true;
 
 short do_vect_colide(struct MyMapElement *p_me, int x1, int y1, int z1, int x2, int y2, int z2)
 {

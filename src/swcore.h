@@ -62,8 +62,10 @@ void swcore_shutdown(void);
  */
 void swcore_set_world_drawing(int enabled);
 
-/** Fixes of original bugs that change how the game plays (all off by
- * default, which plays as the original).
+/** Fixes of original bugs that change how the game plays. They are on by
+ * default (SWCORE_FIXES_DEFAULT); swcore_set_fixes(0), or the command line
+ * option --original-bugs, plays exactly as the original (needed to compare
+ * with it); --fix-bugs switches them back on.
  */
 enum SwcFixes {
     /** Line of sight reads the flags of the right triangle face; the
@@ -72,8 +74,15 @@ enum SwcFixes {
     SWCORE_FIX_LOS_FACE_READ = 0x01,
 };
 
-/** Switches fixes of original bugs on, SwcFixes bits. */
+/** The fixes a game starts with. */
+#define SWCORE_FIXES_DEFAULT SWCORE_FIX_LOS_FACE_READ
+
+/** Sets which fixes of original bugs are on, SwcFixes bits; bits not set
+ * are off. Can be called before swcore_init() or between turns. */
 void swcore_set_fixes(uint32_t fixes);
+
+/** Fixes of original bugs that are on, SwcFixes bits. */
+uint32_t swcore_get_fixes(void);
 
 /** Number of the current game turn. */
 uint32_t swcore_game_turn(void);

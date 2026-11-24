@@ -43,7 +43,7 @@ for SC in $SCENARIOS; do
     SWARS_DIFFTEST_FN=none SWARS_SEED="${SWARS_SEED:-12345}" SWARS_DIFFTEST_TURNS="$TURNS" SWARS_DIFFTEST_FAST=1 \
     SWARS_DIFFTEST_MIN=0 SWARS_DIFFTEST_LOG="$OUT/difftest.log" \
     SWARS_COVERAGE="$OUT/cov_${SC/,/_}.txt" \
-        timeout 900 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} ${SUF:+SWARS_DIFFTEST_SUFFIX=$SUF} "$EXE" -q -W -m "${SC%%+*}" > /dev/null 2>&1 || echo "scenario $SC: rc=$?"
+        timeout 900 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} ${SUF:+SWARS_DIFFTEST_SUFFIX=$SUF} "$EXE" --original-bugs -q -W -m "${SC%%+*}" > /dev/null 2>&1 || echo "scenario $SC: rc=$?"
     echo "scenario $SC: $(wc -l < "$OUT/cov_${SC/,/_}.txt" 2>/dev/null || echo 0) functions hit"
 done
 

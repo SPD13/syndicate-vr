@@ -66,8 +66,10 @@ renderer must keep in mind:
   the array, in `game_object_points`, whose `PointOffset` and `Flags`
   enlisting writes (screen point numbers in drawing order). So what was
   drawn, and the resolution, change what people see. That cannot be done
-  without the original renderer; `swcore_set_fixes(SWCORE_FIX_LOS_FACE_READ)`
-  reads the right face instead. With it, 4 of the 52 traces differ from
+  without the original renderer. The fix `SWCORE_FIX_LOS_FACE_READ` (on by
+  default since 2026-11-24, `SWCORE_FIXES_DEFAULT`; off with
+  `swcore_set_fixes(0)` or the option `--original-bugs`) reads the right
+  face instead. With it, 4 of the 52 traces differ from
   the original (0,20+bot 1,19+bot 3,61+bot 3,61+t_ship+t_fly), and
   nothing of the renderer runs without drawing: the 52 traces without
   drawing then equal those with drawing (pointer away,
@@ -99,10 +101,10 @@ The library still contains the SDL display, input, sound, the software
 renderer and the menus. The next steps take those out of the core, one
 at a time, behind the interface:
 
-1. Rendering: decide on the line of sight fix (it changes how the game
-   plays in some missions; without it the core needs the software
-   renderer's enlisting), then move the software renderer to the SDL
-   front end.
+1. Rendering: move the software renderer to the SDL front end. The line
+   of sight fix is on by default; with `--original-bugs` the core still
+   needs the software renderer's enlisting, so that mode stays a feature
+   of the desktop front end, for comparisons with the original.
 2. Input: the front end gives commands; keyboard and mouse handling move
    to the SDL front end; the pointer target as a command.
 3. Sound and menus. Game rules read sound state: `IsSamplePlaying()` in
@@ -111,8 +113,9 @@ at a time, behind the interface:
 
 ## Verification
 
-The traces of `swcore_headless` must equal the reference traces of the
-original asm, and its printed hashes those traces:
+The trace scripts start the game with `--original-bugs`, so the traces
+compare with the original. The traces of `swcore_headless` must equal the
+reference traces of the original asm, and its printed hashes those traces:
 
 ```
 SWARS_TRACE_EXE=swcore_headless python tools/decomp-agent/statetrace_win_par.py harness build/tr_lib --jobs 6

@@ -228,6 +228,29 @@ syndwarsfx.exe /g
 The game will start with intro animation, and then present you with a menu where
 you can start playing.
 
+### Fixes of original bugs
+
+Some bugs of the original game change how it plays. SyndWarsFX fixes them by
+default:
+
+- Line of sight through buildings: when checking whether one person can see
+  another past a building, the original game reads the wrong memory, which
+  the renderer fills with screen data. So in the original, what was drawn
+  on screen (even the screen resolution) could change who sees whom. With
+  the fix, line of sight depends only on the game world. Some fights may
+  play out differently from the original.
+
+To play exactly as the original game, with these bugs, start it with
+`--original-bugs`:
+
+```
+./syndwarsfx -g --original-bugs
+```
+
+`--fix-bugs` switches the fixes back on; it is the default, so it is only
+needed to override an earlier `--original-bugs`. Programs that use the game
+library choose with `swcore_set_fixes()` (see `docs/swcore.md`).
+
 In case something doesn't work, check `error.log` file generated while the game
 was starting. There is also a troubleshooting page on the
 [wiki page of the project repo](https://github.com/swfans/syndwarsfx/wiki).

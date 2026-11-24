@@ -106,6 +106,11 @@ lack clobber lists and break under optimisation.
   a library front end plays the same game as the reference (traces and
   the hashes read through the interface); add `SWARS_TRACE_EXE_ARGS=--no-draw`
   for the run without drawing the world, which must be equal too.
+- Fixes of original bugs that change the game are on by default
+  (`swcore_set_fixes()`, `SWCORE_FIXES_DEFAULT`); the option
+  `--original-bugs` turns them off, and every script that compares with
+  the original asm passes it (`statetrace.sh`, `difftest_run.sh`,
+  `coverage.sh`). New such fixes get an `SwcFixes` bit.
 - Drawing writes game state in places (face flags of vehicles that line
   of sight reads, the thing under the pointer, the panels' target): see
   `docs/swcore.md` before moving code out of the drawing path. Fields only

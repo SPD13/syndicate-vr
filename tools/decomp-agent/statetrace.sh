@@ -28,7 +28,8 @@ BUILD="${SWARS_TRACE_BUILD:-difftest}"
 # SWARS_TRACE_EXE=swcore_headless runs the test front end of the game
 # library instead; its output (turn and state hash read through swcore.h)
 # goes to <outdir>/<scenario>.out; SWARS_TRACE_EXE_ARGS are its own options
-# (e.g. --no-draw)
+# (e.g. --no-draw). The game runs with --original-bugs, to compare with the
+# original; swcore_headless "--fixes 1" switches the bug fixes back on.
 PROG="${SWARS_TRACE_EXE:-syndwarsfx}"
 EXE="$REPO/build/$BUILD/src/$PROG.exe"
 [ -f "$EXE" ] || EXE="$REPO/build/$BUILD/src/$PROG"
@@ -57,7 +58,7 @@ for SC in $SCENARIOS; do
     # A function name that matches nothing enables the turn limit only
     SWARS_DIFFTEST_FN=statetrace_none SWARS_DIFFTEST_TURNS="$TURNS" \
     SWARS_DIFFTEST_FAST=1 SWARS_DIFFTEST_LOG="$OUTDIR/${SC/,/_}.log" \
-    SWARS_STATETRACE="$T" SWARS_SEED="${SWARS_SEED:-12345}" timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} ${SUF:+SWARS_DIFFTEST_SUFFIX=$SUF} "$EXE" ${SWARS_TRACE_EXE_ARGS:-} -q -W -m "${SC%%+*}" > "$OUTF" 2>&1
+    SWARS_STATETRACE="$T" SWARS_SEED="${SWARS_SEED:-12345}" timeout 600 env ${BOT:+SWARS_DIFFTEST_BOT=1} ${TRI:+SWARS_DIFFTEST_RETRI=1} ${KBD:+SWARS_DIFFTEST_KBD=1} ${CRA:+SWARS_DIFFTEST_CRATER=1} ${WRK:+SWARS_DIFFTEST_WRECK=1} ${SUF:+SWARS_DIFFTEST_SUFFIX=$SUF} "$EXE" ${SWARS_TRACE_EXE_ARGS:-} --original-bugs -q -W -m "${SC%%+*}" > "$OUTF" 2>&1
     RC=$?
     echo "  scenario $SC: rc=$RC turns=$(wc -l < "$T" 2>/dev/null || echo 0)"
     # 4: no calls of the (absent) function, the normal end
