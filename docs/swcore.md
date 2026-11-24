@@ -95,6 +95,36 @@ renderer must keep in mind:
   another type, so `DrawTurn`, `MatrixIndex` and `LeisurePlace` are left
   out for every type that has no game state there.
 
+## Core and front end
+
+The goal: the game core (rules, missions, world) links without the SDL
+display, input devices, the software renderer, the menus and sound, with
+only `src/swfe.h` between them. `swfe.h` lists the services the core calls
+a front end for (sound, messages and panels, brightness, debug drawing);
+none of them may change the game state. Sound is output only: no random
+draws, and the one rule that asks whether a sound plays (the spider mech's
+loop) only decides whether to start it again (`swfe_sample_is_playing()`).
+
+Tools (on the objects of a `--harness` build):
+
+- `python tools/decomp-agent/coredeps.py build/harness/src [--detail group]`
+  lists the front-end symbols (groups render, menus, shell, input, sound,
+  network, test) that core objects reference. Every object not in a group
+  is core.
+- `python tools/decomp-agent/refgraph.py build/harness/src <root>...
+  [--stop sym,...] [--why sym]` follows references function by function
+  from roots (e.g. `process_things process_packets init_game`); `--why`
+  prints the path to a symbol.
+- `python tools/decomp-agent/movefuncs.py <from.c> <to.c> name...` moves
+  whole definitions (with their comment and `_asm` reference) between
+  files.
+
+Done so far: the mission setup and world functions of `game.c` are in
+`game_world.c` (core; `game.c` is the shell: main loop, screens, menus);
+the player input state is in `plyr_usrstate.c` (core; reading keys stays in
+`plyr_usrinp.c`). From about 370 references the core had into front-end
+code, about 110 are left.
+
 ## Still in the library
 
 The library still contains the SDL display, input, sound, the software

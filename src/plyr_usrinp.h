@@ -102,6 +102,8 @@ void do_user_input_bits_control_clear_nonmove(struct SpecialUserInput *p_usrinp)
 void do_user_input_bits_direction_from_kbd(struct SpecialUserInput *p_usrinp);
 void do_user_input_bits_direction_from_joy(struct SpecialUserInput *p_usrinp, ubyte channel);
 short get_agent_move_direction_delta_x(const struct SpecialUserInput *p_usrinp);
+void set_agent_move_direction_delta_x(struct SpecialUserInput *p_usrinp, short dt);
+void set_agent_move_direction_delta_z(struct SpecialUserInput *p_usrinp, short dt);
 short get_agent_move_direction_delta_z(const struct SpecialUserInput *p_usrinp);
 void update_agent_move_direction_deltas(struct SpecialUserInput *p_usrinp);
 

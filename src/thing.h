@@ -1138,6 +1138,9 @@ struct Thing *replace_thing_given_thing_idx(int x, int y, int z, short owner, Th
 
 void process_things_unkn_sub2(int tech_lv, int got_many);
 
+/** Turn rate to steer a laser beam towards a target angle. */
+short calc_angle_rate(short target_angle, short cur_angle, short *p_glow_size);
+
 /******************************************************************************/
 #ifdef __cplusplus
 }

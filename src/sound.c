@@ -53,6 +53,7 @@
 #include "game.h"
 #include "thing.h"
 #include "util.h"
+#include "swfe.h"
 #include "swlog.h"
 
 /******************************************************************************/
@@ -973,6 +974,11 @@ void snd_unkn1_volume_all_samples(void)
             continue;
         SetSampleVolume(source_id, smp_id, 0);
     }
+}
+
+TbBool swfe_sample_is_playing(ThingIdx source_id, ushort sample_number)
+{
+    return IsSamplePlaying(source_id, sample_number, 0);
 }
 
 void wait_for_sound_sample_finish(ushort smpl_id)

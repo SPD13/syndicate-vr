@@ -72,6 +72,7 @@
 #include "vehicle.h"
 #include "vehtraffic.h"
 #include "weapon.h"
+#include "swfe.h"
 #include "swlog.h"
 /******************************************************************************/
 #define ALERT_PEEPS_RANGE 4
@@ -15579,7 +15580,7 @@ short person_move(struct Thing *p_person)
     if (((gameturn + 32 * p_person->ThingOffset) & 0x7F) == 0) {
         process_random_speech(p_person, 0);
     }
-    if ((p_person->SubType == SubTT_PERS_MECH_SPIDER) && !IsSamplePlaying(p_person->ThingOffset, 79, 0)) {
+    if ((p_person->SubType == SubTT_PERS_MECH_SPIDER) && !swfe_sample_is_playing(p_person->ThingOffset, 79)) {
         play_dist_sample(p_person, 79, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_4EVER, 3);
     }
     if (p_person->U.UPerson.AnimMode == ANIM_PERS_Unkn21) {

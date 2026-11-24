@@ -120,6 +120,9 @@ libswarscore_a_SOURCES = \
 	guitext.c \
 	guitext.h \
 	game.c \
+	game_world.c \
+	game_world.h \
+	swfe.h \
 	game_bstype.h \
 	game_data.c \
 	game_data.h \
@@ -179,6 +182,7 @@ libswarscore_a_SOURCES = \
 	plyr_packet.h \
 	plyr_usrinp.c \
 	plyr_usrinp.h \
+	plyr_usrstate.c \
 	purpldrw.c \
 	purpldrw.h \
 	purpldrwlst.c \

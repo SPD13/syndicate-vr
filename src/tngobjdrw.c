@@ -644,42 +644,6 @@ void build_static(struct SimpleThing *p_sthing)
       frame, p_sthing->Radius, p_mapel->ShadeR);
 }
 
-/** Computes an angular turn rate to steer a laser beam.
- *
- *  The turn rate is to guide the beam segment from cur_angle
- *  towards target_angle, in fixed (stepped) increments.
- *  Also outputs the current glow size, depending on how
- *  far off the current angle is.
- */
-short calc_angle_rate(short target_angle, short cur_angle, short *p_glow_size)
-{
-    short delta;
-    short absdelta;
-
-    delta = target_angle - cur_angle;
-    if (delta < -LbFPMath_PI)
-        delta += 2 * LbFPMath_PI;
-    else if (delta > LbFPMath_PI)
-        delta -= 2 * LbFPMath_PI;
-
-    absdelta = (delta < 0) ? -delta : delta;
-    *p_glow_size = (absdelta > 256) ? 0x30 : (((LbFPMath_PI - absdelta) >> 2) + 0x10);
-
-    if (delta < -LbFPMath_PI/2)
-        return -100;
-    else if (delta < -100)
-        return -70;
-    else if (delta < 0)
-        return -10;
-    else if (delta == 0)
-        return 0;
-    else if (delta <= 100)
-        return 10;
-    else if (delta <= LbFPMath_PI/2)
-        return 70;
-    return 100;
-}
-
 /** Builds a single slice (quad) of a 3D beam betweeen two points.
  *
  *  The slice is connecting a near point to a far point. When use_cache
