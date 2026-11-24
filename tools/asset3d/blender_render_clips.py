@@ -61,7 +61,8 @@ def facing():
 
 
 cams = []
-for k in range(2):
+VIEWS = [int(v) for v in __import__("os").environ.get("CLIP_VIEWS", "30,90").split(",")]
+for k in range(len(VIEWS)):
     cd = bpy.data.cameras.new("cam%d" % k)
     cd.type = "ORTHO"
     cd.ortho_scale = 2.5
@@ -73,7 +74,7 @@ for k in range(2):
 def place_cameras(fwd):
     right = fwd.cross(Vector((0, 0, 1)))
     target = Vector((0, 0, 0.95))
-    for cam, yaw in zip(cams, (30, 90)):  # 3/4 front from the right-front, right side
+    for cam, yaw in zip(cams, VIEWS):  # 3/4 front from the right-front, right side
         a = math.radians(yaw)
         cam.location = target + (fwd * math.cos(a) + right * math.sin(a)) * 6 + Vector((0, 0, 1.2))
         cam.rotation_euler = (target - cam.location).to_track_quat("-Z", "Y").to_euler()

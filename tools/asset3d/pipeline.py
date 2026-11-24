@@ -99,6 +99,26 @@ def stage_edit(t, out, name, args):
         print("review: %s" % os.path.join(dest, "redraw.png"))
 
 
+def stage_edit_views(t, out, name, args):
+    """Edits views of the multiview task of a redraw (Tripo edit-multiview).
+    --views-json: {"back": "prompt", "left": "...", ...}. The edited set is
+    kept as <tag>/multiview_edit<n> and used by model-b --from-edit n."""
+    prompts = json.load(open(args.views_json, encoding="utf-8"))
+    mv = None
+    for e in reversed(t._entries()):
+        if e.get("kind") == "task" and e.get("label") == "%s multiview %s" % (name, args.tag) and e.get("status") == "success":
+            mv = e["task_id"]
+            break
+    if not mv:
+        raise SystemExit("no multiview for %s %s: run model-b --views-only first" % (name, args.tag))
+    body = {"input": mv, "prompts": [{"view": v, "prompt": p} for v, p in prompts.items()]}
+    dest = os.path.join(out, "work", name, "B", "redraw_" + args.tag, "multiview_edit%d" % args.edit)
+    rec = t.run("/generation/edit-multiview", body, dest, estimate=5 * len(prompts),
+                label="%s edit views %s #%d" % (name, args.tag, args.edit))
+    print("views: %s" % ", ".join(rec.get("files", {}).values()))
+    print("output: %s" % json.dumps(rec.get("output"))[:400])
+
+
 def stage_model_b(t, out, name, args):
     dest = os.path.join(out, "work", name, "B", "redraw_" + args.tag)
     img = os.path.join(dest, "redraw.png")
@@ -107,12 +127,16 @@ def stage_model_b(t, out, name, args):
     token = t.upload(img) if os.path.exists(img) else "dry"
     mv = t.run("/generation/image-to-multiview", {"input": token}, os.path.join(dest, "multiview"),
                estimate=10, label="%s multiview %s" % (name, args.tag))
+    if args.from_edit:
+        lab = "%s edit views %s #%d" % (name, args.tag, args.from_edit)
+        mv = next(e for e in reversed(t._entries()) if e.get("label") == lab and e.get("status") == "success")
     if args.views_only:
         print("views: %s" % ", ".join(mv.get("files", {}).values()))
         return
     body = dict({"inputs": [{"task_id": mv["task_id"]}], "model": MODEL_3D}, **GEN_OPTS)
-    rec = t.run("/generation/multiview-to-model", body, os.path.join(dest, "model"),
-                estimate=50, label="%s model B %s" % (name, args.tag))
+    sub = "model" if not args.from_edit else "model_edit%d" % args.from_edit
+    rec = t.run("/generation/multiview-to-model", body, os.path.join(dest, sub),
+                estimate=50, label="%s model B %s%s" % (name, args.tag, "" if not args.from_edit else " edit%d" % args.from_edit))
     print("model: %s" % find_model(rec.get("files", {})))
 
 
@@ -161,11 +185,14 @@ def stage_status(t, out, name, args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("stage", choices=["redraw", "edit", "model-b", "model-a", "rig", "status"])
+    ap.add_argument("stage", choices=["redraw", "edit", "edit-views", "model-b", "model-a", "rig", "status"])
     ap.add_argument("type", nargs="?", default="")
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--base", help="edit: the redraw tag to start from")
     ap.add_argument("--views-only", action="store_true", help="model-b: stop after the four views")
+    ap.add_argument("--views-json", help="edit-views: json {view: prompt}")
+    ap.add_argument("--edit", type=int, default=1, help="edit-views: number of this edit")
+    ap.add_argument("--from-edit", type=int, default=0, help="model-b: use edited views #n")
     ap.add_argument("--skip-anims", action="store_true", help="rig: no Tripo preset animations (Mixamo instead)")
     ap.add_argument("--model", default="seedream_v5", help="image model for the redraw")
     ap.add_argument("--extra", default="", help="extra prompt text for the redraw")
@@ -179,7 +206,7 @@ def main():
     if args.stage != "status" and args.type not in swdata.PERSON_TYPES:
         raise SystemExit("unknown person type %r" % args.type)
     t = Tripo(out, args.max_credits, args.dry_run)
-    {"redraw": stage_redraw, "edit": stage_edit, "model-b": stage_model_b, "model-a": stage_model_a,
+    {"redraw": stage_redraw, "edit": stage_edit, "edit-views": stage_edit_views, "model-b": stage_model_b, "model-a": stage_model_a,
      "rig": stage_rig, "status": stage_status}[args.stage](t, out, args.type, args)
 
 
