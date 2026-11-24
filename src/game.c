@@ -7796,22 +7796,53 @@ void game_process_orbital_station_explode(void)
  * them, so the state hash leaves them out.
  */
 struct RenderField {
-    ubyte type; /**< Thing type the field (or union member) belongs to */
+    ushort type; /**< Thing type the field (or union member) belongs to, or RenderFieldTypes */
     ushort offset;
     ushort size;
     u32 bits;   /**< Bits of the field (as a little endian number) to leave out */
 };
 
+/** Types in RenderField: a thing type, or one of these classes. */
+enum RenderFieldTypes {
+    /** Every type whose state has no matrix (not people, vehicles,
+     * buildings and guns): shots and other effects */
+    RFT_NO_MATRIX = 0x100,
+    /** Every type whose state does not reach DrawTurn (not people and
+     * vehicles, whose fields there are game state) */
+    RFT_NO_STATE_AT_DRAWTURN,
+};
+
 static const struct RenderField state_hash_render_fields[] = {
-    // the turn a building was last drawn
-    {TT_BUILDING, offsetof(struct Thing, U.UObject.DrawTurn), sizeof(u32), 0xFFFFFFFFu},
+    // the turn a building was last drawn; also left over in what reuses
+    // the slot, e.g. a destroyed building or razor wire
+    {RFT_NO_STATE_AT_DRAWTURN, offsetof(struct Thing, U.UObject.DrawTurn), sizeof(u32), 0xFFFFFFFFu},
+    // the temporary matrix drawing gives a rocket (build_rocket()); also
+    // left over in what reuses the slot, e.g. a laser or a grenade
+    {RFT_NO_MATRIX, offsetof(struct Thing, U.UObject.MatrixIndex), sizeof(short), 0xFFFFu},
     // light level of a person from the map shading, which drawing changes
     {TT_PERSON, offsetof(struct Thing, U.UPerson.Brightness), sizeof(ubyte), 0xFFu},
     // hit flash: set by hits, read and cleared by drawing the object
     {TT_VEHICLE, offsetof(struct Thing, Flag), sizeof(u32), TngF_Unkn01000000},
     {TT_BUILDING, offsetof(struct Thing, Flag), sizeof(u32), TngF_Unkn01000000},
     {TT_ROCKET, offsetof(struct Thing, Flag), sizeof(u32), TngF_Unkn01000000},
+    // the turn razor wire was last drawn (build_razor_wire()); also left
+    // over in what reuses the slot, e.g. a guided laser
+    {RFT_NO_MATRIX, offsetof(struct Thing, U.UEffect.LeisurePlace), sizeof(ushort), 0xFFFFu},
 };
+
+static TbBool render_field_type_matches(ushort rftype, ubyte type)
+{
+    switch (rftype)
+    {
+    case RFT_NO_MATRIX:
+        return (type != TT_PERSON) && (type != TT_UNKN4) && (type != TT_VEHICLE)
+          && (type != TT_BUILDING) && (type != TT_UNKN55) && (type != TT_VEH_TURRET);
+    case RFT_NO_STATE_AT_DRAWTURN:
+        return (type != TT_PERSON) && (type != TT_UNKN4) && (type != TT_VEHICLE);
+    default:
+        return (type == rftype);
+    }
+}
 
 /** Clears the bytes of render-only fields within the word at `off`; they
  * need not be word aligned.
@@ -7824,7 +7855,7 @@ static u32 state_hash_mask_render_fields(const struct Thing *p_thing, size_t off
     {
         const struct RenderField *p_rf = &state_hash_render_fields[i];
 
-        if (p_thing->Type != p_rf->type)
+        if (!render_field_type_matches(p_rf->type, p_thing->Type))
             continue;
         for (b = 0; b < 4; b++) {
             if ((off + b >= p_rf->offset) && (off + b < (size_t)p_rf->offset + p_rf->size)) {

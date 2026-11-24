@@ -68,9 +68,11 @@ renderer must keep in mind:
   drawn, and the resolution, change what people see. That cannot be done
   without the original renderer; `swcore_set_fixes(SWCORE_FIX_LOS_FACE_READ)`
   reads the right face instead. With it, 4 of the 52 traces differ from
-  the original (0,20+bot 1,19+bot 3,61+bot 3,61+t_ship+t_fly). Without
-  enlisting the runs still differ (29 of 52 with the pointer away), so
-  enlisting has more such effects; to be found.
+  the original (0,20+bot 1,19+bot 3,61+bot 3,61+t_ship+t_fly), and
+  nothing of the renderer runs without drawing: the 52 traces without
+  drawing then equal those with drawing (pointer away,
+  `SWARS_DIFFTEST_NOPOINTER=1`). So with the fix the game core needs no
+  renderer.
 - `check_mouse_overlap()` finds the thing under the pointer while the
   sprites are enlisted (player `Target`), which the panels and the input
   use.
@@ -83,9 +85,13 @@ renderer must keep in mind:
   seed `lbSeed_ps` the game rules do not use.
 - Render-only state, left out of `game_state_hash()`
   (`state_hash_render_fields` in `game.c`): `Frame`/`Timer1` low halves,
-  buildings' `DrawTurn`, people's `Brightness` (from the map `ShadeR`,
-  which floor drawing writes), the hit flash flag `TngF_Unkn01000000` of
-  vehicles, buildings and rockets (drawing clears it).
+  buildings' `DrawTurn`, rockets' temporary `MatrixIndex`, razor wire's
+  `LeisurePlace` (the turn it was drawn), people's `Brightness` (from the
+  map `ShadeR`, which floor drawing writes), the hit flash flag
+  `TngF_Unkn01000000` of vehicles, buildings and rockets (drawing clears
+  it). The drawing values stay in a thing slot when it is reused for
+  another type, so `DrawTurn`, `MatrixIndex` and `LeisurePlace` are left
+  out for every type that has no game state there.
 
 ## Still in the library
 
@@ -93,9 +99,10 @@ The library still contains the SDL display, input, sound, the software
 renderer and the menus. The next steps take those out of the core, one
 at a time, behind the interface:
 
-1. Rendering: find the remaining effects of enlisting, and decide on the
-   line of sight fix (it changes how the game plays), so the software
-   renderer can move to the SDL front end.
+1. Rendering: decide on the line of sight fix (it changes how the game
+   plays in some missions; without it the core needs the software
+   renderer's enlisting), then move the software renderer to the SDL
+   front end.
 2. Input: the front end gives commands; keyboard and mouse handling move
    to the SDL front end; the pointer target as a command.
 3. Sound and menus. Game rules read sound state: `IsSamplePlaying()` in
