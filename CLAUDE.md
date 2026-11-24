@@ -111,6 +111,12 @@ lack clobber lists and break under optimisation.
   `--original-bugs` turns them off, and every script that compares with
   the original asm passes it (`statetrace.sh`, `difftest_run.sh`,
   `coverage.sh`). New such fixes get an `SwcFixes` bit.
+- Core code (every object `coredeps.py` puts in no front-end group) calls
+  the front end only through `src/swfe.h`, sound included (never the
+  sound library directly); new services go there and in `swfe_null.c`.
+  `swapp.c` (options, config, the main loop) is front end.
+  `tools/decomp-agent/coreprobe.sh` links the core alone and lists what it
+  still misses.
 - Drawing writes game state in places (face flags of vehicles that line
   of sight reads, the thing under the pointer, the panels' target): see
   `docs/swcore.md` before moving code out of the drawing path. Fields only

@@ -119,20 +119,45 @@ Tools (on the objects of a `--harness` build):
   whole definitions (with their comment and `_asm` reference) between
   files.
 
+- `tools/decomp-agent/coreprobe.sh [build]` links the core objects alone
+  with the null front end (`src/swfe_null.c`) and lists what is still
+  missing, and which members of `libswrender` and `libbullfrog` the core
+  pulls in (`build/coreprobe/members.txt`).
+
 Done so far: the mission setup and world functions of `game.c` are in
 `game_world.c` (core; `game.c` is the shell: main loop, screens, menus);
 the player input state is in `plyr_usrstate.c` (core; reading keys stays in
 `plyr_usrinp.c`); the core's global state that was defined in front-end
-files is in `game_state.c`. Apart from `swcore.c`, which still runs the
-whole application (options, screens, menus, the main loop), the core now
-reaches front-end code only through the functions of `swfe.h` (about 370
-references before). The network layer stays with the core (no devices;
-multiplayer is out of scope).
+files is in `game_state.c`. Running the whole application (options, config
+file, screens, the main loop behind `swcore_init()`/`swcore_step()`) is in
+`swapp.c`, part of the desktop front end; `swcore.c` keeps the core's part
+of the interface. The core reaches front-end code only through the
+functions of `swfe.h` (about 370 references before), sound included: it
+does not call the sound library. `swfe_null.c` implements them as nothing
+(no sound playing, no key pressed); with it, the core objects link with
+only two symbols missing (`difftest_skip_turn_wait`, the game speed in test
+runs; `low_trans_grey_bright_limit`, a table of the renderer). The network
+layer stays with the core (no devices; multiplayer is out of scope).
 
-Next: a core-only API to start and step a mission, a null front end
-(`swfe_null.c`) and a test program linking only the core. The game's
-camera belongs to the core: the view pass (`game_view_pass()`) sets the
-face flags line of sight reads only for vehicles in the camera's view.
+What the core still needs from the desktop front end and the libraries:
+
+- The camera and the mission flow are in the shell's input code
+  (`game.c`): following the selected agent (`track_player()`,
+  `move_camera()`), the mission status (`test_missions()` in
+  `load_packet()`) and the mission end. The game's camera belongs to the
+  core: the view pass (`game_view_pass()`) sets the face flags line of
+  sight reads only for vehicles in the camera's view, and the view area
+  (`render_area_a/b`, `overall_scale`) follows the screen size.
+- Setting up and stepping a mission without the shell: the core's parts of
+  `game_setup()`, `setup_host()`, `prep_single_mission()` and
+  `game_process_turn()`.
+- `libswrender` holds world data the core uses: objects, faces and
+  textures (`enginsngobjs`, `enginsngtxtr`, `enginpriobjs`), lights,
+  explosion faces, shrapnel, animation frames (`frame_sprani`), the camera
+  and zoom (`engincam`, `enginzoom`). Debug drawing and the scanner pull its
+  drawing code in.
+- `libbullfrog`'s platform layer (SDL): `lbDisplay` (screen size, pointer),
+  logging time, the mouse sprite.
 
 ## Still in the library
 

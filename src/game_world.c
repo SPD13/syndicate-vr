@@ -151,6 +151,7 @@
 #include "mydraw.h"
 #include "network.h"
 #include "sound.h"
+#include "swfe.h"
 #include "swcore_game.h"
 #include "osunix.h"
 #include "oswindws.h"
@@ -1812,7 +1813,7 @@ void init_level(void)
     ingame.fld_unkCB5 = 0;
     clear_open_mission_status();
     init_object_explode_faces();
-    StopAllSamples();
+    swfe_samples_stop_all();
     ingame.TrackThing = 0;
     func_74934();
     ingame.TrackX = engn_xc;
@@ -1847,8 +1848,8 @@ void init_level(void)
     map_lights_update();
     init_scanner();
     find_the_tall_buildings();
-    PlayCDTrack(ingame.CDTrack);
-    StartMusic(ingame.DangerTrack, 0);
+    swfe_cd_play_track(ingame.CDTrack);
+    swfe_music_start(ingame.DangerTrack, 0);
 }
 
 void init_level_3d(ubyte flag)

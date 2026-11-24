@@ -49,6 +49,7 @@
 #include "pathtrig.h"
 #include "people.h"
 #include "sound.h"
+#include "swfe.h"
 #include "thing.h"
 #include "thing_expld.h"
 #include "thing_fire.h"
@@ -2411,7 +2412,7 @@ void process_tank_stationary(struct Thing *p_vehicle)
 
     if ((gameturn & 7) == 0)
     {
-        if (!IsSamplePlaying((ushort)p_vehicle->ThingOffset, 49, 0))
+        if (!swfe_sample_is_playing((ushort)p_vehicle->ThingOffset, 49))
         {
             if (p_vehicle->U.UVehicle.PassengerHead != 0)
                 play_dist_sample(p_vehicle, 49, 127, 64, 100, -1, 1);
@@ -2451,7 +2452,7 @@ void process_tank(struct Thing *p_vehicle)
     DIFFTEST_SHADOW(process_tank, process_tank_asm(p_vehicle));
     if ((gameturn & 7) == 0)
     {
-        if (!IsSamplePlaying((ushort)p_vehicle->ThingOffset, 49, 0))
+        if (!swfe_sample_is_playing((ushort)p_vehicle->ThingOffset, 49))
         {
             if (p_vehicle->U.UVehicle.PassengerHead != 0)
                 play_dist_sample(p_vehicle, 49, 127, 64, 100, -1, 1);
@@ -2626,7 +2627,7 @@ void swoosh_veh(struct Thing *p_vehicle)
     if (dist >= 1024)
         return;
 
-    if (IsSamplePlaying((ushort)p_vehicle->ThingOffset, 17, 0))
+    if (swfe_sample_is_playing((ushort)p_vehicle->ThingOffset, 17))
         return;
     last_swoosh_thing = p_vehicle->ThingOffset;
     last_swoosh_turn = gameturn;
@@ -2753,7 +2754,7 @@ void process_tank_turret(struct Thing *p_tank)
     {
         if (dt_angle <= 1) {
             // Play rotation stop sample
-            if (!IsSamplePlaying(p_tank->ThingOffset, 47, 0))
+            if (!swfe_sample_is_playing(p_tank->ThingOffset, 47))
                 play_dist_sample(p_tank, 47, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 1);
             p_turret->Flag2 &= ~TgF2_Unkn0200;
         }
@@ -2763,7 +2764,7 @@ void process_tank_turret(struct Thing *p_tank)
         // Play rotation sample if moving over 1.2 degree per turn and the angle is not getting smaller.
         // Huge values of OldTarget (beyond pi) indicate that previously we had no target.
         if ((abs(dt_angle) >= LbFPMath_PI/75) && (p_tank->OldTarget < abs(angle) || p_tank->OldTarget > LbFPMath_PI)) {
-            if (!IsSamplePlaying(p_tank->ThingOffset, 48, 0))
+            if (!swfe_sample_is_playing(p_tank->ThingOffset, 48))
                 play_dist_sample(p_tank, 48, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 1);
             p_turret->Flag2 |= TgF2_Unkn0200;
         }

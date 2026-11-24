@@ -982,6 +982,46 @@ TbBool swfe_sample_is_playing(ThingIdx source_id, ushort sample_number)
     return IsSamplePlaying(source_id, sample_number, 0);
 }
 
+void swfe_sample_release_looped(ThingIdx source_id, short sample_number)
+{
+    ReleaseLoopedSample(source_id, sample_number);
+}
+
+void swfe_sample_set_volume(ThingIdx source_id, short sample_number, short volume)
+{
+    SetSampleVolume(source_id, sample_number, volume);
+}
+
+void swfe_sample_set_pitch(ThingIdx source_id, short sample_number, short pitch)
+{
+    SetSamplePitch(source_id, sample_number, pitch);
+}
+
+void swfe_samples_stop_all(void)
+{
+    StopAllSamples();
+}
+
+void swfe_cd_play_track(ushort track)
+{
+    PlayCDTrack(track);
+}
+
+void swfe_cd_stop(void)
+{
+    StopCD();
+}
+
+void swfe_music_start(int song, ubyte volume)
+{
+    StartMusic(song, volume);
+}
+
+void swfe_music_set_volume(int msec, ubyte volume)
+{
+    SetMusicVolume(msec, volume);
+}
+
 void wait_for_sound_sample_finish(ushort smpl_id)
 {
     while (IsSamplePlaying(0, smpl_id, NULL)) {

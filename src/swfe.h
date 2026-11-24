@@ -58,6 +58,18 @@ void monitor_all_samples(void);
 /** Whether the sample started by the given source is still playing. The
  * game only uses it to decide whether to start a sound again. */
 TbBool swfe_sample_is_playing(ThingIdx source_id, ushort sample_number);
+/** Ends the loop of a looped sample of the source; it plays to its end. */
+void swfe_sample_release_looped(ThingIdx source_id, short sample_number);
+/** Volume and pitch of a playing sample of the source. */
+void swfe_sample_set_volume(ThingIdx source_id, short sample_number, short volume);
+void swfe_sample_set_pitch(ThingIdx source_id, short sample_number, short pitch);
+/** Stops every sample. */
+void swfe_samples_stop_all(void);
+/** CD audio and music: the track of the mission, the danger music. */
+void swfe_cd_play_track(ushort track);
+void swfe_cd_stop(void);
+void swfe_music_start(int song, ubyte volume);
+void swfe_music_set_volume(int msec, ubyte volume);
 /** Music following the danger level of the mission. */
 void update_danger_music(ubyte a1);
 
@@ -91,6 +103,8 @@ void clear_gamekey_pressed(GameKey gkey);
 void init_user_input_local_controls(void);
 
 /* Display (display.c) */
+/** Shows the frame drawn so far; the network layer calls it while it waits. */
+void swap_wscreen(void);
 void change_brightness(short val);
 void set_user_selected_brightness(void);
 /** A light flash on the floor around the given map coordinates (flames). */

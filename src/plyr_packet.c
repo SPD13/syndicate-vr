@@ -53,6 +53,7 @@
 #include "research.h"
 #include "scandraw.h"
 #include "sound.h"
+#include "swfe.h"
 #include "thing.h"
 #include "weapon.h"
 #include "swlog.h"
@@ -67,9 +68,9 @@ void net_player_leave(PlayerIdx plyr)
     if ((plyr == net_host_player_no) || (plyr == local_player_no) || (nsvc.I.Type != NetSvc_IPX))
     {
         ingame.DisplayMode = DpM_PURPLEMNU;
-        StopCD();
-        StopAllSamples();
-        SetMusicVolume(100, 0);
+        swfe_cd_stop();
+        swfe_samples_stop_all();
+        swfe_music_set_volume(100, 0);
         LbNetworkSessionStop(local_player_no);
         if (nsvc.I.Type != NetSvc_IPX && net_serial_uses_modem)
             LbNetworkHangUp();
@@ -718,13 +719,13 @@ void peep_change_weapon(struct Thing *p_person)
             plagent = (ushort)p_person->U.UPerson.ComCur & 3;
         else
             plagent = 0;
-        ReleaseLoopedSample(p_person->ThingOffset, (short)(plagent + 80));
+        swfe_sample_release_looped(p_person->ThingOffset, (short)(plagent + 80));
         if ((p_person->Flag & TngF_PlayerAgent) != 0)
             plagent = (ushort)p_person->U.UPerson.ComCur & 3;
         else
             plagent = 0;
-        ReleaseLoopedSample(p_person->ThingOffset, (short)(plagent + 84));
-        ReleaseLoopedSample(p_person->ThingOffset, 14);
+        swfe_sample_release_looped(p_person->ThingOffset, (short)(plagent + 84));
+        swfe_sample_release_looped(p_person->ThingOffset, 14);
         p_person->Flag2 &= ~TgF2_Unkn0200;
     }
     if (((p_person->Flag & TngF_PlayerAgent) != 0)
@@ -1030,8 +1031,8 @@ void net_unkn_check_1(void)
                 {
                   show_message("You have Timed out from the system");
                   ingame.DisplayMode = DpM_PURPLEMNU;
-                  StopCD();
-                  StopAllSamples();
+                  swfe_cd_stop();
+                  swfe_samples_stop_all();
                 }
                 net_players_num--;
             }
@@ -1041,8 +1042,8 @@ void net_unkn_check_1(void)
             show_message(" Host Connection Lost");
             ingame.InNetGame_UNSURE = 0;
             ingame.DisplayMode = DpM_PURPLEMNU;
-            StopCD();
-            StopAllSamples();
+            swfe_cd_stop();
+            swfe_samples_stop_all();
         }
     }
     else
@@ -1119,7 +1120,7 @@ void net_unkn_check_1(void)
           show_message(" CHECK ERROR ");
           clear_gamekey_pressed(GKey_MISSN_RESTART);
           in_network_game = 2;
-          StopCD();
+          swfe_cd_stop();
           test_missions(1);
           init_level_3d(1);
           restart_back_into_mission(ingame.CurrentMission);

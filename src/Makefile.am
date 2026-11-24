@@ -200,6 +200,7 @@ libswarscore_a_SOURCES = \
 	sound.h \
 	specblit.c \
 	specblit.h \
+	swapp.c \
 	swcore.c \
 	swcore.h \
 	swcore_game.h \

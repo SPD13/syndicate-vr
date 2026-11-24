@@ -61,6 +61,7 @@
 #include "tngcolisn.h"
 #include "wadfile.h"
 #include "sound.h"
+#include "swfe.h"
 #include "swlog.h"
 #include "vehicle.h"
 /******************************************************************************/
@@ -5175,13 +5176,13 @@ void process_automedkit(struct Thing *p_person)
 
 void low_energy_alarm_stop(void)
 {
-    if (IsSamplePlaying(0, 93, 0))
+    if (swfe_sample_is_playing(0, 93))
         stop_sample_using_heap(0, 93);
 }
 
 void low_energy_alarm_play(void)
 {
-    if (!IsSamplePlaying(0, 93, 0))
+    if (!swfe_sample_is_playing(0, 93))
         play_sample_using_heap(0, 93, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_4EVER, 3);
 }
 
@@ -5275,7 +5276,7 @@ void process_weapon_wind_down(struct Thing *p_person)
             plagent = p_person->U.UPerson.ComCur & 3;
         else
             plagent = 0;
-        ReleaseLoopedSample(p_person->ThingOffset, 80 + plagent);
+        swfe_sample_release_looped(p_person->ThingOffset, 80 + plagent);
         p_person->Flag2 &= ~TgF2_Unkn0200;
         break;
     case WEP_MINIGUN:
@@ -5283,7 +5284,7 @@ void process_weapon_wind_down(struct Thing *p_person)
             plagent = p_person->U.UPerson.ComCur & 3;
         else
             plagent = 0;
-        ReleaseLoopedSample(p_person->ThingOffset, 84 + plagent);
+        swfe_sample_release_looped(p_person->ThingOffset, 84 + plagent);
         plagent = p_person->U.UPerson.ComCur & 3;
         play_dist_sample(p_person, 88 + plagent, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 1);
         p_person->Flag2 &= ~TgF2_Unkn0200;
@@ -5326,7 +5327,7 @@ void process_weapon_continuous_fire(struct Thing *p_person)
                         plagent = p_person->U.UPerson.ComCur & 3;
                     else
                         plagent = 0;
-                    ReleaseLoopedSample(p_person->ThingOffset, 80 + plagent);
+                    swfe_sample_release_looped(p_person->ThingOffset, 80 + plagent);
                     p_person->Flag2 &= ~TgF2_Unkn0200;
                 }
                 break;
@@ -5340,7 +5341,7 @@ void process_weapon_continuous_fire(struct Thing *p_person)
                         plagent = p_person->U.UPerson.ComCur & 3;
                     else
                         plagent = 0;
-                    ReleaseLoopedSample(p_person->ThingOffset, 84 + plagent);
+                    swfe_sample_release_looped(p_person->ThingOffset, 84 + plagent);
                     plagent = p_person->U.UPerson.ComCur & 3;
                     play_dist_sample(p_person, 88 + plagent, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 1);
                     p_person->Flag2 &= ~TgF2_Unkn0200;
@@ -5633,7 +5634,7 @@ void process_wielded_weapon(struct Thing *p_person)
             }
             else
             {
-                SetSamplePitch(p_person->ThingOffset, 7,
+                swfe_sample_set_pitch(p_person->ThingOffset, 7,
                     2 * p_person->U.UPerson.WeaponTimer + 100);
             }
             weapon_inc_timer(p_person, wtype);

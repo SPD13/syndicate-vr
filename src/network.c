@@ -32,6 +32,7 @@
 #include "display.h"
 #include "dos.h"
 #include "keyboard.h"
+#include "swfe.h"
 #include "swlog.h"
 /******************************************************************************/
 #pragma pack(1)

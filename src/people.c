@@ -8839,7 +8839,7 @@ void set_person_dead(struct Thing *p_person, ushort anim_mode)
                 plagent = (ushort)p_person->U.UPerson.ComCur & 3;
             else
                 plagent = 0;
-            ReleaseLoopedSample(p_person->ThingOffset, (short)(plagent + 80));
+            swfe_sample_release_looped(p_person->ThingOffset, (short)(plagent + 80));
             p_person->Flag2 &= ~TgF2_Unkn0200;
             break;
         case 2:
@@ -8847,13 +8847,13 @@ void set_person_dead(struct Thing *p_person, ushort anim_mode)
                 plagent = (ushort)p_person->U.UPerson.ComCur & 3;
             else
                 plagent = 0;
-            ReleaseLoopedSample(p_person->ThingOffset, (short)(plagent + 84));
+            swfe_sample_release_looped(p_person->ThingOffset, (short)(plagent + 84));
             play_dist_sample(p_person, ((ushort)p_person->U.UPerson.ComCur & 3) + 88,
               0x7F, 0x40, 100, 0, 1);
             p_person->Flag2 &= ~TgF2_Unkn0200;
             break;
         case 8:
-            ReleaseLoopedSample(p_person->ThingOffset, 14);
+            swfe_sample_release_looped(p_person->ThingOffset, 14);
             p_person->Flag2 &= ~TgF2_Unkn0200;
             break;
         default:

@@ -21,7 +21,7 @@ GROUPS = {
     'menus': '''feappbar febrief fecntrls fecryo fedebrief feequip felogin femail
         femain fenet feoptions fepanet fepause feresearch feshared festorage
         feworld packetfe devcreds game_options game_save'''.split(),
-    'shell': 'game swmain'.split(),
+    'shell': 'game swapp swmain'.split(),
     'input': 'keyboard mouse plyr_usrinp'.split(),
     'sound': 'sound fmvplay bfsmack smailfile smkdec'.split(),
     'test': '''difftest difftest_bot difftest_fuzz difftest_hook_misc
@@ -76,4 +76,5 @@ def main():
                 print('   %-40s %-18s <- %s' % (s, owner[s], ' '.join(sorted(syms[s]))))
 
 
-main()
+if __name__ == '__main__':
+    main()

@@ -60,6 +60,7 @@
 #include "pepgroup.h"
 #include "player.h"
 #include "sound.h"
+#include "swfe.h"
 #include "thing_expld.h"
 #include "thing_fire.h"
 #include "thing_search.h"
@@ -2933,7 +2934,7 @@ void set_dist_volume(struct SimpleThing *p_sthing,
     else
         volume = ((127 - ((dist - 0xa00) >> 5)) * (s32)vol) >> 7;
 
-    SetSampleVolume((short)p_sthing->ThingOffset, (short)smptbl_id,
+    swfe_sample_set_volume((short)p_sthing->ThingOffset, (short)smptbl_id,
       (short)volume);
 }
 
@@ -2945,7 +2946,7 @@ void process_stasis_pod(struct SimpleThing *p_sthing)
     {
     case 0:
         p_sthing->Radius += 0x10;
-        if (!IsSamplePlaying(p_sthing->ThingOffset, 0x2c, NULL))
+        if (!swfe_sample_is_playing(p_sthing->ThingOffset, 0x2c))
             play_dist_ssample(p_sthing, 0x2c,
               (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
         else
@@ -2969,7 +2970,7 @@ void process_stasis_pod(struct SimpleThing *p_sthing)
     case 2:
         if (p_sthing->Timer1 > 0)
         {
-            if (!IsSamplePlaying(p_sthing->ThingOffset, 0x2c, NULL))
+            if (!swfe_sample_is_playing(p_sthing->ThingOffset, 0x2c))
                 play_dist_ssample(p_sthing, 0x2c,
                   (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
             else
@@ -3123,7 +3124,7 @@ void process_time_pod(struct SimpleThing *p_sthing)
     {
     case 0:
         p_sthing->Radius += 0x10;
-        if (!IsSamplePlaying(p_sthing->ThingOffset, 0x38, NULL))
+        if (!swfe_sample_is_playing(p_sthing->ThingOffset, 0x38))
             play_dist_ssample(p_sthing, 0x38,
               (ushort)((0x32 - (ushort)p_sthing->Timer1) * 2), 0x40, 100, -1, 1);
         else
@@ -3140,7 +3141,7 @@ void process_time_pod(struct SimpleThing *p_sthing)
         p_sthing->Radius -= 0x20;
         if (p_sthing->Timer1 > 0)
         {
-            if (!IsSamplePlaying(p_sthing->ThingOffset, 0x38, NULL))
+            if (!swfe_sample_is_playing(p_sthing->ThingOffset, 0x38))
                 play_dist_ssample(p_sthing, 0x38,
                   (ushort)(p_sthing->Timer1 << 2), 0x40, 100, -1, 1);
             else
@@ -4044,7 +4045,7 @@ void FIRE_process_flame(struct SimpleThing *p_sthing)
 
 void FIRE_finish_flame(struct SimpleThing *p_sthing, ThingIdx thing)
 {
-    ReleaseLoopedSample(thing, 16);
+    swfe_sample_release_looped(thing, 16);
     play_dist_ssample(p_sthing, 0x17, FULL_VOL, EQUL_PAN, NORM_PTCH, LOOP_NO, 3);
     remove_sthing(thing);
     delete_snode(p_sthing);
