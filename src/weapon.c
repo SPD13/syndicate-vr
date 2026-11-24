@@ -1639,7 +1639,7 @@ static DIFFTEST_REF_FUNC int bul_path_end_asm(int x1, int y1, int z1,
     return ret;
 }
 
-int do_fvect_colide(int a1, int a2, int a3, int a4, intptr_t a5);
+int do_fvect_colide(int x1, int z1, int x2, int z2, struct MyMapElement *p_me);
 
 int bul_path_end(int x1, int y1, int z1, int *x2, int *y2, int *z2,
   int radius, struct Thing *p_owner, ubyte *status)
@@ -1707,7 +1707,7 @@ int bul_path_end(int x1, int y1, int z1, int *x2, int *y2, int *z2,
             if (p_mapel->ColHead != 0)
             {
                 colide = do_fvect_colide(x1, z1, orig_x, orig_z,
-                  (intptr_t)p_mapel);
+                  p_mapel);
                 if (colide > 0)
                 {
                     *status = 1;
@@ -2407,7 +2407,8 @@ void finalise_razor_wire(struct Thing *p_person)
     p_wire->Frame = new_vect;
 }
 
-void delete_vect(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+void delete_vect(int cor_x1, int unused_a2, int cor_z1, int cor_x2, int unused_a5,
+  int cor_z2, int colvect_no);
 
 static DIFFTEST_REF_FUNC void snap_razor_wire_asm(int a1, int a2, int a3, int a4)
 {
@@ -2427,7 +2428,7 @@ void snap_razor_wire(intptr_t a1, int a2, int a3, int a4)
     delete_vect((short)(p_wire->X >> 8), (short)((p_wire->Y >> 5) + 60),
       (short)(p_wire->Z >> 8), (short)(p_wire->VX + 50),
       (short)(p_wire->VY * 8 + 60), (short)p_wire->VZ,
-      (short)p_wire->Frame, 2);
+      (short)p_wire->Frame);
     remove_thing((ushort)p_wire->ThingOffset);
     delete_node(p_wire);
 }
@@ -5828,7 +5829,7 @@ s32 laser_hit_at(s32 cor1_x, s32 cor1_y, s32 cor1_z,
           && p_mapel->ColHead != 0)
         {
             colide = do_fvect_colide(cor1_x, cor1_z, orig_x, orig_z,
-              (intptr_t)p_mapel);
+              p_mapel);
             if (colide > 0)
                 DIFFTEST_RETURN(-colide);
         }

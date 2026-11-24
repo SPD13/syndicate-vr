@@ -274,12 +274,12 @@ extern ushort head_my_path;
 extern short unkn01_thing_idx;
 
 void remove_path(struct Thing *p_thing);
-int do_i_have_weapon(intptr_t a1, int a2);
+int do_i_have_weapon(struct Thing *p_person, int weapon);
 ushort build_navigate_path(struct Thing *p_thing, int x, int z, int face);
 void build_navigate_path_to_face_xz(struct Thing *p_thing, short face, int x, int z);
 void set_person_animmode_walk(struct Thing *p_person);
 void set_person_animmode_run(struct Thing *p_person);
-int set_player_peeps_to_run(intptr_t a1, int a2, int a3, intptr_t a4);
+int set_player_peeps_to_run(struct Thing *p_person, int plyr_idx);
 
 void load_peep_type_stats(void);
 

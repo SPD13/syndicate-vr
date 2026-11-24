@@ -4212,7 +4212,7 @@ void train_unkn_st20_func_1(struct Thing *p_vehicle)
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
  * remade. Registers it does not preserve are declared clobbered.
  */
-int ariadne_initialise_route(intptr_t a1, int a2, int a3, intptr_t a4);
+int ariadne_initialise_route(struct Thing *p_thing, int tgt_x, int tgt_z);
 
 static DIFFTEST_REF_FUNC void continue_flying_wander_asm(int a1, int a2, int a3, int a4)
 {
@@ -4270,7 +4270,7 @@ void continue_flying_wander(intptr_t a1, int a2, int a3, int a4)
         p_vehicle->X = nx << 16;
         old_z = p_vehicle->Z;
         p_vehicle->Z = nz << 16;
-        if (ariadne_initialise_route((intptr_t)p_vehicle, tx << 8, tz << 8, tz) > 0)
+        if (ariadne_initialise_route(p_vehicle, tx << 8, tz << 8) > 0)
         {
             unkn_path_func_001(p_vehicle, 1);
             p_vehicle->X = old_x;

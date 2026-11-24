@@ -278,7 +278,7 @@ static DIFFTEST_REF_FUNC int VNAV_renavigate_asm(int a1, int a2, int a3, int a4)
  */
 extern short VNAV_route[];
 
-void VNAV_do(int a1, int a2, intptr_t a3, int a4);
+void VNAV_do(int start_node, int dest_node, short *p_route);
 
 /** Computes a route from the vehicle's traffic node to node AccelX, and
  * packs the link index taken at each route step (2 bits per step, up to
@@ -306,7 +306,7 @@ int VNAV_renavigate(intptr_t a1, intptr_t a2, int a3, int a4)
     p_flags8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy4a;
 
     VNAV_do(p_vehicle->U.UVehicle.TNode, p_vehicle->U.UVehicle.AccelX,
-      (intptr_t)VNAV_route, a4);
+      VNAV_route);
     if (VNAV_route[4] == 42)
         DIFFTEST_RETURN((int)0);
 

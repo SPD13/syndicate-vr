@@ -221,7 +221,7 @@ void thing_goto_point_rel_fast(struct Thing *p_thing, short x, short y, short z,
     if ((p_thing->Flag2 & TgF2_Unkn0040) != 0)
         return;
     set_person_animmode_run(p_thing);
-    set_player_peeps_to_run((intptr_t)p_thing, (ushort)plyr, 0, (intptr_t)p_thing);
+    set_player_peeps_to_run(p_thing, (ushort)plyr);
 }
 
 void thing_goto_point(struct Thing *p_thing, short x, short y, short z);
@@ -249,7 +249,7 @@ void thing_goto_point_fast(struct Thing *p_thing, short x, short y, short z, int
     if ((p_thing->Flag2 & TgF2_Unkn0040) != 0)
         return;
     set_person_animmode_run(p_thing);
-    set_player_peeps_to_run((intptr_t)p_thing, (ushort)plyr, 0, (intptr_t)p_thing);
+    set_player_peeps_to_run(p_thing, (ushort)plyr);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
@@ -405,7 +405,7 @@ void thing_goto_point_on_face_fast(struct Thing *p_thing, short x, short z, shor
     if ((p_thing->Flag2 & TgF2_Unkn0040) != 0)
         return;
     set_person_animmode_run(p_thing);
-    set_player_peeps_to_run((intptr_t)p_thing, (ushort)plyr, 0, (intptr_t)p_thing);
+    set_player_peeps_to_run(p_thing, (ushort)plyr);
 }
 /** Routed asm (internal label). Arguments and return value are the
  * raw registers the asm takes (eax, edx, ebx, ecx), to be typed when
