@@ -84,17 +84,20 @@ static DIFFTEST_REF_FUNC int good_node_asm(int a1, int a2, int a3)
     return ra;
 }
 
-int good_node(int a1, intptr_t a2, int a3)
+/** Routed asm (internal label). Checks whether the traffic node -node
+ * (eax; positive values are things) leads anywhere. Returns 1 if so.
+ */
+int good_node(int node)
 {
     struct TrafficNode *p_tnode;
     s32 i, last;
     s32 tnode;
 
-    DIFFTEST_SHADOW_RET(good_node, int, good_node_asm(a1, a2, a3));
-    if (a1 > 0)
+    DIFFTEST_SHADOW_RET(good_node, int, good_node_asm(node, 0, 0));
+    if (node > 0)
         DIFFTEST_RETURN((int)1);
 
-    p_tnode = &game_traffic_nodes[-a1];
+    p_tnode = &game_traffic_nodes[-node];
     last = 0xfffff;
     for (i = 0; i < 4; i++)
     {
@@ -207,7 +210,7 @@ short get_next_tnode(struct Thing *p_vehicle, struct TrafficNode *p_tnode)
         {
             if (lp == 3)
                 continue;
-            if (!good_node(lnk, (intptr_t)p_lntnode, lp))
+            if (!good_node(lnk))
                 continue;
         }
         p_vehicle->U.UVehicle.LeisurePlace =
@@ -284,10 +287,10 @@ void VNAV_do(int a1, int a2, intptr_t a3, int a4);
  * packs the link index taken at each route step (2 bits per step, up to
  * 16 steps) into Dummy5a/Dummy5b, step count into low bits of Dummy4a.
  * Returns 0 if no route exists or a step has no matching link.
+ * p_vehicle comes in eax.
  */
-int VNAV_renavigate(intptr_t a1, intptr_t a2, int a3, int a4)
+int VNAV_renavigate(struct Thing *p_vehicle)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
     short *p_route_hdr = VNAV_route;
     u32 *p_path;
     u32 *p_flags32;
@@ -298,15 +301,17 @@ int VNAV_renavigate(intptr_t a1, intptr_t a2, int a3, int a4)
     u32 val;
     uint sh;
 
-    DIFFTEST_SHADOW_RET(VNAV_renavigate, int, VNAV_renavigate_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW_RET(VNAV_renavigate, int,
+      VNAV_renavigate_asm((intptr_t)p_vehicle, 0, 0, 0));
     // Dummy5a/Dummy5b and Dummy4a/Dummy4b are accessed as 32-bit values
     p_path = (u32 *)&p_vehicle->U.UVehicle.Dummy5a;
     p_path8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy5a;
     p_flags32 = (u32 *)&p_vehicle->U.UVehicle.Dummy4a;
     p_flags8 = (ubyte *)&p_vehicle->U.UVehicle.Dummy4a;
 
+    // The asm passes its ecx on here; VNAV_do does not read it
     VNAV_do(p_vehicle->U.UVehicle.TNode, p_vehicle->U.UVehicle.AccelX,
-      (intptr_t)VNAV_route, a4);
+      (intptr_t)VNAV_route, 0);
     if (VNAV_route[4] == 42)
         DIFFTEST_RETURN((int)0);
 
@@ -358,11 +363,12 @@ static DIFFTEST_REF_FUNC int VNAV_there_asm(int a1)
     return ra;
 }
 
-int VNAV_there(intptr_t a1)
+/** Routed asm (internal label). Returns 1 when the vehicle p_vehicle (eax)
+ * has no turns left on its route.
+ */
+int VNAV_there(struct Thing *p_vehicle)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
-
-    DIFFTEST_SHADOW_RET(VNAV_there, int, VNAV_there_asm(a1));
+    DIFFTEST_SHADOW_RET(VNAV_there, int, VNAV_there_asm((intptr_t)p_vehicle));
     DIFFTEST_RETURN((int)((p_vehicle->U.UVehicle.Dummy4a & 0x3F) == 0));
 }
 /** Routed asm (internal label). Arguments and return value are the
@@ -377,14 +383,16 @@ static DIFFTEST_REF_FUNC int VNAV_turn_asm(int a1, int a2, int a3)
     return ra;
 }
 
-int VNAV_turn(intptr_t a1, intptr_t a2, intptr_t a3)
+/** Routed asm (internal label). Takes the next turn of the route of
+ * p_vehicle (eax) and returns its link index (0..3).
+ */
+int VNAV_turn(struct Thing *p_vehicle)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
     s32 *p_turns_left;
     s32 *p_turns;
     s32 turns;
 
-    DIFFTEST_SHADOW_RET(VNAV_turn, int, VNAV_turn_asm(a1, a2, a3));
+    DIFFTEST_SHADOW_RET(VNAV_turn, int, VNAV_turn_asm((intptr_t)p_vehicle, 0, 0));
     // Dummy4a/Dummy4b and Dummy5a/Dummy5b are accessed as 32-bit values:
     // a counter of remaining turns, and a list of 2-bit turn directions.
     p_turns_left = (s32 *)&p_vehicle->U.UVehicle.Dummy4a;
@@ -423,13 +431,11 @@ void process_next_vnav_turn(struct Thing *p_vehicle)
     p_d4b = (ubyte *)&p_vehicle->U.UVehicle.Dummy4a;
     p_d5 = (u32 *)&p_vehicle->U.UVehicle.Dummy5a;
 
-    follow_route = !VNAV_there((intptr_t)p_vehicle);
+    follow_route = !VNAV_there(p_vehicle);
     if (!follow_route &&
       p_vehicle->U.UVehicle.AccelX != p_vehicle->U.UVehicle.TNode)
     {
-        // ecx is passed through by the asm; VNAV_do does not read it
-        follow_route = (VNAV_renavigate((intptr_t)p_vehicle, (intptr_t)p_vehicle,
-          p_vehicle->U.UVehicle.TNode, 0) != 0);
+        follow_route = (VNAV_renavigate(p_vehicle) != 0);
         if (!follow_route)
             p_vehicle->State = 0x3c;
     }
@@ -441,7 +447,7 @@ void process_next_vnav_turn(struct Thing *p_vehicle)
         p_tnode = &game_traffic_nodes[-tnode];
         p_vehicle->U.UVehicle.Dummy4b = 0;
         *p_d4 |= (u32)tnode << 16;
-        link = VNAV_turn((intptr_t)p_vehicle, (intptr_t)p_vehicle, (intptr_t)p_tnode);
+        link = VNAV_turn(p_vehicle);
         *p_d4b &= 0x3f;
         *p_d4 |= (u32)link << 6;
         p_vehicle->U.UVehicle.TNode = p_tnode->UTraffic.Link[link];

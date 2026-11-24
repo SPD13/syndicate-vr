@@ -257,7 +257,7 @@ static void fuzz_fov_region(u32 *p_seed)
     fov_region(x, y, (int)p, 0);
 }
 
-void VNAV_qwertyuiop(intptr_t a1, intptr_t a2, int a3, int a4, int a5, int a6, int a7, int a8);
+void VNAV_qwertyuiop(s32 *p_dist, s32 *p_frac, int x1, int z1, int x2, int z2, int px, int pz);
 
 static void fuzz_VNAV_qwertyuiop(u32 *p_seed)
 {
@@ -292,10 +292,10 @@ static void fuzz_VNAV_qwertyuiop(u32 *p_seed)
     if ((dx != 0 || dy != 0) && ((dx * dx + dy * dy) >> 8) == 0)
         v[2] = v[0] + 16;
     dist = frac = 0x5a5a5a5a;
-    VNAV_qwertyuiop((int)&dist, (int)&frac, v[0], v[1], v[2], v[3], v[4], v[5]);
+    VNAV_qwertyuiop(&dist, &frac, v[0], v[1], v[2], v[3], v[4], v[5]);
 }
 
-void matrix_transpose_cp(intptr_t a1, intptr_t a2, intptr_t a3);
+void matrix_transpose_cp(s32 *p_dst, s32 *p_src);
 
 static void fuzz_matrix_transpose_cp(u32 *p_seed)
 {
@@ -308,9 +308,9 @@ static void fuzz_matrix_transpose_cp(u32 *p_seed)
     }
     // Sometimes check in-place transpose
     if (difftest_fuzz_rand(p_seed) % 8 == 0)
-        matrix_transpose_cp((int)src, (int)src, 0);
+        matrix_transpose_cp(src, src);
     else
-        matrix_transpose_cp((int)dst, (int)src, 0);
+        matrix_transpose_cp(dst, src);
 }
 
 void mech_unkn_func_20(struct M31 *p_from, struct M31 *p_to, s32 div,

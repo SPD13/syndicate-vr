@@ -249,7 +249,7 @@ void init_mech(void);
 void mech_gameturn_reinit(void);
 
 void mech_unkn_func_02(void);
-void mech_unkn_func_05(int owntng, int a2, int a3);
+void mech_unkn_func_05(int owntng, int slot, int arr2_idx);
 void mech_unkn_func_09(ThingIdx thing);
 void init_mech_explode(struct Thing *p_vehicle);
 

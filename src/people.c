@@ -3217,7 +3217,7 @@ static DIFFTEST_REF_FUNC void VNAV_find_dropoff_point_asm(int a1, int a2, int a3
 }
 
 extern short VNAV_nearnodes[5];
-void VNAV_qwertyuiop(intptr_t a1, intptr_t a2, int a3, int a4, int a5, int a6, int a7, int a8);
+void VNAV_qwertyuiop(s32 *p_dist, s32 *p_frac, int x1, int z1, int x2, int z2, int px, int pz);
 
 /** Returns 1 if the thing list of map element mapel contains a vehicle,
  * as inlined in VNAV_find_dropoff_point() asm.
@@ -3319,7 +3319,7 @@ void VNAV_find_dropoff_point(intptr_t a1, intptr_t a2, intptr_t a3, int a4, int 
                 if (k < 4)
                     continue;
             }
-            VNAV_qwertyuiop((intptr_t)&dist, (intptr_t)&frac, node_x, node_z,
+            VNAV_qwertyuiop(&dist, &frac, node_x, node_z,
               lnode_x, lnode_z, (short)a4, (short)a5);
             if (dist >= best_dist)
                 continue;
@@ -3349,7 +3349,7 @@ static DIFFTEST_REF_FUNC int VNAV_can_i_get_there_asm(int a1, int a2, int a3, in
  */
 extern short VNAV_route[];
 
-void VNAV_find_nearnodes(int a1, int a2, int a3, int a4);
+void VNAV_find_nearnodes(int x, int z);
 
 /** Checks whether vehicle a1 can drive to map point (a2,a3).
  * Returns 0 if no drop-off node is found, or if a route from the vehicle's
@@ -3365,7 +3365,7 @@ int VNAV_can_i_get_there(intptr_t a1, int a2, int a3, intptr_t a4)
     DIFFTEST_SHADOW_RET(VNAV_can_i_get_there, int, VNAV_can_i_get_there_asm(a1, a2, a3, a4));
     z = (short)a3;
     x = (short)a2;
-    VNAV_find_nearnodes(x, z, z, x);
+    VNAV_find_nearnodes(x, z);
     VNAV_find_dropoff_point((intptr_t)&drop_node, (intptr_t)&drop_b, (intptr_t)&drop_a, x, z);
     tnode = (short)drop_node;
     if (tnode == 9999)
@@ -3437,7 +3437,7 @@ int VNAV_goto(intptr_t a1, int a2, int a3, intptr_t a4)
     p_vehicle->U.UVehicle.destz = (ushort)a3;
     x = (short)a2;
     z = (short)a3;
-    VNAV_find_nearnodes(x, z, z, x);
+    VNAV_find_nearnodes(x, z);
     VNAV_find_dropoff_point((intptr_t)&drop_node, (intptr_t)&drop_b, (intptr_t)&drop_a, x, z);
     tnode = (short)drop_node;
     if (tnode == 9999)
@@ -9616,7 +9616,7 @@ static DIFFTEST_REF_FUNC void do_person_gotothingindex_asm(int a1, int a2, int a
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-int do_next_navigate_index(intptr_t a1, int a2, int a3, int a4);
+int do_next_navigate_index(struct Thing *p_thing);
 short person_move(struct Thing *p_person);
 
 void do_person_gotothingindex(intptr_t a1, int a2, int a3, int a4)
@@ -9721,7 +9721,7 @@ void do_person_gotothingindex(intptr_t a1, int a2, int a3, int a4)
         if (p_person->U.UPerson.ComTimer == -100)
         {
             p_person->U.UPerson.LastDist = 0x7d00;
-            if ((ubyte)do_next_navigate_index((intptr_t)p_person, 0, 0, 0) != 0)
+            if ((ubyte)do_next_navigate_index(p_person) != 0)
             {
                 p_person->U.UPerson.PathIndex = 0;
                 p_person->State = 0;
@@ -10046,7 +10046,7 @@ void person_goto_point(struct Thing *p_person)
         if (p_person->U.UPerson.ComTimer == -100)
         {
             p_person->U.UPerson.LastDist = 0x7d00;
-            if ((ubyte)do_next_navigate_index((intptr_t)p_person, 0, 0, 0) != 0)
+            if ((ubyte)do_next_navigate_index(p_person) != 0)
             {
                 p_person->U.UPerson.PathIndex = 0;
                 p_person->State = 0;

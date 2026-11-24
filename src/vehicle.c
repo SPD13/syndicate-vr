@@ -453,20 +453,23 @@ static DIFFTEST_REF_FUNC int init_unkn1thing_asm(int a1, int a2, int a3, int a4,
     return ra;
 }
 
-/** Routed asm (internal label). Arguments are the raw registers and stack
- * args the asm takes: a1 = source matrix, a2/a3/a4 = X/Y/Z,
- * a5/a6/a7 = unkn2_pos x/y/z, a8 = prim object offset.
+/** Routed asm (internal label). Creates a thing for an object: p_src_mat
+ * is the source matrix (eax), pos_x/pos_y/pos_z its position (edx, ebx,
+ * ecx), unkn_x/unkn_y/unkn_z go to unkn2_pos and prim_offs is the prim
+ * object offset (stack args).
  * Returns the new thing index.
  */
-int init_unkn1thing(intptr_t a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+int init_unkn1thing(struct M33 *p_src_mat, int pos_x, int pos_y, int pos_z,
+  int unkn_x, int unkn_y, int unkn_z, int prim_offs)
 {
-    struct M33 *p_src_mat = (struct M33 *)a1;
     struct Thing *p_thing;
     struct SingleObject *p_snobj;
     short thing;
     short matx;
 
-    DIFFTEST_SHADOW_RET(init_unkn1thing, int, init_unkn1thing_asm(a1, a2, a3, a4, a5, a6, a7, a8));
+    DIFFTEST_SHADOW_RET(init_unkn1thing, int,
+      init_unkn1thing_asm((intptr_t)p_src_mat, pos_x, pos_y, pos_z,
+      unkn_x, unkn_y, unkn_z, prim_offs));
     thing = get_new_thing();
     p_thing = &things[(ushort)thing];
     p_thing->VX = 0;
@@ -482,11 +485,11 @@ int init_unkn1thing(intptr_t a1, int a2, int a3, int a4, int a5, int a6, int a7,
     p_thing->StartFrame = 0;
     p_thing->State = 0;
     p_thing->Flag = 0;
-    p_thing->X = a2;
+    p_thing->X = pos_x;
     p_thing->U.UVehicle.Object = next_object;
     p_thing->U.UVehicle.MatrixIndex = next_local_mat;
-    p_thing->Z = a4;
-    p_thing->Y = a3;
+    p_thing->Z = pos_z;
+    p_thing->Y = pos_y;
     matx = p_thing->U.UVehicle.MatrixIndex;
     next_local_mat++;
     matrix_identity_fill(&local_mats[matx]);
@@ -495,11 +498,11 @@ int init_unkn1thing(intptr_t a1, int a2, int a3, int a4, int a5, int a6, int a7,
     p_thing->Flag |= 0x04000000;
     p_thing->U.UVehicle.UniqueID = game_level_unique_id;
     game_level_unique_id++;
-    unkn2_pos_x = a5;
-    unkn2_pos_y = a6;
-    unkn2_pos_z = a7;
-    copy_prim_obj_to_game_object((ushort)(a2 >> 8), (ushort)(a4 >> 8),
-      (short)(-prim_unknprop01 - a8), (ushort)(a3 >> 8));
+    unkn2_pos_x = unkn_x;
+    unkn2_pos_y = unkn_y;
+    unkn2_pos_z = unkn_z;
+    copy_prim_obj_to_game_object((ushort)(pos_x >> 8), (ushort)(pos_z >> 8),
+      (short)(-prim_unknprop01 - prim_offs), (ushort)(pos_y >> 8));
     unkn_object_shift_03((ushort)(next_object - 1));
     p_snobj = &game_objects[next_object - 1];
     p_snobj->ThingNo = thing;
@@ -597,7 +600,7 @@ void mech_unkn_func_09(ThingIdx thing)
         int new_thing;
 
         p_part = &mech_parts_init[i];
-        new_thing = init_unkn1thing((intptr_t)p_mat, 0, 0, 0, scale, scale, scale,
+        new_thing = init_unkn1thing(p_mat, 0, 0, 0, scale, scale, scale,
           p_part->prim_offs);
         p_u4itm = &unkn_mech_arr4[unkn_mech_var10];
         p_u4itm->thing = (short)new_thing;
@@ -767,20 +770,20 @@ static DIFFTEST_REF_FUNC void VNAV_find_nearnodes_asm(int a1, int a2, int a3, in
 extern short VNAV_nearnodes[5];
 extern s32 VNAV_nodedists[5];
 
-/** Finds the 5 traffic nodes nearest to point (a1,a2) in map coords,
- * storing their indices in VNAV_nearnodes[] and squared distances
+/** Finds the 5 traffic nodes nearest to point (x,z) in map coords (eax,
+ * edx), storing their indices in VNAV_nearnodes[] and squared distances
  * in VNAV_nodedists[].
  */
-void VNAV_find_nearnodes(int a1, int a2, int a3, int a4)
+void VNAV_find_nearnodes(int x, int z)
 {
     struct TrafficNode *p_tnode;
     short cor_x, cor_z;
     s32 dist, max_dist, dx, dz;
     int i, tnode, max_i;
 
-    DIFFTEST_SHADOW(VNAV_find_nearnodes, VNAV_find_nearnodes_asm(a1, a2, a3, a4));
-    cor_x = a1;
-    cor_z = a2;
+    DIFFTEST_SHADOW(VNAV_find_nearnodes, VNAV_find_nearnodes_asm(x, z, 0, 0));
+    cor_x = x;
+    cor_z = z;
     for (i = 0; i < 5; i++)
     {
         VNAV_nearnodes[i] = 0;
@@ -831,25 +834,26 @@ static DIFFTEST_REF_FUNC void VNAV_qwertyuiop_asm(int a1, int a2, int a3, int a4
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc), "+S" (p_stk) : : "cc", "memory");
 }
 
-/** Distance of point (a7,a8) from segment (a3,a4)-(a5,a6).
- * Stores approximate distance in *a1, and in *a2 the position along
+/** Distance of point (px,pz) from segment (x1,z1)-(x2,z2).
+ * Stores approximate distance in *p_dist, and in *p_frac the position along
  * the segment (0 before start, 0xff past end, else 256*fraction).
+ * p_dist/p_frac/x1/z1 come in eax/edx/ebx/ecx, the rest on the stack.
  */
-void VNAV_qwertyuiop(intptr_t a1, intptr_t a2, int a3, int a4, int a5, int a6, int a7, int a8)
+void VNAV_qwertyuiop(s32 *p_dist, s32 *p_frac, int x1, int z1, int x2, int z2, int px, int pz)
 {
-    s32 *p_dist = (s32 *)a1;
-    s32 *p_frac = (s32 *)a2;
     s32 dx1, dy1, dx2, dy2;
     s32 ex, ey, fx, fy;
     s32 dot1, dot2, cross;
     s32 adx, ady;
     s32 m, n;
 
-    DIFFTEST_SHADOW(VNAV_qwertyuiop, VNAV_qwertyuiop_asm(a1, a2, a3, a4, a5, a6, a7, a8));
-    dx1 = a5 - a3;
-    dy1 = a6 - a4;
-    dx2 = a7 - a3;
-    dy2 = a8 - a4;
+    DIFFTEST_SHADOW(VNAV_qwertyuiop,
+      VNAV_qwertyuiop_asm((intptr_t)p_dist, (intptr_t)p_frac,
+      x1, z1, x2, z2, px, pz));
+    dx1 = x2 - x1;
+    dy1 = z2 - z1;
+    dx2 = px - x1;
+    dy2 = pz - z1;
     dot1 = (s32)((u32)dx2 * (u32)dx1 + (u32)dy2 * (u32)dy1);
     if (dot1 <= 0)
     {
@@ -863,10 +867,10 @@ void VNAV_qwertyuiop(intptr_t a1, intptr_t a2, int a3, int a4, int a5, int a6, i
         *p_dist = n + m;
         return;
     }
-    ex = a3 - a5;
-    ey = a4 - a6;
-    fx = a7 - a5;
-    fy = a8 - a6;
+    ex = x1 - x2;
+    ey = z1 - z2;
+    fx = px - x2;
+    fy = pz - z2;
     dot2 = (s32)((u32)fx * (u32)ex + (u32)ey * (u32)fy);
     if (dot2 <= 0)
     {
@@ -911,14 +915,12 @@ static DIFFTEST_REF_FUNC void VNAV_find_start_dropoff_point_asm(int a1, int a2, 
 }
 
 /** Among links of the nodes in VNAV_nearnodes[], finds the one whose
- * segment is closest to point (a4,a5). Stores the node in *a1, link
- * index in *a2 and position along the segment in *a3.
+ * segment is closest to point (x,z). Stores the node in *p_tnode_out, link
+ * index in *p_link_out and position along the segment in *p_frac_out.
+ * The pointers and x come in eax/edx/ebx/ecx, z on the stack.
  */
-void VNAV_find_start_dropoff_point(intptr_t a1, intptr_t a2, intptr_t a3, int a4, int a5)
+void VNAV_find_start_dropoff_point(short *p_tnode_out, ubyte *p_link_out, s32 *p_frac_out, int x, int z)
 {
-    short *p_tnode_out = (short *)a1;
-    ubyte *p_link_out = (ubyte *)a2;
-    s32 *p_frac_out = (s32 *)a3;
     struct TrafficNode *p_tnode;
     struct TrafficNode *p_lnode;
     s32 best_dist, dist, frac;
@@ -927,7 +929,8 @@ void VNAV_find_start_dropoff_point(intptr_t a1, intptr_t a2, intptr_t a3, int a4
     int i, j;
 
     DIFFTEST_SHADOW(VNAV_find_start_dropoff_point,
-      VNAV_find_start_dropoff_point_asm(a1, a2, a3, a4, a5));
+      VNAV_find_start_dropoff_point_asm((intptr_t)p_tnode_out,
+        (intptr_t)p_link_out, (intptr_t)p_frac_out, x, z));
     if (VNAV_nearnodes[0] == 0)
         return;
     best_dist = 0xfffffff;
@@ -945,8 +948,8 @@ void VNAV_find_start_dropoff_point(intptr_t a1, intptr_t a2, intptr_t a3, int a4
             if ((p_tnode->UTraffic.Flags[j] & 0x40) != 0)
                 continue;
             p_lnode = &game_traffic_nodes[-link];
-            VNAV_qwertyuiop((intptr_t)&dist, (intptr_t)&frac, node_x, node_z,
-              p_lnode->X, p_lnode->Z, (short)a4, (short)a5);
+            VNAV_qwertyuiop(&dist, &frac, node_x, node_z,
+              p_lnode->X, p_lnode->Z, (short)x, (short)z);
             if (dist >= best_dist)
                 continue;
             *p_tnode_out = VNAV_nearnodes[i];
@@ -1062,12 +1065,12 @@ void VNAV_unkn_func_207(struct Thing *p_thing)
     cor_z = p_thing->Z >> 8;
     p_thing->U.UVehicle.ZebraOldHealth = p_thing->Health;
     p_thing->U.UVehicle.MaxSpeed = 0;
-    VNAV_find_nearnodes(cor_x, cor_z, cor_z, cor_x);
+    VNAV_find_nearnodes(cor_x, cor_z);
     // TODO the asm leaves these uninitialized; the callee may not write them
     frac = 0;
     tnode = 0;
     link = 0;
-    VNAV_find_start_dropoff_point((intptr_t)&tnode, (intptr_t)&link, (intptr_t)&frac, cor_x, cor_z);
+    VNAV_find_start_dropoff_point(&tnode, &link, &frac, cor_x, cor_z);
 
     p_thing->U.UVehicle.Dummy4b = 0;
     p_thing->U.UVehicle.Dummy4b |= -tnode;
@@ -1211,10 +1214,12 @@ static DIFFTEST_REF_FUNC int person_poke_asm(int a1, int a2, int a3, int a4)
 
 short person_move(struct Thing *p_person);
 
-int person_poke(intptr_t a1, int a2, int a3, intptr_t a4)
+/** Routed asm (internal label). Pushes p_person (eax) away from p_other
+ * (ecx) by the velocity vel_x/vel_z (edx, ebx) of the other thing.
+ * Returns the raw eax of the asm.
+ */
+int person_poke(struct Thing *p_person, int vel_x, int vel_z, struct Thing *p_other)
 {
-    struct Thing *p_person = (struct Thing *)a1;
-    struct Thing *p_other = (struct Thing *)a4;
     s32 dt_x, dt_z;
     s32 orig_dt_x, orig_dt_z;
     s32 dist_x, dist_z;
@@ -1223,11 +1228,12 @@ int person_poke(intptr_t a1, int a2, int a3, intptr_t a4)
     short old_speed;
     int ret;
 
-    DIFFTEST_SHADOW_RET(person_poke, int, person_poke_asm(a1, a2, a3, a4));
-    orig_dt_z = a2;
-    orig_dt_x = a3;
-    dt_z = a2;
-    dt_x = a3;
+    DIFFTEST_SHADOW_RET(person_poke, int, person_poke_asm((intptr_t)p_person,
+      vel_x, vel_z, (intptr_t)p_other));
+    orig_dt_z = vel_x;
+    orig_dt_x = vel_z;
+    dt_z = vel_x;
+    dt_x = vel_z;
 
     dist_x = abs((p_person->X >> 8) - dt_x - (p_other->X >> 8));
     dist_z = abs((p_person->Z >> 8) + dt_z - (p_other->Z >> 8));
@@ -1290,7 +1296,7 @@ void person_hit_by_car(struct Thing *p_person, struct Thing *p_vehicle)
     DIFFTEST_SHADOW(person_hit_by_car, person_hit_by_car_asm(p_person, p_vehicle));
     dt_x = (p_person->X - p_vehicle->X) >> 8;
     dt_z = (p_person->Z - p_vehicle->Z) >> 8;
-    person_poke((intptr_t)p_person, p_vehicle->VX, p_vehicle->VZ, (intptr_t)p_vehicle);
+    person_poke(p_person, p_vehicle->VX, p_vehicle->VZ, p_vehicle);
     // TODO the asm mixes the axes: VZ is added to X distance and VX to Z distance
     dt_z = dt_z - (short)p_vehicle->VX;
     dt_x = dt_x + (short)p_vehicle->VZ;
@@ -1853,13 +1859,15 @@ static DIFFTEST_REF_FUNC int exit_pod_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int exit_pod(intptr_t a1, int a2, intptr_t a3, int a4)
+/** Routed asm (internal label). Lets the next passenger out of the shuttle
+ * pod p_vehicle (eax). Returns 1 when the pod is empty, else 0.
+ */
+int exit_pod(struct Thing *p_vehicle)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
     struct Thing *p_passngr;
     short passngr;
 
-    DIFFTEST_SHADOW_RET(exit_pod, int, exit_pod_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW_RET(exit_pod, int, exit_pod_asm((intptr_t)p_vehicle, 0, 0, 0));
     passngr = p_vehicle->U.UVehicle.PassengerHead;
     if (passngr == 0)
     {
@@ -1890,15 +1898,18 @@ static DIFFTEST_REF_FUNC void set_object_flag_asm(int a1, int a2, int a3, int a4
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void set_object_flag(int a1, int a2, intptr_t a3, int a4)
+/** Routed asm (internal label). Sets the flags of all faces of object
+ * (eax) to face_flag (edx).
+ */
+void set_object_flag(int object, int face_flag)
 {
     struct SingleObject *p_sobj;
     ushort face, face_end;
     ushort flag;
 
-    DIFFTEST_SHADOW(set_object_flag, set_object_flag_asm(a1, a2, a3, a4));
-    p_sobj = &game_objects[(ushort)a1];
-    flag = (ushort)a2;
+    DIFFTEST_SHADOW(set_object_flag, set_object_flag_asm(object, face_flag, 0, 0));
+    p_sobj = &game_objects[(ushort)object];
+    flag = (ushort)face_flag;
 
     face_end = p_sobj->StartFace + p_sobj->NumbFaces;
     for (face = p_sobj->StartFace; face < face_end; face++)
@@ -1947,11 +1958,11 @@ void process_shuttle_pod(struct Thing *p_vehicle)
     tnode = p_vehicle->U.UVehicle.TNode;
     if (tnode < 0)
     {
-        if ((short)exit_pod((intptr_t)p_vehicle, tnode, (intptr_t)p_vehicle, 0) != 0)
+        if ((short)exit_pod(p_vehicle) != 0)
         {
             station = -tnode;
             set_object_flag((ushort)things[(ushort)station].U.UObject.Object,
-              0x15, (intptr_t)p_vehicle, 0);
+              0x15);
             remove_thing(p_vehicle->ThingOffset);
         }
         return;
@@ -1959,12 +1970,12 @@ void process_shuttle_pod(struct Thing *p_vehicle)
 
     p_station = &things[tnode];
     set_object_flag((ushort)things[(ushort)tnode].U.UObject.Object,
-      5, (intptr_t)p_vehicle, 0);
+      5);
     station = p_station->U.UObject.PrevThing;
     if (station != 0)
     {
         set_object_flag((ushort)things[(ushort)station].U.UObject.Object,
-          0x15, (intptr_t)p_vehicle, 0);
+          0x15);
     }
     p_vehicle->X = p_station->X;
     p_vehicle->Y = p_station->Y;
@@ -1990,7 +2001,10 @@ static DIFFTEST_REF_FUNC void explode_thing_object_asm(int a1, int a2, int a3, i
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void explode_thing_object(int a1, int a2, int a3, int a4)
+/** Routed asm (internal label). Breaks the object of thing (eax) into
+ * explode faces.
+ */
+void explode_thing_object(int thing)
 {
     struct Thing *p_thing;
     struct SingleObject *p_sobj;
@@ -2002,9 +2016,9 @@ void explode_thing_object(int a1, int a2, int a3, int a4)
     ushort face, exface;
     int i;
 
-    DIFFTEST_SHADOW(explode_thing_object, explode_thing_object_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(explode_thing_object, explode_thing_object_asm(thing, 0, 0, 0));
     dont_bother_with_explode_faces = 0;
-    p_thing = &things[(short)a1];
+    p_thing = &things[(short)thing];
     p_sobj = &game_objects[(ushort)p_thing->U.UObject.Object];
     if (p_thing->Type == TT_VEHICLE)
     {
@@ -2161,7 +2175,7 @@ void init_vehicle_explode(struct Thing *p_vehicle)
             break;
     }
 
-    explode_thing_object(p_vehicle->ThingOffset, 0, 0, 0);
+    explode_thing_object(p_vehicle->ThingOffset);
     if (p_vehicle->SubType == SubTT_VEH_FLYING)
     {
         cond = alt_at_point((short)(p_vehicle->X >> 8), (short)(p_vehicle->Z >> 8))
@@ -2195,13 +2209,15 @@ static DIFFTEST_REF_FUNC void flatten_vehicle_asm(int a1, int a2, int a3, int a4
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void flatten_vehicle(intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4)
+/** Routed asm (internal label). Squashes the parked ground vehicle
+ * p_thing (eax) a bit.
+ */
+void flatten_vehicle(struct Thing *p_thing)
 {
-    struct Thing *p_thing = (struct Thing *)a1;
     struct SingleObject *p_sobj;
     s32 pt;
 
-    DIFFTEST_SHADOW(flatten_vehicle, flatten_vehicle_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(flatten_vehicle, flatten_vehicle_asm((intptr_t)p_thing, 0, 0, 0));
 
     if (p_thing->SubType != SubTT_VEH_GROUND)
         return;
@@ -2237,9 +2253,11 @@ static DIFFTEST_REF_FUNC int check_tank_collision_asm(int a1, int a2, int a3, in
 
 int can_the_tank_run_over(intptr_t a1, int a2);
 
-int check_tank_collision(intptr_t a1, int a2, int a3, int a4)
+/** Routed asm (internal label). Checks the tiles around tank p_tank (eax)
+ * for things it runs over. Returns the raw eax of the asm.
+ */
+int check_tank_collision(struct Thing *p_tank)
 {
-    struct Thing *p_tank = (struct Thing *)a1;
     struct M33 *p_mat;
     s32 dt_x, dt_z;
     s32 front_x, front_z, back_x, back_z;
@@ -2247,7 +2265,7 @@ int check_tank_collision(intptr_t a1, int a2, int a3, int a4)
     s32 tl_x, tl_z, tl_x_end, tl_z_end;
 
     DIFFTEST_SHADOW_RET(check_tank_collision, int,
-      check_tank_collision_asm(a1, a2, a3, a4));
+      check_tank_collision_asm((intptr_t)p_tank, 0, 0, 0));
 
     p_mat = &local_mats[p_tank->U.UVehicle.MatrixIndex];
     dt_x = (-p_mat->R[0][2]) << 2;
@@ -2341,7 +2359,7 @@ int check_tank_collision(intptr_t a1, int a2, int a3, int a4)
                             start_crashing(p_tank);
                             p_tank->Flag |= TngF_Destroyed;
                         }
-                        flatten_vehicle((intptr_t)p_thing, (intptr_t)p_tank, (intptr_t)p_thing, (intptr_t)p_tank);
+                        flatten_vehicle(p_thing);
                     }
                 }
                 else
@@ -2411,7 +2429,7 @@ void process_tank_stationary(struct Thing *p_vehicle)
         }
     }
 
-    check_tank_collision((intptr_t)p_vehicle, 0, 0, 0);
+    check_tank_collision(p_vehicle);
 
     // The asm reads the map flags twice, but the outcome is the same as one test
     p_mapel = &game_my_big_map[((p_vehicle->Z >> 16) << 7) + (p_vehicle->X >> 16)];
@@ -2420,7 +2438,7 @@ void process_tank_stationary(struct Thing *p_vehicle)
         init_vehicle_explode(p_vehicle);
 }
 
-int do_next_navigate_index(intptr_t a1, int a2, int a3, int a4);
+int do_next_navigate_index(struct Thing *p_thing);
 
 static DIFFTEST_REF_FUNC void process_tank_asm(struct Thing *p_vehicle)
 {
@@ -2493,7 +2511,7 @@ void process_tank(struct Thing *p_vehicle)
     }
     else if (dist_sq < 0x30000)
     {
-        if ((ubyte)do_next_navigate_index((intptr_t)p_vehicle, 0, 0, 0))
+        if ((ubyte)do_next_navigate_index(p_vehicle))
         {
             p_vehicle->U.UVehicle.PathIndex = 0;
             p_vehicle->State = 0x33;
@@ -2510,7 +2528,7 @@ void process_tank(struct Thing *p_vehicle)
         }
     }
 
-    check_tank_collision((intptr_t)p_vehicle, 0, 0, 0);
+    check_tank_collision(p_vehicle);
     if (p_vehicle->Speed < p_vehicle->U.UVehicle.ReqdSpeed)
         p_vehicle->Speed += 12;
     if (p_vehicle->Speed > p_vehicle->U.UVehicle.ReqdSpeed)
@@ -2588,12 +2606,14 @@ static DIFFTEST_REF_FUNC void swoosh_veh_asm(int a1, int a2, int a3, int a4)
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "edi", "cc", "memory");
 }
 
-void swoosh_veh(intptr_t a1, int a2, int a3, int a4)
+/** Routed asm (internal label). Plays the swoosh sample of vehicle
+ * p_vehicle (eax) when it passes near the camera.
+ */
+void swoosh_veh(struct Thing *p_vehicle)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
     s32 dist_x, dist_z, dist;
 
-    DIFFTEST_SHADOW(swoosh_veh, swoosh_veh_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(swoosh_veh, swoosh_veh_asm((intptr_t)p_vehicle, 0, 0, 0));
     if ((last_swoosh_thing == p_vehicle->ThingOffset) &&
       ((u32)(gameturn - last_swoosh_turn) < 150))
         return;
@@ -2638,7 +2658,7 @@ void move_flying_vehicle(struct Thing *p_vehicle)
 
     DIFFTEST_SHADOW(move_flying_vehicle, move_flying_vehicle_asm(p_vehicle));
     if (((gameturn + (ushort)p_vehicle->ThingOffset) & 3) == 0)
-        swoosh_veh((intptr_t)p_vehicle, gameturn, 0, 0);
+        swoosh_veh(p_vehicle);
 
     angle = p_vehicle->U.UVehicle.AngleY + (p_vehicle->U.UVehicle.AngleDY >> 3);
     p_vehicle->U.UVehicle.AngleY = angle;
@@ -2774,15 +2794,19 @@ static DIFFTEST_REF_FUNC int find_next_ship_tnode_asm(int a1, int a2, int a3, in
 
 extern u32 rand_d;
 
-int find_next_ship_tnode(int a1, int a2, int a3, int a4)
+/** Routed asm (internal label). Picks a link of traffic node tnode (eax)
+ * whose flags (masked by 0xC0) equal link_flags (edx). Returns the
+ * negated linked node, or 0.
+ */
+int find_next_ship_tnode(int tnode, int link_flags)
 {
     struct TrafficNode *p_tnode;
     ubyte flags_match;
     int i;
 
     DIFFTEST_SHADOW_RET(find_next_ship_tnode, int,
-      find_next_ship_tnode_asm(a1, a2, a3, a4));
-    flags_match = (ubyte)a2;
+      find_next_ship_tnode_asm(tnode, link_flags, 0, 0));
+    flags_match = (ubyte)link_flags;
 
     for (i = 0; i < 12; i++)
     {
@@ -2792,7 +2816,7 @@ int find_next_ship_tnode(int a1, int a2, int a3, int a4)
         rnd = rand_d;
         rand_d = ((rnd >> 7) | (rnd << 25)) + 0x16365267;
         rnd &= 3;
-        p_tnode = &game_traffic_nodes[(short)a1];
+        p_tnode = &game_traffic_nodes[(short)tnode];
         link = p_tnode->UTraffic.Link[rnd];
         if (link == 0)
             continue;
@@ -2808,7 +2832,7 @@ int find_next_ship_tnode(int a1, int a2, int a3, int a4)
 
     for (i = 0; i < 4; i++)
     {
-        p_tnode = &game_traffic_nodes[(short)a1];
+        p_tnode = &game_traffic_nodes[(short)tnode];
         if (p_tnode->UTraffic.Link[i] == 0)
             continue;
         if ((p_tnode->UTraffic.Flags[i] & 0xC0) == flags_match)
@@ -2921,7 +2945,7 @@ void process_ship(struct Thing *p_vehicle)
         {
             short next;
 
-            next = find_next_ship_tnode(p_vehicle->U.UVehicle.TNode, 0, 0, 0);
+            next = find_next_ship_tnode(p_vehicle->U.UVehicle.TNode, 0);
             if (next == 0)
             {
                 p_vehicle->U.UVehicle.ReqdSpeed = 0;
@@ -3144,7 +3168,7 @@ void process_mech(struct Thing *p_vehicle)
     }
     else if (dist_sq < 0x30000)
     {
-        if ((ubyte)do_next_navigate_index((intptr_t)p_vehicle, 0, 0, 0))
+        if ((ubyte)do_next_navigate_index(p_vehicle))
         {
             p_vehicle->U.UVehicle.PathIndex = 0;
             p_vehicle->State = 0x33;
@@ -3190,15 +3214,14 @@ static DIFFTEST_REF_FUNC void matrix_transpose_cp_asm(int a1, int a2, int a3)
         : "+a" (ra), "+d" (rd), "+b" (rb) : : "ecx", "esi", "edi", "cc", "memory");
 }
 
-/** Copies the transpose of the 3x3 matrix at a2 into the matrix at a1.
+/** Copies the transpose of the 3x3 matrix at p_src (edx) into the matrix
+ * at p_dst (eax).
  * The order of stores is kept from the asm, as the matrices may alias.
  */
-void matrix_transpose_cp(intptr_t a1, intptr_t a2, intptr_t a3)
+void matrix_transpose_cp(s32 *p_dst, s32 *p_src)
 {
-    s32 *p_dst = (s32 *)a1;
-    s32 *p_src = (s32 *)a2;
-
-    DIFFTEST_SHADOW(matrix_transpose_cp, matrix_transpose_cp_asm(a1, a2, a3));
+    DIFFTEST_SHADOW(matrix_transpose_cp,
+      matrix_transpose_cp_asm((intptr_t)p_dst, (intptr_t)p_src, 0));
     p_dst[0] = p_src[0];
     p_dst[1] = p_src[3];
     p_dst[2] = p_src[6];
@@ -3269,7 +3292,10 @@ static DIFFTEST_REF_FUNC void mech_unkn_func_19_asm(int a1, int a2, int a3, int 
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void mech_unkn_func_19(int a1, int a2, int a3, int a4)
+/** Routed asm (internal label). Moves the part angles and positions of
+ * mech (eax, index into unkn_mech_arr3) towards their targets.
+ */
+void mech_unkn_func_19(int mech)
 {
     // The asm keeps these in a 0xCC byte stack buffer, so up to 17 entries
     struct M31 angles[17];
@@ -3283,18 +3309,18 @@ void mech_unkn_func_19(int a1, int a2, int a3, int a4)
     s32 div;
     u32 i;
 
-    DIFFTEST_SHADOW(mech_unkn_func_19, mech_unkn_func_19_asm(a1, a2, a3, a4));
-    for (i = 0; i < (u32)unkn_mech_arr3[a1].mech3_unkn_fld_8; i++)
+    DIFFTEST_SHADOW(mech_unkn_func_19, mech_unkn_func_19_asm(mech, 0, 0, 0));
+    for (i = 0; i < (u32)unkn_mech_arr3[mech].mech3_unkn_fld_8; i++)
     {
-        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[a1].mech3_unkn_arr4_idx + i];
+        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[mech].mech3_unkn_arr4_idx + i];
         angles[i].R[0] = p_u4itm->angle_49;
         angles[i].R[1] = p_u4itm->angle_4D;
         angles[i].R[2] = p_u4itm->angle_51;
     }
 
-    for (i = 0; i < (u32)unkn_mech_arr3[a1].mech3_unkn_fld_8; i++)
+    for (i = 0; i < (u32)unkn_mech_arr3[mech].mech3_unkn_fld_8; i++)
     {
-        p_u3itm = &unkn_mech_arr3[a1];
+        p_u3itm = &unkn_mech_arr3[mech];
         p_u4itm = &unkn_mech_arr4[p_u3itm->mech3_unkn_arr4_idx + i];
         p_u5itm = &unkn_mech_arr5[p_u3itm->mech3_unkn_fld_54[2]];
         idx = p_u4itm->field_23;
@@ -3306,7 +3332,7 @@ void mech_unkn_func_19(int a1, int a2, int a3, int a4)
           (struct M31 *)p_pos, p_u3itm->mech3_unkn_fld_54[0], &vec);
         angles[i] = vec;
 
-        p_u3itm = &unkn_mech_arr3[a1];
+        p_u3itm = &unkn_mech_arr3[mech];
         p_u4itm = &unkn_mech_arr4[p_u3itm->mech3_unkn_arr4_idx + i];
         p_u5itm = &unkn_mech_arr5[p_u3itm->mech3_unkn_fld_54[2]];
         idx = p_u4itm->field_23;
@@ -3325,13 +3351,13 @@ void mech_unkn_func_19(int a1, int a2, int a3, int a4)
         dlt.R[0] += p_u4itm->field_6D.R[0];
         dlt.R[1] += p_u4itm->field_6D.R[1];
         dlt.R[2] += p_u4itm->field_6D.R[2];
-        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[a1].mech3_unkn_arr4_idx + i];
+        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[mech].mech3_unkn_arr4_idx + i];
         p_u4itm->field_6D = dlt;
     }
 
-    for (i = 0; i < (u32)unkn_mech_arr3[a1].mech3_unkn_fld_8; i++)
+    for (i = 0; i < (u32)unkn_mech_arr3[mech].mech3_unkn_fld_8; i++)
     {
-        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[a1].mech3_unkn_arr4_idx + i];
+        p_u4itm = &unkn_mech_arr4[unkn_mech_arr3[mech].mech3_unkn_arr4_idx + i];
         p_u4itm->angle_49 = angles[i].R[0];
         p_u4itm->angle_4D = angles[i].R[1];
         p_u4itm->angle_51 = angles[i].R[2];
@@ -3344,22 +3370,24 @@ static DIFFTEST_REF_FUNC void mech_unkn_func_05_asm(int owntng, int a2, int a3)
         : : "a" (owntng), "d" (a2), "b" (a3));
 }
 
-void mech_unkn_func_05(int owntng, int a2, int a3)
+/** Starts entry arr2_idx of unkn_mech_arr2 in slot (0 or 1) of mech owntng.
+ */
+void mech_unkn_func_05(int owntng, int slot, int arr2_idx)
 {
     struct unkn_mech_struc3 *p_u3itm;
     struct unkn_mech_struc1 *p_u1itm;
     s32 idx;
 
-    DIFFTEST_SHADOW(mech_unkn_func_05, mech_unkn_func_05_asm(owntng, a2, a3));
-    idx = unkn_mech_arr2[a3].field_0;
+    DIFFTEST_SHADOW(mech_unkn_func_05, mech_unkn_func_05_asm(owntng, slot, arr2_idx));
+    idx = unkn_mech_arr2[arr2_idx].field_0;
     p_u3itm = &unkn_mech_arr3[owntng];
     // The asm accesses each s32/ubyte field pair below as a 2-element array
-    (&p_u3itm->field_6C)[a2] = a3;
+    (&p_u3itm->field_6C)[slot] = arr2_idx;
     p_u1itm = &unkn_mech_arr1[idx];
-    p_u3itm->mech3_unkn_fld_54[a2] = p_u1itm->field_D;
-    (&p_u3itm->mech3_unkn_fld_54[2])[a2] = p_u1itm->field_9;
-    (&p_u3itm->field_64)[a2] = idx;
-    (&p_u3itm->field_74)[a2] = 1;
+    p_u3itm->mech3_unkn_fld_54[slot] = p_u1itm->field_D;
+    (&p_u3itm->mech3_unkn_fld_54[2])[slot] = p_u1itm->field_9;
+    (&p_u3itm->field_64)[slot] = idx;
+    (&p_u3itm->field_74)[slot] = 1;
 }
 
 /** Routed asm (internal label). Arguments and return value are the
@@ -3374,7 +3402,11 @@ static DIFFTEST_REF_FUNC int mech_unkn_func_08_asm(int a1, int a2, int a3, int a
     return ra;
 }
 
-int mech_unkn_func_08(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
+/** Routed asm (internal label). Advances the animations in both slots of
+ * mech (eax, index into unkn_mech_arr3). Returns the last value stored,
+ * or 0x7fffffff.
+ */
+int mech_unkn_func_08(int mech)
 {
     struct unkn_mech_struc3 *p_u3itm;
     struct unkn_mech_struc1 *p_arr1;
@@ -3384,13 +3416,13 @@ int mech_unkn_func_08(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
     s32 idx;
     int i;
 
-    DIFFTEST_SHADOW_RET(mech_unkn_func_08, int, mech_unkn_func_08_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW_RET(mech_unkn_func_08, int, mech_unkn_func_08_asm(mech, 0, 0, 0));
     p_arr1 = unkn_mech_arr1;
     ret = 0x7fffffff;
     // The asm accesses each s32/ubyte field pair below as a 2-element array
     for (i = 1; i >= 0; i--)
     {
-        p_u3itm = &unkn_mech_arr3[a1];
+        p_u3itm = &unkn_mech_arr3[mech];
         if ((&p_u3itm->field_74)[i] == 0)
             continue;
         cnt = p_u3itm->mech3_unkn_fld_54[i];
@@ -3414,7 +3446,7 @@ int mech_unkn_func_08(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
     }
     // The asm stores back the value it loaded at entry
     unkn_mech_arr1 = p_arr1;
-    mech_unkn_func_19(a1, 0, 0, 0);
+    mech_unkn_func_19(mech);
     DIFFTEST_RETURN((int)ret);
 }
 
@@ -3442,12 +3474,12 @@ void process_mech_unknown1(struct Thing *p_vehicle)
     mech_unkn_tile_y3 = mech_unkn_tile_y2;
 
     p_mat = &local_mats[p_vehicle->U.UVehicle.MatrixIndex];
-    matrix_transpose_cp((intptr_t)&unkn_mech_arr3[(ushort)p_vehicle->Owner].mech3_unkn_mat_C,
-      (intptr_t)p_mat, (intptr_t)p_vehicle);
+    matrix_transpose_cp((s32 *)&unkn_mech_arr3[(ushort)p_vehicle->Owner].mech3_unkn_mat_C,
+      (s32 *)p_mat);
 
     // The asm modifies only the low byte of TNode
     p_tnode8 = (ubyte *)&p_vehicle->U.UVehicle.TNode;
-    ret = mech_unkn_func_08((ushort)p_vehicle->Owner, (intptr_t)p_mat, (intptr_t)p_vehicle, (intptr_t)p_mat);
+    ret = mech_unkn_func_08((ushort)p_vehicle->Owner);
     switch (ret)
     {
     case 0:
@@ -3586,20 +3618,19 @@ static DIFFTEST_REF_FUNC void set_xz_for_unkn3_asm(int a1, int a2, int a3, int a
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-/** Pick a random point on a face quad, within the triangle of its first
- * three points; returns map coords in *a2 (x) and *a3 (z).
+/** Pick a random point on a face quad p_face (eax), within the triangle of
+ * its first three points; returns map coords in *p_pos_x (edx) and
+ * *p_pos_z (ebx).
  */
-void set_xz_for_unkn3(intptr_t a1, intptr_t a2, intptr_t a3, int a4)
+void set_xz_for_unkn3(struct SingleObjectFace4 *p_face, int *p_pos_x, int *p_pos_z)
 {
-    struct SingleObjectFace4 *p_face = (struct SingleObjectFace4 *)a1;
-    int *p_pos_x = (int *)a2;
-    int *p_pos_z = (int *)a3;
     struct SingleObject *p_sobj;
     struct SinglePoint *p_pt0, *p_pt1, *p_pt2;
     ushort rnd_x, rnd_z;
     short dt_x, dt_z;
 
-    DIFFTEST_SHADOW(set_xz_for_unkn3, set_xz_for_unkn3_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(set_xz_for_unkn3, set_xz_for_unkn3_asm((intptr_t)p_face,
+      (intptr_t)p_pos_x, (intptr_t)p_pos_z, 0));
     rnd_x = LbRandomAnyShort() & 0xF;
     rnd_z = LbRandomAnyShort() & 0xF;
     p_sobj = &game_objects[p_face->Object];
@@ -3640,8 +3671,7 @@ int train_unkn_st21_exit_func_1(struct Thing *p_vehicle)
         // TODO the asm reads U.UVehicle.ComCur as the face index of the train
         face = p_vehicle->U.UVehicle.ComCur;
         p_vehicle->U.UVehicle.PassengerHead = p_passngr->U.UPerson.LinkPassenger;
-        set_xz_for_unkn3((intptr_t)&game_object_faces4[face], (intptr_t)&pos_x,
-          (intptr_t)&pos_z, face);
+        set_xz_for_unkn3(&game_object_faces4[face], &pos_x, &pos_z);
         p_passngr->X = pos_x << 8;
         p_passngr->Z = pos_z << 8;
         p_passngr->U.UPerson.OnFace = face;
@@ -3664,15 +3694,17 @@ static DIFFTEST_REF_FUNC void thing_unkn_change_speed_asm(int a1, int a2, int a3
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "cc", "memory");
 }
 
-void thing_unkn_change_speed(intptr_t a1, int a2, int a3, int a4)
+/** Routed asm (internal label). Changes the speed of p_thing (eax) by
+ * speed_step (ebx) to keep its distance to thing other (edx).
+ */
+void thing_unkn_change_speed(struct Thing *p_thing, int other, int speed_step)
 {
-    struct Thing *p_thing = (struct Thing *)a1;
     struct Thing *p_other;
     s32 dist_lim, dx, dz, dist_sq;
 
     DIFFTEST_SHADOW(thing_unkn_change_speed,
-      thing_unkn_change_speed_asm(a1, a2, a3, a4));
-    p_other = &things[(ushort)a2];
+      thing_unkn_change_speed_asm((intptr_t)p_thing, other, speed_step, 0));
+    p_other = &things[(ushort)other];
     dist_lim = ((s32)(2 * 193 * (u32)(ushort)p_thing->Radius) >> 8)
       + ((s32)(2 * 193 * (u32)(ushort)p_other->Radius) >> 8) + 0x40;
     dist_lim = dist_lim * dist_lim;
@@ -3680,9 +3712,9 @@ void thing_unkn_change_speed(intptr_t a1, int a2, int a3, int a4)
     dz = (p_thing->Z - p_other->Z) >> 8;
     dist_sq = dz * dz + dx * dx;
     if (dist_sq > dist_lim + 0x100)
-        p_thing->Speed += (short)a3;
+        p_thing->Speed += (short)speed_step;
     else if (dist_sq < dist_lim - 0x100)
-        p_thing->Speed -= (short)a3;
+        p_thing->Speed -= (short)speed_step;
 }
 
 
@@ -3742,8 +3774,8 @@ void train_unkn_st18_func_1(struct Thing *p_vehicle)
         }
         else
         {
-            thing_unkn_change_speed((intptr_t)p_vehicle,
-              (ushort)p_vehicle->U.UVehicle.GotoX, -200, 0);
+            thing_unkn_change_speed(p_vehicle,
+              (ushort)p_vehicle->U.UVehicle.GotoX, -200);
         }
     }
 
@@ -3883,8 +3915,8 @@ void train_unkn_st18_func_2(struct Thing *p_vehicle)
         }
         else
         {
-            thing_unkn_change_speed((intptr_t)p_vehicle,
-              (ushort)p_vehicle->Owner, 200, (ushort)p_vehicle->Owner);
+            thing_unkn_change_speed(p_vehicle,
+              (ushort)p_vehicle->Owner, 200);
         }
     }
 
@@ -3983,7 +4015,7 @@ void move_vehicle(struct Thing *p_vehicle)
 
     DIFFTEST_SHADOW(move_vehicle, move_vehicle_asm(p_vehicle));
     if (((gameturn + (ushort)p_vehicle->ThingOffset) & 3) == 0)
-        swoosh_veh((intptr_t)p_vehicle, gameturn, 0, 0);
+        swoosh_veh(p_vehicle);
 
     if ((p_vehicle->SubType != SubTT_VEH_TRAIN) &&
       (p_vehicle->SubType != SubTT_VEH_FLYING))
@@ -4050,14 +4082,16 @@ static DIFFTEST_REF_FUNC void person_clear_route_and_teleport_to_vehicle_asm(int
         : "+a" (ra), "+d" (rd), "+b" (rb), "+c" (rc) : : "esi", "edi", "cc", "memory");
 }
 
-void person_clear_route_and_teleport_to_vehicle(intptr_t a1, intptr_t a2, int a3, int a4)
+/** Routed asm (internal label). Puts p_person (edx) into p_vehicle (eax)
+ * as its first passenger.
+ */
+void person_clear_route_and_teleport_to_vehicle(struct Thing *p_vehicle, struct Thing *p_person)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
-    struct Thing *p_person = (struct Thing *)a2;
     short prev_head;
 
     DIFFTEST_SHADOW(person_clear_route_and_teleport_to_vehicle,
-      person_clear_route_and_teleport_to_vehicle_asm(a1, a2, a3, a4));
+      person_clear_route_and_teleport_to_vehicle_asm((intptr_t)p_vehicle,
+      (intptr_t)p_person, 0, 0));
     prev_head = p_vehicle->U.UVehicle.PassengerHead;
     p_vehicle->U.UVehicle.PassengerHead = p_person->ThingOffset;
     p_person->U.UPerson.OnFace = 0;
@@ -4086,18 +4120,19 @@ static DIFFTEST_REF_FUNC int train_unkn_func_02_asm(int a1, int a2, int a3, int 
 
 /** Finds a person standing on given face which waits for a train.
  *
- * @param a1 Index of the face (positive; persons on it have OnFace == -a1).
+ * @param face_idx Index of the face (positive; persons on it have
+ *     OnFace == -face_idx), from eax.
  * @return Person thing index, or 0 if none found.
  */
-int train_unkn_func_02(int a1, int a2, int a3, int a4)
+int train_unkn_func_02(int face_idx)
 {
     struct Thing *p_person;
     struct Thing *p_owner;
     ushort face;
     ThingIdx person;
 
-    DIFFTEST_SHADOW_RET(train_unkn_func_02, int, train_unkn_func_02_asm(a1, a2, a3, a4));
-    face = (ushort)a1;
+    DIFFTEST_SHADOW_RET(train_unkn_func_02, int, train_unkn_func_02_asm(face_idx, 0, 0, 0));
+    face = (ushort)face_idx;
     for (person = same_type_head[1]; person != 0; person = p_person->LinkSame)
     {
         s32 onface;
@@ -4175,7 +4210,7 @@ void train_unkn_st20_func_1(struct Thing *p_vehicle)
               i < (s32)p_walk_head->Count + (s32)p_walk_head->StartItem; i++)
             {
                 item = game_walk_items[i];
-                person = train_unkn_func_02((ushort)(-item), 0, 0, 0);
+                person = train_unkn_func_02((ushort)(-item));
                 if ((ushort)person != 0)
                     break;
                 face = -(s32)item;
@@ -4183,7 +4218,7 @@ void train_unkn_st20_func_1(struct Thing *p_vehicle)
                 for (k = p_walk_head2->StartItem;
                   k < (s32)p_walk_head2->Count + (s32)p_walk_head2->StartItem; k++)
                 {
-                    person = train_unkn_func_02((ushort)(-game_walk_items[k]), 0, 0, 0);
+                    person = train_unkn_func_02((ushort)(-game_walk_items[k]));
                     if ((ushort)person != 0)
                         break;
                 }
@@ -4191,13 +4226,13 @@ void train_unkn_st20_func_1(struct Thing *p_vehicle)
                     break;
             }
             if ((ushort)person == 0)
-                person = train_unkn_func_02(p_vehicle->U.UVehicle.ComHead, 0, 0, 0);
+                person = train_unkn_func_02(p_vehicle->U.UVehicle.ComHead);
         }
         // TODO if ComHead becomes 0 after a teleport, the last person is teleported again forever
         if ((ushort)person == 0)
             break;
-        person_clear_route_and_teleport_to_vehicle((intptr_t)p_vehicle,
-          (intptr_t)&things[(ushort)person], 0, 0);
+        person_clear_route_and_teleport_to_vehicle(p_vehicle,
+          &things[(ushort)person]);
         p_vehicle->U.UVehicle.Timer2 = 100;
     }
 
@@ -4223,12 +4258,12 @@ static DIFFTEST_REF_FUNC void continue_flying_wander_asm(int a1, int a2, int a3,
 
 /** Picks a random point next to one of the map edges and sets a flying
  * vehicle on a route from there; gives up after 32 tries.
+ * p_vehicle comes in eax.
  * The asm returns 1 on success and 0 on failure in %eax, but the wrapper
  * is void and no caller uses the value.
  */
-void continue_flying_wander(intptr_t a1, int a2, int a3, int a4)
+void continue_flying_wander(struct Thing *p_vehicle)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
     struct MyPath *p_path;
     s32 tries;
     s32 rnd, lo, hi;
@@ -4236,7 +4271,7 @@ void continue_flying_wander(intptr_t a1, int a2, int a3, int a4)
     s32 old_x, old_z;
 
     DIFFTEST_SHADOW(continue_flying_wander,
-      continue_flying_wander_asm(a1, a2, a3, a4));
+      continue_flying_wander_asm((intptr_t)p_vehicle, 0, 0, 0));
     for (tries = 0; tries < 32; tries++)
     {
         rnd = (ushort)LbRandomAnyShort();
@@ -4304,9 +4339,11 @@ static DIFFTEST_REF_FUNC int do_next_navigate_index_asm(int a1, int a2, int a3, 
     return ra;
 }
 
-int do_next_navigate_index(intptr_t a1, int a2, int a3, int a4)
+/** Routed asm (internal label). Moves p_thing (eax) to the next point of
+ * its path. Returns non-zero in the low byte when the path has ended.
+ */
+int do_next_navigate_index(struct Thing *p_thing)
 {
-    struct Thing *p_thing = (struct Thing *)a1;
     struct MyPath *p_path;
     ushort head;
     ushort path;
@@ -4314,14 +4351,14 @@ int do_next_navigate_index(intptr_t a1, int a2, int a3, int a4)
     ushort count;
 
     DIFFTEST_SHADOW_RET(do_next_navigate_index, int,
-      do_next_navigate_index_asm(a1, a2, a3, a4));
+      do_next_navigate_index_asm((intptr_t)p_thing, 0, 0, 0));
     // The asm only sets %al; upper bits of %eax keep the Thing pointer.
     // Callers test %al only, the upper bits are kept for an exact match.
     head = head_my_path;
     if (p_thing->U.UVehicle.PathIndex == 0)
     {
         head_my_path = head;
-        DIFFTEST_RETURN((int)((a1 & ~0xFF) | 1));
+        DIFFTEST_RETURN((int)(((intptr_t)p_thing & ~0xFF) | 1));
     }
 
     p_path = &my_paths[p_thing->U.UVehicle.PathIndex];
@@ -4336,7 +4373,7 @@ int do_next_navigate_index(intptr_t a1, int a2, int a3, int a4)
         p_path->Flag = 0;
         p_thing->U.UVehicle.PathIndex = 0;
         head_my_path = path;
-        DIFFTEST_RETURN((int)((a1 & ~0xFF) | 1));
+        DIFFTEST_RETURN((int)(((intptr_t)p_thing & ~0xFF) | 1));
     }
     if ((p_thing->PathOffset & 0x3) == 0)
     {
@@ -4350,12 +4387,12 @@ int do_next_navigate_index(intptr_t a1, int a2, int a3, int a4)
         p_thing->U.UVehicle.PathIndex = next;
     }
     head_my_path = head;
-    DIFFTEST_RETURN((int)(a1 & ~0xFF));
+    DIFFTEST_RETURN((int)((intptr_t)p_thing & ~0xFF));
 }
 
 
 
-int flying_alt(intptr_t a1, int a2, int a3, int a4);
+int flying_alt(struct Thing *p_vehicle);
 
 static DIFFTEST_REF_FUNC void process_my_flying_vehicle_asm(struct Thing *p_vehicle)
 {
@@ -4374,7 +4411,7 @@ void process_my_flying_vehicle(struct Thing *p_vehicle)
     DIFFTEST_SHADOW(process_my_flying_vehicle,
       process_my_flying_vehicle_asm(p_vehicle));
     unkn_path_func_001(p_vehicle, 1);
-    alt = flying_alt((intptr_t)p_vehicle, 0, 0, 0);
+    alt = flying_alt(p_vehicle);
     y = p_vehicle->Y;
     if (alt > y)
         p_vehicle->Y = y + ((alt - y) >> 2);
@@ -4407,9 +4444,9 @@ void process_my_flying_vehicle(struct Thing *p_vehicle)
     {
         if ((ushort)p_vehicle->State == 0x43)
         {
-            continue_flying_wander((intptr_t)p_vehicle, 0, 0, 0);
+            continue_flying_wander(p_vehicle);
         }
-        else if ((ubyte)do_next_navigate_index((intptr_t)p_vehicle, 0, 0, 0) != 0)
+        else if ((ubyte)do_next_navigate_index(p_vehicle) != 0)
         {
             if ((ushort)p_vehicle->State == 0x42)
             {
@@ -4620,16 +4657,18 @@ static DIFFTEST_REF_FUNC int flying_alt_asm(int a1, int a2, int a3, int a4)
     return ra;
 }
 
-int flying_alt(intptr_t a1, int a2, int a3, int a4)
+/** Routed asm (internal label). Returns the altitude the flying vehicle
+ * p_vehicle (eax) should fly at.
+ */
+int flying_alt(struct Thing *p_vehicle)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
     struct MyMapElement *p_mapel;
     s32 tile_x, tile_z;
     s32 tx, tz;
     s32 alt;
     short thing;
 
-    DIFFTEST_SHADOW_RET(flying_alt, int, flying_alt_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW_RET(flying_alt, int, flying_alt_asm((intptr_t)p_vehicle, 0, 0, 0));
     tile_x = p_vehicle->X >> 16;
     tile_z = p_vehicle->Z >> 16;
     alt = 0x32000;
@@ -4701,7 +4740,7 @@ void process_hovering_vehicle(struct Thing *p_vehicle)
     DIFFTEST_SHADOW(process_hovering_vehicle, process_hovering_vehicle_asm(p_vehicle));
     p_vehicle->U.UVehicle.ReqdSpeed = 0;
     p_vehicle->U.UVehicle.AngleDY = 0;
-    alt = flying_alt((intptr_t)p_vehicle, 0, 0, 0);
+    alt = flying_alt(p_vehicle);
     if (abs(p_vehicle->Y - alt) < 0x6000)
     {
         // MaxSpeed is reused as the index into the quiver table
@@ -4730,7 +4769,7 @@ void process_my_takeoff(struct Thing *p_vehicle)
     ushort angl;
 
     DIFFTEST_SHADOW(process_my_takeoff, process_my_takeoff_asm(p_vehicle));
-    alt = flying_alt((intptr_t)p_vehicle, 0, 0, 0);
+    alt = flying_alt(p_vehicle);
     if ((alt >> 1) < p_vehicle->Y)
     {
         angl = (ushort)arctan(p_vehicle->U.UVehicle.GotoX - (p_vehicle->X >> 8),
@@ -4859,18 +4898,16 @@ static DIFFTEST_REF_FUNC int check_for_a_moving_vehicle_here_asm(int a1, int a2,
     return ra;
 }
 
-/** Check if a ground vehicle other than given one is at given point.
- * Coordinates are in map units (tile size 256); args are raw registers.
+/** Check if a ground vehicle other than p_self (ebx) is at point x,z
+ * (eax, edx). Coordinates are in map units (tile size 256).
  */
-int check_for_a_moving_vehicle_here(int a1, int a2, intptr_t a3, intptr_t a4)
+int check_for_a_moving_vehicle_here(s32 x, s32 z, struct Thing *p_self)
 {
-    struct Thing *p_self = (struct Thing *)a3;
-    s32 x = a1, z = a2;
     s32 tile_x, tile_z, tx, tz;
     ThingIdx thing;
 
     DIFFTEST_SHADOW_RET(check_for_a_moving_vehicle_here, int,
-      check_for_a_moving_vehicle_here_asm(a1, a2, a3, a4));
+      check_for_a_moving_vehicle_here_asm(x, z, (intptr_t)p_self, 0));
     tile_x = x >> 8;
     tile_z = z >> 8;
     for (tx = tile_x - 2; tx <= tile_x + 2; tx++)
@@ -4958,14 +4995,14 @@ void process_unstopping(struct Thing *p_vehicle)
         base_x = (p_vehicle->X >> 8) - accel_x * 8;
         base_z = (p_vehicle->Z >> 8) - accel_z * 8;
         if (check_for_a_moving_vehicle_here(base_x + accel_z * 2,
-          base_z - accel_x * 2, (intptr_t)p_vehicle, (intptr_t)p_vehicle) != 0)
+          base_z - accel_x * 2, p_vehicle) != 0)
         {
             p_vehicle->U.UVehicle.ReqdSpeed = 0;
             p_vehicle->U.UVehicle.WorkPlace |= 0x0200;
             return;
         }
         if (check_for_a_moving_vehicle_here(base_x - accel_z * 2,
-          base_z + accel_x * 2, (intptr_t)p_vehicle, (intptr_t)p_vehicle) != 0)
+          base_z + accel_x * 2, p_vehicle) != 0)
         {
             p_vehicle->U.UVehicle.ReqdSpeed = 0;
             p_vehicle->U.UVehicle.WorkPlace |= 0x0200;
@@ -5108,20 +5145,18 @@ static DIFFTEST_REF_FUNC void scan_max_height_ahead_asm(int a1, int a2, int a3, 
 }
 
 /** Pitch a flying vehicle (AngleX) towards the highest ground point
- * among 5 samples ahead along its velocity.
- * Raw register arguments kept for the wrapper conf; only eax is used.
+ * among 5 samples ahead along its velocity. p_vehicle comes in eax.
  * The asm also leaves the max altitude in eax, unused by callers.
  */
-void scan_max_height_ahead(intptr_t a1, int a2, int a3, int a4)
+void scan_max_height_ahead(struct Thing *p_vehicle)
 {
-    struct Thing *p_vehicle = (struct Thing *)a1;
     s32 vx, vz, len, step_x, step_z, cor_x, cor_z;
     s32 alt, max_alt, dh;
     u32 i, best_i;
     ushort bi;
     short angle;
 
-    DIFFTEST_SHADOW(scan_max_height_ahead, scan_max_height_ahead_asm(a1, a2, a3, a4));
+    DIFFTEST_SHADOW(scan_max_height_ahead, scan_max_height_ahead_asm((intptr_t)p_vehicle, 0, 0, 0));
     vx = p_vehicle->VX;
     vz = p_vehicle->VZ;
     max_alt = -100000;
@@ -5176,7 +5211,7 @@ void process_vehicle_goto_point_fly(struct Thing *p_vehicle)
     short angle;
 
     DIFFTEST_SHADOW(process_vehicle_goto_point_fly, process_vehicle_goto_point_fly_asm(p_vehicle));
-    scan_max_height_ahead((intptr_t)p_vehicle, 0, 0, 0);
+    scan_max_height_ahead(p_vehicle);
     set_passengers_location(p_vehicle);
     dx = p_vehicle->U.UVehicle.GotoX - (p_vehicle->X >> 8);
     dz = p_vehicle->U.UVehicle.GotoZ - (p_vehicle->Z >> 8);
