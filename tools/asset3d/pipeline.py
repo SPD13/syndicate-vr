@@ -63,8 +63,11 @@ def stage_redraw(t, out, name, args):
     if args.ref:
         tokens.append(t.upload(args.ref))
         chars = json.load(open(os.path.join(HERE, "characters.json"), encoding="utf-8"))
-        extra = (chars.get("_ref_note", "") + " " + extra).strip()
-    body = {"inputs": tokens, "prompt": prompt_for(name, extra),
+        extra = (chars.get("_ref_note_" + name, chars.get("_ref_note", "")) + " " + extra).strip()
+    prompt = prompt_for(name, extra)
+    if len(prompt) > 1800:
+        raise SystemExit("prompt is %d characters; Tripo allows 1800" % len(prompt))
+    body = {"inputs": tokens, "prompt": prompt,
             "model": args.model, "size": "2K"}
     dest = os.path.join(out, "work", name, "B", "redraw_" + args.tag)
     rec = t.run("/generation/image-to-image", body, dest, estimate=20, label="%s redraw %s" % (name, args.tag))
