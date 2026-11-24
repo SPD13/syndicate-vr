@@ -56,6 +56,10 @@ GROUPS = [
         ("scenery_redraw", "22 scenery redraws next to their sprites (S numbers)", "current"),
         ("scenery_models", "22 scenery 3D models from four sides", "current"),
     ]),
+    ("Effects (particles and shaders, not assets)", [
+        ("effects", "Fires and explosions simulated from effects.json: small / large (with shrapnel secondaries) explosion, ground fire, burning person, barrel fire", "current"),
+        ("agent_shield", "Energy shield shader look on the agent", "current"),
+    ]),
     ("Style checks and history", [
         ("characters_v1", "First one-pose redraws of the 11 remaining characters (style validation)", "superseded"),
         ("zealot", "Church agent v1: scanned drapes on the Tripo rig (re-rendered bright)", "superseded"),
