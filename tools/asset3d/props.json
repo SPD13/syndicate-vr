@@ -1,0 +1,5 @@
+{
+  "_common": "image[1] is a 1996 game render of a weapon. Redraw this exact weapon as one clean, detailed, high-resolution product render for a 3D model: the same three-quarter view and the same proportions, silhouette and parts, the whole weapon visible, neutral studio lighting, plain white background, no shadow, no hands, no text. Modernise the detail (panel lines, screws, materials) in a gritty 1990s cyberpunk style while keeping its key features and colours. Weapon: ",
+  "uzi": {"fli": 0, "faces": 6000, "desc": "a compact futuristic Uzi-style submachine gun, boxy black gunmetal receiver with bright steel edges, short barrel with a round muzzle, straight magazine inside the pistol grip, a small square sight block on top, small cyan indicator lights on the side; one-handed sidearm size."},
+  "minigun": {"fli": 1, "faces": 9000, "desc": "a heavy cyberpunk minigun: a rotating cluster of six chrome barrels at the front, a thick purple-and-black armoured cylindrical body with a polished chrome band, a curved white ceramic pistol grip underneath, a black carry handle with grip ridges on top, rounded rear housing."}
+}
