@@ -164,6 +164,7 @@
 #include "rules.h"
 #include "scandraw.h"
 #include "thing.h"
+#include "thing_view.h"
 #include "thing_expld.h"
 #include "thing_fire.h"
 #include "thing_search.h"
@@ -1550,6 +1551,8 @@ void process_engine_unk3(void)
     mech_gameturn_reinit();
     process_map_craters();
 
+    // what drawing the things in view changed in the game, before drawing
+    game_view_pass();
     engine_draw_whole_screen_top_down();
 
     // Which frame of an animated texture is on screen is not part of the game

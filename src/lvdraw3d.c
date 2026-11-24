@@ -43,6 +43,7 @@
 #include "engindrwlstx.h"
 #include "enginsngtxtr.h"
 #include "game.h"
+#include "people.h"
 #include "game_options.h"
 #include "game_speed.h"
 #include "hud_draw.h"
@@ -1210,13 +1211,15 @@ void engine_draw_whole_screen_top_down(void)
 
     camera_setup_view(&pos_beg_x, &pos_beg_z, &rend_beg_x, &rend_beg_z, &tlcount_x, &tlcount_z);
 
-    // Without drawing the world (game_draw_world) the things are still
-    // enlisted, as that also changes game state: the faces of moving
-    // objects get flags line of sight reads (draw_rot_object_faces()), and
-    // the thing under the pointer is found; but the draw list, the floor
-    // and explosions are not drawn. The panels still are, as they keep the
-    // player's target.
-    if ((ingame.Flags & GamF_RenderScene) != 0)
+    // Without drawing the world (game_draw_world) the things in view are
+    // still enlisted, as the original line of sight depends on it: for a
+    // triangle face, do_vect_colide() reads the flags of a face before the
+    // start of game_object_faces3, in game_object_points, whose PointOffset
+    // and Flags enlisting writes. The face flags and mech parts drawing
+    // changed are set by game_view_pass(). The draw list, the floor and
+    // explosions are not drawn; the panels are, as they keep the player's
+    // target. With game_fix_los_face_read the enlisting is not needed.
+    if (((ingame.Flags & GamF_RenderScene) != 0) && (game_draw_world || !game_fix_los_face_read))
     {
         engine_draw_things(pos_beg_x, pos_beg_z, rend_beg_x, rend_beg_z, tlcount_x, tlcount_z);
     }

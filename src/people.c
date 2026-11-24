@@ -1444,6 +1444,12 @@ static DIFFTEST_REF_FUNC short do_vect_colide_asm(struct MyMapElement *p_me,
     return ret;
 }
 
+/** Whether line of sight reads the flags of the right triangle face; the
+ * original reads before the start of the faces array, in memory drawing
+ * writes, so that what was drawn changes what people see.
+ */
+TbBool game_fix_los_face_read = false;
+
 short do_vect_colide(struct MyMapElement *p_me, int x1, int y1, int z1, int x2, int y2, int z2)
 {
     struct ColVectList *p_cvlist;
@@ -1470,8 +1476,10 @@ short do_vect_colide(struct MyMapElement *p_me, int x1, int y1, int z1, int x2, 
             if ((face >= 0) || (game_object_faces4[-face].GFlags & FGFlg_Unkn04) == 0)
             {
                 // TODO the original indexes faces3 with a negated positive
-                // face, reading before the array start; kept as is
-                if ((face <= 0) || (game_object_faces3[-face].GFlags & FGFlg_Unkn04) == 0)
+                // face, reading before the array start (the flags of the
+                // object points, which drawing writes); kept as is unless
+                // game_fix_los_face_read
+                if ((face <= 0) || (game_object_faces3[game_fix_los_face_read ? face : -face].GFlags & FGFlg_Unkn04) == 0)
                 {
                     dy = (short)((y1 << 3) - p_colvect->Y1);
                     if (dy < 0)

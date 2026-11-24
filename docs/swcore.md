@@ -49,20 +49,38 @@ with and without drawing are equal. Finding that out showed where the
 original drawing code changes the game, which a front end with its own
 renderer must keep in mind:
 
-- Enlisting the things in view (`engine_draw_things()`) stays on without
-  drawing, as it is part of the game:
-  - `draw_rot_object_faces()` writes the faces of moving objects
-    (vehicles): the darkening near the map edge goes into `GFlags` bits
-    2-4, and bit 2 (`FGFlg_Unkn04`) makes line of sight ignore the face
-    (`do_vect_colide()`); the hit flash goes into `WalkHeader`.
-  - `check_mouse_overlap()` finds the thing under the pointer while the
-    sprites are enlisted (player `Target`), which the panels and the input
-    use.
+- What drawing the things in view changed in the game is game code now,
+  `game_view_pass()` (`thing_view.c`), run every frame before drawing, in
+  the order drawing visits the things; the renderer only reads it:
+  - the faces of moving objects (vehicles, a tank's gun, mech parts):
+    the darkening near the map edge goes into `GFlags` bits 2-4, and bit 2
+    (`FGFlg_Unkn04`) makes line of sight ignore the face
+    (`do_vect_colide()`); the hit flash goes into `WalkHeader` (which
+    walking and `people.c` read), and the thing's hit flag is cleared
+    (`thing_view_object_faces()`);
+  - the mech parts: positions of the part things, their matrices and the
+    rocket launch points (`mech_view_update()` in `vehicle.c`).
+- Enlisting the things in view (`engine_draw_things()`) still runs without
+  drawing, because of an original bug: for a triangle face,
+  `do_vect_colide()` reads `game_object_faces3[-face]`, before the start of
+  the array, in `game_object_points`, whose `PointOffset` and `Flags`
+  enlisting writes (screen point numbers in drawing order). So what was
+  drawn, and the resolution, change what people see. That cannot be done
+  without the original renderer; `swcore_set_fixes(SWCORE_FIX_LOS_FACE_READ)`
+  reads the right face instead. With it, 4 of the 52 traces differ from
+  the original (0,20+bot 1,19+bot 3,61+bot 3,61+t_ship+t_fly). Without
+  enlisting the runs still differ (29 of 52 with the pointer away), so
+  enlisting has more such effects; to be found.
+- `check_mouse_overlap()` finds the thing under the pointer while the
+  sprites are enlisted (player `Target`), which the panels and the input
+  use.
 - The panels (`draw_hud()`) stay on: they keep the player's locked target
   (`field_102`), from which input builds shoot packets.
 - The camera transform (`prepare_drawlist()`) stays on: the pointer uses it.
 - Left out: the floor, stars, explosions, rasterising the draw list,
   texture animation.
+- The renderer draws random numbers from `LbRandomPosShort()`, whose
+  seed `lbSeed_ps` the game rules do not use.
 - Render-only state, left out of `game_state_hash()`
   (`state_hash_render_fields` in `game.c`): `Frame`/`Timer1` low halves,
   buildings' `DrawTurn`, people's `Brightness` (from the map `ShadeR`,
@@ -75,9 +93,9 @@ The library still contains the SDL display, input, sound, the software
 renderer and the menus. The next steps take those out of the core, one
 at a time, behind the interface:
 
-1. Rendering: the enlisting side effects above as game code of their own
-   (a pass over the things in view that does not need the renderer), so
-   the software renderer can move to the SDL front end.
+1. Rendering: find the remaining effects of enlisting, and decide on the
+   line of sight fix (it changes how the game plays), so the software
+   renderer can move to the SDL front end.
 2. Input: the front end gives commands; keyboard and mouse handling move
    to the SDL front end; the pointer target as a command.
 3. Sound and menus. Game rules read sound state: `IsSamplePlaying()` in

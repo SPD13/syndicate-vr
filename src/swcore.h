@@ -62,6 +62,19 @@ void swcore_shutdown(void);
  */
 void swcore_set_world_drawing(int enabled);
 
+/** Fixes of original bugs that change how the game plays (all off by
+ * default, which plays as the original).
+ */
+enum SwcFixes {
+    /** Line of sight reads the flags of the right triangle face; the
+     * original reads memory drawing writes, so that what was drawn changes
+     * what people see. Needed to play the same with any renderer. */
+    SWCORE_FIX_LOS_FACE_READ = 0x01,
+};
+
+/** Switches fixes of original bugs on, SwcFixes bits. */
+void swcore_set_fixes(uint32_t fixes);
+
 /** Number of the current game turn. */
 uint32_t swcore_game_turn(void);
 

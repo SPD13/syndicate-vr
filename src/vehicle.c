@@ -53,6 +53,7 @@
 #include "thing_expld.h"
 #include "thing_fire.h"
 #include "thing_onface.h"
+#include "thing_view.h"
 #include "swlog.h"
 #include "weapon.h"
 /******************************************************************************/
@@ -104,15 +105,7 @@ struct unkn_mech_struc4 { // sizeof=0x7A
     ubyte field_2;
     struct unkn_mech_struc4 *field_3[8];
     short field_23;
-    s32 field_25;
-    s32 field_29;
-    s32 field_2D;
-    s32 field_31;
-    s32 field_35;
-    s32 field_39;
-    s32 field_3D;
-    s32 field_41;
-    s32 field_45;
+    struct M33 mat25;
     s32 angle_49;
     s32 angle_4D;
     s32 angle_51;
@@ -5712,6 +5705,359 @@ int vehicle_hit_by_bullet(struct Thing *p_vehicle, short hp,
         play_dist_sample(p_vehicle, 95, FULL_VOL, EQUL_PAN, NORM_PTCH, 0, 1);
     }
     return p_vehicle->Health + health_decr;
+}
+
+/* Placing the mech parts, formerly done while drawing the mech
+ * (mech_unkn_func_03() in engindrwlstm_wrp.c). */
+
+/** Transforms vecs_num vectors from p_vecs1 into p_vecs2 using the transpose of p_mat.
+ *
+ * Transforms vectors like: p_vec2[i] = transpose(p_mat) * p_vec1[i], which is equivalent
+ * to treating each vector as a row vector multiplied by p_mat.
+ */
+int vectors_mul_by_transposed_matrix(uint vecs_num, const struct M33 *p_mat,
+  const struct M31 *p_vecs1, struct M31 *p_vecs2)
+{
+    uint i;
+
+    for (i = 0; i < vecs_num; i++)
+    {
+        int x, y, z;
+
+        x = p_vecs1[i].R[0];
+        y = p_vecs1[i].R[1];
+        z = p_vecs1[i].R[2];
+        p_vecs2[i].R[0] = p_mat->R[0][0] * x + p_mat->R[1][0] * y + p_mat->R[2][0] * z;
+        p_vecs2[i].R[1] = p_mat->R[0][1] * x + p_mat->R[1][1] * y + p_mat->R[2][1] * z;
+        p_vecs2[i].R[2] = p_mat->R[0][2] * x + p_mat->R[1][2] * y + p_mat->R[2][2] * z;
+    }
+    return 0;
+}
+
+/** Normalises a 3-component Q14 fixed-point vector (unit length == 0x4000) in place.
+ *
+ * Uses a bisection-based iterative algorithm, with up to 10 refining steps.
+ */
+static void mech12_norm_vec3_q14(int *p_x, int *p_y, int *p_z)
+{
+    int x, y, z, ss, i;
+
+    x = *p_x; y = *p_y; z = *p_z;
+    ss = (((s64)x * x) >> 14) + (((s64)y * y) >> 14) + (((s64)z * z) >> 14);
+    if (ss == 0)
+    {
+        x <<= 16; y <<= 16; z <<= 16;
+        ss = (((s64)x * x) >> 14) + (((s64)y * y) >> 14) + (((s64)z * z) >> 14);
+    }
+    if (ss == 0)
+    {
+        /* Degenerate (zero) vector - fall back to a unit vector on the first axis. */
+        *p_x = 0x4000;
+        *p_y = 0;
+        *p_z = 0;
+        return;
+    }
+
+    while (ss > 0x10000)
+    {
+        ss >>= 2;
+        x >>= 1; y >>= 1; z >>= 1;
+    }
+    while (ss < 0x1000)
+    {
+        ss <<= 2;
+        x <<= 1; y <<= 1; z <<= 1;
+    }
+
+    {
+        int dx, dy, dz;
+
+        dx = x >> 1; dy = y >> 1; dz = z >> 1;
+        for (i = 10; i > 0; i--)
+        {
+            if (ss > 0x4001) {
+                x -= dx; y -= dy; z -= dz;
+            } else if (ss < 0x3fff) {
+                x += dx; y += dy; z += dz;
+            } else {
+                break;
+            }
+            ss = (((s64)x * x) >> 14) + (((s64)y * y) >> 14) + (((s64)z * z) >> 14);
+            dx >>= 1; dy >>= 1; dz >>= 1;
+        }
+    }
+
+    *p_x = x; *p_y = y; *p_z = z;
+}
+
+/* Permute mat1 into mat2, and apply axis rotation to mat1.
+ *
+ * While mat2 looks like a scratch storage here, its final
+ * content can be also relied upon by the caller afterwards.
+ * Rotation angle is provided as sine and cosine values.
+ */
+int mech_unkn_func_12(struct M33 *p_mat1, struct M33 *p_mat2,
+  int sin_angl, int cos_angl, int axis)
+{
+    struct M33 work;
+    int sin_neg, sin_pos, cos_val;
+    int row;
+
+    // Build a permuted copy of mat1 into mat2.
+    p_mat2->R[0][0] = p_mat1->R[0][2];
+    p_mat2->R[0][1] = p_mat1->R[1][2];
+    p_mat2->R[0][2] = p_mat1->R[2][2];
+    p_mat2->R[1][0] = p_mat1->R[0][1];
+    p_mat2->R[1][1] = p_mat1->R[1][1];
+    p_mat2->R[1][2] = p_mat1->R[2][1];
+    p_mat2->R[2][0] = p_mat1->R[0][0];
+    p_mat2->R[2][1] = p_mat1->R[1][0];
+    p_mat2->R[2][2] = p_mat1->R[2][0];
+
+    sin_neg = -sin_angl;
+    if (sin_neg >= 0x10000)
+        sin_neg = 0xffff;
+    sin_pos = -sin_neg;
+    cos_val = cos_angl;
+
+    switch (axis)
+    {
+    case 0:
+        // Rotate around local axis 0: spin columns 1/2 of each row, keep column 0.
+        for (row = 0; row < 3; row++)
+        {
+            int b, c;
+
+            b = p_mat2->R[row][1];
+            c = p_mat2->R[row][2];
+            work.R[row][0] = p_mat2->R[row][0];
+            work.R[row][1] = (((s64)b * cos_val) >> 16) + (((s64)c * sin_pos) >> 16);
+            work.R[row][2] = (((s64)b * sin_neg) >> 16) + (((s64)c * cos_val) >> 16);
+        }
+        mech12_norm_vec3_q14(&work.R[0][1], &work.R[1][1], &work.R[2][1]);
+        mech12_norm_vec3_q14(&work.R[0][2], &work.R[1][2], &work.R[2][2]);
+        break;
+    case 1:
+        // Rotate around local axis 1: spin columns 0/2 of each row, keep column 1.
+        for (row = 0; row < 3; row++)
+        {
+            int a, c;
+
+            a = p_mat2->R[row][0];
+            c = p_mat2->R[row][2];
+            work.R[row][0] = (((s64)a * cos_val) >> 16) + (((s64)c * sin_neg) >> 16);
+            work.R[row][1] = p_mat2->R[row][1];
+            work.R[row][2] = (((s64)a * sin_pos) >> 16) + (((s64)c * cos_val) >> 16);
+        }
+        mech12_norm_vec3_q14(&work.R[0][0], &work.R[1][0], &work.R[2][0]);
+        mech12_norm_vec3_q14(&work.R[0][2], &work.R[1][2], &work.R[2][2]);
+        break;
+    case 2:
+        // Rotate around local axis 2: spin columns 0/1 of each row, keep column 2.
+        for (row = 0; row < 3; row++)
+        {
+            int a, b;
+
+            a = p_mat2->R[row][0];
+            b = p_mat2->R[row][1];
+            work.R[row][0] = (((s64)a * cos_val) >> 16) + (((s64)b * sin_pos) >> 16);
+            work.R[row][1] = (((s64)a * sin_neg) >> 16) + (((s64)b * cos_val) >> 16);
+            work.R[row][2] = p_mat2->R[row][2];
+        }
+        mech12_norm_vec3_q14(&work.R[0][0], &work.R[1][0], &work.R[2][0]);
+        mech12_norm_vec3_q14(&work.R[0][1], &work.R[1][1], &work.R[2][1]);
+        break;
+    default:
+        LOGERR("invalid rotation axis provided: %d", (int)axis);
+        return 0;
+    }
+
+    // Undo the permutation applied above, writing the
+    // rotated/normalised matrix back into mat1.
+    p_mat1->R[0][2] = work.R[0][0];
+    p_mat1->R[1][2] = work.R[0][1];
+    p_mat1->R[2][2] = work.R[0][2];
+    p_mat1->R[0][1] = work.R[1][0];
+    p_mat1->R[1][1] = work.R[1][1];
+    p_mat1->R[2][1] = work.R[1][2];
+    p_mat1->R[0][0] = work.R[2][0];
+    p_mat1->R[1][0] = work.R[2][1];
+    p_mat1->R[2][0] = work.R[2][2];
+
+    return 0;
+}
+
+/** Re-orthonormalises a (possibly fixed-point-drifted) rotation matrix.
+ *
+ * Decompose the matrix into yaw/pitch/roll angles (roll angle requires
+ * re-applying the first two). Then rebuild a clean matrix from those
+ * angles. Finally, re-normalise all 3 rows.
+ */
+int mech_unkn_func_13(struct M33 *p_mat1, struct M33 *p_mat2)
+{
+    int len_xz, len_full, len_roll;
+    int cos_yaw, sin_yaw, cos_pitch, sin_pitch, cos_roll, sin_roll;
+
+    // Decompose row0 into yaw/pitch angles
+    len_xz = LbSqrL(p_mat1->R[0][0] * p_mat1->R[0][0]
+      + p_mat1->R[0][2] * p_mat1->R[0][2]);
+    len_full = LbSqrL((u32)(p_mat1->R[0][0] * p_mat1->R[0][0]
+      + p_mat1->R[0][1] * p_mat1->R[0][1]
+      + p_mat1->R[0][2] * p_mat1->R[0][2]));
+
+    if (len_xz > 0) {
+        cos_yaw = (((s64)p_mat1->R[0][2] << 16) / len_xz);
+        sin_yaw = (((s64)p_mat1->R[0][0] << 16) / len_xz);
+    } else {
+        cos_yaw = 0;
+        sin_yaw = 0x10000;
+    }
+    sin_pitch = (((s64)p_mat1->R[0][1] << 16) / len_full);
+    cos_pitch = (((s64)len_xz << 16) / len_full);
+
+    // Apply yaw, then pitch, overwriting mat1 with the Pitch(Yaw(mat1)).
+    matrix_rotate_yaw_copy(p_mat1, p_mat2, cos_yaw, sin_yaw);
+    matrix_rotate_pitch_copy(p_mat2, p_mat1, cos_pitch, -sin_pitch);
+
+    // The roll angle is derived from row1 of the matrix AFTER the
+    // yaw+pitch rotations above were applied.
+    len_roll = LbSqrL(p_mat1->R[1][1] * p_mat1->R[1][1]
+      + p_mat1->R[1][2] * p_mat1->R[1][2]);
+    if (len_roll > 0) {
+        cos_roll = (((s64)p_mat1->R[1][2] << 16) / len_roll);
+        sin_roll = (((s64)p_mat1->R[1][1] << 16) / len_roll);
+    } else {
+        cos_roll = 0;
+        sin_roll = 0x10000;
+    }
+
+    // Build a clean rotation matrix in mat1 by creating an identity matrix,
+    // then applyint angle transformations: Yaw(Pitch(Roll(identity))).
+    matrix_identity_fill(p_mat2);
+    matrix_rotate_roll_copy(p_mat2, p_mat1, -cos_roll, sin_roll);
+    matrix_rotate_pitch_copy(p_mat1, p_mat2, cos_pitch, sin_pitch);
+    matrix_rotate_yaw_copy(p_mat2, p_mat1, -cos_yaw, sin_yaw);
+
+    // Final precision cleanup: re-normalise each row to unit length.
+    mech12_norm_vec3_q14(&p_mat1->R[0][0], &p_mat1->R[0][1], &p_mat1->R[0][2]);
+    mech12_norm_vec3_q14(&p_mat1->R[1][0], &p_mat1->R[1][1], &p_mat1->R[1][2]);
+    mech12_norm_vec3_q14(&p_mat1->R[2][0], &p_mat1->R[2][1], &p_mat1->R[2][2]);
+
+    return 0;
+}
+
+/** Places the mech parts: their transformation, the positions of the
+ * part things and the rocket launch points; and sets the faces of the
+ * parts that are drawn, as drawing did.
+ */
+void mech_parts_update(struct unkn_mech_struc4 *p_itm4,
+  struct M31 *p_bodypos, struct M33 *p_mat)
+{
+    struct M33 locmat2;
+    int i;
+    struct M31 locvec1, locvec2;
+    ubyte n_func12;
+
+    locvec1 = p_itm4->field_61;
+    locvec2 = p_itm4->field_61;
+    n_func12 = 0;
+    locvec2.R[0] += p_itm4->field_6D.R[0];
+    locvec2.R[1] += p_itm4->field_6D.R[1];
+    locvec2.R[2] += p_itm4->field_6D.R[2];
+    vectors_mul_by_transposed_matrix(1, p_mat, &locvec2, &locvec1);
+
+    locvec2.R[0] = (locvec1.R[0] >> 14) + p_bodypos->R[0];
+    locvec2.R[1] = (locvec1.R[1] >> 14) + p_bodypos->R[1];
+    locvec2.R[2] = (locvec1.R[2] >> 14) + p_bodypos->R[2];
+
+    p_itm4->mat25.R[0][0] = p_mat->R[0][0];
+    p_itm4->mat25.R[0][1] = p_mat->R[0][1];
+    p_itm4->mat25.R[0][2] = p_mat->R[0][2];
+    p_itm4->mat25.R[1][0] = p_mat->R[1][0];
+    p_itm4->mat25.R[1][1] = p_mat->R[1][1];
+    p_itm4->mat25.R[1][2] = p_mat->R[1][2];
+    p_itm4->mat25.R[2][0] = p_mat->R[2][0];
+    p_itm4->mat25.R[2][1] = p_mat->R[2][1];
+    p_itm4->mat25.R[2][2] = p_mat->R[2][2];
+
+    if (p_itm4->angle_49
+      && (p_itm4->mat25.R[0][0] || p_itm4->mat25.R[0][1] || p_itm4->mat25.R[0][2])
+      && (p_itm4->mat25.R[1][0] || p_itm4->mat25.R[1][1] || p_itm4->mat25.R[1][2])
+      && (p_itm4->mat25.R[2][0] || p_itm4->mat25.R[2][1] || p_itm4->mat25.R[2][2]))
+    {
+        mech_unkn_func_12(&p_itm4->mat25, &locmat2, lbSinTable[p_itm4->angle_49], lbSinTable[p_itm4->angle_49 + 512], 0);
+        ++n_func12;
+    }
+    if (p_itm4->angle_4D
+      && (p_itm4->mat25.R[0][0] || p_itm4->mat25.R[0][1] || p_itm4->mat25.R[0][2])
+      && (p_itm4->mat25.R[1][0] || p_itm4->mat25.R[1][1] || p_itm4->mat25.R[1][2])
+      && (p_itm4->mat25.R[2][0] || p_itm4->mat25.R[2][1] || p_itm4->mat25.R[2][2]))
+    {
+        mech_unkn_func_12(&p_itm4->mat25, &locmat2, lbSinTable[p_itm4->angle_4D], lbSinTable[p_itm4->angle_4D + 512], 1u);
+        ++n_func12;
+    }
+    if (p_itm4->angle_51
+      && (p_itm4->mat25.R[0][0] || p_itm4->mat25.R[0][1] || p_itm4->mat25.R[0][2])
+      && (p_itm4->mat25.R[1][0] || p_itm4->mat25.R[1][1] || p_itm4->mat25.R[1][2])
+      && (p_itm4->mat25.R[2][0] || p_itm4->mat25.R[2][1] || p_itm4->mat25.R[2][2]))
+    {
+        mech_unkn_func_12(&p_itm4->mat25, &locmat2, lbSinTable[p_itm4->angle_51], lbSinTable[p_itm4->angle_51 + 512], 2u);
+        ++n_func12;
+    }
+    if (n_func12 > 0) {
+        mech_unkn_func_13(&p_itm4->mat25, &locmat2);
+    }
+    {
+        struct Thing *p_thing;
+        struct M33 *p_rmat;
+
+        p_thing = &things[p_itm4->thing];
+        p_rmat = &local_mats[p_thing->U.UObject.MatrixIndex];
+        matrix_transpose_copy(&p_itm4->mat25, p_rmat);
+        p_thing->X = locvec2.R[0];
+        p_thing->Y = locvec2.R[1];
+        p_thing->Z = locvec2.R[2];
+    }
+    if (p_itm4->field_23 == 5)
+    {
+        mech_rocket1_launch_cor_x = locvec2.R[0];
+        mech_rocket1_launch_cor_y = locvec2.R[1];
+        mech_rocket1_launch_cor_z = locvec2.R[2];
+    }
+    if (p_itm4->field_23 == 6)
+    {
+        mech_rocket2_launch_cor_x = locvec2.R[0];
+        mech_rocket2_launch_cor_y = locvec2.R[1];
+        mech_rocket2_launch_cor_z = locvec2.R[2];
+    }
+
+    if (p_itm4->field_79 == 1)
+    {
+        struct Thing *p_thing;
+        struct SingleObject *p_sobj;
+
+        p_thing = &things[p_itm4->thing];
+        p_sobj = &game_objects[p_thing->U.UObject.Object];
+        thing_view_object_faces(p_sobj, p_thing, p_thing->X, p_thing->Z);
+    }
+
+    for (i = 0; i < p_itm4->field_2; i++)
+    {
+        mech_parts_update(p_itm4->field_3[i], &locvec2, &p_itm4->mat25);
+    }
+}
+
+void mech_view_update(struct Thing *p_mech)
+{
+    struct M31 bodypos;
+    int mechno;
+
+    mechno = p_mech->Owner;
+    bodypos.R[0] = PRCCOORD_TO_MAPCOORD(p_mech->X);
+    bodypos.R[2] = PRCCOORD_TO_MAPCOORD(p_mech->Z);
+    bodypos.R[1] = PRCCOORD_TO_YCOORD(p_mech->Y) + 600;
+    mech_parts_update(unkn_mech_arr3[mechno].mech3_arr4_ptr,
+      &bodypos, &unkn_mech_arr3[mechno].mech3_unkn_mat_C);
 }
 
 /******************************************************************************/

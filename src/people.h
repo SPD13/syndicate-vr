@@ -469,6 +469,11 @@ void person_go_sleep(struct Thing *p_person);
  */
 void reset_person_frame(struct Thing *p_person);
 
+/** Whether line of sight reads the flags of the right triangle face, see
+ * do_vect_colide(); off plays as the original.
+ */
+extern TbBool game_fix_los_face_read;
+
 int can_i_see_thing(struct Thing *p_me, struct Thing *p_him, int max_dist, ushort flags);
 TbBool can_i_enter_vehicle(struct Thing *p_me, struct Thing *p_vehicle);
 

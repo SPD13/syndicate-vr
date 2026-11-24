@@ -24,6 +24,7 @@
 #include "lvobjctv.h"
 #include "network.h"
 #include "packet.h"
+#include "people.h"
 #include "swcore.h"
 #include "swlog.h"
 #include "thing.h"
@@ -631,6 +632,11 @@ void swcore_shutdown(void)
 void swcore_set_world_drawing(int enabled)
 {
     game_draw_world = (enabled != 0);
+}
+
+void swcore_set_fixes(uint32_t fixes)
+{
+    game_fix_los_face_read = ((fixes & SWCORE_FIX_LOS_FACE_READ) != 0);
 }
 
 uint32_t swcore_game_turn(void)

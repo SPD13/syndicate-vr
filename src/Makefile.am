@@ -211,6 +211,8 @@ libswarscore_a_SOURCES = \
 	thing_debug.c \
 	thing_onface.h \
 	thing_onface.c \
+	thing_view.c \
+	thing_view.h \
 	thing_ovmous.h \
 	thing_ovmous.c \
 	tngcolisn.c \

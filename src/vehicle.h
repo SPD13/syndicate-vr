@@ -251,6 +251,19 @@ void mech_gameturn_reinit(void);
 void mech_unkn_func_02(void);
 void mech_unkn_func_05(int owntng, int slot, int arr2_idx);
 void mech_unkn_func_09(ThingIdx thing);
+
+/** Places the parts of a mech in view, as drawing it did: positions of
+ * the part things, their transformations and the rocket launch points;
+ * called from game_view_pass().
+ */
+void mech_view_update(struct Thing *p_mech);
+
+struct unkn_mech_struc4;
+struct M31;
+struct M33;
+/** Places a mech part and the parts under it, see mech_view_update(). */
+void mech_parts_update(struct unkn_mech_struc4 *p_itm4,
+  struct M31 *p_bodypos, struct M33 *p_mat);
 void init_mech_explode(struct Thing *p_vehicle);
 
 TbBool vehicle_is_destroyed(ThingIdx thing);

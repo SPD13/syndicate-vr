@@ -12,6 +12,7 @@
  * @par Comment:
  *     Options of its own, before the game's: "--turns N" stops after N
  *     turns; "--no-draw" leaves out drawing the world in missions;
+ *     "--fixes N" switches fixes of original bugs on (SwcFixes bits);
  *     "--world" also prints a summary of the world every 100 turns.
  *     Use SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy for no window.
  * @author   SyndicateVR decomp agent
@@ -62,7 +63,7 @@ static void print_world(void)
 
 int main(int argc, char **argv)
 {
-    uint32_t turns = 0, done = 0;
+    uint32_t turns = 0, done = 0, fixes = 0;
     int world = 0, no_draw = 0;
 
     while (argc > 1)
@@ -77,6 +78,11 @@ int main(int argc, char **argv)
             argv[1] = argv[0];
             argv++;
             argc--;
+        } else if ((strcmp(argv[1], "--fixes") == 0) && (argc > 2)) {
+            fixes = (uint32_t)strtoul(argv[2], NULL, 0);
+            argv[2] = argv[0];
+            argv += 2;
+            argc -= 2;
         } else if (strcmp(argv[1], "--world") == 0) {
             world = 1;
             argv[1] = argv[0];
@@ -90,6 +96,7 @@ int main(int argc, char **argv)
         return 1;
     if (no_draw)
         swcore_set_world_drawing(0);
+    swcore_set_fixes(fixes);
     while (swcore_step())
     {
         struct SwcWorldInfo info;
