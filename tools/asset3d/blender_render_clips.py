@@ -65,7 +65,7 @@ VIEWS = [int(v) for v in __import__("os").environ.get("CLIP_VIEWS", "30,90").spl
 for k in range(len(VIEWS)):
     cd = bpy.data.cameras.new("cam%d" % k)
     cd.type = "ORTHO"
-    cd.ortho_scale = 2.5
+    cd.ortho_scale = float(__import__("os").environ.get("CLIP_ORTHO", "2.5"))
     cam = bpy.data.objects.new("cam%d" % k, cd)
     scene.collection.objects.link(cam)
     cams.append(cam)
@@ -73,7 +73,7 @@ for k in range(len(VIEWS)):
 
 def place_cameras(fwd):
     right = fwd.cross(Vector((0, 0, 1)))
-    target = Vector((0, 0, 0.95))
+    target = Vector((0, 0, float(__import__("os").environ.get("CLIP_TARGET_Z", "0.95"))))
     for cam, yaw in zip(cams, VIEWS):  # 3/4 front from the right-front, right side
         a = math.radians(yaw)
         cam.location = target + (fwd * math.cos(a) + right * math.sin(a)) * 6 + Vector((0, 0, 1.2))

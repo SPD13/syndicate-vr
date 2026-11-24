@@ -159,16 +159,40 @@ print("robe radius at knee height %.2f m" % robe_r_m)
 C, R = opt["columns"], opt["rows"]
 t0 = math.radians(opt["front_deg"])
 thetas = [t0 + (2 * math.pi - 2 * t0) * i / (C - 1) for i in range(C)]  # left front -> back -> right front
-zs = [attach_z + (floor_z - attach_z) * j / (R - 1) for j in range(R)]
 clear = opt["clearance"]
+# attach under the shoulder pads: per angle, scan down from above the
+# shoulders for the pads' lower rim (the outer radius drops sharply), and
+# attach just under it on the body surface beneath
+step = 0.01
+z_hi, z_lo = attach_z + 0.08 * H, attach_z - 0.30 * H
+att_z, att_r = [], []
+for th in thetas:
+    zz = np.arange(z_hi, z_lo, -step)
+    rr = np.array([outer_radius(th, z) for z in zz])
+    k_max = int(np.argmax(rr))
+    rim = None
+    for k in range(k_max, len(zz) - 2):
+        if rr[k] > 0 and rr[k + 2] < rr[k_max] * (1 - opt.get("rim_drop", 0.18)):
+            rim = k + 2
+            break
+    if rim is None:  # no pad here (e.g. between the pads at the back): stay at the line
+        rim = int(np.argmin(np.abs(zz - attach_z)))
+    att_z.append(zz[rim] - opt.get("under", 0.01))
+    att_r.append(outer_radius(th, zz[rim] - opt.get("under", 0.01)))
+# smooth the attach line along the arc so it follows the pads' edge evenly
+att_z = np.array(att_z)
+att_r = np.array(att_r)
+for _ in range(opt.get("line_smooth", 3)):
+    att_z[1:-1] = (att_z[:-2] + 2 * att_z[1:-1] + att_z[2:]) / 4
+    att_r[1:-1] = (att_r[:-2] + 2 * att_r[1:-1] + att_r[2:]) / 4
+print("attach line: z %.2f..%.2f m, radius %.2f..%.2f m" % (att_z.min(), att_z.max(), att_r.min(), att_r.max()))
 grid = np.zeros((C, R, 3))
 for i, th in enumerate(thetas):
     d = forward * math.cos(th) + lateral * math.sin(th)
-    r_top = outer_radius(th, attach_z)
-    # behind the domes: also clear the dome bulge just below the attach line
-    r_top = max(r_top, outer_radius(th, attach_z - 0.06 * H)) + clear
-    for j, z in enumerate(zs):
-        r = max(r_top, outer_radius(th, z) + clear)
+    r_top = att_r[i] + opt.get("top_clear", 0.012)
+    for j in range(R):
+        z = att_z[i] + (floor_z - att_z[i]) * j / (R - 1)
+        r = max(r_top, outer_radius(th, z) + clear) if j > 0 else r_top
         p = Vector((axis.x, axis.y, z)) + d * r
         grid[i, j] = tuple(p)
 # move each column from the shape pose to the rest pose through its parent bone
