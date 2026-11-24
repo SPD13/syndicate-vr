@@ -178,5 +178,11 @@
   "faces": 6000,
   "hold": "carried",
   "desc": "a clone shield device: a flat rectangular chrome card-shaped unit with a recessed grey panel and a purple striped emitter edge on one side."
+ },
+ "ashpile": {
+  "ref": "game sprite dead_ash (agent, last frame), see work/props/ashpile/ref.png",
+  "faces": 5000,
+  "hold": "dropped",
+  "desc": "(NOT a weapon: image[1] is the last frame of a burnt-to-ash death in the game, a small black char mark seen from above) the remains of a person burnt to ash: a low, flat, roughly person-length patch of black and dark grey ash lying on the ground, a loose mound in the middle with charred fragments and a few splayed streaks spreading out like limbs, a few tiny glowing orange embers, flakes of grey ash; no recognisable body, no bones, no flames, seen from three-quarter above."
  }
 }

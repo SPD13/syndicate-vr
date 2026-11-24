@@ -28,6 +28,9 @@ clips = {
     "hit": (S + "hit.fbx", False), "push_back": (S + "push_back.fbx", False),
     # drop / pick up / plant a mine (the game's one crouch, anim state 13), grenade throw
     "pickup": (S + "picking_up.fbx", False), "throw": (S + "throw_grenade.fbx", False),
+    # being persuaded (Mixamo "Zombie Transition", Alert To Ready), burning ("Shaking It Off")
+    "persuaded": (S + "zombie_alert_to_ready.fbx", False),
+    "burning": (S + "shaking_it_off.fbx", False),
     "death_front": (F + "death from the front.fbx", False), "death_back": (F + "death from the back.fbx", False),
     "death_headshot": (F + "death from front headshot.fbx", False),
 }
