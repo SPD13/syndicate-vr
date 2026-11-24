@@ -21,7 +21,8 @@ For each weapon:
 - "flip_up": true turns the weapon over when the grip heuristic fails.
 - "grip_at": 0..1 places the handle by hand, as a fraction of the length
   from the back, when the lowest part is not the handle (a fuel canister,
-  a long barrel).
+  a long barrel); "grip_h": 0..1 the hand's height on it.
+- "pitch": degrees to raise the nose when the main axis is off (L shapes).
 - <out>_sockets.json records each weapon's matrix relative to RightHand
   (the bone tail), for attaching weapon GLBs at runtime.
 """
@@ -69,7 +70,7 @@ def bone_world(name, tail=False):
     return ev.matrix_world @ (pb.tail if tail else pb.head)
 
 
-def weapon_frame(objs, flip_up=False, grip_at=None):
+def weapon_frame(objs, flip_up=False, grip_at=None, pitch=0.0, grip_h=None):
     pts = np.array([tuple(o.matrix_world @ v.co) for o in objs for v in o.data.vertices])
     c = pts.mean(0)
     w, v = np.linalg.eigh(np.cov((pts - c).T))
@@ -85,14 +86,23 @@ def weapon_frame(objs, flip_up=False, grip_at=None):
     if np.mean(pf) - (grip - c) @ fwd < 0 or (pf.max() - (grip - c) @ fwd) < ((grip - c) @ fwd - pf.min()):
         fwd = -fwd
         pf = -pf
+    up = up - fwd * (up @ fwd)
+    up /= np.linalg.norm(up)
+    if pitch:  # raise the nose by `pitch` degrees (PCA follows the diagonal of L-shaped guns)
+        a = np.radians(pitch)
+        fwd, up = fwd * np.cos(a) + up * np.sin(a), up * np.cos(a) - fwd * np.sin(a)
+        pf, pu = (pts - c) @ fwd, (pts - c) @ up
     if grip_at is not None:  # handle given by hand: fraction of the length from the back
         t = (pf - pf.min()) / (pf.max() - pf.min())
         win = np.abs(t - grip_at) < 0.05
         grip_pts = pts[win][pu[win] < np.percentile(pu[win], 50)]
-    up = up - fwd * (up @ fwd)
-    up /= np.linalg.norm(up)
-    # hold the grip near its top, where the hand closes
-    top = grip_pts[((grip_pts - c) @ up) > np.percentile((grip_pts - c) @ up, 60)].mean(0)
+    if grip_at is not None and grip_h is not None:  # and the height on it (0 bottom, 1 top)
+        h = (pu - pu.min()) / (pu.max() - pu.min())
+        sel = win & (np.abs(h - grip_h) < 0.08)
+        top = pts[sel].mean(0) if sel.any() else grip_pts.mean(0)
+    else:
+        # hold the grip near its top, where the hand closes
+        top = grip_pts[((grip_pts - c) @ up) > np.percentile((grip_pts - c) @ up, 60)].mean(0)
     length = pf.max() - pf.min()
     return Vector(fwd), Vector(up), Vector(top), length
 
@@ -126,7 +136,7 @@ for name, w in cfg.items():
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     gun.name = "weapon_" + name
 
-    fwd, up, grip, length = weapon_frame([gun], w.get("flip_up"), w.get("grip_at"))
+    fwd, up, grip, length = weapon_frame([gun], w.get("flip_up"), w.get("grip_at"), w.get("pitch", 0.0), w.get("grip_h"))
     if w.get("flip"):  # the muzzle heuristic picked the wrong end
         fwd = -fwd
     s = w["length"] / length
