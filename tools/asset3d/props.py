@@ -2,7 +2,7 @@
 
   python props.py ref    <name>             reference from data/equip/wep-NN.fli
   python props.py redraw <name> [--tag v1] [--extra "..."]
-  python props.py model  <name> [--tag v1]
+  python props.py model  <name> [--tag v1] [--multiview]
 Options: --dry-run, --max-credits N, --out DIR. Outputs in <out>/work/props/<name>/.
 Descriptions and the FLI number of each prop are in props.json.
 """
@@ -62,10 +62,19 @@ def stage_model(t, out, name, info, args):
     dest = os.path.join(out, "work", "props", name, "redraw_" + args.tag)
     img = os.path.join(dest, "redraw.png")
     token = t.upload(img) if os.path.exists(img) else "dry"
-    body = {"input": token, "model": MODEL_3D, "texture": True, "pbr": True,
+    opts = {"model": MODEL_3D, "texture": True, "pbr": True,
             "texture_quality": "detailed", "face_limit": info.get("faces", 8000)}
-    rec = t.run("/generation/image-to-model", body, os.path.join(dest, "model"),
-                estimate=50, label="%s model %s" % (name, args.tag))
+    if args.multiview:
+        # Four consistent generated views fix depth better than one image.
+        mv = t.run("/generation/image-to-multiview", {"input": token}, os.path.join(dest, "multiview"),
+                   estimate=10, label="%s multiview %s" % (name, args.tag))
+        body = dict({"inputs": [{"task_id": mv["task_id"]}]}, **opts)
+        rec = t.run("/generation/multiview-to-model", body, os.path.join(dest, "model_mv"),
+                    estimate=50, label="%s model mv %s" % (name, args.tag))
+    else:
+        body = dict({"input": token}, **opts)
+        rec = t.run("/generation/image-to-model", body, os.path.join(dest, "model"),
+                    estimate=50, label="%s model %s" % (name, args.tag))
     print("files: %s" % ", ".join(rec.get("files", {}).values()))
 
 
@@ -76,6 +85,7 @@ def main():
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--model", default="seedream_v5")
     ap.add_argument("--extra", default="")
+    ap.add_argument("--multiview", action="store_true", help="model: image-to-multiview + multiview-to-model")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--max-credits", type=int, default=800)
     ap.add_argument("--out")

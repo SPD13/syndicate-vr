@@ -1,0 +1,4 @@
+{
+ "uzi": {"file": "<assets3d>/models/weapons/uzi.glb", "length": 0.30, "pose": "pistol_idle", "frac": 0.3, "aim": "forearm"},
+ "minigun": {"file": "<assets3d>/models/weapons/minigun.glb", "length": 0.85, "pose": "rifle_aim", "frac": 0.5, "aim": "hands", "flip": true}
+}

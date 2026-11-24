@@ -1,7 +1,8 @@
 """Blender (background) script: renders poses of an animated GLB to PNGs.
 
-blender -b --factory-startup -P blender_render_poses.py -- model.glb outdir clip:frac [clip:frac ...]
-frac is the position in the clip (0 = start, 1 = end). A 3/4 front view,
+blender -b --factory-startup -P blender_render_poses.py -- model.glb outdir clip:frac[:weapon] ...
+frac is the position in the clip (0 = start, 1 = end); weapon shows only
+the node weapon_<weapon> (default: no weapon). A 3/4 front view,
 EEVEE, 384x512, one PNG per pose named <clip>.png.
 """
 import math
@@ -53,7 +54,12 @@ for i, (rot, energy) in enumerate((((50, 0, -35), 4.0), ((60, 0, 150), 1.5))):
     scene.collection.objects.link(lo)
 
 for spec in poses:
-    name, frac = spec.split(":")
+    parts = spec.split(":")
+    name, frac = parts[0], parts[1]
+    show = parts[2] if len(parts) > 2 else None
+    for o in bpy.data.objects:
+        if o.name.startswith("weapon_"):
+            o.hide_render = (show is None) or (o.name != "weapon_" + show)
     act = bpy.data.actions.get(name)
     if act is None:
         print("no action", name)
@@ -63,6 +69,6 @@ for spec in poses:
         arm.animation_data.action_slot = act.slots[0]
     f0, f1 = act.frame_range
     scene.frame_set(int(round(f0 + (f1 - f0) * float(frac))))
-    scene.render.filepath = os.path.join(outdir, name + ".png")
+    scene.render.filepath = os.path.join(outdir, name + ("_" + show if show else "") + ".png")
     bpy.ops.render.render(write_still=True)
     print("rendered", name)
