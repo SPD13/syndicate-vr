@@ -1,5 +1,99 @@
 {
-  "_common": "image[1] is a 1996 game render of a weapon. Redraw this exact weapon as one clean, detailed, high-resolution product render for a 3D model: the same three-quarter view and the same proportions, silhouette and parts, the whole weapon visible, neutral studio lighting, plain white background, no shadow, no hands, no text. Modernise the detail (panel lines, screws, materials) in a gritty 1990s cyberpunk style while keeping its key features and colours. Weapon: ",
-  "uzi": {"fli": 0, "faces": 6000, "desc": "a compact futuristic Uzi-style submachine gun, boxy black gunmetal receiver with bright steel edges, short barrel with a round muzzle, straight magazine inside the pistol grip, a small square sight block on top, small cyan indicator lights on the side; one-handed sidearm size."},
-  "minigun": {"fli": 1, "faces": 9000, "desc": "a heavy cyberpunk minigun: a rotating cluster of six chrome barrels at the front, a thick purple-and-black armoured cylindrical body with a polished chrome band, a curved white ceramic pistol grip underneath, a black carry handle with grip ridges on top, rounded rear housing."}
+ "_common": "image[1] is a 1996 game render of a weapon. Redraw this exact weapon as one clean, detailed, high-resolution product render for a 3D model: the same three-quarter view and the same proportions, silhouette and parts, the whole weapon visible, neutral studio lighting, plain white background, no shadow, no hands, no text. Modernise the detail (panel lines, screws, materials) in a gritty 1990s cyberpunk style while keeping its key features and colours. Weapon: ",
+ "uzi": {
+  "fli": 0,
+  "faces": 6000,
+  "desc": "a compact futuristic Uzi-style submachine gun, boxy black gunmetal receiver with bright steel edges, short barrel with a round muzzle, straight magazine inside the pistol grip, a small square sight block on top, small cyan indicator lights on the side; one-handed sidearm size.",
+  "hold": "light"
+ },
+ "minigun": {
+  "fli": 1,
+  "faces": 9000,
+  "desc": "a heavy cyberpunk minigun: a rotating cluster of six chrome barrels at the front, a thick purple-and-black armoured cylindrical body with a polished chrome band, a curved white ceramic pistol grip underneath, a black carry handle with grip ridges on top, rounded rear housing.",
+  "hold": "heavy"
+ },
+ "laser": {
+  "fli": 2,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "a long cyberpunk laser rifle: thick polished chrome cylindrical barrel ending in a rounded muzzle, segmented ribbed chrome body with a curved top rail, a short angled pistol grip under the rear, small cyan emitter details."
+ },
+ "ellaser": {
+  "fli": 3,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "the electron mace: a heavy chrome gun with three short stacked round barrels at the front, a boxy ribbed receiver with cooling vents and panel cut-outs, an angled pistol grip at the rear."
+ },
+ "rap": {
+  "fli": 4,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "a slim shoulder rocket launcher: long polished silver tube with dark purple bands and a sighting block, the rear end is a dark purple hooked housing that curves down into a ring-shaped grip."
+ },
+ "persuadrtrn": {
+  "fli": 6,
+  "faces": 8000,
+  "hold": "light",
+  "desc": "the persuadertron: a compact chunky chrome handheld device, wide round emitter nose with a lens, boxy top housing, a square loop-shaped grip and base underneath."
+ },
+ "flamer": {
+  "fli": 7,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "a flamethrower: boxy black armoured body with purple trim stripes and a small light strip on top, a white ceramic nozzle tip at the front, a vertical cylindrical fuel canister under the body used as a fore grip."
+ },
+ "h2htaser": {
+  "fli": 8,
+  "faces": 8000,
+  "hold": "light",
+  "desc": "a hand-held taser baton: wedge-shaped glossy purple casing that widens toward the back, two short metal prongs at the narrow front end, a silver oval button on the side, black grip edges."
+ },
+ "longrange": {
+  "fli": 14,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "a very long thin sniper rifle: needle-thin long barrel, compact black receiver with purple accents, a small scope on top, a skeletal folding shoulder stock."
+ },
+ "beam": {
+  "fli": 16,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "the graviton beam gun: a chrome tube barrel, dark purple central body with a top carry grip, an angled chrome rear elbow housing with a round end cap."
+ },
+ "sonicblast": {
+  "fli": 18,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "a sonic blast cannon: long polished chrome barrel with a wide flared muzzle, segmented chrome body with a curved top fin, a short angled pistol grip under the rear."
+ },
+ "qdevastator": {
+  "fli": 19,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "a long devastator rifle: stepped chrome barrel, slim body with two knobs and dials on top, rear pistol grip and a slim stock."
+ },
+ "persuader2": {
+  "fli": 20,
+  "faces": 8000,
+  "hold": "light",
+  "desc": "the persuadertron mk2: a larger bulky chrome handheld device with a round lens emitter nose, layered housing on top, a square loop grip and base underneath."
+ },
+ "stasisfld": {
+  "fli": 21,
+  "faces": 8000,
+  "hold": "light",
+  "desc": "a stasis field projector: open-frame chrome device, cylindrical emitter at the front with cyan lights, a purple lower rail with cyan lights, a ring-shaped frame at the rear as the grip."
+ },
+ "soulgun": {
+  "fli": 23,
+  "faces": 8000,
+  "hold": "heavy",
+  "desc": "a heavy soul gun: dark chrome body with a large round spherical pod in the middle, forked prongs at the front, a chunky rear grip and stock."
+ },
+ "timegun": {
+  "fli": 24,
+  "faces": 8000,
+  "hold": "light",
+  "desc": "a time gun: open-frame device, a purple-and-silver rectangular rear block with a glowing slot, thin chrome rails, a ring at the front, small cyan lights."
+ }
 }
