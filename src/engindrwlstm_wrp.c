@@ -87,10 +87,9 @@ ubyte pers_shield_spr_vers[][5] = {
   {2, 0, 2, 0, 0,},
 };
 
-ubyte byte_152EF0[] = {
-   0, 10,  5, 10,  7,  7,  8, 10,
-  10, 10,  5,  7,  5,  7,  7,  0,
-};
+/* Brightness of each person type: byte_152EF0[] in swview.c
+ * (libswarsview), which the world export reads too. */
+extern ubyte byte_152EF0[];
 
 
 void draw_thing_e_graphic(struct Thing *p_thing, int x, int y, int z,

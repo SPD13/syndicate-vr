@@ -42,7 +42,7 @@ extern "C" {
 #endif
 /******************************************************************************/
 /** Version of this interface; grows when something is added. */
-#define SWVIEW_API_VERSION 1
+#define SWVIEW_API_VERSION 2
 
 #pragma pack(1)
 
@@ -297,6 +297,113 @@ struct SwvHeader {
 #define SWV_TOTAL_SIZE  (SWV_OFF_HUD + (uint32_t)sizeof(struct SwvHud))
 
 /******************************************************************************/
+
+/* Since version 2: assets, persons and effects for a renderer with its
+ * own models, the panels' data. */
+
+#pragma pack(1)
+
+enum SwvPersonFlags {
+    SwvPF_SHIELD = 0x01,       /**< Energy shield on */
+    SwvPF_PERSUADED = 0x02,
+    SwvPF_BURNING = 0x04,
+    SwvPF_IN_BUILDING = 0x08,  /**< Inside a building, not drawn by the game */
+    SwvPF_IN_VEHICLE = 0x10,
+    SwvPF_DEAD = 0x20,
+    SwvPF_PLAYER_AGENT = 0x40,
+    SwvPF_SELECTED = 0x80,
+};
+
+/** The state of a person, for a renderer which animates its own model. */
+struct SwvPersonRender {
+    float x, y, z;
+    uint16_t thing;
+    uint8_t subtype;       /**< Person type (game SubType) */
+    uint8_t anim_mode;     /**< Animation state (game AnimMode, ANIM_PERS_*) */
+    uint8_t weapon;        /**< Weapon in hand (WeaponType), 0 for none */
+    uint8_t flags;         /**< SwvPersonFlags */
+    uint8_t shield_glow;   /**< Brightness of the shield, 0..32 */
+    uint8_t pad;
+    uint16_t angle;        /**< Facing, 0..2047 (the game has 8 directions) */
+    uint16_t frame_in_anim; /**< Frames since the start of the animation */
+    uint16_t persuader;    /**< Who persuaded the person, or 0 */
+    int16_t health, max_health;
+};
+
+#define SWV_FX_EVENTS_MAX 256
+
+enum SwvFxKind {
+    SwvFX_BANG = 1,        /**< An explosion; size 1 small .. 3 large */
+    SwvFX_FIRE_START,
+    SwvFX_FIRE_END,
+    SwvFX_SCALE_EFFECT,    /**< anim: the effect's animation (StartFrame) */
+    SwvFX_SMOKE,           /**< A smoke generator */
+};
+
+/** An effect which started or ended in the last turn. */
+struct SwvFxEvent {
+    float x, y, z;
+    uint32_t id;           /**< Stable while the effect lives */
+    uint8_t kind;          /**< SwvFxKind */
+    uint8_t size;
+    uint16_t anim;
+};
+
+#define SWV_SIGNALS_MAX 16
+
+/** One of the player's agents, with all the panels show. */
+struct SwvHudAgent {
+    uint16_t thing;          /**< 0 if there is no such agent */
+    uint8_t current_weapon;  /**< WeaponType, 0 for none */
+    uint8_t flags;           /**< SwvTF_SELECTED, SwvTF_DEAD */
+    uint32_t weapons;        /**< Carried weapons, bit (WeaponType - 1) */
+    int16_t health, max_health;
+    int16_t energy, max_energy;
+    int16_t shield, max_shield;
+    int16_t weapon_timer;    /**< Re-fire delay or charge of the weapon */
+    uint16_t mods;           /**< Cybernetic mods, as the game packs them */
+    uint16_t target;         /**< Thing the agent aims at, or 0 */
+};
+
+/** A place the scanner points at: the current objective. */
+struct SwvSignal {
+    float x, z;
+    uint8_t colour;          /**< Palette index */
+    uint8_t pad[3];
+};
+
+/** The panels' data, without their layout. */
+struct SwvHudInfo {
+    struct SwvHudAgent agents[SWV_AGENTS_MAX];
+    struct SwvSignal signals[SWV_SIGNALS_MAX];
+    uint32_t n_signals;
+    uint32_t selected;       /**< Thing the player controls directly */
+    uint8_t in_mission;
+    uint8_t mission_status;  /**< As SwcMissionStatus of swcore.h */
+    uint8_t pad[2];
+    char objective[256];     /**< Current objective, as in the top bar */
+};
+
+#pragma pack()
+
+/** Loads the assets of the classic look (texture pages, the sprites of the
+ * mission) into the library, for a front end without the desktop's
+ * renderer; the export uses the game's own when it has them. Uses the
+ * game's data folder, as the core does. Returns the count of files which
+ * could not be loaded (0 when all were).
+ */
+int32_t swview_load_assets(void);
+void swview_free_assets(void);
+
+/** Fills the state of every person, up to max; returns the count. */
+uint32_t swview_persons_render(struct SwvPersonRender *p_list, uint32_t max);
+
+/** The effects which started or ended in the turn of the last
+ * swview_update(); returns the count. */
+uint32_t swview_fx_events(struct SwvFxEvent *p_list, uint32_t max);
+
+/** The panels' data of the current turn. */
+void swview_hud_info(struct SwvHudInfo *p_info);
 
 /** Size of a world block, in bytes (SWV_TOTAL_SIZE). */
 uint32_t swview_block_size(void);

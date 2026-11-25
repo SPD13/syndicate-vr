@@ -18,7 +18,13 @@
  *         no input and no drawing) instead of swcore_step();
  *     "--status" also prints "# turn N status S" when the mission status
  *         changes;
- *     "--world" also prints a summary of the world every 100 turns.
+ *     "--world" also prints a summary of the world every 100 turns;
+ *     "--view" also exports the world every turn as a front end that draws
+ *         it its own way would (swview.h; with the core alone it loads the
+ *         assets for it too); the export only reads the game, so the
+ *         hashes must not change;
+ *     "--view-dump TURN DIR" (with --view) writes the export of that turn
+ *         to DIR: block.bin (the world block), persons.bin, fx.bin, hud.bin.
  *     Built with SWCORE_CORE_ONLY (swcore_coreonly), it runs the game core
  *     alone: swcore_core_init() with the mission of "-m campaign,mission",
  *     and always the core turn; of the game's options it reads only that
@@ -40,6 +46,7 @@
  */
 /******************************************************************************/
 #include "swcore.h"
+#include "swview.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,10 +90,71 @@ static void print_world(void)
     }
 }
 
+static void dump_file(const char *dir, const char *name, const void *p_data, size_t len)
+{
+    char path[512];
+    FILE *fh;
+
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+    fh = fopen(path, "wb");
+    if (fh == NULL) {
+        fprintf(stderr, "cannot write %s\n", path);
+        return;
+    }
+    fwrite(p_data, 1, len, fh);
+    fclose(fh);
+}
+
+/** Effect events seen, per SwvFxKind. */
+static uint32_t view_fx_count[8];
+
+static void print_view_fx(void)
+{
+    printf("# view fx events: %u bangs, %u fires started, %u ended, %u scale effects, %u smoke\n",
+      view_fx_count[1], view_fx_count[2], view_fx_count[3], view_fx_count[4], view_fx_count[5]);
+}
+
+/** Exports the world as a front end drawing it would, every turn. */
+static void view_turn(uint32_t turn, uint32_t dump_turn, const char *dump_dir)
+{
+    static void *p_block = NULL;
+    static struct SwvPersonRender persons[2048];
+    static struct SwvFxEvent fx[SWV_FX_EVENTS_MAX];
+    static struct SwvHudInfo hud;
+    uint32_t n_persons, n_fx;
+
+    if (p_block == NULL) {
+        p_block = calloc(1, swview_block_size());
+        if (p_block == NULL)
+            return;
+    }
+    swview_update(p_block);
+    n_persons = swview_persons_render(persons, 2048);
+    n_fx = swview_fx_events(fx, SWV_FX_EVENTS_MAX);
+    swview_hud_info(&hud);
+    {
+        uint32_t i;
+        for (i = 0; i < n_fx; i++) {
+            if (fx[i].kind < 8)
+                view_fx_count[fx[i].kind]++;
+        }
+    }
+    if ((dump_dir != NULL) && (turn == dump_turn)) {
+        dump_file(dump_dir, "block.bin", p_block, swview_block_size());
+        dump_file(dump_dir, "persons.bin", persons, n_persons * sizeof(persons[0]));
+        dump_file(dump_dir, "fx.bin", fx, n_fx * sizeof(fx[0]));
+        dump_file(dump_dir, "hud.bin", &hud, sizeof(hud));
+        printf("# view dump turn %u: %u persons, %u fx events\n", turn, n_persons, n_fx);
+    }
+}
+
 int main(int argc, char **argv)
 {
     uint32_t turns = 0, done = 0, fixes = 0;
     int world = 0, no_draw = 0, set_fixes = 0, core_turn = 0, status = 0;
+    int view = 0;
+    uint32_t view_dump_turn = 0;
+    const char *view_dump_dir = NULL;
     uint32_t last_status = 0;
 #if SWCORE_CORE_ONLY
     int conclude_after = -1, decided_turns = 0;
@@ -120,6 +188,17 @@ int main(int argc, char **argv)
             argv[1] = argv[0];
             argv++;
             argc--;
+        } else if (strcmp(argv[1], "--view") == 0) {
+            view = 1;
+            argv[1] = argv[0];
+            argv++;
+            argc--;
+        } else if ((strcmp(argv[1], "--view-dump") == 0) && (argc > 3)) {
+            view_dump_turn = (uint32_t)strtoul(argv[2], NULL, 0);
+            view_dump_dir = argv[3];
+            argv[3] = argv[0];
+            argv += 3;
+            argc -= 3;
         } else if (strcmp(argv[1], "--world") == 0) {
             world = 1;
             argv[1] = argv[0];
@@ -161,6 +240,8 @@ int main(int argc, char **argv)
         game_turn_test_hook = difftest_bot_turn;
         if (swcore_core_init(campaign, mission) != 0)
             return 1;
+        if (view)
+            swview_load_assets();
         core_turn = 1;
         (void)no_draw;
     }
@@ -189,6 +270,8 @@ int main(int argc, char **argv)
         last_status = info.mission_status;
         if (world && (info.gameturn % 100 == 0))
             print_world();
+        if (view)
+            view_turn(info.gameturn, view_dump_turn, view_dump_dir);
         fflush(stdout);
         done++;
         if ((turns != 0) && (done >= turns))
@@ -207,6 +290,9 @@ int main(int argc, char **argv)
 
         swcore_world_info(&info);
         printf("# end turn %u mission %u\n", info.gameturn, info.mission_status);
+        if (view)
+            print_view_fx();
+        fflush(stdout);
     }
     swcore_core_shutdown();
 #else

@@ -300,7 +300,10 @@ interface:
    to the SDL front end; the pointer target as a command.
 3. Sound and menus. Game rules read sound state: `IsSamplePlaying()` in
    `people.c`, `thing.c`, `vehicle.c` decides whether to start sounds.
-4. The VR viewer on the library instead of shared memory (plan step 2).
+4. The VR viewer on the library instead of shared memory (plan step 2,
+   branch `vr/core`): the world export is `libswarsview` (`swview.h`,
+   see `docs/swview.md`), which links with the core alone; the viewer
+   runs the core in its own process next.
 
 ## Verification
 

@@ -2,7 +2,7 @@
 
 Usage: python tools/decomp-agent/coreturn_compare.py [build] [--jobs N]
        [--turns N] [--scenarios "0,1 1,2"] [--outdir build/coreturn]
-       [--core-only]
+       [--core-only] [--view]
 Runs swcore_headless on the scenarios (by default the 52 of statetrace.sh,
 with the bot's commands and the test hooks) twice:
 with the desktop turn and the world not drawn (--no-draw), and with the
@@ -16,6 +16,10 @@ game core alone (swcore_core_init(), null front end), so the mission setup
 is the core's too. It has the test hooks of the core (libswarstest), not
 those of front-end code (difftest_hook_fe.c): by default the scenarios
 whose suffix names none of FE_HOOKS.
+
+With --view, the core run also exports the world every turn as a front end
+drawing it its own way would (swview.h, libswarsview); the export only reads
+the game, so the hashes must stay equal to the desktop's.
 """
 import argparse
 import os
@@ -62,6 +66,8 @@ def main():
     ap.add_argument('--scenarios', default=None)
     ap.add_argument('--outdir', default=os.path.join('build', 'coreturn'))
     ap.add_argument('--core-only', action='store_true')
+    ap.add_argument('--view', action='store_true',
+                    help='the core run also exports the world (swview.h) every turn')
     a = ap.parse_args()
     if a.scenarios is None:
         a.scenarios = trace_scenarios()
@@ -70,7 +76,8 @@ def main():
                                    if not set(sc.split('+')[1:]) & set(FE_HOOKS))
     base = os.path.join(REPO, a.outdir)
     runs = {'desktop': ('swcore_headless', '--no-draw'),
-            'core': ('swcore_coreonly' if a.core_only else 'swcore_headless', '--core-turn')}
+            'core': ('swcore_coreonly' if a.core_only else 'swcore_headless',
+                     '--core-turn --view' if a.view else '--core-turn')}
     for name, (exe, arg) in runs.items():
         env = dict(os.environ, SWARS_TRACE_EXE=exe,
                    SWARS_TRACE_EXE_ARGS='%s --status --fixes 1 --turns %d' % (arg, a.turns))

@@ -105,6 +105,15 @@ lack clobber lists and break under optimisation.
   without asm). New game
   sources go into `libswarscore_a_SOURCES` in `src/Makefile.am`, front-end
   ones into `libswarsfe_a_SOURCES` (and their group in `coredeps.py`).
+- `src/libswarsview.a` (`src/swview.h`, `docs/swview.md`): the world as a
+  front end that draws it its own way needs it (VR, a modern renderer, the
+  web): meshes, people, effects, HUD data, assets. It only reads the game,
+  uses nothing from the front end (`coredeps.py`: "view uses 0 front-end
+  symbols") and links with the core alone; check with
+  `coreturn_compare.py harness --jobs 2 --core-only --view` (50/0).
+  Keep it portable: no threads, shared memory or OS calls. The desktop
+  publishes it for the separate VR viewer (`vrspectate.c`,
+  `SWARS_VR_SPECTATOR=1`, layout `vrshare.h` = the `SWV_OFF_*` block).
 - The direction: one C core, front ends per target (SDL desktop, VR,
   mobile), solo play only. Keep `swcore.h` free of game headers
   (`<stdint.h>` types only) and add to it, don't change it

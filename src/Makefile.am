@@ -383,8 +383,8 @@ swcore_coreonly_SOURCES = swcore.h swcore_headless.c swfe.h swfe_null.c
 swcore_coreonly_CPPFLAGS = $(libswarscore_a_CPPFLAGS) -DSWCORE_CORE_ONLY=1
 nodist_EXTRA_swcore_coreonly_SOURCES = dummy.cxx
 # (with the test hooks of the core, which swcore_headless.c sets)
-swcore_coreonly_LDADD = libswarstest.a libswarscore.a
-swcore_coreonly_DEPENDENCIES = libswarscore.a libswarstest.a
+swcore_coreonly_LDADD = libswarstest.a libswarsview.a libswarscore.a
+swcore_coreonly_DEPENDENCIES = libswarscore.a libswarstest.a libswarsview.a
 $(swcore_coreonly_OBJECTS): $(syndwarsfx_PROJECT_LIBS)
 endif
 

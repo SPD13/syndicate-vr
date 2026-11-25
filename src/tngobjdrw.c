@@ -79,73 +79,10 @@ ubyte pers_subtype_to_shpak[] = {
 };
 
 
-//TODO make some kind of config file for 3D objects, which would include glare locations
-struct CarGlare car_glare[] = {
-  {   0,   16,  336, 0},
-  { -96,  -64,  400, 0},
-  { 128,  -64,  400, 0},
-  {   0,  -96,  304, 0},
-  {-208,  -32, -240, 0},
-  { 208,  -32, -240, 0},
-  { 128, -144,  240, 0},
-  {-112, -144,  240, 0},
-  {  96,  -32,  304, 0},
-  { -80,  -32,  304, 0},
-  {  96,  -96,  528, 0},
-  { -80,  -96,  528, 0},
-  {-128,  -16,  288, 1},
-  { 144,  -16,  288, 2},
-  { 112, -112,  -96, 2},
-  { -96, -112,  -96, 1},
-  { -80, -368,   48, 1},
-  {  96, -368,   48, 2},
-  { -32,  -64,  160, 0},
-  { 112,  -16,  304, 0},
-  { -96,  -16,  304, 0},
-  { -96, -224,  224, 1},
-  {  80, -224,  224, 2},
-  { -96, -224, -288, 2},
-  {  80, -224, -288, 1},
-  {-144,    0,  224, 1},
-  { 176,    0,  224, 2},
-  {-112,  -32,  448, 0},
-  { 144,  -32,  448, 0},
-  {-224, -176,  576, 0},
-  { 224, -176,  576, 0},
-  {   0,   16,  336, 0},
-  { -96,  -64,  400, 0},
-  { 128,  -64,  400, 0},
-  {-160, -672, -688, 0},
-  { 160, -672, -688, 0},
-  {-112,  -32,  448, 0},
-  { 144,  -32,  448, 0},
-  {   0,  -96,  304, 0},
-  { 112,  -16,  304, 0},
-  { -96,  -16,  304, 0},
-};
-
-/** For every car model StartFrame (3D object selection), gives a pair of
- * {index of the first glare in `car_glare`, amount of glare dots to draw}.
- */
+/* car_glare[] and master_glare[] are in swview.c (libswarsview): the
+ * world export reads them too. */
+extern struct CarGlare car_glare[];
 extern ubyte master_glare[][2];
-
-#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
-/* Variables of the asm data (swars_data.c), for builds without the asm;
- * difftest builds take the byte layout of the asm from that file. */
-ubyte master_glare[74][2] = {
-    {0, 1}, {1, 2}, {3, 1}, {4, 2}, {6, 2}, {0}, {8, 2}, {0x0a, 0x02},
-    {0x0c, 0x04}, {0x10, 0x02}, {0x12, 0x01}, {0x13, 0x02}, {0x15, 0x04},
-    {0x19, 0x02}, {0x1b, 0x02}, {0}, {0}, {0}, {0x1d, 0x02}, {0}, {0},
-    {0x1f, 0x01}, {0x20, 0x02}, {0x22, 0x02}, {0x24, 0x02}, {0}, {0}, {0},
-    {0x26, 0x01}, {0}, {0}, {0x27, 0x02}, {1, 4}, {0x06, 0x0a}, {0x0f, 0x14},
-    {0x14, 0x16}, {0x18, 0x19}, {0x1b, 0x1d}, {0x1f}, {0}, {3, 2}, {1, 1},
-    {1, 2}, {3}, {0}, {0}, {0}, {0}, {0}, {0x00, 0xff}, {0, 1}, {0x00, 0xff},
-    {0xfd, 0xff}, {0, 1}, {3, 4}, {3, 1}, {0x00, 0xfe}, {0xfb, 0xf9},
-    {0xf8, 0xf9}, {0xfb, 0xfe}, {0, 2}, {5, 8}, {0x0a, 0x0c}, {0x0d, 0x0d},
-    {0x0d, 0x0c}, {0x0a, 0x08}, {5, 2}, {0xfe, 0xfb}, {0xf8, 0xf6},
-    {0xf4, 0xf3}, {0xf3, 0xf3}, {0xf4, 0xf6}, {0xf8, 0xfb}, {0xfe, 0x63},
-};
-#endif /* typed asm data */
 
 /** Callback for setting height of shadow corners.
  */

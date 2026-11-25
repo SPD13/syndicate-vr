@@ -24,7 +24,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include "bffile.h"
 #include "bfmath.h"
+#include "bfmemory.h"
 #include "bfpalette.h"
 #include "bfsprite.h"
 #include "poly.h"
@@ -57,6 +59,8 @@
 #include "tngobjdrw.h"
 #include "vehicle.h"
 #include "weapon.h"
+#include "scanner.h"
+#include "swcore.h"
 #include "swlog.h"
 /******************************************************************************/
 
@@ -84,10 +88,84 @@ struct VrLists {
 };
 static struct VrLists swv_lists;
 
-extern struct CarGlare car_glare[];
+
+
+/* Look-up tables of how things look, which the desktop renderer reads too
+ * (tngobjdrw.c, engindrwlstm_wrp.c). */
+
+//TODO make some kind of config file for 3D objects, which would include glare locations
+struct CarGlare car_glare[] = {
+  {   0,   16,  336, 0},
+  { -96,  -64,  400, 0},
+  { 128,  -64,  400, 0},
+  {   0,  -96,  304, 0},
+  {-208,  -32, -240, 0},
+  { 208,  -32, -240, 0},
+  { 128, -144,  240, 0},
+  {-112, -144,  240, 0},
+  {  96,  -32,  304, 0},
+  { -80,  -32,  304, 0},
+  {  96,  -96,  528, 0},
+  { -80,  -96,  528, 0},
+  {-128,  -16,  288, 1},
+  { 144,  -16,  288, 2},
+  { 112, -112,  -96, 2},
+  { -96, -112,  -96, 1},
+  { -80, -368,   48, 1},
+  {  96, -368,   48, 2},
+  { -32,  -64,  160, 0},
+  { 112,  -16,  304, 0},
+  { -96,  -16,  304, 0},
+  { -96, -224,  224, 1},
+  {  80, -224,  224, 2},
+  { -96, -224, -288, 2},
+  {  80, -224, -288, 1},
+  {-144,    0,  224, 1},
+  { 176,    0,  224, 2},
+  {-112,  -32,  448, 0},
+  { 144,  -32,  448, 0},
+  {-224, -176,  576, 0},
+  { 224, -176,  576, 0},
+  {   0,   16,  336, 0},
+  { -96,  -64,  400, 0},
+  { 128,  -64,  400, 0},
+  {-160, -672, -688, 0},
+  { 160, -672, -688, 0},
+  {-112,  -32,  448, 0},
+  { 144,  -32,  448, 0},
+  {   0,  -96,  304, 0},
+  { 112,  -16,  304, 0},
+  { -96,  -16,  304, 0},
+};
+
+/** For every car model StartFrame (3D object selection), gives a pair of
+ * {index of the first glare in `car_glare`, amount of glare dots to draw}.
+ */
 extern ubyte master_glare[][2];
 
-extern ubyte byte_152EF0[];
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+/* Variables of the asm data (swars_data.c), for builds without the asm;
+ * difftest builds take the byte layout of the asm from that file. */
+ubyte master_glare[74][2] = {
+    {0, 1}, {1, 2}, {3, 1}, {4, 2}, {6, 2}, {0}, {8, 2}, {0x0a, 0x02},
+    {0x0c, 0x04}, {0x10, 0x02}, {0x12, 0x01}, {0x13, 0x02}, {0x15, 0x04},
+    {0x19, 0x02}, {0x1b, 0x02}, {0}, {0}, {0}, {0x1d, 0x02}, {0}, {0},
+    {0x1f, 0x01}, {0x20, 0x02}, {0x22, 0x02}, {0x24, 0x02}, {0}, {0}, {0},
+    {0x26, 0x01}, {0}, {0}, {0x27, 0x02}, {1, 4}, {0x06, 0x0a}, {0x0f, 0x14},
+    {0x14, 0x16}, {0x18, 0x19}, {0x1b, 0x1d}, {0x1f}, {0}, {3, 2}, {1, 1},
+    {1, 2}, {3}, {0}, {0}, {0}, {0}, {0}, {0x00, 0xff}, {0, 1}, {0x00, 0xff},
+    {0xfd, 0xff}, {0, 1}, {3, 4}, {3, 1}, {0x00, 0xfe}, {0xfb, 0xf9},
+    {0xf8, 0xf9}, {0xfb, 0xfe}, {0, 2}, {5, 8}, {0x0a, 0x0c}, {0x0d, 0x0d},
+    {0x0d, 0x0c}, {0x0a, 0x08}, {5, 2}, {0xfe, 0xfb}, {0xf8, 0xf6},
+    {0xf4, 0xf3}, {0xf3, 0xf3}, {0xf4, 0xf6}, {0xf8, 0xfb}, {0xfe, 0x63},
+};
+#endif /* typed asm data */
+
+/** Brightness added to each person type's sprites. */
+ubyte byte_152EF0[] = {
+   0, 10,  5, 10,  7,  7,  8, 10,
+  10, 10,  5,  7,  5,  7,  7,  0,
+};
 
 // animation tables are copied as they are
 _Static_assert(sizeof(struct Frame) == sizeof(struct SwvFrame), "SwvFrame layout");
@@ -98,6 +176,32 @@ _Static_assert(sizeof(struct Element) == sizeof(struct SwvElement), "SwvElement 
 #define ENGINE_Y_TO_MAP(y) ((float)(y))
 
 
+
+/******************************************************************************/
+/* Assets of the classic look: the game's own when its renderer loaded them,
+ * else the library's copies (swview_load_assets()) */
+
+static ubyte *swv_own_tmap[SWV_TMAP_PAGES];
+static struct TbSprite *swv_own_sprites;
+static struct TbSprite *swv_own_sprites_end;
+static ubyte *swv_own_sprites_data;
+
+static const ubyte *swv_tmap_page(int page)
+{
+    if ((page < VEC_TMAP_LIMIT) && (vec_tmap[page] != NULL))
+        return vec_tmap[page];
+    return swv_own_tmap[page];
+}
+
+static const struct TbSprite *swv_sprites(const struct TbSprite **p_end)
+{
+    if ((m_sprites != NULL) && (m_sprites_end > m_sprites)) {
+        *p_end = m_sprites_end;
+        return m_sprites;
+    }
+    *p_end = swv_own_sprites_end;
+    return swv_own_sprites;
+}
 
 /******************************************************************************/
 /* Triangle list building */
@@ -289,6 +393,22 @@ static void swv_mesh_object(struct VrMesh *p_mesh, ushort obj, const struct VrPo
     }
 }
 
+/** Colour of flat terrain: the one the desktop's setup picks from the
+ * palette (game_setup_stuff()), also when no front end did. */
+static ubyte swv_terrain_grey(void)
+{
+    static ubyte grey = 0;
+    static TbBool found = false;
+
+    if (colour_grey2 != 0)
+        return colour_grey2;
+    if (!found && (display_palette != NULL)) {
+        grey = LbPaletteFindColour(display_palette, 32, 32, 32);
+        found = true;
+    }
+    return grey;
+}
+
 static void swv_mesh_terrain(struct VrMesh *p_mesh)
 {
     int tile_x, tile_z;
@@ -348,7 +468,7 @@ static void swv_mesh_terrain(struct VrMesh *p_mesh)
                 swv_mesh_vert(p_mesh,
                   (float)TILE_TO_MAPCOORD(tile_x + crn_dx[n], 0), y[n],
                   (float)TILE_TO_MAPCOORD(tile_z + crn_dz[n], 0),
-                  uv[n][0], uv[n][1], page, colour_grey2, shade, vflags);
+                  uv[n][0], uv[n][1], page, swv_terrain_grey(), shade, vflags);
             }
         }
     }
@@ -974,8 +1094,9 @@ static void swv_export_tmap(struct SwvHeader *p_hdr)
     for (page = 0; page < SWV_TMAP_PAGES; page++)
     {
         ubyte *p_dst = swv_block + SWV_OFF_TMAP + page * SWV_TMAP_DIM * SWV_TMAP_DIM;
-        if ((page < VEC_TMAP_LIMIT) && (vec_tmap[page] != NULL))
-            memcpy(p_dst, vec_tmap[page], SWV_TMAP_DIM * SWV_TMAP_DIM);
+        const ubyte *p_src = swv_tmap_page(page);
+        if (p_src != NULL)
+            memcpy(p_dst, p_src, SWV_TMAP_DIM * SWV_TMAP_DIM);
         else
             memset(p_dst, 0, SWV_TMAP_DIM * SWV_TMAP_DIM);
     }
@@ -1023,6 +1144,7 @@ static void swv_export_sprites(struct SwvHeader *p_hdr)
 {
     struct SwvSpriteRect *p_rects;
     ubyte *p_pages;
+    const struct TbSprite *p_sprites, *p_sprites_end;
     uint n_sprites, i, n;
     int page, cx, cy, shelf_h;
 
@@ -1032,8 +1154,9 @@ static void swv_export_sprites(struct SwvHeader *p_hdr)
     memset(p_rects, 0, SWV_SPRITES_MAX * sizeof(*p_rects));
 
     n_sprites = 0;
-    if ((m_sprites != NULL) && (m_sprites_end > m_sprites))
-        n_sprites = m_sprites_end - m_sprites;
+    p_sprites = swv_sprites(&p_sprites_end);
+    if ((p_sprites != NULL) && (p_sprites_end > p_sprites))
+        n_sprites = p_sprites_end - p_sprites;
     if (n_sprites > SWV_SPRITES_MAX)
         n_sprites = SWV_SPRITES_MAX;
 
@@ -1041,7 +1164,7 @@ static void swv_export_sprites(struct SwvHeader *p_hdr)
     cx = cy = shelf_h = 0;
     for (i = 1; i < n_sprites; i++)
     {
-        const struct TbSprite *p_spr = &m_sprites[i];
+        const struct TbSprite *p_spr = &p_sprites[i];
         int w = p_spr->SWidth, h = p_spr->SHeight;
 
         if ((w == 0) || (h == 0) || (p_spr->Data == NULL))
@@ -1567,7 +1690,10 @@ static void swv_export_hud(struct SwvHeader *p_hdr)
     p_locplayer = &players[local_player_no];
     p_hdr->selected = p_locplayer->DirectControl[0];
     p_hdr->view_scale = overall_scale;
-    p_hdr->view_size = ((u32)vec_window_width << 16) | ((u32)vec_window_height & 0xFFFF);
+    if (vec_window_width != 0)
+        p_hdr->view_size = ((u32)vec_window_width << 16) | ((u32)vec_window_height & 0xFFFF);
+    else // the core alone: its view area is that of a 640x480 screen
+        p_hdr->view_size = (640u << 16) | 480u;
     for (i = 0; i < SWV_AGENTS_MAX; i++)
     {
         struct SwvAgent *p_va = &p_hud->agents[i];
@@ -1614,6 +1740,8 @@ static void swv_block_init(struct SwvHeader *p_hdr)
     p_hdr->off_tmap = SWV_OFF_TMAP;
     p_hdr->off_palette = SWV_OFF_PALETTE;
 }
+
+static void swv_fx_scan(void);
 
 void swview_update(void *p_block)
 {
@@ -1667,6 +1795,7 @@ void swview_update(void *p_block)
         p_hdr->n_shadows = swv_lists.n_shadows;
         swv_export_hud(p_hdr);
         p_hdr->n_dyn = dyn.count;
+        swv_fx_scan();
 
         p_hdr->cam_x = engn_xc;
         p_hdr->cam_y = ENGINE_Y_TO_MAP(8 * engn_yc);
@@ -1687,6 +1816,364 @@ void swview_reset(void)
     swv_static_rev = 0;
     swv_tmap_rev = 0;
     swv_sprite_rev = 0;
+}
+
+/******************************************************************************/
+/* Assets */
+
+int32_t swview_load_assets(void)
+{
+    char locstr[64];
+    int page;
+    s32 len;
+    int32_t missing;
+
+    swview_free_assets();
+    missing = 0;
+    for (page = 0; page < SWV_TMAP_PAGES; page++)
+    {
+        sprintf(locstr, "data/tex%02d.dat", page);
+        len = LbFileLength(locstr);
+        if (len <= 0)
+            continue;
+        swv_own_tmap[page] = LbMemoryAlloc(SWV_TMAP_DIM * SWV_TMAP_DIM);
+        if (swv_own_tmap[page] == NULL)
+            return -1;
+        memset(swv_own_tmap[page], 0, SWV_TMAP_DIM * SWV_TMAP_DIM);
+        if (len > SWV_TMAP_DIM * SWV_TMAP_DIM)
+            len = SWV_TMAP_DIM * SWV_TMAP_DIM;
+        if (LbFileLoadAt(locstr, swv_own_tmap[page]) == -1)
+            missing++;
+    }
+
+    // the multicolour sprites of the mission (people, effects, items)
+    sprintf(locstr, "data/mspr-%d.dat", (int)ingame.TrenchcoatPreference);
+    len = LbFileLength(locstr);
+    if (len > 0) {
+        swv_own_sprites_data = LbMemoryAlloc(len + 512);
+        if ((swv_own_sprites_data == NULL) || (LbFileLoadAt(locstr, swv_own_sprites_data) == -1))
+            missing++;
+    } else {
+        missing++;
+    }
+    sprintf(locstr, "data/mspr-%d.tab", (int)ingame.TrenchcoatPreference);
+    len = LbFileLength(locstr);
+    if ((len > 0) && (swv_own_sprites_data != NULL)) {
+        swv_own_sprites = LbMemoryAlloc(LB_SPRITE_TAB_MEM_SIZE(len));
+        if ((swv_own_sprites != NULL) && (LbFileLoadAt(locstr, swv_own_sprites) != -1)) {
+            len = LbSpriteTabExpand(swv_own_sprites, len);
+            swv_own_sprites_end = (struct TbSprite *)((ubyte *)swv_own_sprites + len);
+            LbSpriteSetup(swv_own_sprites, swv_own_sprites_end, swv_own_sprites_data);
+        } else {
+            missing++;
+        }
+    } else {
+        missing++;
+    }
+    if ((swv_own_sprites_end == NULL) && (swv_own_sprites != NULL)) {
+        LbMemoryFree(swv_own_sprites);
+        swv_own_sprites = NULL;
+    }
+    swview_reset();
+    if (missing != 0)
+        LOGWARN("%d asset files could not be loaded", (int)missing);
+    return missing;
+}
+
+void swview_free_assets(void)
+{
+    int page;
+
+    for (page = 0; page < SWV_TMAP_PAGES; page++) {
+        if (swv_own_tmap[page] != NULL)
+            LbMemoryFree(swv_own_tmap[page]);
+        swv_own_tmap[page] = NULL;
+    }
+    if (swv_own_sprites != NULL)
+        LbMemoryFree(swv_own_sprites);
+    if (swv_own_sprites_data != NULL)
+        LbMemoryFree(swv_own_sprites_data);
+    swv_own_sprites = swv_own_sprites_end = NULL;
+    swv_own_sprites_data = NULL;
+}
+
+/******************************************************************************/
+/* What a renderer with its own models needs: the state of every person */
+
+/** Steps from the first frame of the person's current animation (in its
+ * own direction) to its current frame. */
+static uint16_t swv_frame_in_anim(const struct Thing *p_person)
+{
+    uint idx;
+    ushort frm;
+    uint16_t n;
+
+    if ((nstart_ani == NULL) || (frame == NULL))
+        return 0;
+    idx = p_person->StartFrame + 1 + (p_person->U.UPerson.Angle & 7);
+    if (idx >= (uint)(nstart_ani_end - nstart_ani))
+        return 0;
+    frm = nstart_ani[idx];
+    for (n = 0; n < 256; n++)
+    {
+        if (frm == (ushort)p_person->Frame)
+            return n;
+        if ((frm == 0) || (frm >= (uint)(frame_end - frame)))
+            break;
+        frm = frame[frm].Next;
+        if (frm == nstart_ani[idx])
+            break;
+    }
+    return 0;
+}
+
+uint32_t swview_persons_render(struct SwvPersonRender *p_list, uint32_t max)
+{
+    PlayerInfo *p_locplayer;
+    ThingIdx thing;
+    uint32_t n;
+
+    n = 0;
+    if (things == NULL)
+        return 0;
+    p_locplayer = &players[local_player_no];
+    for (thing = 1; (thing < THINGS_LIMIT) && (n < max); thing++)
+    {
+        struct Thing *p_thing;
+        struct SwvPersonRender *p_pr;
+        short cor_x, cor_y, cor_z;
+
+        p_thing = &things[thing];
+        if (p_thing->Type != TT_PERSON)
+            continue;
+        p_pr = &p_list[n++];
+        memset(p_pr, 0, sizeof(*p_pr));
+        get_thing_position_mapcoords(&cor_x, &cor_y, &cor_z, thing);
+        p_pr->x = cor_x;
+        p_pr->y = ENGINE_Y_TO_MAP(cor_y);
+        p_pr->z = cor_z;
+        p_pr->thing = thing;
+        p_pr->subtype = p_thing->SubType;
+        p_pr->anim_mode = p_thing->U.UPerson.AnimMode;
+        p_pr->weapon = p_thing->U.UPerson.CurrentWeapon;
+        p_pr->angle = (p_thing->U.UPerson.Angle & 7) * 256;
+        p_pr->shield_glow = (uint8_t)person_shield_glow_brightness(p_thing);
+        p_pr->frame_in_anim = swv_frame_in_anim(p_thing);
+        p_pr->health = p_thing->Health;
+        p_pr->max_health = p_thing->U.UPerson.MaxHealth;
+        if ((p_thing->Flag & TngF_Unkn00200000) != 0)
+            p_pr->flags |= SwvPF_SHIELD;
+        if ((p_thing->Flag & TngF_Persuaded) != 0) {
+            p_pr->flags |= SwvPF_PERSUADED;
+            if ((p_thing->Owner > 0) && (p_thing->Owner < THINGS_LIMIT))
+                p_pr->persuader = p_thing->Owner;
+        }
+        if ((p_pr->anim_mode == 10) || (p_pr->anim_mode == 17))
+            p_pr->flags |= SwvPF_BURNING;
+        if ((p_thing->Flag2 & TgF2_InsideBuilding) != 0)
+            p_pr->flags |= SwvPF_IN_BUILDING;
+        if ((p_thing->Flag & TngF_InVehicle) != 0)
+            p_pr->flags |= SwvPF_IN_VEHICLE;
+        if ((p_thing->State == PerSt_DEAD) || ((p_thing->Flag & TngF_Destroyed) != 0))
+            p_pr->flags |= SwvPF_DEAD;
+        if (swv_is_player_agent(p_thing))
+            p_pr->flags |= SwvPF_PLAYER_AGENT;
+        if (thing == p_locplayer->DirectControl[0])
+            p_pr->flags |= SwvPF_SELECTED;
+    }
+    return n;
+}
+
+/******************************************************************************/
+/* Effects which started or ended in the last turn */
+
+#define SWV_FX_TRACK_MAX 1024
+
+struct SwvFxTrack {
+    uint16_t uid;
+    uint8_t type;
+    uint8_t pad;
+};
+
+static struct SwvFxTrack swv_fx_prev[SWV_FX_TRACK_MAX];
+static uint swv_fx_prev_count;
+static struct SwvFxEvent swv_fx_events[SWV_FX_EVENTS_MAX];
+static uint swv_fx_events_count;
+
+static TbBool swv_fx_tracked(ubyte type)
+{
+    return (type == SmTT_BANG) || (type == SmTT_FIRE) || (type == SmTT_SCALE_EFFECT)
+      || (type == SmTT_SMOKE_GENERATOR);
+}
+
+static void swv_fx_event(ubyte kind, const struct SimpleThing *p_sthing, uint8_t size, uint16_t anim)
+{
+    struct SwvFxEvent *p_ev;
+
+    if (swv_fx_events_count >= SWV_FX_EVENTS_MAX)
+        return;
+    p_ev = &swv_fx_events[swv_fx_events_count++];
+    p_ev->kind = kind;
+    p_ev->size = size;
+    p_ev->anim = anim;
+    p_ev->id = p_sthing->UniqueID;
+    p_ev->x = PRCCOORD_TO_MAPCOORD(p_sthing->X);
+    p_ev->y = ENGINE_Y_TO_MAP(PRCCOORD_TO_YCOORD(p_sthing->Y));
+    p_ev->z = PRCCOORD_TO_MAPCOORD(p_sthing->Z);
+}
+
+static TbBool swv_fx_was(const struct SwvFxTrack *p_list, uint count, uint16_t uid, ubyte type)
+{
+    uint i;
+
+    for (i = 0; i < count; i++) {
+        if ((p_list[i].uid == uid) && (p_list[i].type == type))
+            return true;
+    }
+    return false;
+}
+
+/** Bang size: the smoke puffs and shards it made, 1 small .. 3 large. */
+static uint8_t swv_bang_size(const struct SimpleThing *p_sthing)
+{
+    int phw, n, guard;
+
+    n = 0;
+    guard = 0;
+    for (phw = p_sthing->U.UBang.phwoar; (phw > 0) && (phw < PHWOAR_COUNT) && (guard < PHWOAR_COUNT);
+      phw = phwoar[phw].child, guard++)
+        n++;
+    return (n > 24) ? 3 : (n > 8) ? 2 : 1;
+}
+
+static void swv_fx_scan(void)
+{
+    static struct SwvFxTrack cur[SWV_FX_TRACK_MAX];
+    static struct SimpleThing prev_sthings[SWV_FX_TRACK_MAX];
+    uint cur_count, i;
+    ThingIdx thing;
+    int remain;
+
+    swv_fx_events_count = 0;
+    cur_count = 0;
+    remain = sthings_used;
+    for (thing = sthings_used_head; thing < 0; thing = sthings[thing].LinkChild)
+    {
+        struct SimpleThing *p_sthing;
+
+        if (--remain < 0)
+            break;
+        p_sthing = &sthings[thing];
+        if (!swv_fx_tracked(p_sthing->Type))
+            continue;
+        if (cur_count < SWV_FX_TRACK_MAX) {
+            cur[cur_count].uid = p_sthing->UniqueID;
+            cur[cur_count].type = p_sthing->Type;
+            cur[cur_count].pad = 0;
+            prev_sthings[cur_count] = *p_sthing;
+            cur_count++;
+        }
+        if (swv_fx_was(swv_fx_prev, swv_fx_prev_count, p_sthing->UniqueID, p_sthing->Type))
+            continue;
+        switch (p_sthing->Type)
+        {
+        case SmTT_BANG:
+            swv_fx_event(SwvFX_BANG, p_sthing, swv_bang_size(p_sthing), 0);
+            break;
+        case SmTT_FIRE:
+            swv_fx_event(SwvFX_FIRE_START, p_sthing, 0, 0);
+            break;
+        case SmTT_SCALE_EFFECT:
+            swv_fx_event(SwvFX_SCALE_EFFECT, p_sthing, 0, p_sthing->StartFrame);
+            break;
+        case SmTT_SMOKE_GENERATOR:
+            swv_fx_event(SwvFX_SMOKE, p_sthing, 0, 0);
+            break;
+        default:
+            break;
+        }
+    }
+    // fires which went out: in the last list, not in this one
+    {
+        static struct SimpleThing last_sthings[SWV_FX_TRACK_MAX];
+        static uint last_count;
+        for (i = 0; i < swv_fx_prev_count && i < last_count; i++)
+        {
+            if (swv_fx_prev[i].type != SmTT_FIRE)
+                continue;
+            if (!swv_fx_was(cur, cur_count, swv_fx_prev[i].uid, SmTT_FIRE))
+                swv_fx_event(SwvFX_FIRE_END, &last_sthings[i], 0, 0);
+        }
+        memcpy(last_sthings, prev_sthings, cur_count * sizeof(struct SimpleThing));
+        last_count = cur_count;
+    }
+    memcpy(swv_fx_prev, cur, cur_count * sizeof(struct SwvFxTrack));
+    swv_fx_prev_count = cur_count;
+}
+
+uint32_t swview_fx_events(struct SwvFxEvent *p_list, uint32_t max)
+{
+    uint32_t n;
+
+    n = (swv_fx_events_count < max) ? swv_fx_events_count : max;
+    memcpy(p_list, swv_fx_events, n * sizeof(struct SwvFxEvent));
+    return n;
+}
+
+/******************************************************************************/
+/* The panels' data, for a front end's own layout */
+
+extern ushort signal_count;
+
+void swview_hud_info(struct SwvHudInfo *p_info)
+{
+    struct SwcWorldInfo winfo;
+    PlayerInfo *p_locplayer;
+    int i;
+
+    memset(p_info, 0, sizeof(*p_info));
+    swcore_world_info(&winfo);
+    p_info->mission_status = winfo.mission_status;
+    p_info->in_mission = winfo.in_mission;
+    if (things == NULL)
+        return;
+    p_locplayer = &players[local_player_no];
+    p_info->selected = p_locplayer->DirectControl[0];
+    for (i = 0; (i < SWV_AGENTS_MAX) && (i < AGENTS_SQUAD_MAX_COUNT); i++)
+    {
+        struct SwvHudAgent *p_ha = &p_info->agents[i];
+        struct Thing *p_agent = p_locplayer->MyAgent[i];
+
+        if ((p_agent == NULL) || (p_agent->Type != TT_PERSON))
+            continue;
+        p_ha->thing = p_agent->ThingOffset;
+        p_ha->current_weapon = p_agent->U.UPerson.CurrentWeapon;
+        p_ha->weapons = p_agent->U.UPerson.WeaponsCarried;
+        p_ha->health = p_agent->Health;
+        p_ha->max_health = p_agent->U.UPerson.MaxHealth;
+        p_ha->energy = p_agent->U.UPerson.Energy;
+        p_ha->max_energy = p_agent->U.UPerson.MaxEnergy;
+        p_ha->shield = p_agent->U.UPerson.ShieldEnergy;
+        p_ha->max_shield = p_agent->U.UPerson.MaxShieldEnergy;
+        p_ha->weapon_timer = p_agent->U.UPerson.WeaponTimer;
+        p_ha->mods = p_agent->U.UPerson.UMod.Mods;
+        if (p_agent->PTarget != NULL)
+            p_ha->target = p_agent->PTarget->ThingOffset;
+        if (p_agent->ThingOffset == p_locplayer->DirectControl[0])
+            p_ha->flags |= SwvTF_SELECTED;
+        if (((p_agent->Flag & TngF_Destroyed) != 0) || (p_agent->State == PerSt_DEAD))
+            p_ha->flags |= SwvTF_DEAD;
+    }
+    // where the scanner points: the places of the current objective
+    for (i = 0; (i < signal_count) && (i < SCANNER_BIG_BLIP_COUNT) && (i < SWV_SIGNALS_MAX); i++)
+    {
+        p_info->signals[i].x = PRCCOORD_TO_MAPCOORD(ingame.Scanner.BigBlip[i].X);
+        p_info->signals[i].z = PRCCOORD_TO_MAPCOORD(ingame.Scanner.BigBlip[i].Z);
+        p_info->signals[i].colour = ingame.Scanner.BigBlip[i].Colour;
+    }
+    p_info->n_signals = i;
+    if (scrollinfo_text != NULL)
+        strncpy(p_info->objective, scrollinfo_text, sizeof(p_info->objective) - 1);
 }
 
 /******************************************************************************/
