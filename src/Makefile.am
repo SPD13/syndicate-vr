@@ -60,6 +60,10 @@ libswarscore_a_SOURCES = \
 	game_camera.h \
 	game_coreinit.c \
 	game_coreinit.h \
+	femail.c \
+	femail.h \
+	game_misend.c \
+	game_misend.h \
 	game_turn.c \
 	game_turn.h \
 	game_world.c \
@@ -188,8 +192,6 @@ libswarsfe_a_SOURCES = \
 	feshared.h \
 	felogin.c \
 	felogin.h \
-	femail.c \
-	femail.h \
 	femain.c \
 	femain.h \
 	fenet.c \

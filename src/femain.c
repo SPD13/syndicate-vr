@@ -73,7 +73,6 @@
 
 struct ScreenBoxBase global_top_bar_box = {4, 4, 632, 15};
 struct ScreenBoxBase global_apps_bar_box = {3, 432, 634, 48};
-struct SynTime global_date;
 
 struct ScreenButton sysmnu_buttons[SYSMNU_BUTTONS_COUNT] = {0};
 

@@ -22,7 +22,10 @@
  *     Built with SWCORE_CORE_ONLY (swcore_coreonly), it runs the game core
  *     alone: swcore_core_init() with the mission of "-m campaign,mission",
  *     and always the core turn; of the game's options it reads only that
- *     and "--original-bugs"/"--fix-bugs".
+ *     and "--original-bugs"/"--fix-bugs"; "--conclude N" confirms the end
+ *     of a decided mission N turns after the decision (as Enter on the end
+ *     message), and the last line "# end turn N mission S" gives the
+ *     mission's state at the end (SwcMissionStatus, 0 once left).
  *     Use SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy for no window.
  * @author   SyndicateVR decomp agent
  * @date     23 Nov 2026 - 23 Nov 2026
@@ -75,6 +78,9 @@ int main(int argc, char **argv)
     uint32_t turns = 0, done = 0, fixes = 0;
     int world = 0, no_draw = 0, set_fixes = 0, core_turn = 0, status = 0;
     uint32_t last_status = 0;
+#if SWCORE_CORE_ONLY
+    int conclude_after = -1, decided_turns = 0;
+#endif
 
     while (argc > 1)
     {
@@ -131,6 +137,9 @@ int main(int argc, char **argv)
             } else if (strcmp(argv[i], "--fix-bugs") == 0) {
                 if (!set_fixes)
                     swcore_set_fixes(SWCORE_FIXES_DEFAULT);
+            } else if ((strcmp(argv[i], "--conclude") == 0) && (i + 1 < argc)) {
+                conclude_after = atoi(argv[i + 1]);
+                i++;
             }
         }
         if (!have_mission) {
@@ -173,8 +182,21 @@ int main(int argc, char **argv)
         done++;
         if ((turns != 0) && (done >= turns))
             break;
+#if SWCORE_CORE_ONLY
+        // the player confirms the end message some turns after the decision
+        if (info.mission_status != SwcMS_WON && info.mission_status != SwcMS_LOST)
+            decided_turns = 0;
+        else if ((conclude_after >= 0) && (decided_turns++ == conclude_after))
+            swcore_mission_conclude();
+#endif
     }
 #if SWCORE_CORE_ONLY
+    {
+        struct SwcWorldInfo info;
+
+        swcore_world_info(&info);
+        printf("# end turn %u mission %u\n", info.gameturn, info.mission_status);
+    }
     swcore_core_shutdown();
 #else
     swcore_shutdown();

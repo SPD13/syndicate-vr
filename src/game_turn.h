@@ -40,6 +40,11 @@ void game_turn_view_end(void);
  */
 extern void (*game_turn_test_hook)(void);
 
+/** Set by the front end when the player confirmed the conclusion of a
+ * decided mission; the next turn ends it (or starts its fade-out).
+ */
+extern TbBool game_core_mission_end_request;
+
 /** With $SWARS_STATETRACE set (test builds), writes the state hash and the
  * random seed of the turn to that file; $SWARS_STATETRACE_DUMP=N also dumps
  * the things after turn N (statetrace.sh, trace_compare.py).

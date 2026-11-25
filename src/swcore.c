@@ -117,4 +117,9 @@ uint32_t swcore_state_hash(void)
     return game_state_hash();
 }
 
+void swcore_mission_conclude(void)
+{
+    game_core_mission_end_request = true;
+}
+
 /******************************************************************************/

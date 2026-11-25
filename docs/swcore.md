@@ -30,13 +30,13 @@ out of scope for now: the library is for solo play.
   `--original-bugs`/`--fix-bugs`. It still links `libswrender` and
   `libbullfrog` (SDL), for data and helpers the core takes from them.
 
-## Interface (SWCORE_API_VERSION 3)
+## Interface (SWCORE_API_VERSION 4)
 
 | Function | Does |
 | --- | --- |
 | `swcore_init(argc, argv)` | Sets the game up from the `syndwarsfx` options (e.g. `-m 1,2` starts a mission) |
 | `swcore_step()` | One game turn; 1 while the game runs, 0 once it asked to exit |
-| `swcore_core_step()` | One turn of the game core only, in a mission: no input devices, screens or drawing; 0 outside a mission or once the game asked to exit (API 2) |
+| `swcore_core_step()` | One turn of the game core only, in a mission: no input devices, screens or drawing; 0 once the mission is over, outside a mission or once the game asked to exit (API 2; plays the mission's end since API 4) |
 | `swcore_shutdown()` | Frees what the game set up; it cannot be set up again |
 | `swcore_core_init(campaign, mission)` | Instead of `swcore_init()`: sets up the game core alone (data in the current directory, default settings) and starts the mission (API 3) |
 | `swcore_core_shutdown()` | Frees what `swcore_core_init()` set up (API 3) |
@@ -46,6 +46,7 @@ out of scope for now: the library is for solo play.
 | `swcore_things()` | People, vehicles, buildings and effects: position, type, health, group, flags |
 | `swcore_agents()`, `swcore_weapon_name()` | The player's agents and their weapons |
 | `swcore_command()` | Queues a player command (select agent, go to, shoot, change weapon, enter vehicle) |
+| `swcore_mission_conclude()` | The player confirmed the end of a decided mission (the desktop's Enter or Esc on the end message): the next core turn ends it (API 4) |
 
 Commands are executed as the packets the mouse would build, one per turn,
 in the turns the player gives no input of their own (`load_packet()` calls
@@ -203,9 +204,6 @@ data folder. Found on the way:
 
 What the core still needs from the desktop front end and the libraries:
 
-- The mission end (the end screen, the fade, leaving the mission) is in
-  the shell's `load_packet()`; the core turn plays a mission until it is
-  decided.
 - The view area (`render_area_a/b`, `overall_scale`) follows the screen
   size; the core alone fixes it at the desktop's 640x480. A front end with
   another view still plays the game of that view.
@@ -251,13 +249,25 @@ checks it on the trace scenarios. What it takes from the desktop turn:
   trace (`game_turn_statetrace()`, `SWARS_STATETRACE`). `swcore_coreonly`
   has no test hooks (they are in `libswarsfe`), so it plays the scenarios
   without a suffix only.
+- The mission's end (`game_misend.c`). Once the mission is decided
+  (`mission_status` of `swcore_world_info()`), it goes on until the
+  mission's fade-out (`WaitToFade`) has run or the player confirms the end
+  (`swcore_mission_conclude()`, the desktop's Enter on the end message);
+  then the rules of `mission_over()` run: the agents' weapons are hidden,
+  the world stops (`DpM_PURPLEMNU`: no more things or packets processed),
+  rewards and the campaign's outcome (cash, persuaded people, mission
+  state, the mails and missions it opens, the next part of a compound
+  mission), game over or not. The desktop's `mission_over()` shows the
+  videos and stops the sound between these steps
+  (`game_core_mission_over_start/outcome/end()`), the core alone calls
+  `game_core_mission_over()`. The mail queue (`femail.c`) is campaign
+  state and part of the core.
 
 ## Still to do
 
 The core library (`libswarscore.a`) no longer contains the SDL display,
 input, sound, the menus or the renderer's game side; it still links
-`libswrender` (world data) and `libbullfrog` (SDL platform layer), and the
-core turn does not play a mission's end. The next steps, behind the
+`libswrender` (world data) and `libbullfrog` (SDL platform layer). The next steps, behind the
 interface:
 
 1. Rendering: move the software renderer to the SDL front end. The line
@@ -281,16 +291,18 @@ SWARS_TRACE_EXE=swcore_headless python tools/decomp-agent/statetrace_win_par.py 
 SWARS_TRACE_EXE=swcore_headless SWARS_TRACE_EXE_ARGS=--no-draw python tools/decomp-agent/statetrace_win_par.py harness build/tr_lib_nd --jobs 6
 ```
 
-The core turn must play the same game as the desktop turn until the
-mission is decided:
+The core turn must play the same game as the desktop turn, the mission's
+end included:
 
 ```
 python tools/decomp-agent/coreturn_compare.py harness --jobs 2
 ```
 
 runs `swcore_headless` with `--no-draw` and with `--core-turn` (both with
-the default fixes) and compares their hashes turn by turn, up to the turn
-the desktop run decides the mission (`--status`). With `--core-only` the
+the default fixes) and compares their hashes turn by turn, and that both
+end at the same turn (the desktop's first step is before the mission, so
+at the cap of `--turns` it has one mission turn less). `swcore_coreonly
+--conclude N` confirms the end N turns after the decision. With `--core-only` the
 core turn runs in `swcore_coreonly` instead, so the core's setup is
 compared too (the scenarios without test hooks):
 

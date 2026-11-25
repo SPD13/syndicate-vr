@@ -20,7 +20,7 @@ GROUPS = {
         drawtext_wrp mydraw purpldrw purpldrwlst scandraw specblit guigraph guitext
         guiboxes hud_draw hud_panel hud_panecfg hud_target display thing_ovmous
         embedanim game_sprts'''.split(),
-    'menus': '''feappbar febrief fecntrls fecryo fedebrief feequip felogin femail
+    'menus': '''feappbar febrief fecntrls fecryo fedebrief feequip felogin
         femain fenet feoptions fepanet fepause feresearch feshared festorage
         feworld packetfe devcreds game_options game_save'''.split(),
     'shell': 'game swapp swmain'.split(),

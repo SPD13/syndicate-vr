@@ -127,6 +127,12 @@ lack clobber lists and break under optimisation.
   `swcore_core_init()` in a row. `python tools/decomp-agent/coreturn_compare.py
   harness --jobs 2 --core-only` checks that `swcore_coreonly` plays as the
   desktop (scenarios without test hooks).
+- The mission's end is core too (`src/game_misend.c`: fade-out, the rules
+  of `mission_over()`, the mail queue `femail.c`); the desktop's
+  `mission_over()` adds videos and sound between its steps.
+- After moving a source between the two libraries, delete
+  `build/*/src/libswars*.a`: `ar` keeps the old member and the link
+  reports multiple definitions.
 - `game_core_turn()` (`src/game_turn.c`, `swcore_core_step()`) is a mission
   turn without input devices, screens or drawing; it must play the same
   game as the desktop turn: `python tools/decomp-agent/coreturn_compare.py

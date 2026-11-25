@@ -23,6 +23,7 @@
 
 #include "febrief.h"
 #include "femail.h"
+#include "femain.h"
 #include "game.h"
 #include "game_options.h"
 #include "guitext.h"
@@ -63,6 +64,9 @@ char login_name[16] = "";
 
 /* from femail.c */
 struct EmailItem brief_store[BRIEF_STORE_COUNT];
+
+/* from femain.c */
+struct SynTime global_date;
 
 /* from febrief.c */
 short next_brief = 0;

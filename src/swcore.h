@@ -31,7 +31,7 @@ extern "C" {
 /******************************************************************************/
 
 /** Version of this interface; grows when functions are added. */
-#define SWCORE_API_VERSION 3
+#define SWCORE_API_VERSION 4
 
 /** Sets the game up as the executable would: reads the command line options
  * (the same as syndwarsfx, e.g. "-m 1,2" to start a mission), the config
@@ -49,10 +49,12 @@ int swcore_step(void);
 /** Runs one game turn of a mission with the game core only: the world,
  * the camera and the commands of swcore_command(), without reading input,
  * drawing, sound or the wait for the turn's time. Plays as swcore_step()
- * with the world not drawn and no input (with the default fixes) until the
- * mission is decided; the mission's end (end screen, fade, leaving the
- * mission) is not played yet. Returns 1 while a mission is played, 0 once
- * the game asked to exit or no mission is played. Since version 2.
+ * with the world not drawn and no input (with the default fixes). Once the
+ * mission is decided (mission_status of swcore_world_info()), it ends after its fade-out
+ * or when the front end calls swcore_mission_conclude(), with the
+ * campaign's outcome (rewards, missions opened). Returns 1 while a mission
+ * is played, 0 once it is over, the game asked to exit or no mission is
+ * played. Since version 2; the mission's end since version 4.
  */
 int swcore_core_step(void);
 
@@ -116,6 +118,12 @@ uint32_t swcore_game_turn(void);
  * same game; the state traces compare builds on it.
  */
 uint32_t swcore_state_hash(void);
+
+/** The player confirmed the conclusion of a decided mission (the desktop's
+ * Enter or Esc on the end message): the next swcore_core_step() ends it.
+ * Does nothing while the mission is not decided. Since version 4.
+ */
+void swcore_mission_conclude(void);
 
 /******************************************************************************/
 /* Reading the world. Positions are the game's fine coordinates: X and Z

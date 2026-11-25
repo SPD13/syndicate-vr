@@ -38,6 +38,7 @@
 #include "game.h"
 #include "game_options.h"
 #include "game_camera.h"
+#include "game_misend.h"
 #include "game_speed.h"
 #include "game_world.h"
 #include "lvobjctv.h"
@@ -206,6 +207,7 @@ void game_turn_statetrace(void)
 #endif
 
 void (*game_turn_test_hook)(void) = NULL;
+TbBool game_core_mission_end_request = false;
 
 TbBool game_core_turn(void)
 {
@@ -246,21 +248,36 @@ TbBool game_core_turn(void)
         if (!did_pckt)
             did_pckt = swcore_input_packet(p_pckt);
         ingame.MissionStatus = test_missions(0);
+        if ((ingame.MissionStatus != ObvStatu_UNDECIDED) && !in_network_game)
+        {
+            // the player confirmed the conclusion (input_mission_concluded())
+            if (game_core_mission_end_request)
+                ingame.MissionEndFade = 1;
+            game_core_mission_end_fade_start();
+        }
+        game_core_mission_end_request = false;
+        if (game_core_mission_end_fade_turn())
+            game_core_mission_over();
         if (!did_pckt || (players[local_player_no].DoubleMode != 0))
             game_turn_player_agents_idle();
     }
     if (game_turn_test_hook != NULL)
         game_turn_test_hook();
 
-    process_things();
-    process_packets();
+    // the world stops once the mission is over (mission_over())
+    if ((ingame.DisplayMode == DpM_ENGINEPLY)
+      || (ingame.DisplayMode == DpM_UNKN_1)
+      || (ingame.DisplayMode == DpM_UNKN_3B))
+        process_things();
+    if (ingame.DisplayMode != DpM_PURPLEMNU)
+        process_packets();
     game_process_orbital_station_explode();
     gameturn++;
     game_turn_statetrace();
     // The rain on the floor textures draws from the game's random numbers
     // every turn, so it is part of the game state
     scene_post_effect_prepare();
-    return !exit_game;
+    return !exit_game && (ingame.DisplayMode == DpM_ENGINEPLY);
 }
 
 TbBool skip_redraw_this_turn(void)

@@ -78,10 +78,7 @@ def main():
         f = sc.replace(',', '_', 1) + '.out'
         d, decided = hashes(os.path.join(base, 'desktop', f))
         c, _ = hashes(os.path.join(base, 'core', f))
-        if decided is not None:
-            # the core turn does not play the mission's end
-            d = [h for h in d if h[0] <= decided]
-            c = [h for h in c if h[0] <= decided]
+        # both play the mission's end too: equal up to the same last turn
         n = min(len(d), len(c))
         first = next((i for i in range(n) if d[i] != c[i]), None)
         end = '' if decided is None else ', mission decided at turn %d' % decided
@@ -90,6 +87,12 @@ def main():
             differ += 1
         elif first is not None:
             print('%-12s differs from turn %d (of %d%s)' % (sc, d[first][0], n, end))
+            differ += 1
+        elif len(d) != len(c) and n < a.turns - 1:
+            # (the desktop's first step is before the mission: at the cap of
+            # --turns it has played one mission turn less)
+            print('%-12s equal for %d turns, then ends: desktop after %d, core after %d%s'
+                  % (sc, n, len(d), len(c), end))
             differ += 1
         else:
             print('%-12s equal for %d turns%s' % (sc, n, end))
