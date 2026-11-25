@@ -174,6 +174,11 @@ TbBool difftest_suffix_has(const char *name);
  * in scenarios whose suffix names one of its hooks.
  */
 void difftest_hook_misc_turn(void);
+/** The hooks of front-end code (difftest_hook_fe(), in the desktop front
+ * end, which sets this; NULL on the game core alone).
+ */
+extern void (*difftest_hook_fe_turn)(void);
+void difftest_hook_fe(void);
 void difftest_hook_people_turn(void);
 void difftest_hook_transport_turn(void);
 

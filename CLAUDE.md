@@ -27,7 +27,7 @@ Always use the scripts; they enter MSYS2 by themselves when needed.
   first rebuilds the map triangulations (pathtrig asm); "+kbd" uses
   keyboard control, "+crater" starts a crater every 64 turns, "+wreck"
   hits a vehicle or mounted gun hard every 32 turns. Tokens `t_*`, `p_*`, `m_*` in the
-  suffix switch on hooks in `src/difftest_hook_{transport,people,misc}.c`
+  suffix switch on hooks in `src/difftest_hook_{transport,people,misc,fe}.c`
   that reach functions no mission runs by itself.
 - `python tools/decomp-agent/difftest_batch.py <fns.json|fn,fn> [--jobs 6]
   [--per-fn 3]` — difftest of many functions in parallel, each on a few
@@ -94,11 +94,15 @@ lack clobber lists and break under optimisation.
 ## Game library (since 2026-11-23)
 
 - The game is `src/libswarscore.a` (the game core) with the interface
-  `src/swcore.h` (see `docs/swcore.md`), and `src/libswarsfe.a` (the
+  `src/swcore.h` (see `docs/swcore.md`), `src/libswarsfe.a` (the
   desktop front end: display, input, renderer's game side, menus, sound,
-  `swapp.c`, test hooks). `syndwarsfx` is `src/swmain.c` plus both
+  `swapp.c`), and `src/libswarstest.a` (the test hooks of the turn:
+  `difftest_bot.c`, `difftest_hook_{misc,people,transport}.c`; they must
+  not use the front end, hooks of front-end code go in
+  `difftest_hook_fe.c`). `syndwarsfx` is `src/swmain.c` plus the
   libraries; `swcore_headless` is a test front end, `swcore_coreonly` the
-  same on the core alone with `swfe_null.c` (builds without asm). New game
+  same on the core alone with `swfe_null.c` and the test hooks (builds
+  without asm). New game
   sources go into `libswarscore_a_SOURCES` in `src/Makefile.am`, front-end
   ones into `libswarsfe_a_SOURCES` (and their group in `coredeps.py`).
 - The direction: one C core, front ends per target (SDL desktop, VR,
@@ -129,7 +133,9 @@ lack clobber lists and break under optimisation.
   `prep_single_mission()` call them between the desktop's steps, and
   `swcore_core_init()` in a row. `python tools/decomp-agent/coreturn_compare.py
   harness --jobs 2 --core-only` checks that `swcore_coreonly` plays as the
-  desktop (scenarios without test hooks).
+  desktop (the scenarios without hooks of front-end code; `coredeps.py`
+  reports what the core's test hooks use from the front end, which must
+  be nothing).
 - The mission's end is core too (`src/game_misend.c`: fade-out, the rules
   of `mission_over()`, the mail queue `femail.c`); the desktop's
   `mission_over()` adds videos and sound between its steps.

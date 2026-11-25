@@ -28,13 +28,15 @@ GROUPS = {
     'shell': 'game swapp swmain'.split(),
     'input': 'keyboard mouse plyr_usrinp'.split(),
     'sound': 'sound fmvplay bfsmack smailfile smkdec'.split(),
-    'test': '''difftest_bot difftest_fuzz difftest_hook_misc
-        difftest_hook_people difftest_hook_transport thing_debug pathtrig_debug'''.split(),
+    'test': '''difftest_fuzz difftest_hook_fe thing_debug pathtrig_debug'''.split(),
+    # libswarstest.a: the test hooks of the turn, linked to the core alone
+    'core-test': '''difftest_bot difftest_hook_misc difftest_hook_people
+        difftest_hook_transport'''.split(),
 }
 
 
 def module_of(objname):
-    return re.sub(r'^libswars(core|fe)_a-', '', objname)[:-2]
+    return re.sub(r'^libswars(core|fe|test)_a-', '', objname)[:-2]
 
 
 def symbols(path):
@@ -58,20 +60,24 @@ def main():
     # only the objects in the libraries: a source moved to the other
     # library leaves its old object in the build folder
     members = set()
-    for lib in ('libswarscore.a', 'libswarsfe.a'):
+    for lib in ('libswarscore.a', 'libswarsfe.a', 'libswarstest.a'):
         if os.path.exists(os.path.join(d, lib)):
             members.update(subprocess.run([AR, 't', os.path.join(d, lib)], capture_output=True,
                                           text=True).stdout.split())
     for f in sorted(os.listdir(d)):
         if members and f not in members:
             continue
-        if re.match(r'libswars(core|fe)_a-', f) and f.endswith('.o'):
+        if re.match(r'libswars(core|fe|test)_a-', f) and f.endswith('.o'):
             m = module_of(f)
             defs[m], undefs[m] = symbols(os.path.join(d, f))
             in_core = f.startswith('libswarscore_a-')
+            in_test = f.startswith('libswarstest_a-')
             if in_core:
                 core.append(m)
-            if in_core == (m in group_of):
+            if in_test != (group_of.get(m) == 'core-test'):
+                print('warning: %s is %sin libswarstest but in group %s'
+                      % (m, '' if in_test else 'not ', group_of.get(m)))
+            elif not in_test and in_core == (m in group_of):
                 print('warning: %s is in %s but %s' % (m, 'libswarscore' if in_core else 'libswarsfe',
                       'in group ' + group_of[m] if in_core else 'in no front-end group'))
     owner = {}
@@ -85,7 +91,19 @@ def main():
             o = owner.get(s)
             if o and o in group_of:
                 per_group[group_of[o]][s].add(m)
+    # the test hooks of the core (libswarstest) must not need the front end
+    test_fe = collections.defaultdict(set)
+    for m in GROUPS['core-test']:
+        for s in undefs.get(m, ()):
+            o = owner.get(s)
+            if o and group_of.get(o) not in (None, 'core-test'):
+                test_fe[s].add(m)
+    print('core-test uses %d front-end symbols%s' % (len(test_fe), ''.join(
+        '\n   %-40s %-18s <- %s' % (s, owner[s], ' '.join(sorted(test_fe[s])))
+        for s in sorted(test_fe))))
     for g in GROUPS:
+        if g == 'core-test':
+            continue
         syms = per_group.get(g, {})
         users = collections.Counter(u for us in syms.values() for u in us)
         print('\n%s: %d symbols used by core; users: %s' % (g, len(syms),

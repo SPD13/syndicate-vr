@@ -1487,6 +1487,10 @@ static DIFFTEST_REF_FUNC void BAT_unknsub_20_asm(int a1, int a2, int a3, int a4,
         : : "a" (a1), "d" (a2), "b" (a3), "c" (a4), "g" (p_screen));
 }
 
+/** The texture page the game is drawn into when there are no texture pages
+ * (vec_tmap[4]: 256x256 pixels). */
+static ubyte BAT_screen_alone[0x10000];
+
 /** Sets the map tile range (x from eax to ebx, z from edx to ecx) and the
  * colours, and resets the bricks, balls and bonuses.
  */
@@ -1525,7 +1529,11 @@ void BAT_unknsub_20(int tile_x_min, int tile_z_min, int tile_x_max, int tile_z_m
     BAT_reset_free_balls();
     BAT_reset_free_bonuses();
     // TODO the asm ignores p_screen argument and uses a fixed position instead
-    BAT_screen = vec_tmap[4] + 0xA040;
+    if (vec_tmap[4] != NULL)
+        BAT_screen = vec_tmap[4] + 0xA040;
+    else // no texture pages (a front end without this renderer): the game
+        // is drawn into a page nobody shows; the rules never read it
+        BAT_screen = BAT_screen_alone + 0xA040;
     BAT_state = BATSt_Reset;
 }
 

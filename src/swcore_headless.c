@@ -25,7 +25,10 @@
  *     and "--original-bugs"/"--fix-bugs"; "--conclude N" confirms the end
  *     of a decided mission N turns after the decision (as Enter on the end
  *     message), and the last line "# end turn N mission S" gives the
- *     mission's state at the end (SwcMissionStatus, 0 once left).
+ *     mission's state at the end (SwcMissionStatus, 0 once left). It
+ *     plays with the test hooks of the core (libswarstest: the scripted
+ *     player and the scenario hooks of statetrace.sh), without those of
+ *     front-end code (m_cryo, m_typing, m_pause).
  *     Use SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy for no window.
  * @author   SyndicateVR decomp agent
  * @date     23 Nov 2026 - 23 Nov 2026
@@ -41,6 +44,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if SWCORE_CORE_ONLY
+/* The test hooks of the game turn (game_turn.h, difftest.h); a test front
+ * end sets them, as swapp.c does for the desktop. */
+extern void (*game_turn_test_hook)(void);
+void difftest_bot_turn(void);
+#endif
 
 #define THINGS_BUF 2000
 
@@ -148,6 +158,7 @@ int main(int argc, char **argv)
         }
         if (set_fixes)
             swcore_set_fixes(fixes);
+        game_turn_test_hook = difftest_bot_turn;
         if (swcore_core_init(campaign, mission) != 0)
             return 1;
         core_turn = 1;

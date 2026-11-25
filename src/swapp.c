@@ -609,6 +609,7 @@ int swcore_init(int argc, char **argv)
     if (!process_options(&argc, &argv))
         return 1;
     game_turn_test_hook = difftest_bot_turn;
+    difftest_hook_fe_turn = difftest_hook_fe;
 
     fixup_options();
     LOGSYNC_F("Fixes of original bugs: 0x%x%s", (unsigned)swcore_get_fixes(),

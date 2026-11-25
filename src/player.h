@@ -126,6 +126,11 @@ extern ubyte playable_agents;
 
 void place_single_player(void);
 
+/** The agent of the player that comes after the one controlled now (the
+ * next one neither destroyed nor knocked out).
+ */
+short get_next_player_agent(ushort player);
+
 void player_update_agents_from_cryo(PlayerInfo *p_player);
 void cryo_update_agents_from_player(PlayerInfo *p_player);
 void players_sync_from_cryo(void);

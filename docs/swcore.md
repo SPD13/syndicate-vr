@@ -255,12 +255,21 @@ checks it on the trace scenarios. What it takes from the desktop turn:
 - The rain and snow on the floor textures (`scene_post_effect_prepare()`,
   in `libswworld`): the rain draws from the game's random numbers
   (`LbRandomAnyShort()`) every turn, so it is game state although it only
-  changes a texture.
+  changes a texture. The core alone has no texture pages (`vec_tmap`):
+  the effect then draws its numbers without touching a texture, and the
+  Breakout minigame (`bat.c`, which some missions start) draws into a
+  page of its own nobody shows (its rules never read the pixels).
 - The test hooks of the desktop turn (`difftest_bot_turn()`) through
   `game_turn_test_hook`, which the front end sets (`swapp.c`), and the state
-  trace (`game_turn_statetrace()`, `SWARS_STATETRACE`). `swcore_coreonly`
-  has no test hooks (they are in `libswarsfe`), so it plays the scenarios
-  without a suffix only.
+  trace (`game_turn_statetrace()`, `SWARS_STATETRACE`). The hooks are a
+  library of their own, `libswarstest.a` (the scripted player
+  `difftest_bot.c` and `difftest_hook_{misc,people,transport}.c`), which
+  needs nothing from the front end; `swcore_coreonly` links it and sets the
+  hook. The hooks of front-end code (`m_cryo`, `m_typing`, `m_pause`:
+  the cryo roster's list box, typing into a text field, the pause screen's
+  sound) are in `libswarsfe` (`difftest_hook_fe.c`), called through
+  `difftest_hook_fe_turn`, which `swapp.c` sets; the core alone plays the
+  scenarios without these.
 - The mission's end (`game_misend.c`). Once the mission is decided
   (`mission_status` of `swcore_world_info()`), it goes on until the
   mission's fade-out (`WaitToFade`) has run or the player confirms the end
@@ -317,7 +326,7 @@ end at the same turn (the desktop's first step is before the mission, so
 at the cap of `--turns` it has one mission turn less). `swcore_coreonly
 --conclude N` confirms the end N turns after the decision. With `--core-only` the
 core turn runs in `swcore_coreonly` instead, so the core's setup is
-compared too (the scenarios without test hooks):
+compared too (the scenarios without hooks of front-end code):
 
 ```
 python tools/decomp-agent/coreturn_compare.py harness --jobs 2 --core-only

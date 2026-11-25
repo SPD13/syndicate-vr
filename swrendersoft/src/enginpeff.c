@@ -76,8 +76,11 @@ void scene_post_effect_rain_init(void)
                 idx2 = rnd & 0xFFFF;
                 word_1A7330[i] = idx2;
                 tmap = vec_tmap[0];
-                byte_1A7B00[i] = tmap[idx2];
-                tmap[idx2] = 63;
+                // the random numbers are drawn with no texture loaded too
+                // (a front end without this renderer)
+                byte_1A7B00[i] = (tmap != NULL) ? tmap[idx2] : 0;
+                if (tmap != NULL)
+                    tmap[idx2] = 63;
                 byte_1A7EE8[idx1] |= (1 << (idx1 & 7));
             }
         }

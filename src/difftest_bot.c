@@ -47,8 +47,6 @@
 #include "vehicle.h"
 #include "weapon.h"
 /******************************************************************************/
-/* Not in a header; the agent cycling key uses it (plyr_usrinp.c) */
-short get_next_player_agent(ushort player);
 
 #if DIFFTEST_HARNESS
 

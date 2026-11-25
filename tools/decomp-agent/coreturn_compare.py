@@ -13,14 +13,18 @@ end); the hashes after that turn are not compared.
 
 With --core-only, the core turn runs in swcore_coreonly, the program on the
 game core alone (swcore_core_init(), null front end), so the mission setup
-is the core's too. It has no test hooks: by default only the scenarios
-without them (no "+" suffix).
+is the core's too. It has the test hooks of the core (libswarstest), not
+those of front-end code (difftest_hook_fe.c): by default the scenarios
+whose suffix names none of FE_HOOKS.
 """
 import argparse
 import os
 import re
 import subprocess
 import sys
+
+# hooks of front-end code, which swcore_coreonly does not have
+FE_HOOKS = ('m_cryo', 'm_typing', 'm_pause')
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def trace_scenarios():
@@ -62,7 +66,8 @@ def main():
     if a.scenarios is None:
         a.scenarios = trace_scenarios()
         if a.core_only:
-            a.scenarios = ' '.join(sc for sc in a.scenarios.split() if '+' not in sc)
+            a.scenarios = ' '.join(sc for sc in a.scenarios.split()
+                                   if not set(sc.split('+')[1:]) & set(FE_HOOKS))
     base = os.path.join(REPO, a.outdir)
     runs = {'desktop': ('swcore_headless', '--no-draw'),
             'core': ('swcore_coreonly' if a.core_only else 'swcore_headless', '--core-turn')}
