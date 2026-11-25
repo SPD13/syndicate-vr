@@ -256,7 +256,10 @@ libswarsfe_a_SOURCES = \
 	thing_ovmous.h \
 	thing_ovmous.c \
 	tngobjdrw.c \
-	tngobjdrw.h
+	tngobjdrw.h \
+	vrshare.h \
+	vrspectate.c \
+	vrspectate.h
 
 libswarscore_a_CPPFLAGS = \
   -I"$(top_srcdir)/bfsmacklib/include" \

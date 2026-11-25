@@ -21,6 +21,7 @@
 
 #include "bftypes.h"
 #include "game_bstype.h"
+#include "matrix.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -258,12 +259,62 @@ void mech_unkn_func_09(ThingIdx thing);
  */
 void mech_view_update(struct Thing *p_mech);
 
-struct unkn_mech_struc4;
-struct M31;
-struct M33;
+#pragma pack(1)
+
+/** A mech's body: its parts tree, its orientation, ... (one per owner). */
+struct unkn_mech_struc3 { // sizeof=0x76
+    struct unkn_mech_struc4 *mech3_arr4_ptr;
+    s32 mech3_unkn_arr4_idx;
+    s32 mech3_unkn_fld_8;
+    struct M33 mech3_unkn_mat_C;
+    s32 mech3_unkn_X;
+    s32 mech3_unkn_Y;
+    s32 mech3_unkn_Z;
+    ubyte mech3_unkn_fld_3C[13];
+    s32 mech3_unkn_fld_49;
+    ubyte mech3_unkn_fld_4D[7];
+    s32 mech3_unkn_fld_54[3];
+    ubyte field_60;
+    ubyte field_61[3];
+    s32 field_64;
+    s32 field_68;
+    s32 field_6C;
+    ubyte field_70[2];
+    ubyte field_72[2];
+    ubyte field_74;
+    ubyte field_75;
+};
+
+/** A mech part: its thing, the parts under it, its angles and offsets. */
+struct unkn_mech_struc4 { // sizeof=0x7A
+    short thing;
+    ubyte field_2;
+    struct unkn_mech_struc4 *field_3[8];
+    short field_23;
+    struct M33 mat25;
+    s32 angle_49;
+    s32 angle_4D;
+    s32 angle_51;
+    s32 field_55;
+    s32 field_59;
+    ubyte field_5D[4];
+    struct M31 field_61;
+    struct M31 field_6D;
+    ubyte field_79;
+};
+
+#pragma pack()
+
 /** Places a mech part and the parts under it, see mech_view_update(). */
 void mech_parts_update(struct unkn_mech_struc4 *p_itm4,
   struct M31 *p_bodypos, struct M33 *p_mat);
+/** The matrix steps of placing a mech part (mech_parts_update()); they
+ * change only the given matrices. */
+int vectors_mul_by_transposed_matrix(uint vecs_num, const struct M33 *p_mat,
+  const struct M31 *p_vecs1, struct M31 *p_vecs2);
+int mech_unkn_func_12(struct M33 *p_mat1, struct M33 *p_mat2,
+  int sin_angl, int cos_angl, int axis);
+int mech_unkn_func_13(struct M33 *p_mat1, struct M33 *p_mat2);
 void init_mech_explode(struct Thing *p_vehicle);
 
 TbBool vehicle_is_destroyed(ThingIdx thing);

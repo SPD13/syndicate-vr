@@ -187,6 +187,14 @@ extern short persuaded_person_weapons_sell_cost_permil;
 
 void read_weapons_conf_file(void);
 
+struct M31;
+/** Where a shot of the weapon starts (the muzzle), in fine coordinates. */
+TbBool thing_fire_shot_start_position(struct M31 *prc_beg_pt, struct Thing *p_owner,
+  WeaponType wtype, ushort barrel);
+void init_laser(struct Thing *p_owner, ushort start_age);
+void init_laser_elec(struct Thing *p_owner, ushort start_age);
+void init_laser_beam(struct Thing *p_owner, ushort start_age, ubyte stype);
+
 /** Gives a string which names the weapon for internal and debug purposes.
  */
 const char *weapon_codename(WeaponType wtype);

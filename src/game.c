@@ -175,6 +175,7 @@
 #include "vehicle.h"
 #include "vehtraffic.h"
 #include "wadfile.h"
+#include "vrspectate.h"
 #include "weapon.h"
 #include "wrcities.h"
 #include "game_camera.h"
@@ -3477,6 +3478,9 @@ void load_packet(void)
         // commands of a front end using the game library, as mouse clicks
         if (((did_inp & GINPUT_PACKET) == 0) && swcore_input_packet(p_pckt))
             did_inp |= GINPUT_PACKET;
+        // commands from the VR viewer (shared memory), taken the same way
+        if (((did_inp & GINPUT_PACKET) == 0) && vr_spectator_input())
+            did_inp |= GINPUT_PACKET;
         if ((did_inp & GINPUT_PACKET) == 0)
             did_inp |= input_agents_cheats();
         if ((did_inp & GINPUT_PACKET) == 0)
@@ -3669,6 +3673,7 @@ TbBool game_process_turn(void)
     gameturn++;
     difftest_game_turn();
     game_turn_statetrace();
+    vr_spectator_update();
     scene_post_effect_prepare();
     return !exit_game;
 }

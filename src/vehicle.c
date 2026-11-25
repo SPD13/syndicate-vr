@@ -78,46 +78,6 @@ struct unkn_mech_struc2 { // sizeof=0x89
     ubyte field_88;
 };
 
-struct unkn_mech_struc3 { // sizeof=0x76
-    struct unkn_mech_struc4 *mech3_arr4_ptr;
-    s32 mech3_unkn_arr4_idx;
-    s32 mech3_unkn_fld_8;
-    struct M33 mech3_unkn_mat_C;
-    s32 mech3_unkn_X;
-    s32 mech3_unkn_Y;
-    s32 mech3_unkn_Z;
-    ubyte mech3_unkn_fld_3C[13];
-    s32 mech3_unkn_fld_49;
-    ubyte mech3_unkn_fld_4D[7];
-    s32 mech3_unkn_fld_54[3];
-    ubyte field_60;
-    ubyte field_61[3];
-    s32 field_64;
-    s32 field_68;
-    s32 field_6C;
-    ubyte field_70[2];
-    ubyte field_72[2];
-    ubyte field_74;
-    ubyte field_75;
-};
-
-struct unkn_mech_struc4 { // sizeof=0x7A
-    short thing;
-    ubyte field_2;
-    struct unkn_mech_struc4 *field_3[8];
-    short field_23;
-    struct M33 mat25;
-    s32 angle_49;
-    s32 angle_4D;
-    s32 angle_51;
-    s32 field_55;
-    s32 field_59;
-    ubyte field_5D[4];
-    struct M31 field_61;
-    struct M31 field_6D;
-    ubyte field_79;
-};
-
 struct unkn_mech_struc5_s1 { // sizeof=24
     s32 unkst5sub_04;
     s32 unkst5sub_08;

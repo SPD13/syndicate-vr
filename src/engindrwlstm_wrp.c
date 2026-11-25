@@ -64,42 +64,6 @@ struct BulStart {
     sbyte OffsetY;
 };
 
-struct unkn_mech_struc4 { // sizeof=0x7A
-    short thing;
-    ubyte field_2;
-    struct unkn_mech_struc4 *field_3[8];
-    short field_23;
-    struct M33 mat25;
-    int angle_49;
-    int angle_4D;
-    int angle_51;
-    int field_55;
-    int field_59;
-    ubyte field_5D[4];
-    struct M31 field_61;
-    struct M31 field_6D;
-    ubyte field_79;
-};
-
-struct unkn_mech_struc3 { // sizeof=0x76
-    struct unkn_mech_struc4 *mech3_arr4_ptr;
-    int mech3_unkn_arr4_idx;
-    int mech3_unkn_fld_8;
-    struct M33 mech3_unkn_mat_C;
-    ubyte mech3_unkn_fld_30[25];
-    int mech3_unkn_fld_49;
-    ubyte mech3_unkn_fld_4D[7];
-    int mech3_unkn_fld_54[3];
-    ubyte field_60;
-    int field_61;
-    int field_65;
-    int field_69;
-    ubyte field_6D[3];
-    int field_70;
-    ubyte field_74;
-    ubyte field_75;
-};
-
 #pragma pack()
 /******************************************************************************/
 extern ubyte byte_176D49;
