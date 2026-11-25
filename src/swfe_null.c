@@ -22,6 +22,8 @@
 #include "swfe.h"
 
 #include <stddef.h>
+
+#include "packet.h"
 /******************************************************************************/
 
 /* Sound */
@@ -166,6 +168,9 @@ void clear_gamekey_pressed(GameKey gkey)
 
 void init_user_input_local_controls(void)
 {
+    // the packets of solo play, as the desktop's version chooses when one
+    // player has the controls (swcore_command() builds packets with it)
+    my_build_packet = build_packet;
 }
 
 /* Display */
