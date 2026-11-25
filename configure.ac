@@ -250,7 +250,9 @@ AC_SUBST(BFLIBRARY_CFLAGS, "-I\"\$(top_builddir)/include/bullfrog\"  -I\"\$(top_
 AC_SUBST(BFSOUNDLIB_LIBS, "-L\"\$(top_builddir)/lib\" -lbfsound")
 AC_SUBST(BFSOUNDLIB_CFLAGS, "-I\"\$(top_builddir)/include/bfsound\"")
 
-AC_SUBST(SWRENDERLIB_LIBS, "-L\"\$(top_builddir)/lib\" -lswrender")
+# Every program links the engine's world data (libswworld); the drawing
+# (libswrender) only the front ends that draw (src/Makefile.am)
+AC_SUBST(SWRENDERLIB_LIBS, "-L\"\$(top_builddir)/lib\" -lswworld")
 AC_SUBST(SWRENDERLIB_CFLAGS, "-I\"\$(top_builddir)/include/swrender\"")
 
 # Variables

@@ -22,6 +22,9 @@
 #include "bftypes.h"
 #include "game_bstype.h"
 
+/** Largest size of an explode face on the map (for drawing only those in view). */
+#define EXPLODE_FACE_MAX_ON_MAP_SIZE TILE_TO_MAPCOORD(16,0)
+
 #pragma pack(1)
 
 struct SimpleThing;
@@ -42,6 +45,7 @@ extern s32 minimum_explode_depth;
 
 void init_object_explode_faces(void);
 void process_explode(void);
+/** Enlists the explode faces in view for drawing (lvdraw3d.c, front end). */
 void draw_explode(void);
 
 void thing_explode_faces(struct Thing *p_thing);

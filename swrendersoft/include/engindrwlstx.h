@@ -117,6 +117,12 @@ extern TbPixel face_transp_tinted_line_col;
 
 extern ubyte engine_render_lights;
 
+/** The light of a nuclear explosion (set_nuclear_shade_point()). */
+extern s32 engn_nuclear_shade_timer;
+extern s32 engn_nuclear_shade_x;
+extern s32 engn_nuclear_shade_y;
+extern s32 engn_nuclear_shade_z;
+
 extern short anim_el_pos_min_x;
 extern short anim_el_pos_min_y;
 

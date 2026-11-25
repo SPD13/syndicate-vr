@@ -27,8 +27,9 @@ out of scope for now: the library is for solo play.
   (no display, input, sound, menus). It starts the mission of
   `-m campaign,mission` with `swcore_core_init()` and plays it with
   `swcore_core_step()`; of the game's options it reads only that and
-  `--original-bugs`/`--fix-bugs`. It still links `libswrender` and
-  `libbullfrog` (SDL), for data and helpers the core takes from them.
+  `--original-bugs`/`--fix-bugs`. It links the engine's world data
+  (`libswworld`), not its drawing (`libswrender`), and `libbullfrog`
+  (SDL) for helpers the core takes from it.
 
 ## Interface (SWCORE_API_VERSION 4)
 
@@ -139,8 +140,8 @@ Tools (on the objects of a `--harness` build):
 
 - `tools/decomp-agent/coreprobe.sh [build]` links the core objects alone
   with the null front end (`src/swfe_null.c`) and lists what is still
-  missing, and which members of `libswrender` and `libbullfrog` the core
-  pulls in (`build/coreprobe/members.txt`).
+  missing, and which members of `libswworld`, `libswrender` (none) and
+  `libbullfrog` the core pulls in (`build/coreprobe/members.txt`).
 
 Done so far: the mission setup and world functions of `game.c` are in
 `game_world.c` (core; `game.c` is the shell: main loop, screens, menus);
@@ -207,11 +208,22 @@ What the core still needs from the desktop front end and the libraries:
 - The view area (`render_area_a/b`, `overall_scale`) follows the screen
   size; the core alone fixes it at the desktop's 640x480. A front end with
   another view still plays the game of that view.
-- `libswrender` holds world data the core uses: objects, faces and
-  textures (`enginsngobjs`, `enginsngtxtr`, `enginpriobjs`), lights,
-  explosion faces, shrapnel, animation frames (`frame_sprani`), the camera
-  and zoom (`engincam`, `enginzoom`). Debug drawing and the scanner pull its
-  drawing code in.
+- The engine's world data is its own library, `libswworld.a` (in
+  `swrendersoft/`, beside the drawing in `libswrender.a`): objects, faces
+  and textures (`enginsngobjs`, `enginsngtxtr`, `enginpriobjs`,
+  `enginpritxtr`, `enginfloor`, `engintxtrmap`), lights, explosion faces
+  (`enginfexpl`; their drawing is `enginfexpldrw`), shrapnel, animation
+  frames (`frame_sprani`), the camera and zoom (`engincam`, `enginzoom`),
+  colours, the scene effect (`enginpeff`: the rain on the floor; falling
+  rain, snow and stars are drawn in `enginpeffdrw`), the size limits
+  (`enginprops`), and the buffers the game allocates for the renderer with
+  its world (`engindrwbuf`: draw lists, screen points, special faces; the
+  lights option; the light of a nuclear explosion). Every program links
+  `libswworld` (`SWRENDERLIB_LIBS`); only the front ends that draw link
+  `libswrender`. `draw_explode()`, which enlists the explode faces for
+  drawing, is in the front end (`lvdraw3d.c`); the core's debug views and
+  objective marks call five drawing functions of `libswrender` through
+  `swfe.h` (null in `swfe_null.c`).
 - `libbullfrog`'s platform layer (SDL): `lbDisplay` (screen size, pointer),
   logging time, the mouse sprite.
 
@@ -241,7 +253,7 @@ checks it on the trace scenarios. What it takes from the desktop turn:
   trigger released, `input_user_control_agent()`); processing it stops the
   controlled agent's shooting, so leaving it out changes the game.
 - The rain and snow on the floor textures (`scene_post_effect_prepare()`,
-  in `libswrender`): the rain draws from the game's random numbers
+  in `libswworld`): the rain draws from the game's random numbers
   (`LbRandomAnyShort()`) every turn, so it is game state although it only
   changes a texture.
 - The test hooks of the desktop turn (`difftest_bot_turn()`) through
@@ -266,8 +278,9 @@ checks it on the trace scenarios. What it takes from the desktop turn:
 ## Still to do
 
 The core library (`libswarscore.a`) no longer contains the SDL display,
-input, sound, the menus or the renderer's game side; it still links
-`libswrender` (world data) and `libbullfrog` (SDL platform layer). The next steps, behind the
+input, sound, the menus or the renderer's game side, and links the
+engine's world data (`libswworld`) without its drawing; it still links
+`libbullfrog` (SDL platform layer). The next steps, behind the
 interface:
 
 1. Rendering: move the software renderer to the SDL front end. The line

@@ -58,15 +58,12 @@ short anim_el_pos_min_y = 0;
 
 TbBool sprite_over_16x16 = false;
 
-struct SortLine *game_sort_lines = NULL;
 struct SortLine *p_current_sort_line = NULL;
 ushort next_sort_line = 0;
 
-struct DrawItem *game_draw_list = NULL;
 struct DrawItem *p_current_draw_item = NULL;
 ushort next_draw_item = 0;
 
-struct SortSprite *game_sort_sprites = NULL;
 struct SortSprite *p_current_sort_sprite = NULL;
 ushort next_sort_sprite = 0;
 

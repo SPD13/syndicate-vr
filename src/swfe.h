@@ -134,6 +134,19 @@ void draw_mark_over_tile_with_number(short tl_x, short tl_z, sbyte ln,
 void count_fnavs(TbBool now_draw);
 void navi_onscreen_debug(TbBool a1);
 
+/* Drawing of the renderer library (libswrender: drawshape.c, drawtext.c,
+ * huddrwlstm.c) the core calls for debug views and the objectives' marks
+ * on the scene; the core links only the engine's world data (libswworld). */
+void draw_mapcoord_line_col(int cor1_x, int cor1_y_m8, int cor1_z,
+  int cor2_x, int cor2_y_m8, int cor2_z, TbPixel colour);
+void draw_mapcoord_to_scrcoord_line(short scr_x, short scr_y,
+  int cor_x, int cor_y_m8, int cor_z, TbPixel colour);
+void draw_simple_text(short x, short y, const char *text, ubyte colour);
+void draw_text_transformed(int cor_x, int cor_y_m8, int cor_z, const char *text);
+TbBool enlist_hud_draw_mapcoord_flat_circle(short cor_x,
+  short cor_y_m8, short cor_z, short radius,
+  ushort drwflags, ubyte thickness, TbPixel colour);
+
 /******************************************************************************/
 #ifdef __cplusplus
 };

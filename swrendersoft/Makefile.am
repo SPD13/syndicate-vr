@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = --install -I m4
 
-lib_LIBRARIES = libswrender.a
+lib_LIBRARIES = libswworld.a libswrender.a
 
 libswrender_a_headers_src = \
   include/app_box.h \
@@ -58,28 +58,14 @@ libswrender_a_SOURCES = \
   src/drawshape.c \
   src/drawtext.c \
   src/enginbckt.c \
-  src/engincam.c \
-  src/engincolour.c \
   src/engindrwlstm.c \
   src/engindrwlstm_3d.c \
   src/engindrwlstx.c \
   src/engindrwlstx_fac.c \
   src/engindrwlstx_spr.c \
-  src/enginfexpl.c \
-  src/enginfloor.c \
-  src/enginlights.c \
-  src/enginpeff.c \
-  src/enginpriobjs.c \
-  src/enginpritxtr.c \
-  src/enginprops.c \
+  src/enginfexpldrw.c \
+  src/enginpeffdrw.c \
   src/enginshadws.c \
-  src/enginshrapn.c \
-  src/enginsngobjs.c \
-  src/enginsngtxtr.c \
-  src/engintrns.c \
-  src/engintxtrmap.c \
-  src/enginzoom.c \
-  src/frame_sprani.c \
   src/holodrwlstx.c \
   src/huddrwlstm.c \
   src/huddrwlstx.c \
@@ -89,6 +75,31 @@ libswrender_a_SOURCES = \
 libswrender_a_CPPFLAGS = \
   -I"$(top_srcdir)/include" -I"$(builddir)/include"
 
+# The world data of the engine, which the game core uses without drawing:
+# objects, faces, textures, lights, the camera and zoom, explosion faces,
+# shrapnel, animation frames, the scene effect, the buffers the game
+# allocates for the renderer. libswrender (the drawing) needs it.
+libswworld_a_SOURCES = \
+  $(libswrender_a_headers_src) \
+  src/engincam.c \
+  src/engincolour.c \
+  src/engindrwbuf.c \
+  src/enginfexpl.c \
+  src/enginfloor.c \
+  src/enginlights.c \
+  src/enginpeff.c \
+  src/enginpriobjs.c \
+  src/enginpritxtr.c \
+  src/enginprops.c \
+  src/enginshrapn.c \
+  src/enginsngobjs.c \
+  src/enginsngtxtr.c \
+  src/engintrns.c \
+  src/engintxtrmap.c \
+  src/enginzoom.c \
+  src/frame_sprani.c
+libswworld_a_CPPFLAGS = $(libswrender_a_CPPFLAGS)
+
 libswrenderheadersdir = $(includedir)/swrender
 libswrenderheaders_HEADERS = \
   $(libswrender_a_headers_src:%=$(srcdir)/%) \
@@ -97,7 +108,7 @@ libswrenderheaders_HEADERS = \
 # Libraries included with the project
 libswrender_a_PROJECT_LIBS = ../lib/libbullfrog.a
 
-$(libswrender_a_OBJECTS) $(lib_LIBRARIES): $(libswrender_a_PROJECT_LIBS)
+$(libswrender_a_OBJECTS) $(libswworld_a_OBJECTS) $(lib_LIBRARIES): $(libswrender_a_PROJECT_LIBS)
 
 ../lib/libbullfrog.a: ../bflibrary/libbullfrog.a
 	$(MAKE) -C $(<D) DESTDIR="../" prefix="" install

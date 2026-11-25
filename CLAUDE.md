@@ -121,7 +121,10 @@ lack clobber lists and break under optimisation.
   `swapp.c` (options, config, the main loop) is front end. A service must
   not change game state (`stop_looped_weapon_sample()` did: it cleared a
   flag the rules read). `tools/decomp-agent/coreprobe.sh` links the core
-  objects alone and lists what they pull from `libswrender`/`libbullfrog`.
+  objects alone and lists what they pull from `libswworld`/`libbullfrog`
+  (nothing from `libswrender`: the core links the engine's world data,
+  `swrendersoft`'s `libswworld.a`, not its drawing; new engine modules the
+  core needs go into `libswworld_a_SOURCES` in `swrendersoft/Makefile.am`).
 - The core's setup steps are in `src/game_coreinit.c`; `game_setup()` and
   `prep_single_mission()` call them between the desktop's steps, and
   `swcore_core_init()` in a row. `python tools/decomp-agent/coreturn_compare.py
@@ -130,9 +133,10 @@ lack clobber lists and break under optimisation.
 - The mission's end is core too (`src/game_misend.c`: fade-out, the rules
   of `mission_over()`, the mail queue `femail.c`); the desktop's
   `mission_over()` adds videos and sound between its steps.
-- After moving a source between the two libraries, delete
-  `build/*/src/libswars*.a`: `ar` keeps the old member and the link
-  reports multiple definitions.
+- After moving a source between libraries, delete the old archives
+  (`build/*/src/libswars*.a`, `build/*/swrendersoft/libsw*.a`,
+  `build/*/lib/libsw*.a`): `ar` keeps the old member and the link reports
+  multiple definitions.
 - `game_core_turn()` (`src/game_turn.c`, `swcore_core_step()`) is a mission
   turn without input devices, screens or drawing; it must play the same
   game as the desktop turn: `python tools/decomp-agent/coreturn_compare.py

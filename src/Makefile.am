@@ -331,15 +331,17 @@ endif
 nodist_EXTRA_syndwarsfx_SOURCES = dummy.cxx
 
 # Libraries included with the project
-syndwarsfx_PROJECT_LIBS = ../lib/libbullfrog.a ../lib/libbfsound.a ../lib/libswrender.a
+syndwarsfx_PROJECT_LIBS = ../lib/libbullfrog.a ../lib/libbfsound.a ../lib/libswrender.a \
+  ../lib/libswworld.a
 
 $(libswarscore_a_OBJECTS) $(libswarsfe_a_OBJECTS) $(syndwarsfx_OBJECTS) $(bin_PROGRAMS): $(syndwarsfx_PROJECT_LIBS)
 
 # The whole libraries go in, as when their objects were linked directly:
 # the asm reference and the wrappers reach functions nothing else references
 syndwarsfx_LDFLAGS = -Wl,--whole-archive libswarscore.a libswarsfe.a -Wl,--no-whole-archive
+# (the drawing; the world data, libswworld, comes with LIBS for every program)
 syndwarsfx_LDADD = \
-  $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS)
+  $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS) ../lib/libswrender.a
 syndwarsfx_DEPENDENCIES = libswarscore.a libswarsfe.a \
   $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS)
 
@@ -357,6 +359,7 @@ swcore_headless_SOURCES = swcore.h swcore_headless.c
 nodist_EXTRA_swcore_headless_SOURCES = dummy.cxx
 # (whole, as syndwarsfx: the two libraries reference each other)
 swcore_headless_LDFLAGS = $(syndwarsfx_LDFLAGS)
+swcore_headless_LDADD = ../lib/libswrender.a
 swcore_headless_DEPENDENCIES = libswarscore.a libswarsfe.a
 $(swcore_headless_OBJECTS): $(syndwarsfx_PROJECT_LIBS)
 swcore_coreonly_SOURCES = swcore.h swcore_headless.c swfe.h swfe_null.c
@@ -373,7 +376,10 @@ endif
 ../lib/libbfsound.a: ../bfsoundlib/libbfsound.a
 	$(MAKE) -C $(<D) DESTDIR="../" prefix="" install
 
-../lib/libswrender.a: ../swrendersoft/libswrender.a
+# (installing swrendersoft installs both of its libraries)
+../lib/libswworld.a: ../lib/libswrender.a
+
+../lib/libswrender.a: ../swrendersoft/libswrender.a ../swrendersoft/libswworld.a
 	$(MAKE) -C $(<D) DESTDIR="../" prefix="" install
 
 $(syndwarsfx_WRAPPERS:.o=.sx): %.sx: $(top_srcdir)/conf/%.conf

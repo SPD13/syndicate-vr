@@ -26,6 +26,7 @@
 #include "bfplanar.h"
 
 #include "enginbckt.h"
+#include "enginfexpl.h"
 #include "engincam.h"
 #include "engincolour.h"
 #include "engindrwlstm.h"
@@ -1257,6 +1258,66 @@ void engine_draw_whole_screen_top_down(void)
     else
     {
         draw_hud(p_locplayer->DirectControl[0]);
+    }
+}
+
+void draw_explode(void)
+{
+    ushort exface;
+
+    if (dont_bother_with_explode_faces)
+        return;
+
+    for (exface = 1; exface < EXPLODE_FACES_COUNT; exface++)
+    {
+        struct ExplodeFace *p_exface;
+
+        p_exface = &ex_faces[exface];
+
+        if (next_screen_point + 4 > screen_points_limit)
+            break;
+
+        if (p_exface->Timer == 0)
+            continue;
+
+        if ((p_exface->Type == EXPL_FACE_TRI_ABS) ||
+          (p_exface->Type == EXPL_FACE_QUAD_ABS))
+        {
+            if (!area_overlaps_render_area(p_exface->X0, p_exface->Z0,
+              EXPLODE_FACE_MAX_ON_MAP_SIZE))
+                continue;
+        }
+        else
+        {
+            if (!area_overlaps_render_area(p_exface->X, p_exface->Z,
+              EXPLODE_FACE_MAX_ON_MAP_SIZE/2))
+                continue;
+        }
+
+        switch (p_exface->Type)
+        {
+        case EXPL_FACE_TRI_TYP1:
+            enlist_draw_explode_type1(exface, 3);
+            break;
+        case EXPL_FACE_QUAD_TYP2:
+            enlist_draw_explode_type1(exface, 4);
+            break;
+        case EXPL_FACE_TRI_ABS:
+            enlist_draw_explode_type3(exface, 3);
+            break;
+        case EXPL_FACE_QUAD_ABS:
+            enlist_draw_explode_type3(exface, 4);
+            break;
+        case EXPL_FACE_TRI_REL:
+            enlist_draw_explode_type5(exface, 3);
+            break;
+        case EXPL_FACE_QUAD_REL:
+            enlist_draw_explode_type5(exface, 4);
+            break;
+        case 0:
+        default:
+            break;
+        }
     }
 }
 

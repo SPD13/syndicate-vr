@@ -3,7 +3,8 @@
 Usage: python tools/decomp-agent/coredeps.py <build/harness/src> [--detail module]
 The core objects are those of libswarscore.a (libswarscore_a-*.o), the
 front end those of libswarsfe.a (libswarsfe_a-*.o), split into the groups
-below; a module in the wrong library is reported. Reads the symbol tables
+below (objects not in the archives, left by a source moved to the other
+library, are skipped); a module in the wrong library is reported. Reads the symbol tables
 with nm and lists, per front-end group, the symbols the core objects use
 and which core objects use them.
 """
@@ -14,6 +15,7 @@ import subprocess
 import sys
 
 NM = 'C:/msys64/mingw32/bin/nm.exe'
+AR = 'C:/msys64/mingw32/bin/ar.exe'
 
 GROUPS = {
     'render': '''lvdraw3d engindrwlstm_wrp engindrwlstx_tng tngobjdrw bflib_vidraw
@@ -53,7 +55,16 @@ def main():
     group_of = {m: g for g, ms in GROUPS.items() for m in ms}
     defs, undefs = {}, {}
     core = []
+    # only the objects in the libraries: a source moved to the other
+    # library leaves its old object in the build folder
+    members = set()
+    for lib in ('libswarscore.a', 'libswarsfe.a'):
+        if os.path.exists(os.path.join(d, lib)):
+            members.update(subprocess.run([AR, 't', os.path.join(d, lib)], capture_output=True,
+                                          text=True).stdout.split())
     for f in sorted(os.listdir(d)):
+        if members and f not in members:
+            continue
         if re.match(r'libswars(core|fe)_a-', f) and f.endswith('.o'):
             m = module_of(f)
             defs[m], undefs[m] = symbols(os.path.join(d, f))

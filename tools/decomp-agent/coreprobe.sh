@@ -33,7 +33,7 @@ printf '#undef main\nint main(int argc, char **argv) { return 0; }\n' > "$OUT/ma
 
 CXX=$(printf 'print-cxx:\n\t@echo $(CXX) $(LDFLAGS)\n' | make -s -C "$B" -f Makefile -f - print-cxx)
 $CXX -o "$OUT/coreprobe.exe" "$OUT/main.o" "$OUT/swfe_null.o" $OBJS \
-    -L"$REPO/build/$BUILD/lib" -lswrender -lbullfrog -Wl,-Map="$OUT/coreprobe.map" \
+    -L"$REPO/build/$BUILD/lib" -lswworld -lbullfrog -Wl,-Map="$OUT/coreprobe.map" \
     > "$OUT/link.log" 2>&1
 
 grep -o "undefined reference to \`[^']*'" "$OUT/link.log" | sed "s/undefined reference to \`//; s/'$//" \
@@ -42,9 +42,9 @@ grep -o "undefined reference to \`[^']*'" "$OUT/link.log" | sed "s/undefined ref
 awk '/^Archive member included/{f=1;next} /^Discarded|^Allocating|^Memory map/{f=0} f' "$OUT/coreprobe.map" \
     | awk 'NF==1 && /\(/ {m=$1; next} NF>=2 && m!="" {print m" <- "$1" "$2; m=""}' \
     | sed -E 's/^[^ ]*\/(lib[a-z]+)\.a\([a-z]+_a-([^)]*)\.o\)/\1:\2/; s/ [^ ]*\/(lib[a-z]+\.a\()?(lib[a-z]+_a-)?([^/ ]*\.o)\)?/ \3/' \
-    | grep "^lib\(bullfrog\|swrender\)" | sort > "$OUT/members.txt"
+    | grep "^lib\(bullfrog\|swworld\|swrender\)" | sort > "$OUT/members.txt"
 
 echo "core objects: $(echo $MODS | wc -w)"
 echo "undefined: $(grep -vc '^SDL_' "$OUT/undefined.txt") game symbols, $(grep -c '^SDL_' "$OUT/undefined.txt") SDL symbols"
 grep -v '^SDL_' "$OUT/undefined.txt" | sed 's/^/  /'
-echo "library members pulled: $(grep -c '^libswrender' "$OUT/members.txt") of libswrender, $(grep -c '^libbullfrog' "$OUT/members.txt") of libbullfrog (see $OUT/members.txt)"
+echo "library members pulled: $(grep -c "^libswworld" "$OUT/members.txt") of libswworld, $(grep -c "^libswrender" "$OUT/members.txt") of libswrender (none expected), $(grep -c '^libbullfrog' "$OUT/members.txt") of libbullfrog (see $OUT/members.txt)"

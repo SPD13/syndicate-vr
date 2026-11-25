@@ -49,23 +49,15 @@ const sbyte byte_153014[] = {
 extern s32 dword_176D00;
 extern s32 dword_176D04;
 
-s32 engn_nuclear_shade_timer = 0;
-s32 engn_nuclear_shade_x = 0;
-s32 engn_nuclear_shade_y = 0;
-s32 engn_nuclear_shade_z = 0;
 
 ScreenTriangleRenderCallback screen_position_face_render_cb = NULL;
 
-struct SpecialPoint *game_screen_point_pool = NULL;
 ushort next_screen_point;
 
-struct SingleObjectFace3 *game_special_obj_faces3 = NULL;
 ushort next_special_obj_face3 = 1;
 
-struct SingleObjectFace4 *game_special_obj_faces4 = NULL;
 ushort next_special_obj_face4 = 1;
 
-ubyte engine_render_lights = 0;
 
 TbPixel face_transp_tinted_surface_col = 0;
 TbPixel face_transp_tinted_line_col = 0;
@@ -372,19 +364,6 @@ static uint recalculate_enginepoint_shade_nuclear4(struct PolyPoint *p_pt1,
         p_pt1->S = 0x3F0000;
 
     return p_pt1->S;
-}
-
-void set_nuclear_shade_point(s32 x, s32 y, s32 z)
-{
-    engn_nuclear_shade_x = x;
-    engn_nuclear_shade_y = y;
-    engn_nuclear_shade_z = z;
-    engn_nuclear_shade_timer = 0;
-}
-
-void set_nuclear_shade_timer(u32 tmval)
-{
-    engn_nuclear_shade_timer = tmval;
 }
 
 void set_floor_texture_uv_shade3(ushort face, struct PolyPoint *p_pt1,
