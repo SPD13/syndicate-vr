@@ -1,0 +1,4 @@
+{"columns": 28, "bones": 10, "hood": true, "hood_rim": false, "helmet_z": 0.86, "attach_frac": 0.8, "clearance": -0.01, "margin_top": 0.012,
+ "max_half_width": 0.2, "upper_arm": true, "arm_r": 0.09, "hem": 0.0, "start_angle": 40, "k_centre": 0.04, "flare": 0.5,
+ "pleat_top": 0.0, "pleat_per_col": 0.2,
+ "clip_opts": {"walk": {"leg_calm": 0.8}, "run": {"leg_calm": 0.8}}}

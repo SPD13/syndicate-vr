@@ -19,7 +19,7 @@ Each script documents its usage in its header. Main entry points:
 | `extract_sprites.py`, `prepare_refs.py`, `swdata.py` | read the game sprites and animation tables |
 | `pipeline.py`, `build_character.py` | character: redraw, views, model, rig, clips, weapons, review |
 | `make_clips.py`, `blender_merge_anims.py`, `rebuild_clips.py` | Mixamo clips merged onto every rig |
-| `blender_cape.py` | generated cape on simulated bone chains |
+| `blender_cape2.py` | generated cape for the Church agent (`cape2_zealot.json`) and the High Priest (`cape2_high_priest.json`): cloth simulation against the animated body, baked into bone chains; options in metres are scaled to the model's height |
 | `props.py`, `props.json` | weapons, items and scenery: reference, redraw, model |
 | `blender_attach_weapons.py`, `blender_export_held_weapons.py` | weapons in the right hand, left-hand IK target, runtime weapon GLBs |
 | `inventory_statics.py` | the static (scenery) sprites placed in the maps |
