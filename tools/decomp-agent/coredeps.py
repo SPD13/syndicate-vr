@@ -1,9 +1,11 @@
 """Which front-end symbols do the core objects of libswarscore reference?
 
 Usage: python tools/decomp-agent/coredeps.py <build/harness/src> [--detail module]
-Classifies the library objects into core and front-end groups, reads the
-symbol tables with nm and lists, per front-end group, the symbols the core
-objects use and which core objects use them.
+The core objects are those of libswarscore.a (libswarscore_a-*.o), the
+front end those of libswarsfe.a (libswarsfe_a-*.o), split into the groups
+below; a module in the wrong library is reported. Reads the symbol tables
+with nm and lists, per front-end group, the symbols the core objects use
+and which core objects use them.
 """
 import collections
 import os
@@ -24,13 +26,13 @@ GROUPS = {
     'shell': 'game swapp swmain'.split(),
     'input': 'keyboard mouse plyr_usrinp'.split(),
     'sound': 'sound fmvplay bfsmack smailfile smkdec'.split(),
-    'test': '''difftest difftest_bot difftest_fuzz difftest_hook_misc
+    'test': '''difftest_bot difftest_fuzz difftest_hook_misc
         difftest_hook_people difftest_hook_transport thing_debug pathtrig_debug'''.split(),
 }
 
 
 def module_of(objname):
-    return re.sub(r'^libswarscore_a-', '', objname)[:-2]
+    return re.sub(r'^libswars(core|fe)_a-', '', objname)[:-2]
 
 
 def symbols(path):
@@ -50,15 +52,21 @@ def main():
     detail = sys.argv[sys.argv.index('--detail') + 1] if '--detail' in sys.argv else None
     group_of = {m: g for g, ms in GROUPS.items() for m in ms}
     defs, undefs = {}, {}
+    core = []
     for f in sorted(os.listdir(d)):
-        if f.startswith('libswarscore_a-') and f.endswith('.o'):
+        if re.match(r'libswars(core|fe)_a-', f) and f.endswith('.o'):
             m = module_of(f)
             defs[m], undefs[m] = symbols(os.path.join(d, f))
+            in_core = f.startswith('libswarscore_a-')
+            if in_core:
+                core.append(m)
+            if in_core == (m in group_of):
+                print('warning: %s is in %s but %s' % (m, 'libswarscore' if in_core else 'libswarsfe',
+                      'in group ' + group_of[m] if in_core else 'in no front-end group'))
     owner = {}
     for m, ds in defs.items():
         for s in ds:
             owner[s] = m
-    core = [m for m in defs if m not in group_of]
     print('core modules (%d): %s' % (len(core), ' '.join(sorted(core))))
     per_group = collections.defaultdict(lambda: collections.defaultdict(set))
     for m in core:

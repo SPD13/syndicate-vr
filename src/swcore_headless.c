@@ -19,6 +19,10 @@
  *     "--status" also prints "# turn N status S" when the mission status
  *         changes;
  *     "--world" also prints a summary of the world every 100 turns.
+ *     Built with SWCORE_CORE_ONLY (swcore_coreonly), it runs the game core
+ *     alone: swcore_core_init() with the mission of "-m campaign,mission",
+ *     and always the core turn; of the game's options it reads only that
+ *     and "--original-bugs"/"--fix-bugs".
  *     Use SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy for no window.
  * @author   SyndicateVR decomp agent
  * @date     23 Nov 2026 - 23 Nov 2026
@@ -109,13 +113,50 @@ int main(int argc, char **argv)
             break;
         }
     }
+#if SWCORE_CORE_ONLY
+    // the game core alone: the game's options that matter here are
+    // "-m campaign,mission" and "--original-bugs"/"--fix-bugs"
+    {
+        unsigned campaign = 0, mission = 0;
+        int i, have_mission = 0;
+
+        for (i = 1; i < argc; i++)
+        {
+            if ((strcmp(argv[i], "-m") == 0) && (i + 1 < argc)) {
+                have_mission = (sscanf(argv[i + 1], "%u,%u", &campaign, &mission) == 2);
+                i++;
+            } else if (strcmp(argv[i], "--original-bugs") == 0) {
+                if (!set_fixes)
+                    swcore_set_fixes(0);
+            } else if (strcmp(argv[i], "--fix-bugs") == 0) {
+                if (!set_fixes)
+                    swcore_set_fixes(SWCORE_FIXES_DEFAULT);
+            }
+        }
+        if (!have_mission) {
+            fprintf(stderr, "%s: needs \"-m campaign,mission\"\n", argv[0]);
+            return 2;
+        }
+        if (set_fixes)
+            swcore_set_fixes(fixes);
+        if (swcore_core_init(campaign, mission) != 0)
+            return 1;
+        core_turn = 1;
+        (void)no_draw;
+    }
+#else
     if (swcore_init(argc, argv) != 0)
         return 1;
     if (no_draw)
         swcore_set_world_drawing(0);
     if (set_fixes)
         swcore_set_fixes(fixes);
+#endif
+#if SWCORE_CORE_ONLY
+    while (swcore_core_step())
+#else
     while (core_turn ? swcore_core_step() : swcore_step())
+#endif
     {
         struct SwcWorldInfo info;
 
@@ -133,7 +174,11 @@ int main(int argc, char **argv)
         if ((turns != 0) && (done >= turns))
             break;
     }
+#if SWCORE_CORE_ONLY
+    swcore_core_shutdown();
+#else
     swcore_shutdown();
+#endif
     return 0;
 }
 /******************************************************************************/

@@ -237,14 +237,6 @@ void SCANNER_init_people_colours(void)
     SCANNER_people_colours[SubTT_PERS_LETH_JACKT_M] = SCANNER_people_colours[SubTT_PERS_BRIEFCASE_M];
 }
 
-void SCANNER_init(void)
-{
-    LowTransGrey_InitPaletteBright();
-    SCANNER_init_bbpoints();
-    LowTransGrey_InitBrightLimitTable();
-    SCANNER_init_people_colours();
-}
-
 void SCANNER_set_colours(struct PanelStyle *p_style)
 {
     TbPixel bcol1;

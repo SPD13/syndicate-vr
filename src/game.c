@@ -178,6 +178,7 @@
 #include "weapon.h"
 #include "wrcities.h"
 #include "game_camera.h"
+#include "game_coreinit.h"
 #include "game_turn.h"
 #include "game_world.h"
 
@@ -221,7 +222,6 @@ extern char *fadedat_fname;
 
 TbPixel linear_vec_pal[PALETTE_8b_COLORS];
 
-int data_1c8428;
 
 extern s32 dword_152E38[5]; // = {-1, -1, -1, -1, -1,};
 
@@ -310,14 +310,10 @@ struct TbLoadFiles missionspr_load_files[] =
   { "data/pop2-3.tab",	(void **)&pop1_sprites,		(void **)&pop1_sprites_end, 0, 0, 0 },
   { "data/mspr-0.dat",	(void **)&m_sprites_data,	(void **)&m_sprites_data_end,0, 0, 0 },
   { "data/mspr-0.tab",	(void **)&m_sprites,		(void **)&m_sprites_end,	0, 0, 0 },
-  { "data/mele-0.ani",	(void **)&melement_ani,		(void **)&mele_ani_end,		0, 0, 0 },
-  { "data/nsta-0.ani",	(void **)&nstart_ani,		(void **)&nstart_ani_end,	0, 0, 0 },
-  { "data/nfra-0.ani",	(void **)&frame,			(void **)&frame_end,		0, 0, 0 },
   { "data/fontc0-7.dat",(void **)&small_font_data,	(void **)&small_font_data_end,0, 0, 0 },
   { "data/fontc0-7.tab",(void **)&small_font,		(void **)&small_font_end,	0, 0, 0 },
   { "data/pointr0-3.dat",(void **)&pointer_data,	(void **)&pointer_data_end,	0, 0, 0 },
   { "data/pointr0-3.tab",(void **)&pointer_sprites,	(void **)&pointer_sprites_end, 0, 0, 0 },
-  { "qdata/pal.pal",	(void **)&display_palette,	(void **)NULL,				0, 0, 0 },
   { "",					(void **)NULL, 				(void **)NULL,				0, 0, 0 }
 };
 
@@ -365,20 +361,6 @@ void game_handle_sdl_events(void)
     }
 }
 
-int existing_texturemaps(void)
-{
-    char locstr[DISKPATH_SIZE];
-    int i;
-
-    for (i = 0; ; i++)
-    {
-        sprintf(locstr, "data/tex%02d.dat", i);
-        if (!LbFileExists(locstr))
-          break;
-    }
-    return i;
-}
-
 int reload_texturemaps(void)
 {
     char locstr[DISKPATH_SIZE];
@@ -410,90 +392,6 @@ void load_texturemaps(void)
 void test_open(int num)
 {
     // Empty for production version
-}
-
-void load_prim_quad(void)
-{
-    unkn2_pos_x = 64;
-    unkn2_pos_y = 64;
-    unkn2_pos_z = 64;
-    data_1c8428 = 0;
-    prim_unknprop01 = 1000;
-    read_primveh_obj(primvehobj_fname, 1);
-    read_textwalk();
-    engine_render_lights = 1;
-    ingame.DisplayMode = DpM_PURPLEMNU;
-    if (cmdln_param_bcg == 99)
-        test_open(99);
-    if (cmdln_param_bcg == 100)
-        test_open(100);
-}
-
-static DIFFTEST_REF_FUNC void bang_set_detail_asm(int a1)
-{
-    DIFFTEST_ASM("call ASM_bang_set_detail\n"
-        : : "a" (a1));
-}
-
-/** Set explosion detail parameters; detail=0 high detail, detail=1 low detail.
- */
-void bang_set_detail(int detail)
-{
-    DIFFTEST_SHADOW(bang_set_detail, bang_set_detail_asm(detail));
-    if (detail == 0)
-    {
-        bangdetail.circle[0].dangle = 0x200;
-        bangdetail.circle[0].babynumber = 4;
-        bangdetail.circle[1].dangle = 0xe3;
-        bangdetail.circle[1].babynumber = 9;
-        bangdetail.circle[2].dangle = 0x78;
-        bangdetail.circle[2].babynumber = 0x11;
-        bangdetail.circle[3].dangle = 0x46;
-        bangdetail.circle[3].babynumber = 0x1d;
-        bangdetail.sphere[0].babynumber = 3;
-        bangdetail.sphere[0].babyshift = 2;
-        bangdetail.sphere[0].dangley = 0x100;
-        bangdetail.sphere[1].babynumber = 5;
-        bangdetail.sphere[1].babyshift = 4;
-        bangdetail.sphere[1].dangley = 0x80;
-        bangdetail.sphere[2].babyshift = 4;
-        bangdetail.sphere[2].dangley = 0x80;
-        bangdetail.sphere[3].babyshift = 5;
-        bangdetail.sphere[2].babynumber = 8;
-        bangdetail.sphere[3].babynumber = 0xd;
-        bangdetail.sphere[3].dangley = 0x66;
-        bangdetail.mask = 1;
-        minimum_explode_and = 0x1f;
-        minimum_explode_depth = 1;
-        minimum_explode_size = 0x1bc;
-    }
-    else if (detail == 1)
-    {
-        bangdetail.circle[0].dangle = 0x2aa;
-        bangdetail.circle[0].babynumber = 3;
-        bangdetail.circle[1].dangle = 0x199;
-        bangdetail.circle[1].babynumber = 5;
-        bangdetail.circle[2].dangle = 0xba;
-        bangdetail.circle[2].babynumber = 0xb;
-        bangdetail.circle[3].dangle = 0x78;
-        bangdetail.sphere[0].babynumber = 3;
-        bangdetail.sphere[1].babynumber = 3;
-        bangdetail.circle[3].babynumber = 0x11;
-        bangdetail.sphere[0].babyshift = 2;
-        bangdetail.sphere[0].dangley = 0x100;
-        bangdetail.sphere[1].babyshift = 2;
-        bangdetail.sphere[1].dangley = 0x100;
-        bangdetail.sphere[2].babyshift = 4;
-        bangdetail.sphere[3].babyshift = 4;
-        bangdetail.mask = 3;
-        bangdetail.sphere[2].babynumber = 5;
-        bangdetail.sphere[2].dangley = 0x80;
-        bangdetail.sphere[3].babynumber = 8;
-        bangdetail.sphere[3].dangley = 0x80;
-        minimum_explode_and = 0xf;
-        minimum_explode_size = 0x457;
-        minimum_explode_depth = 2;
-    }
 }
 
 /** Remains of some Bf debug stuff.
@@ -636,8 +534,6 @@ TbBool adjust_mission_engine_to_video_mode(void)
 
     ret = true;
     game_high_resolution = (lbDisplay.ScreenMode == screen_mode_game_hi);
-    // Set scale 15% over the min, to create a nice pan effect
-    overall_scale = (get_overall_scale_min() * 295) >> 8;
 
     // loads sprites for the panel, but also panel config file, and stretches to actual resolution
     if (load_pop_sprites_for_current_mode() == Lb_FAIL)
@@ -647,8 +543,8 @@ TbBool adjust_mission_engine_to_video_mode(void)
     if (load_small_font_for_current_ingame_mode() == Lb_FAIL)
         ret = false;
 
-    render_area_a = render_area_b = \
-      get_render_area_for_zoom(user_zoom_min);
+    // the camera scale and the view area, from the screen size
+    game_core_view_setup();
     init_scanner_colour();
     srm_scanner_size_update();
 
@@ -939,11 +835,8 @@ TbBool setup_host(void)
         LOGERR("Load small font sprites failed.");
         ret = false;
     }
-    if (init_memory(mem_game) == Lb_FAIL) {
-        LOGERR("Init memory failed.");
+    if (!game_core_setup_memory())
         ret = false;
-    }
-    propagate_memory_sizes();
 
     init_syndwars();
     LoadSounds(0);
@@ -963,19 +856,10 @@ void init_engine(void)
 
     calc_bul_offsets();
 
-    engn_xc = TILE_TO_MAPCOORD(60, 128);
-    engn_zc = TILE_TO_MAPCOORD(55, 128);
-    engn_yc = 0;
-    ingame.TrackX = engn_xc;
-    ingame.TrackZ = engn_zc;
-#if 0 // delete pending - no need to set those earlier
-    drwfloor_start_cor_x = (engn_xc & 0xFF00) - (render_area_a << 7);
-    drwfloor_start_cor_z = (engn_zc & 0xFF00) - (render_area_b << 7);
-#endif
-    ingame.NextRocket = 0;
+    // the starting camera, the next rocket and the game flags this set
+    // are set by game_core_setup_world()
     setup_vecs(lbDisplay.WScreen, vec_tmap[0], lbDisplay.PhysicalScreenWidth,
       lbDisplay.PhysicalScreenWidth, lbDisplay.PhysicalScreenHeight);
-    ingame.Flags |= GamF_HUDPanel | TngF_ProgressAction | GamF_RenderScene;
 }
 
 
@@ -1023,8 +907,7 @@ void init_random_seed(void)
 
 void prep_single_mission(void)
 {
-    load_missions(background_type);
-    load_objectives_text();
+    game_core_mission_load();
     if (PacketRecord_IsPlayback())
     {
         PacketRecord_OpenRead();
@@ -1035,8 +918,7 @@ void prep_single_mission(void)
     {
         packet_read_whole_player_init();
     }
-    init_game(0);
-    preprogress_game_turns();
+    game_core_mission_init();
     if (!in_network_game)
     {
         if (PacketRecord_IsRecord()) {
@@ -1175,28 +1057,14 @@ TbBool game_setup(void)
 {
     TbBool ret;
 
-    ret = true;
-    engine_mem_alloc_ptr = LbMemoryAlloc(engine_mem_alloc_size);
-    if (engine_mem_alloc_ptr == NULL) {
-        LOGERR("Allocating engine memory failed.");
-        ret = false;
-    }
+    // the core's steps (game_coreinit.c) are game_core_setup_data(),
+    // game_core_setup_memory() in setup_host() and game_core_setup_world()
+    ret = game_core_setup_data();
     load_texturemaps();
     if (LbDataLoadAll(missionspr_load_files) != 0) {
         LOGERR("Initial loading of mission sprite files failed.");
         ret = false;
     }
-    if (!read_rules_file()) {
-        LOGERR("Rules config file loading failed.");
-        ret = false;
-    }
-    read_weapons_conf_file();
-    read_cybmods_conf_file();
-    bang_init();
-    init_object_explode_faces();
-    init_search_spiral();
-    bang_set_detail(0);
-    FIRE_init();
     ingame.draw_unknprop_01 = 0;
     debug_trace_setup(-5);
     if (!game_setup_stuff()) {
@@ -1212,18 +1080,9 @@ TbBool game_setup(void)
     debug_trace_setup(-4);
     read_user_settings();
     debug_trace_setup(-3);
-    setup_color_lookups();
-    init_things();
-    debug_trace_setup(-2);
     setup_sprites_small_font();
-    load_peep_type_stats();
-    load_campaigns();
-    player_mission_agents_toggle_reset(local_player_no);
-    debug_trace_setup(-1);
-    if ( is_single_game || cmdln_param_bcg )
-    {
-        load_prim_quad();
-    }
+    debug_trace_setup(-2);
+    game_core_setup_world();
     debug_trace_setup(0);
     init_engine();
     if ( !cmdln_param_bcg )
@@ -4578,6 +4437,7 @@ void game_reset(void)
     host_reset();
     free_texturemaps();
     LbDataFreeAll(missionspr_load_files);
+    game_core_free_data();
 }
 
 /******************************************************************************/

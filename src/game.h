@@ -220,7 +220,6 @@ void check_mouse_overvehicle(struct Thing *p_thing, ubyte target_assign);
 
 void update_map_thing_and_traffic_refs(void);
 void unkn_lights_processing(void);
-void bang_set_detail(int detail);
 
 void ingame_palette_reload(void);
 void game_set_cam_track_thing_xz(ThingIdx thing);

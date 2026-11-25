@@ -27,11 +27,6 @@
 #include "app_sprite.h"
 #include "swlog.h"
 
-#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
-/* Variables of the asm data (swars_data.c), for builds without the asm;
- * difftest builds take the byte layout of the asm from that file. */
-ubyte low_trans_grey_bright_limit[256];
-#endif /* typed asm data */
 /******************************************************************************/
 
 void ApScreenSetRect(TbPixel *destBuf, TbPixel px,

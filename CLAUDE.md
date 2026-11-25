@@ -93,10 +93,14 @@ lack clobber lists and break under optimisation.
 
 ## Game library (since 2026-11-23)
 
-- The game is `src/libswarscore.a` with the interface `src/swcore.h`
-  (see `docs/swcore.md`). `syndwarsfx` is `src/swmain.c` plus the whole
-  library; `swcore_headless` is a test front end (builds without asm).
-  New game sources go into `libswarscore_a_SOURCES` in `src/Makefile.am`.
+- The game is `src/libswarscore.a` (the game core) with the interface
+  `src/swcore.h` (see `docs/swcore.md`), and `src/libswarsfe.a` (the
+  desktop front end: display, input, renderer's game side, menus, sound,
+  `swapp.c`, test hooks). `syndwarsfx` is `src/swmain.c` plus both
+  libraries; `swcore_headless` is a test front end, `swcore_coreonly` the
+  same on the core alone with `swfe_null.c` (builds without asm). New game
+  sources go into `libswarscore_a_SOURCES` in `src/Makefile.am`, front-end
+  ones into `libswarsfe_a_SOURCES` (and their group in `coredeps.py`).
 - The direction: one C core, front ends per target (SDL desktop, VR,
   mobile), solo play only. Keep `swcore.h` free of game headers
   (`<stdint.h>` types only) and add to it, don't change it
@@ -114,9 +118,15 @@ lack clobber lists and break under optimisation.
 - Core code (every object `coredeps.py` puts in no front-end group) calls
   the front end only through `src/swfe.h`, sound included (never the
   sound library directly); new services go there and in `swfe_null.c`.
-  `swapp.c` (options, config, the main loop) is front end.
-  `tools/decomp-agent/coreprobe.sh` links the core alone and lists what it
-  still misses.
+  `swapp.c` (options, config, the main loop) is front end. A service must
+  not change game state (`stop_looped_weapon_sample()` did: it cleared a
+  flag the rules read). `tools/decomp-agent/coreprobe.sh` links the core
+  objects alone and lists what they pull from `libswrender`/`libbullfrog`.
+- The core's setup steps are in `src/game_coreinit.c`; `game_setup()` and
+  `prep_single_mission()` call them between the desktop's steps, and
+  `swcore_core_init()` in a row. `python tools/decomp-agent/coreturn_compare.py
+  harness --jobs 2 --core-only` checks that `swcore_coreonly` plays as the
+  desktop (scenarios without test hooks).
 - `game_core_turn()` (`src/game_turn.c`, `swcore_core_step()`) is a mission
   turn without input devices, screens or drawing; it must play the same
   game as the desktop turn: `python tools/decomp-agent/coreturn_compare.py

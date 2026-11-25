@@ -2,6 +2,7 @@
 
 Usage: python tools/decomp-agent/coreturn_compare.py [build] [--jobs N]
        [--turns N] [--scenarios "0,1 1,2"] [--outdir build/coreturn]
+       [--core-only]
 Runs swcore_headless on the scenarios (by default the 52 of statetrace.sh,
 with the bot's commands and the test hooks) twice:
 with the desktop turn and the world not drawn (--no-draw), and with the
@@ -9,6 +10,11 @@ core turn (--core-turn), both with the default fixes of original bugs
 (--fixes 1). Their state hashes of every turn must be equal until the
 desktop run decides the mission (the core turn does not play the mission's
 end); the hashes after that turn are not compared.
+
+With --core-only, the core turn runs in swcore_coreonly, the program on the
+game core alone (swcore_core_init(), null front end), so the mission setup
+is the core's too. It has no test hooks: by default only the scenarios
+without them (no "+" suffix).
 """
 import argparse
 import os
@@ -51,13 +57,17 @@ def main():
     ap.add_argument('--turns', type=int, default=1500)
     ap.add_argument('--scenarios', default=None)
     ap.add_argument('--outdir', default=os.path.join('build', 'coreturn'))
+    ap.add_argument('--core-only', action='store_true')
     a = ap.parse_args()
     if a.scenarios is None:
         a.scenarios = trace_scenarios()
+        if a.core_only:
+            a.scenarios = ' '.join(sc for sc in a.scenarios.split() if '+' not in sc)
     base = os.path.join(REPO, a.outdir)
-    runs = {'desktop': '--no-draw', 'core': '--core-turn'}
-    for name, arg in runs.items():
-        env = dict(os.environ, SWARS_TRACE_EXE='swcore_headless',
+    runs = {'desktop': ('swcore_headless', '--no-draw'),
+            'core': ('swcore_coreonly' if a.core_only else 'swcore_headless', '--core-turn')}
+    for name, (exe, arg) in runs.items():
+        env = dict(os.environ, SWARS_TRACE_EXE=exe,
                    SWARS_TRACE_EXE_ARGS='%s --status --fixes 1 --turns %d' % (arg, a.turns))
         subprocess.run([sys.executable, 'tools/decomp-agent/statetrace_win_par.py', a.build,
                         os.path.join(base, name), '--jobs', str(a.jobs), '--no-compare',

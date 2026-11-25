@@ -107,7 +107,7 @@ void water_droplets_on_floor(void)
         case 0:
             k = word_1A7330[i];
             tmap = vec_tmap[0];
-            if (k != 0) {
+            if ((k != 0) && (tmap != NULL)) {
                 tmap[k] = byte_1A7B00[i];
             }
             n = k >> 3;
@@ -119,23 +119,26 @@ void water_droplets_on_floor(void)
                 ubyte colA;
 
                 word_1A7330[i] = k;
-                colA = tmap[k];
+                // the game turns draw the random numbers with no texture
+                // loaded too (a front end without this renderer)
+                colA = (tmap != NULL) ? tmap[k] : 0;
                 byte_1A7B00[i] = colA;
-                tmap[k] = pixmap.fade_table[0x3200 + colA];
+                if (tmap != NULL)
+                    tmap[k] = pixmap.fade_table[0x3200 + colA];
                 byte_1A7EE8[n] |= 1 << (n & 7);
             }
             break;
         case 1:
             k = word_1A7330[i];
             tmap = vec_tmap[0];
-            if (k != 0) {
+            if ((k != 0) && (tmap != NULL)) {
                 tmap[k] = lbDisplay.GlassMap[256 * byte_1A7B00[i] + tmap[k]];
             }
             break;
         case 2:
             k = word_1A7330[i];
             tmap = vec_tmap[0];
-            if (k != 0) {
+            if ((k != 0) && (tmap != NULL)) {
                 tmap[k] = lbDisplay.GlassMap[256 * byte_1A7B00[i] + tmap[k]];
             }
             break;
@@ -152,6 +155,8 @@ void scene_post_effect_texture_with_snow(void)
         ushort pos;
         ubyte *ptr;
         pos = LbRandomAnyShort() + (render_anim_turn >> (RENDER_ANIM_TURN_SHIFT + 2));
+        if (vec_tmap[0] == NULL)
+            continue;
         ptr = vec_tmap[0] + pos;
         *ptr = pixmap.fade_table[40*PALETTE_8b_COLORS + *ptr];
     }

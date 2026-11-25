@@ -3041,4 +3041,12 @@ ubyte check_panel_button(void)
     return did_inp;
 }
 
+void SCANNER_init(void)
+{
+    LowTransGrey_InitPaletteBright();
+    SCANNER_init_bbpoints();
+    LowTransGrey_InitBrightLimitTable();
+    SCANNER_init_people_colours();
+}
+
 /******************************************************************************/

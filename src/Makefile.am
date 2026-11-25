@@ -5,16 +5,17 @@ MKW = $(PYTHON) $(top_srcdir)/util/mkwrappers
 
 # The game is a library, libswarscore (interface: swcore.h), which front
 # ends link; syndwarsfx is the SDL desktop front end, its main() only runs
-# the library turn by turn.
-noinst_LIBRARIES = libswarscore.a
+# the library turn by turn. libswarscore holds the game core, which calls
+# a front end only through swfe.h; libswarsfe holds the desktop front end
+# (display, input, renderer's game side, menus, sound, the application).
+# The two reference each other, so programs link them as a group.
+noinst_LIBRARIES = libswarscore.a libswarsfe.a
 
 syndwarsfx_SOURCES = \
 	swcore.h \
 	swmain.c
 
 libswarscore_a_SOURCES = \
-	bflib_vidraw.c \
-	bflib_vidraw.h \
 	../bfariadne/include/trfringe.h \
 	../bfariadne/src/trfringe.c \
 	../bfariadne/include/triangls.h \
@@ -30,13 +31,8 @@ libswarscore_a_SOURCES = \
 	../bfariadne/include/trstate.h \
 	../bfariadne/src/delaunay.c \
 	../bfariadne/include/delaunay.h \
-	../bfsmacklib/include/bfsmack.h \
-	../bfsmacklib/src/bfsmack.c \
 	../bfsmacklib/include/smack.h \
 	../bfsmacklib/include/smack2ail.h \
-	../bfsmacklib/src/smailfile.c \
-	../bfsmacklib/include/smkdec.h \
-	../bfsmacklib/src/smkdec.c \
 	config.h \
 	bmbang.c \
 	bmbang.h \
@@ -56,19 +52,114 @@ libswarscore_a_SOURCES = \
 	crtrand.h \
 	cybmod.c \
 	cybmod.h \
+	difftest.c \
+	difftest.h \
+	dos.c \
+	dos.h \
+	game_camera.c \
+	game_camera.h \
+	game_coreinit.c \
+	game_coreinit.h \
+	game_turn.c \
+	game_turn.h \
+	game_world.c \
+	game_world.h \
+	game_state.c \
+	swfe.h \
+	game_bstype.h \
+	game_data.c \
+	game_data.h \
+	game_speed.c \
+	game_speed.h \
+	lvobjctv.c \
+	lvobjctv.h \
+	lvfiles.c \
+	lvfiles.h \
+	lvwalk.c \
+	lvwalk.h \
+	matrix.c \
+	matrix.h \
+	misstat.c \
+	misstat.h \
+	network.c \
+	network.h \
+	pathtrig.c \
+	pathtrig.h \
+	packet.c \
+	packet.h \
+	people.c \
+	people.h \
+	pepgroup.c \
+	pepgroup.h \
+	player.c \
+	player.h \
+	plyr_net.c \
+	plyr_net.h \
+	plyr_packet.c \
+	plyr_packet.h \
+	plyr_usrstate.c \
+	research.c \
+	research.h \
+	rules.c \
+	rules.h \
+	scanner.c \
+	scanner.h \
+	swcore.c \
+	swcore.h \
+	swcore_game.h \
+	swcore_world.c \
+	swlog.h \
+	thing.c \
+	thing.h \
+	thing_expld.c \
+	thing_expld.h \
+	thing_search.c \
+	thing_search.h \
+	thing_fire.c \
+	thing_fire.h \
+	thing_onface.h \
+	thing_onface.c \
+	thing_view.c \
+	thing_view.h \
+	tngcolisn.c \
+	tngcolisn.h \
+	osunix.c \
+	osunix.h \
+	util.c \
+	util.h \
+	vehicle.c \
+	vehicle.h \
+	vehtraffic.c \
+	vehtraffic.h \
+	wadfile.c \
+	wadfile.h \
+	weapon.c \
+	weapon.h \
+	oswindws.c \
+	oswindws.h \
+	wrcities.c \
+	wrcities.h
+
+# The desktop front end: the SDL display, input, the software
+# renderer's game side, menus, sound and the application shell
+# (swapp.c); test hooks too. The core calls it only through swfe.h.
+libswarsfe_a_SOURCES = \
+	bflib_vidraw.c \
+	bflib_vidraw.h \
+	../bfsmacklib/include/bfsmack.h \
+	../bfsmacklib/src/bfsmack.c \
+	../bfsmacklib/src/smailfile.c \
+	../bfsmacklib/include/smkdec.h \
+	../bfsmacklib/src/smkdec.c \
 	devcreds.c \
 	devcreds.h \
 	display.c \
 	display.h \
-	difftest.c \
-	difftest.h \
 	difftest_bot.c \
 	difftest_fuzz.c \
 	difftest_hook_misc.c \
 	difftest_hook_people.c \
 	difftest_hook_transport.c \
-	dos.c \
-	dos.h \
 	drawtext_wrp.c \
 	drawtext_wrp.h \
 	embedanim.c \
@@ -120,23 +211,10 @@ libswarscore_a_SOURCES = \
 	guitext.c \
 	guitext.h \
 	game.c \
-	game_camera.c \
-	game_camera.h \
-	game_turn.c \
-	game_turn.h \
-	game_world.c \
-	game_world.h \
-	game_state.c \
-	swfe.h \
-	game_bstype.h \
-	game_data.c \
-	game_data.h \
 	game_options.c \
 	game_options.h \
 	game_save.c \
 	game_save.h \
-	game_speed.c \
-	game_speed.h \
 	game_sprts.c \
 	game_sprts.h \
 	game.h \
@@ -152,52 +230,19 @@ libswarscore_a_SOURCES = \
 	keyboard.h \
 	lvdraw3d.c \
 	lvdraw3d.h \
-	lvobjctv.c \
-	lvobjctv.h \
-	lvfiles.c \
-	lvfiles.h \
-	lvwalk.c \
-	lvwalk.h \
-	matrix.c \
-	matrix.h \
-	misstat.c \
-	misstat.h \
 	mouse.c \
 	mouse.h \
 	mydraw.c \
 	mydraw.h \
-	network.c \
-	network.h \
-	pathtrig.c \
 	pathtrig_debug.c \
-	pathtrig.h \
-	packet.c \
-	packet.h \
 	packetfe.c \
 	packetfe.h \
-	people.c \
-	people.h \
-	pepgroup.c \
-	pepgroup.h \
-	player.c \
-	player.h \
-	plyr_net.c \
-	plyr_net.h \
-	plyr_packet.c \
-	plyr_packet.h \
 	plyr_usrinp.c \
 	plyr_usrinp.h \
-	plyr_usrstate.c \
 	purpldrw.c \
 	purpldrw.h \
 	purpldrwlst.c \
 	purpldrwlst.h \
-	research.c \
-	research.h \
-	rules.c \
-	rules.h \
-	scanner.c \
-	scanner.h \
 	scandraw.c \
 	scandraw.h \
 	sound.c \
@@ -205,52 +250,18 @@ libswarscore_a_SOURCES = \
 	specblit.c \
 	specblit.h \
 	swapp.c \
-	swcore.c \
-	swcore.h \
-	swcore_game.h \
-	swcore_world.c \
-	swlog.h \
-	thing.c \
-	thing.h \
-	thing_expld.c \
-	thing_expld.h \
-	thing_search.c \
-	thing_search.h \
-	thing_fire.c \
-	thing_fire.h \
 	thing_debug.c \
-	thing_onface.h \
-	thing_onface.c \
-	thing_view.c \
-	thing_view.h \
 	thing_ovmous.h \
 	thing_ovmous.c \
-	tngcolisn.c \
-	tngcolisn.h \
 	tngobjdrw.c \
-	tngobjdrw.h \
-	osunix.c \
-	osunix.h \
-	util.c \
-	util.h \
-	vehicle.c \
-	vehicle.h \
-	vehtraffic.c \
-	vehtraffic.h \
-	wadfile.c \
-	wadfile.h \
-	weapon.c \
-	weapon.h \
-	oswindws.c \
-	oswindws.h \
-	wrcities.c \
-	wrcities.h
+	tngobjdrw.h
 
 libswarscore_a_CPPFLAGS = \
   -I"$(top_srcdir)/bfsmacklib/include" \
   -I"$(top_srcdir)/swrendersoft/include" \
   -I"$(top_srcdir)/bfariadne/include"
 
+libswarsfe_a_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
 syndwarsfx_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
 
 # Watcom-to-C wrappers (ac_*) are called only from asm, which builds
@@ -320,25 +331,38 @@ nodist_EXTRA_syndwarsfx_SOURCES = dummy.cxx
 # Libraries included with the project
 syndwarsfx_PROJECT_LIBS = ../lib/libbullfrog.a ../lib/libbfsound.a ../lib/libswrender.a
 
-$(libswarscore_a_OBJECTS) $(syndwarsfx_OBJECTS) $(bin_PROGRAMS): $(syndwarsfx_PROJECT_LIBS)
+$(libswarscore_a_OBJECTS) $(libswarsfe_a_OBJECTS) $(syndwarsfx_OBJECTS) $(bin_PROGRAMS): $(syndwarsfx_PROJECT_LIBS)
 
-# The whole library goes in, as when its objects were linked directly: the
-# asm reference and the wrappers reach functions nothing else references
-syndwarsfx_LDFLAGS = -Wl,--whole-archive libswarscore.a -Wl,--no-whole-archive
+# The whole libraries go in, as when their objects were linked directly:
+# the asm reference and the wrappers reach functions nothing else references
+syndwarsfx_LDFLAGS = -Wl,--whole-archive libswarscore.a libswarsfe.a -Wl,--no-whole-archive
 syndwarsfx_LDADD = \
   $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS)
-syndwarsfx_DEPENDENCIES = libswarscore.a \
+syndwarsfx_DEPENDENCIES = libswarscore.a libswarsfe.a \
   $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS)
 
-# A minimal front end for tests: links the library as any front end does,
-# and prints the state hash of every turn (swcore_headless.c). Builds with
-# asm have the wrappers outside the library, so only builds without asm.
+# Test front ends; builds with asm have the wrappers outside the libraries,
+# so only builds without asm.
+# swcore_headless links the libraries as any front end does, and prints
+# the state hash of every turn (swcore_headless.c).
+# swcore_coreonly is the same program on the game core alone, with the
+# null front end (swfe_null.c): no display, input, sound or menus; it
+# starts a mission with swcore_core_init() and plays it with
+# swcore_core_step().
 if !ASM_WRAPPERS
-noinst_PROGRAMS = swcore_headless
+noinst_PROGRAMS = swcore_headless swcore_coreonly
 swcore_headless_SOURCES = swcore.h swcore_headless.c
 nodist_EXTRA_swcore_headless_SOURCES = dummy.cxx
-swcore_headless_LDADD = libswarscore.a
+# (whole, as syndwarsfx: the two libraries reference each other)
+swcore_headless_LDFLAGS = $(syndwarsfx_LDFLAGS)
+swcore_headless_DEPENDENCIES = libswarscore.a libswarsfe.a
 $(swcore_headless_OBJECTS): $(syndwarsfx_PROJECT_LIBS)
+swcore_coreonly_SOURCES = swcore.h swcore_headless.c swfe.h swfe_null.c
+swcore_coreonly_CPPFLAGS = $(libswarscore_a_CPPFLAGS) -DSWCORE_CORE_ONLY=1
+nodist_EXTRA_swcore_coreonly_SOURCES = dummy.cxx
+swcore_coreonly_LDADD = libswarscore.a
+swcore_coreonly_DEPENDENCIES = libswarscore.a
+$(swcore_coreonly_OBJECTS): $(syndwarsfx_PROJECT_LIBS)
 endif
 
 ../lib/libbullfrog.a: ../bflibrary/libbullfrog.a

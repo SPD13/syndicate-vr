@@ -109,7 +109,10 @@ extern u32 dword_1DB1A0;
 extern s32 scanner_arrow_mode;
 
 void SCANNER_clear(void);
+/** Sets up the scanner's colours and blips (front end: panels, briefing). */
 void SCANNER_init(void);
+void SCANNER_init_bbpoints(void);
+void SCANNER_init_people_colours(void);
 void SCANNER_fill_in(void);
 void SCANNER_fill_in_a_little_bit(int x1, int y1, int x2, int y2);
 void SCANNER_set_colours(struct PanelStyle *p_style);

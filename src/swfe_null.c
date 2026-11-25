@@ -56,10 +56,6 @@ void stop_sample_using_heap(s32 source_id, u32 sample_number)
 {
 }
 
-void stop_looped_weapon_sample(struct Thing *p_person, short weapon)
-{
-}
-
 void monitor_all_samples(void)
 {
 }

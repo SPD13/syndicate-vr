@@ -41,6 +41,7 @@
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
 #include "game.h"
+#include "game_coreinit.h"
 #include "game_options.h"
 #include "game_speed.h"
 #include "lvobjctv.h"

@@ -99,4 +99,11 @@ TbBool hud_show_target_health = false;
 /* from feequip.c */
 ubyte refresh_equip_list = 0;
 
+/* from specblit.c: a table of libswrender (app_sprite.h), which the
+ * core's links pull in with the HUD drawing lists; builds with the asm
+ * take it from the asm data (swars_data.c) */
+#if !(defined(ENABLE_DIFFTEST) && ENABLE_DIFFTEST)
+ubyte low_trans_grey_bright_limit[256];
+#endif
+
 /******************************************************************************/

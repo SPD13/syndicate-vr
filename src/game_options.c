@@ -17,6 +17,7 @@
  */
 /******************************************************************************/
 #include "game_options.h"
+#include "game_coreinit.h"
 
 #include <assert.h>
 

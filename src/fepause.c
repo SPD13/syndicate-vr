@@ -40,6 +40,7 @@
 #include "game_options.h"
 #include "game_sprts.h"
 #include "game.h"
+#include "game_coreinit.h"
 #include "guiboxes.h"
 #include "guitext.h"
 #include "keyboard.h"

@@ -1,7 +1,8 @@
 # The game library (libswarscore)
 
 Since 2026-11-23 the game is built as a library, `src/libswarscore.a`,
-with a small C interface in `src/swcore.h`. Front ends link it and drive
+with a small C interface in `src/swcore.h`. Since 2026-11-24 the library
+is the game core alone; the desktop front end is `src/libswarsfe.a`. Front ends link it and drive
 the game one turn at a time. The goal is one verified game core for every
 target (desktop, VR, mobile) with a front end per target. Multiplayer is
 out of scope for now: the library is for solo play.
@@ -10,8 +11,8 @@ out of scope for now: the library is for solo play.
 
 - `syndwarsfx` (`src/swmain.c`): the SDL desktop game. Its `main()` only
   calls `swcore_init()`, `swcore_step()` until it returns 0, and
-  `swcore_shutdown()`. It links the whole library (`--whole-archive`), so
-  the executable contains what it contained before.
+  `swcore_shutdown()`. It links both libraries whole (`--whole-archive`),
+  so the executable contains what it contained before.
 - `swcore_headless` (`src/swcore_headless.c`, builds without asm only):
   a test front end that links the library as any front end would. It
   takes the `syndwarsfx` options, reads the world through the interface
@@ -20,8 +21,16 @@ out of scope for now: the library is for solo play.
   with `swcore_core_step()` instead; `--status` prints `# turn N status S`
   when the mission status changes; `--world` prints a summary of the world
   every 100 turns.
+- `swcore_coreonly` (the same source built with `SWCORE_CORE_ONLY`, builds
+  without asm only): the game core alone, linked with `libswarscore.a` and
+  the null front end `src/swfe_null.c`, without the desktop front end
+  (no display, input, sound, menus). It starts the mission of
+  `-m campaign,mission` with `swcore_core_init()` and plays it with
+  `swcore_core_step()`; of the game's options it reads only that and
+  `--original-bugs`/`--fix-bugs`. It still links `libswrender` and
+  `libbullfrog` (SDL), for data and helpers the core takes from them.
 
-## Interface (SWCORE_API_VERSION 2)
+## Interface (SWCORE_API_VERSION 3)
 
 | Function | Does |
 | --- | --- |
@@ -29,6 +38,8 @@ out of scope for now: the library is for solo play.
 | `swcore_step()` | One game turn; 1 while the game runs, 0 once it asked to exit |
 | `swcore_core_step()` | One turn of the game core only, in a mission: no input devices, screens or drawing; 0 outside a mission or once the game asked to exit (API 2) |
 | `swcore_shutdown()` | Frees what the game set up; it cannot be set up again |
+| `swcore_core_init(campaign, mission)` | Instead of `swcore_init()`: sets up the game core alone (data in the current directory, default settings) and starts the mission (API 3) |
+| `swcore_core_shutdown()` | Frees what `swcore_core_init()` set up (API 3) |
 | `swcore_set_world_drawing(on)` | Draws the world in missions or not; the game plays the same |
 | `swcore_game_turn()`, `swcore_state_hash()` | Turn number and the hash the state traces compare |
 | `swcore_world_info()` | Mission status, map, selected agent, camera, objective |
@@ -112,8 +123,11 @@ Tools (on the objects of a `--harness` build):
 
 - `python tools/decomp-agent/coredeps.py build/harness/src [--detail group]`
   lists the front-end symbols (groups render, menus, shell, input, sound,
-  network, test) that core objects reference. Every object not in a group
-  is core.
+  test) that core objects reference. The core objects are those of
+  `libswarscore.a`, the front end those of `libswarsfe.a`
+  (`libswarsfe_a_SOURCES` in `src/Makefile.am`); a module in the wrong
+  library for its group is reported. `difftest.c` is core: the core's
+  `DIFFTEST_*` macros need it.
 - `python tools/decomp-agent/refgraph.py build/harness/src <root>...
   [--stop sym,...] [--why sym]` follows references function by function
   from roots (e.g. `process_things process_packets init_game`); `--why`
@@ -137,10 +151,55 @@ file, screens, the main loop behind `swcore_init()`/`swcore_step()`) is in
 of the interface. The core reaches front-end code only through the
 functions of `swfe.h` (about 370 references before), sound included: it
 does not call the sound library. `swfe_null.c` implements them as nothing
-(no sound playing, no key pressed); with it, the core objects link with
-only two symbols missing (`difftest_skip_turn_wait`, the game speed in test
-runs; `low_trans_grey_bright_limit`, a table of the renderer). The network
-layer stays with the core (no devices; multiplayer is out of scope).
+(no sound playing, no key pressed); with it, the core links alone
+(`swcore_coreonly`). The network layer stays with the core (no devices;
+multiplayer is out of scope).
+
+Setting up the game and a mission: the core's steps are in
+`game_coreinit.c`. The desktop's `game_setup()`, `setup_host()` and
+`prep_single_mission()` call them between their own steps (screen,
+sprites, fonts, sound, user settings, replays), in the order they had:
+`game_core_setup_data()` (engine memory, the animation files, rules and
+config files, explosions, fire), `game_core_setup_memory()` (the game's
+arrays), `game_core_setup_world()` (things, people stats, campaigns,
+vehicle objects, the starting camera), then `game_core_mission_load()`
+(the campaign's missions and texts) and `game_core_mission_init()` (map,
+level, player, the preprocessed turns). `swcore_core_init()` calls them
+in a row, with the option `-m` and the default settings of the core
+(`set_default_player_control()`, the visual preferences), all data in the
+data folder. Found on the way:
+
+- The animation files (`mele-0.ani`, `nsta-0.ani`, `nfra-0.ani`) are game
+  data: people's frames decide the timing of their actions. They are
+  loaded by the core now, not with the sprites.
+- Level loading moved floor and face textures whose atlas page the
+  software renderer had not loaded to page 0 (`fix_map_outranged_properties()`);
+  it now asks the game data how many pages it has
+  (`texturemap_page_exists()`), which gives the same answer.
+- `stop_looped_weapon_sample()` clears the person's flag of a looped
+  weapon sound playing (`TgF2_Unkn0200`), which the game rules read: it was
+  a sound service of the front end, so without one the flag stayed set
+  (mission 1,2 differed from turn 740). It is in the core now (`weapon.c`),
+  calling only `swfe_sample_release_looped()`.
+- The palette is game data too: sparks and other effects keep their
+  colour (`colour_lookup[]`) in the thing, which the state hash covers. The
+  core loads `qdata/pal.pal` and sets up the colour lookups
+  (`setup_color_lookups()`).
+- The game's view is game state: the view pass sets the face flags that
+  shots (`bul_path_end()`) and line of sight read only for the vehicles in
+  the view area (`render_area_a/b`, tiles around the camera) and the camera
+  scale (`overall_scale`), which the desktop sets from the screen size when
+  a mission starts (`game_core_view_setup()`, from
+  `adjust_mission_engine_to_video_mode()`). The core alone uses the
+  desktop's game screen size, 640x480 (view area 64, scale 334); with a
+  view area of 24 a minigun shot hit something else in mission 1,16.
+- Without the software renderer there are no textures: the rain and snow
+  effects still draw their random numbers but leave the texture alone, and
+  the mission start reloads `tex00.dat` only if it is loaded.
+- Front-end code that sat in core files: `SCANNER_init()` (now in
+  `hud_panel.c`), the collision debug drawing of `tngcolisn.c` (now in
+  `thing_debug.c`); `low_trans_grey_bright_limit`, a table of
+  `libswrender`, is defined in `game_state.c`.
 
 What the core still needs from the desktop front end and the libraries:
 
@@ -148,9 +207,8 @@ What the core still needs from the desktop front end and the libraries:
   the shell's `load_packet()`; the core turn plays a mission until it is
   decided.
 - The view area (`render_area_a/b`, `overall_scale`) follows the screen
-  size, set up by the shell.
-- Setting up a mission without the shell: the core's parts of
-  `game_setup()`, `setup_host()` and `prep_single_mission()`.
+  size; the core alone fixes it at the desktop's 640x480. A front end with
+  another view still plays the game of that view.
 - `libswrender` holds world data the core uses: objects, faces and
   textures (`enginsngobjs`, `enginsngtxtr`, `enginpriobjs`), lights,
   explosion faces, shrapnel, animation frames (`frame_sprani`), the camera
@@ -190,13 +248,17 @@ checks it on the trace scenarios. What it takes from the desktop turn:
   changes a texture.
 - The test hooks of the desktop turn (`difftest_bot_turn()`) through
   `game_turn_test_hook`, which the front end sets (`swapp.c`), and the state
-  trace (`game_turn_statetrace()`, `SWARS_STATETRACE`).
+  trace (`game_turn_statetrace()`, `SWARS_STATETRACE`). `swcore_coreonly`
+  has no test hooks (they are in `libswarsfe`), so it plays the scenarios
+  without a suffix only.
 
-## Still in the library
+## Still to do
 
-The library still contains the SDL display, input, sound, the software
-renderer and the menus. The next steps take those out of the core, one
-at a time, behind the interface:
+The core library (`libswarscore.a`) no longer contains the SDL display,
+input, sound, the menus or the renderer's game side; it still links
+`libswrender` (world data) and `libbullfrog` (SDL platform layer), and the
+core turn does not play a mission's end. The next steps, behind the
+interface:
 
 1. Rendering: move the software renderer to the SDL front end. The line
    of sight fix is on by default; with `--original-bugs` the core still
@@ -228,7 +290,13 @@ python tools/decomp-agent/coreturn_compare.py harness --jobs 2
 
 runs `swcore_headless` with `--no-draw` and with `--core-turn` (both with
 the default fixes) and compares their hashes turn by turn, up to the turn
-the desktop run decides the mission (`--status`).
+the desktop run decides the mission (`--status`). With `--core-only` the
+core turn runs in `swcore_coreonly` instead, so the core's setup is
+compared too (the scenarios without test hooks):
+
+```
+python tools/decomp-agent/coreturn_compare.py harness --jobs 2 --core-only
+```
 
 `statetrace_win_par.py` runs the 52 scenarios of `statetrace.sh` in
 parallel on Windows and compares them with `build/tr_difftest` (made from

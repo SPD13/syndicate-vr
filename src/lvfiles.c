@@ -45,6 +45,7 @@
 #include "engintxtrmap.h"
 #include "frame_sprani.h"
 #include "game.h"
+#include "game_coreinit.h"
 #include "game_data.h"
 #include "game_options.h"
 #include "game_speed.h"
@@ -1389,7 +1390,7 @@ void fix_map_outranged_properties(void)
 
         p_fltextr = &game_textures[i];
         page = p_fltextr->Page;
-        if (page >= sizeof(vec_tmap)/sizeof(vec_tmap[0]) || vec_tmap[page] == NULL) {
+        if (!texturemap_page_exists(page)) {
             LOGERR("Outranged texture atlas page %d used in floor texture %d", (int)page, (int)i);
             p_fltextr->Page = 0;
         }
@@ -1400,7 +1401,7 @@ void fix_map_outranged_properties(void)
 
         p_fctextr = &game_face_textures[i];
         page = p_fctextr->Page;
-        if (page >= sizeof(vec_tmap)/sizeof(vec_tmap[0]) || vec_tmap[page] == NULL) {
+        if (!texturemap_page_exists(page)) {
             LOGERR("Outranged texture atlas page %d used in face texture %d", (int)page, (int)i);
             p_fctextr->Page = 0;
         }

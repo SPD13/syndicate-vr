@@ -291,6 +291,11 @@ TbBool weapons_remove_one(u32 *p_weapons,
 TbBool weapons_remove_one_for_player(u32 *p_weapons,
   ubyte p_plfourpacks[][4], ushort plagent, WeaponType wtype);
 
+/** Stops the looped sound of the weapon the person fires (TgF2_Unkn0200
+ * set while it plays) and clears the flag; the flag is game state.
+ */
+void stop_looped_weapon_sample(struct Thing *p_person, short weapon);
+
 void give_take_me_weapon(struct Thing *p_person, int item, int giveortake, short id);
 
 TbBool weapons_add_one_for_npc(u32 *p_weapons, WeaponType wtype);

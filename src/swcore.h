@@ -31,7 +31,7 @@ extern "C" {
 /******************************************************************************/
 
 /** Version of this interface; grows when functions are added. */
-#define SWCORE_API_VERSION 2
+#define SWCORE_API_VERSION 3
 
 /** Sets the game up as the executable would: reads the command line options
  * (the same as syndwarsfx, e.g. "-m 1,2" to start a mission), the config
@@ -60,6 +60,21 @@ int swcore_core_step(void);
  * the game cannot be initialised again.
  */
 void swcore_shutdown(void);
+
+/** Sets up the game core alone, without display, input, sound or menus, and
+ * starts a mission, as the option "-m campaign,mission" of syndwarsfx
+ * does: `campaign` is the campaign's index, `mission` the mission's index.
+ * The game data must be in the current directory; the default user
+ * settings are used. Then play the mission with swcore_core_step(), and
+ * end with swcore_core_shutdown(). Instead of swcore_init(), for front ends
+ * that draw the world themselves; the program links the game core and a
+ * front end's services (swfe.h), not the desktop front end. Returns 0 on
+ * success, nonzero on failure. Since version 3.
+ */
+int swcore_core_init(uint32_t campaign, uint32_t mission);
+
+/** Frees what swcore_core_init() set up. Since version 3. */
+void swcore_core_shutdown(void);
 
 /** Switches drawing the world in missions on (the default) or off. Off,
  * the game still lists what is in view (which in the original also

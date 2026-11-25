@@ -51,7 +51,6 @@ void play_disk_sample(short id, ushort sample, short vol, short pan,
 struct SampleInfo *play_sample_using_heap(u32 bank_id, short smptbl_id,
   u32 volume, u32 pan, u32 pitch, sbyte loop_count, ubyte stype);
 void stop_sample_using_heap(s32 source_id, u32 sample_number);
-void stop_looped_weapon_sample(struct Thing *p_person, short weapon);
 /** Updates the volume and pan of playing samples from the positions of
  * their sources. */
 void monitor_all_samples(void);

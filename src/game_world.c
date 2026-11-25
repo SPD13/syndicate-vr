@@ -1697,8 +1697,10 @@ void setup_ingame_scene_effect(void)
     atmos = ((p_missi->Atmosphere) & 0x0F);
     weather = ((p_missi->Atmosphere >> 4) & 0x0F);
 
-    // Reload texture regardless of the effect
-    LbFileLoadAt("data/tex00.dat", vec_tmap[0]);
+    // Reload texture regardless of the effect (a front end without the
+    // software renderer has none)
+    if (vec_tmap[0] != NULL)
+        LbFileLoadAt("data/tex00.dat", vec_tmap[0]);
 
     switch (atmos)
     {

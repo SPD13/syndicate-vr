@@ -88,7 +88,6 @@ void play_dist_sample(struct Thing *p_thing, ushort smptbl_id, ushort vol, ushor
 int play_dist_speech(struct Thing *p_thing, ushort samp, ushort vol, ushort pan, int pitch, int loop, ubyte type);
 void play_dist_ssample(struct SimpleThing *p_sthing, ushort smptbl_id, ushort vol, ushort pan, int pitch, int loop, ubyte type);
 void play_disk_sample(short id, ushort sample, short vol, short pan, int pitch, int loop, int type);
-void stop_looped_weapon_sample(struct Thing *p_person, short weapon);
 
 void snd_unkn1_volume_all_samples(void);
 void wait_for_sound_sample_finish(ushort smpl_id);

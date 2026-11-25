@@ -33,9 +33,6 @@ void game_turn_camera(void);
 void game_turn_world_view(void);
 void game_turn_view_end(void);
 
-/** One game turn of a mission without the front end's input and drawing.
- * Returns false once the game asked to exit, or when no mission is played.
- */
 /** Called by game_core_turn() after the player's turn and before the things
  * are processed, where the desktop turn calls the test hooks; NULL for none.
  * Set by the front end (swapp.c sets difftest_bot_turn), so the core does
@@ -49,6 +46,9 @@ extern void (*game_turn_test_hook)(void);
  */
 void game_turn_statetrace(void);
 
+/** One game turn of a mission without the front end's input and drawing.
+ * Returns false once the game asked to exit, or when no mission is played.
+ */
 TbBool game_core_turn(void);
 
 /******************************************************************************/

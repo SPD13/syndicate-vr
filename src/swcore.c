@@ -20,11 +20,73 @@
 /******************************************************************************/
 #include "swcore.h"
 
+#include "bflog.h"
+#include "bfscreen.h"
+
+#include "campaign.h"
 #include "game.h"
+#include "game_coreinit.h"
+#include "game_data.h"
+#include "game_options.h"
 #include "game_speed.h"
 #include "game_turn.h"
 #include "people.h"
+#include "player.h"
+#include "swlog.h"
 /******************************************************************************/
+
+int swcore_core_init(uint32_t campaign, uint32_t mission)
+{
+    // as swcore_init() (swapp.c) before reading the options
+    if (LbErrorLogSetup(NULL, NULL, Lb_ERROR_LOG_NEW) != Lb_SUCCESS)
+        return 1;
+    ingame.GameMode = GamM_None;
+    ingame.LowerMemoryUse = 0;
+    ingame.Flags = 0;
+    // all game data is in the data folder (the desktop reads where each
+    // kind is from the install config, config.ini)
+    {
+        int i;
+        for (i = 0; i < DirPlace_None; i++)
+            game_dirs[i].use_cd = 0;
+    }
+    setup_file_names();
+    // as the option "-m campaign,mission"
+    is_single_game = 1;
+    background_type = (ubyte)campaign;
+    ingame.GameMode = GamM_Unkn2;
+    ingame.Flags |= GamF_Unkn0008;
+    ingame.CurrentMission = (ushort)mission;
+    ingame.UserFlags |= UsrF_Cheats;
+    LOGSYNC_F("Game core alone, campaign %u mission %u; fixes of original bugs: 0x%x",
+      (unsigned)campaign, (unsigned)mission, (unsigned)swcore_get_fixes());
+    adjust_memory_use();
+    setup_language_file_names();
+    // the default user settings of the game core (the desktop's are in
+    // set_default_user_settings())
+    set_default_player_control();
+    ingame.PanelPermutation = -2;
+    ingame.TrenchcoatPreference = OPT_TRENCHCOAT_PREF_MIN;
+    ingame.DetailLevel = 1;
+    ingame.UseMultiMedia = 0;
+
+    if (!game_core_setup())
+        return 1;
+    game_core_mission_load();
+    game_core_mission_init();
+    // the game's view: as the desktop's in its game screen mode, 640x480
+    // (a front end that draws its own view still plays the game of that)
+    lbDisplay.GraphicsScreenWidth = 640;
+    lbDisplay.GraphicsScreenHeight = 480;
+    game_core_view_setup();
+    return 0;
+}
+
+void swcore_core_shutdown(void)
+{
+    game_core_free_data();
+    LbErrorLogReset();
+}
 
 void swcore_set_fixes(uint32_t fixes)
 {
