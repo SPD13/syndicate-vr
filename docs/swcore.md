@@ -52,7 +52,7 @@ out of scope for now: the library is for solo play.
 Commands are executed as the packets the mouse would build, one per turn,
 in the turns the player gives no input of their own (`load_packet()` calls
 `swcore_input_packet()`, in `src/swcore_world.c`). They come from the
-VR spectator's command queue (`vrspectate.c` on `vr/spectator`).
+VR viewer (`vr/viewer/main.cpp`), which runs the core in its process.
 
 The game keeps its state in globals: one game per process. The interface
 does not show the game's structs; it depends only on `<stdint.h>`.
@@ -303,7 +303,8 @@ interface:
 4. The VR viewer on the library instead of shared memory (plan step 2,
    branch `vr/core`): the world export is `libswarsview` (`swview.h`,
    see `docs/swview.md`), which links with the core alone; the viewer
-   runs the core in its own process next.
+   runs the core in its own process (the shared memory path is gone).
+   Next: its VR HUD, the upgraded look.
 
 ## Verification
 

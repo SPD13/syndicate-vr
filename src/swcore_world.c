@@ -9,7 +9,7 @@
  *     game's internal structures.
  * @par Comment:
  *     Commands are executed as the packets a mouse click builds; taken from
- *     the VR spectator's command queue (vrspectate.c on vr/spectator).
+ *     the VR viewer, which runs the core in its process.
  * @author   SyndicateVR decomp agent
  * @date     23 Nov 2026 - 23 Nov 2026
  * @par  Copying and copyrights:

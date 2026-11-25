@@ -3,9 +3,8 @@
 // With --mission C,M it plays the mission itself: the game core library
 // (swcore.h) steps the turns on a fixed clock (--turn-ms, default 50), the
 // world export (swview.h) gives the world; game data from --data DIR or
-// $SWARS_GAMEDATA; Enter confirms the end of a decided mission. Without it,
-// it reads the world snapshot which syndwarsfx publishes in shared memory
-// (see src/vrshare.h, enabled with SWARS_VR_SPECTATOR=1).
+// $SWARS_GAMEDATA; Enter confirms the end of a decided mission (default
+// mission 0,1).
 // It shows the world as a miniature on a table, in a SteamVR headset
 // through OpenXR, or in a desktop window with an orbit camera (--desktop, or
 // when no headset is available).
@@ -19,7 +18,7 @@
 //                 left stick click recentres the table in front of you.
 // Options: --desktop, --voxel, --click X Y SECONDS BUTTON (simulated click), --voxel-tol N, --voxel-dilate, --voxel-photo T,
 //          --zoom HALF_MAP, --center X Z, --orbit YAW PITCH DIST,
-//          --screenshot FILE SECONDS, --dump-block TURN FILE (the world block of that turn, with --mission).
+//          --screenshot FILE SECONDS, --dump-block TURN FILE (the world block of that turn), --mission C,M, --data DIR, --turn-ms MS.
 // Controls (desktop): click as the right trigger, right click as the left
 //                 trigger, [ ] weapons, drag mouse to orbit, wheel to change distance,
 //                 arrows pan, +/- zoom, F follow, Q/E rotate the table,
@@ -55,17 +54,9 @@
 #include <vector>
 
 extern "C" {
-#include "vrshare.h"
 #include "swcore.h"
 #include "swview.h"
 }
-
-// the world block of libswarsview has the layout of the shared memory
-static_assert(SWV_TOTAL_SIZE == VRS_TOTAL_SIZE, "swview block layout");
-static_assert(SWV_OFF_HUD == VRS_OFF_HUD, "swview block layout");
-// and the core takes the viewer's commands as they are
-static_assert((int)SwcCmd_GOTO == (int)VrsCmd_GOTO, "command types");
-static_assert((int)SwcCmd_ENTER_VEHICLE == (int)VrsCmd_ENTER_VEHICLE, "command types");
 
 static void logf(const char *fmt, ...)
 {
@@ -78,27 +69,27 @@ static void logf(const char *fmt, ...)
 }
 
 /******************************************************************************/
-// Shared memory snapshot
+// The world of a turn, read from the world block of libswarsview
 
 struct WorldSnapshot {
-    VrsHeader hdr{};
-    std::vector<VrsVert> static_verts;
-    std::vector<VrsVert> dyn_verts;
-    std::vector<VrsThing> things;
-    std::vector<VrsEffect> effects;
-    std::vector<VrsLine> lines;
-    std::vector<VrsDynGroup> dyn_groups;
-    std::vector<VrsBar> bars;
-    std::vector<VrsGlow> glows;
-    std::vector<VrsShadow> shadows;
-    VrsHud hud{};
+    SwvHeader hdr{};
+    std::vector<SwvVert> static_verts;
+    std::vector<SwvVert> dyn_verts;
+    std::vector<SwvThing> things;
+    std::vector<SwvEffect> effects;
+    std::vector<SwvLine> lines;
+    std::vector<SwvDynGroup> dyn_groups;
+    std::vector<SwvBar> bars;
+    std::vector<SwvGlow> glows;
+    std::vector<SwvShadow> shadows;
+    SwvHud hud{};
     std::vector<uint8_t> tmap;
     uint8_t palette[768]{};
     // sprites and the animation tables composing them into frames
-    std::vector<VrsSpriteRect> sprite_rects;
+    std::vector<SwvSpriteRect> sprite_rects;
     std::vector<uint16_t> nstart;
-    std::vector<VrsFrame> frames;
-    std::vector<VrsElement> elements;
+    std::vector<SwvFrame> frames;
+    std::vector<SwvElement> elements;
     std::vector<uint8_t> sprite_pages; // 2 bytes per texel: index, opacity
     uint32_t sprite_stride = 6;
     uint32_t static_rev = 0, tmap_rev = 0, sprite_rev = 0;
@@ -106,17 +97,16 @@ struct WorldSnapshot {
     bool valid = false;
 };
 
-class SharedWorld {
+class BlockReader {
 public:
-    /** Reads a block of this process (CoreWorld) instead of the game's
-     * shared memory. */
+    /** Reads the block which CoreWorld fills. */
     void attach(const uint8_t *block) { block_ = block; }
 
     bool poll(WorldSnapshot &snap)
     {
-        if (!block_ && !open())
+        if (!block_)
             return false;
-        auto *hdr = reinterpret_cast<const volatile VrsHeader *>(block_);
+        auto *hdr = reinterpret_cast<const volatile SwvHeader *>(block_);
         for (int attempt = 0; attempt < 20; attempt++) {
             uint32_t seq1 = hdr->seq;
             if (seq1 & 1) {
@@ -124,50 +114,50 @@ public:
                 continue;
             }
             MemoryBarrier();
-            VrsHeader h;
+            SwvHeader h;
             memcpy(&h, (const void *)block_, sizeof(h));
-            if (h.magic != VRS_MAGIC || h.version != VRS_VERSION)
+            if (h.magic != SWV_MAGIC || h.version != SWV_VERSION)
                 return false;
             bool need_static = h.static_rev != snap.static_rev;
             bool need_tmap = h.tmap_rev != snap.tmap_rev;
             bool need_sprites = h.sprite_rev != snap.sprite_rev;
-            h.n_static = std::min<uint32_t>(h.n_static, VRS_STATIC_VERTS_MAX);
-            h.n_dyn = std::min<uint32_t>(h.n_dyn, VRS_DYN_VERTS_MAX);
-            h.n_things = std::min<uint32_t>(h.n_things, VRS_THINGS_MAX);
+            h.n_static = std::min<uint32_t>(h.n_static, SWV_STATIC_VERTS_MAX);
+            h.n_dyn = std::min<uint32_t>(h.n_dyn, SWV_DYN_VERTS_MAX);
+            h.n_things = std::min<uint32_t>(h.n_things, SWV_THINGS_MAX);
             if (need_static) {
                 tmp_static_.resize(h.n_static);
-                memcpy(tmp_static_.data(), block_ + VRS_OFF_STATIC, h.n_static * sizeof(VrsVert));
+                memcpy(tmp_static_.data(), block_ + SWV_OFF_STATIC, h.n_static * sizeof(SwvVert));
             }
             if (need_tmap) {
-                tmp_tmap_.resize(VRS_TMAP_PAGES * VRS_TMAP_DIM * VRS_TMAP_DIM);
-                memcpy(tmp_tmap_.data(), block_ + VRS_OFF_TMAP, tmp_tmap_.size());
-                memcpy(tmp_pal_, block_ + VRS_OFF_PALETTE, 768);
+                tmp_tmap_.resize(SWV_TMAP_PAGES * SWV_TMAP_DIM * SWV_TMAP_DIM);
+                memcpy(tmp_tmap_.data(), block_ + SWV_OFF_TMAP, tmp_tmap_.size());
+                memcpy(tmp_pal_, block_ + SWV_OFF_PALETTE, 768);
             }
             if (need_sprites) {
-                h.n_sprites = std::min<uint32_t>(h.n_sprites, VRS_SPRITES_MAX);
-                h.n_sprite_pages = std::min<uint32_t>(h.n_sprite_pages, VRS_SPRITE_PAGES);
-                h.n_nstart = std::min<uint32_t>(h.n_nstart, VRS_NSTART_MAX);
-                h.n_frames = std::min<uint32_t>(h.n_frames, VRS_FRAMES_MAX);
-                h.n_elements = std::min<uint32_t>(h.n_elements, VRS_ELEMENTS_MAX);
-                copy_array(tmp_rects_, VRS_OFF_SPRITE_RECTS, h.n_sprites);
-                copy_array(tmp_nstart_, VRS_OFF_NSTART, h.n_nstart);
-                copy_array(tmp_frames_, VRS_OFF_FRAMES, h.n_frames);
-                copy_array(tmp_elements_, VRS_OFF_ELEMENTS, h.n_elements);
-                copy_array(tmp_pages_, VRS_OFF_SPRITE_PAGES, h.n_sprite_pages * VRS_SPRITE_PAGE_BYTES);
+                h.n_sprites = std::min<uint32_t>(h.n_sprites, SWV_SPRITES_MAX);
+                h.n_sprite_pages = std::min<uint32_t>(h.n_sprite_pages, SWV_SPRITE_PAGES);
+                h.n_nstart = std::min<uint32_t>(h.n_nstart, SWV_NSTART_MAX);
+                h.n_frames = std::min<uint32_t>(h.n_frames, SWV_FRAMES_MAX);
+                h.n_elements = std::min<uint32_t>(h.n_elements, SWV_ELEMENTS_MAX);
+                copy_array(tmp_rects_, SWV_OFF_SPRITE_RECTS, h.n_sprites);
+                copy_array(tmp_nstart_, SWV_OFF_NSTART, h.n_nstart);
+                copy_array(tmp_frames_, SWV_OFF_FRAMES, h.n_frames);
+                copy_array(tmp_elements_, SWV_OFF_ELEMENTS, h.n_elements);
+                copy_array(tmp_pages_, SWV_OFF_SPRITE_PAGES, h.n_sprite_pages * SWV_SPRITE_PAGE_BYTES);
             }
             tmp_dyn_.resize(h.n_dyn);
-            memcpy(tmp_dyn_.data(), block_ + VRS_OFF_DYN, h.n_dyn * sizeof(VrsVert));
+            memcpy(tmp_dyn_.data(), block_ + SWV_OFF_DYN, h.n_dyn * sizeof(SwvVert));
             tmp_things_.resize(h.n_things);
-            memcpy(tmp_things_.data(), block_ + VRS_OFF_THINGS, h.n_things * sizeof(VrsThing));
-            h.n_effects = std::min<uint32_t>(h.n_effects, VRS_EFFECTS_MAX);
-            copy_array(tmp_effects_, VRS_OFF_EFFECTS, h.n_effects);
-            h.n_lines = std::min<uint32_t>(h.n_lines, VRS_LINES_MAX);
-            copy_array(tmp_lines_, VRS_OFF_LINES, h.n_lines);
-            copy_array(tmp_groups_, VRS_OFF_DYN_GROUPS, std::min<uint32_t>(h.n_dyn_groups, VRS_DYN_GROUPS_MAX));
-            copy_array(tmp_bars_, VRS_OFF_BARS, std::min<uint32_t>(h.n_bars, VRS_BARS_MAX));
-            copy_array(tmp_glows_, VRS_OFF_GLOWS, std::min<uint32_t>(h.n_glows, VRS_GLOWS_MAX));
-            copy_array(tmp_shadows_, VRS_OFF_SHADOWS, std::min<uint32_t>(h.n_shadows, VRS_SHADOWS_MAX));
-            memcpy(&tmp_hud_, block_ + VRS_OFF_HUD, sizeof(VrsHud));
+            memcpy(tmp_things_.data(), block_ + SWV_OFF_THINGS, h.n_things * sizeof(SwvThing));
+            h.n_effects = std::min<uint32_t>(h.n_effects, SWV_EFFECTS_MAX);
+            copy_array(tmp_effects_, SWV_OFF_EFFECTS, h.n_effects);
+            h.n_lines = std::min<uint32_t>(h.n_lines, SWV_LINES_MAX);
+            copy_array(tmp_lines_, SWV_OFF_LINES, h.n_lines);
+            copy_array(tmp_groups_, SWV_OFF_DYN_GROUPS, std::min<uint32_t>(h.n_dyn_groups, SWV_DYN_GROUPS_MAX));
+            copy_array(tmp_bars_, SWV_OFF_BARS, std::min<uint32_t>(h.n_bars, SWV_BARS_MAX));
+            copy_array(tmp_glows_, SWV_OFF_GLOWS, std::min<uint32_t>(h.n_glows, SWV_GLOWS_MAX));
+            copy_array(tmp_shadows_, SWV_OFF_SHADOWS, std::min<uint32_t>(h.n_shadows, SWV_SHADOWS_MAX));
+            memcpy(&tmp_hud_, block_ + SWV_OFF_HUD, sizeof(SwvHud));
             MemoryBarrier();
             if (hdr->seq != seq1)
                 continue;
@@ -216,44 +206,28 @@ private:
         memcpy(dst.data(), block_ + off, n * sizeof(T));
     }
 
-    bool open()
-    {
-        DWORD now = GetTickCount();
-        if (now - last_try_ < 1000)
-            return false;
-        last_try_ = now;
-        HANDLE h = OpenFileMappingA(FILE_MAP_READ, FALSE, VRS_MAPPING_NAME);
-        if (!h)
-            return false;
-        block_ = static_cast<const uint8_t *>(MapViewOfFile(h, FILE_MAP_READ, 0, 0, VRS_TOTAL_SIZE));
-        if (block_)
-            logf("connected to game shared memory");
-        return block_ != nullptr;
-    }
-
     const uint8_t *block_ = nullptr;
-    DWORD last_try_ = 0;
-    std::vector<VrsVert> tmp_static_, tmp_dyn_;
-    std::vector<VrsThing> tmp_things_;
-    std::vector<VrsEffect> tmp_effects_;
-    std::vector<VrsLine> tmp_lines_;
-    std::vector<VrsDynGroup> tmp_groups_;
-    std::vector<VrsBar> tmp_bars_;
-    std::vector<VrsGlow> tmp_glows_;
-    std::vector<VrsShadow> tmp_shadows_;
-    VrsHud tmp_hud_{};
+    std::vector<SwvVert> tmp_static_, tmp_dyn_;
+    std::vector<SwvThing> tmp_things_;
+    std::vector<SwvEffect> tmp_effects_;
+    std::vector<SwvLine> tmp_lines_;
+    std::vector<SwvDynGroup> tmp_groups_;
+    std::vector<SwvBar> tmp_bars_;
+    std::vector<SwvGlow> tmp_glows_;
+    std::vector<SwvShadow> tmp_shadows_;
+    SwvHud tmp_hud_{};
     std::vector<uint8_t> tmp_tmap_;
     uint8_t tmp_pal_[768];
-    std::vector<VrsSpriteRect> tmp_rects_;
+    std::vector<SwvSpriteRect> tmp_rects_;
     std::vector<uint16_t> tmp_nstart_;
-    std::vector<VrsFrame> tmp_frames_;
-    std::vector<VrsElement> tmp_elements_;
+    std::vector<SwvFrame> tmp_frames_;
+    std::vector<SwvElement> tmp_elements_;
     std::vector<uint8_t> tmp_pages_;
 };
 
 /******************************************************************************/
 // The game in this process: the core library steps the mission, the world
-// export (libswarsview) fills a block read as the shared memory is
+// export (libswarsview) fills a block, read by BlockReader
 
 class CoreWorld {
 public:
@@ -350,7 +324,7 @@ private:
     }
 
     std::vector<uint8_t> block_;
-    SharedWorld reader_;
+    BlockReader reader_;
     uint32_t dump_turn_ = 0;
     const char *dump_file_ = nullptr;
     double turn_seconds_ = 0.05, last_turn_ = 0;
@@ -368,7 +342,7 @@ struct GpuVert {
     // 0 flat colour, 1 texture page (tinted by rgb), 2 sprite page (tinted
     // by rgb), 3 unlit colour, 4 shadow (translucent black), 5 soft glow
     float textured;
-    float fx; // VrsVertFlags bits, for water, glass and shine
+    float fx; // SwvVertFlags bits, for water, glass and shine
 };
 
 static GLuint compile_shader(GLenum type, const char *src)
@@ -536,7 +510,7 @@ public:
             make_mesh(*m);
         glGenTextures(1, &tex_);
         glBindTexture(GL_TEXTURE_2D_ARRAY, tex_);
-        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, VRS_TMAP_DIM, VRS_TMAP_DIM, VRS_TMAP_PAGES,
+        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, SWV_TMAP_DIM, SWV_TMAP_DIM, SWV_TMAP_PAGES,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -544,7 +518,7 @@ public:
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glGenTextures(1, &spr_tex_);
         glBindTexture(GL_TEXTURE_2D_ARRAY, spr_tex_);
-        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, VRS_TMAP_DIM, VRS_TMAP_DIM, 1,
+        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, SWV_TMAP_DIM, SWV_TMAP_DIM, 1,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -575,8 +549,8 @@ public:
                 rgba[i * 4 + 3] = 255;
             }
             glBindTexture(GL_TEXTURE_2D_ARRAY, tex_);
-            glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, VRS_TMAP_DIM, VRS_TMAP_DIM,
-                            VRS_TMAP_PAGES, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+            glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, SWV_TMAP_DIM, SWV_TMAP_DIM,
+                            SWV_TMAP_PAGES, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
             have_palette_ = true;
         }
         if ((snap.sprite_changed || snap.tmap_changed) && !snap.sprite_pages.empty())
@@ -600,14 +574,14 @@ public:
     float ground_low = -64.0f; // lowest terrain height, map units
 
     // Moving geometry, interpolated by the caller every frame.
-    void upload_dyn(const std::vector<VrsVert> &verts) { upload_verts(dyn_mesh_, dyn_trans_, verts); }
+    void upload_dyn(const std::vector<SwvVert> &verts) { upload_verts(dyn_mesh_, dyn_trans_, verts); }
 
     float turn = 0; // game turn with fraction, for animated terrain
 
     void upload_sprites(const WorldSnapshot &snap)
     {
         size_t texels = snap.sprite_pages.size() / 2;
-        int pages = (int)(texels / (VRS_TMAP_DIM * VRS_TMAP_DIM));
+        int pages = (int)(texels / (SWV_TMAP_DIM * SWV_TMAP_DIM));
         std::vector<uint8_t> rgba(texels * 4);
         for (size_t i = 0; i < texels; i++) {
             uint8_t c = snap.sprite_pages[i * 2];
@@ -616,7 +590,7 @@ public:
             rgba[i * 4 + 3] = snap.sprite_pages[i * 2 + 1];
         }
         glBindTexture(GL_TEXTURE_2D_ARRAY, spr_tex_);
-        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, VRS_TMAP_DIM, VRS_TMAP_DIM, pages,
+        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, SWV_TMAP_DIM, SWV_TMAP_DIM, pages,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
         logf("sprites: %zu in %d pages, %zu frames", snap.sprite_rects.size(), pages,
              snap.frames.size());
@@ -770,24 +744,24 @@ public:
 private:
 
     // Splits see-through faces into their own mesh, drawn after the rest.
-    void upload_verts(Mesh &opaque, Mesh &trans, const std::vector<VrsVert> &src)
+    void upload_verts(Mesh &opaque, Mesh &trans, const std::vector<SwvVert> &src)
     {
         std::vector<GpuVert> vo, vt;
         vo.reserve(src.size());
         for (size_t i = 0; i + 2 < src.size(); i += 3) {
-            bool see_through = (src[i].flags & VrsVF_TRANSLUCENT) != 0;
+            bool see_through = (src[i].flags & SwvVF_TRANSLUCENT) != 0;
             for (size_t k = i; k < i + 3; k++) {
-                const VrsVert &s = src[k];
+                const SwvVert &s = src[k];
                 GpuVert g{};
                 g.pos[0] = s.x; g.pos[1] = s.y; g.pos[2] = s.z;
-                g.uv[0] = (s.u + 0.5f) / VRS_TMAP_DIM;
-                g.uv[1] = (s.v + 0.5f) / VRS_TMAP_DIM;
+                g.uv[0] = (s.u + 0.5f) / SWV_TMAP_DIM;
+                g.uv[1] = (s.v + 0.5f) / SWV_TMAP_DIM;
                 g.layer = s.page;
-                g.textured = (s.flags & VrsVF_TEXTURED) ? 1.0f : 0.0f;
+                g.textured = (s.flags & SwvVF_TEXTURED) ? 1.0f : 0.0f;
                 g.fx = (float)s.flags;
                 // the game's light level, 128 is unchanged
                 float light = std::clamp(s.shade / 128.0f, 0.15f, 1.9f);
-                if (s.flags & VrsVF_TEXTURED) {
+                if (s.flags & SwvVF_TEXTURED) {
                     g.rgb[0] = g.rgb[1] = g.rgb[2] = light;
                 } else {
                     palette_rgb(palette_, s.colour, g.rgb);
@@ -858,10 +832,10 @@ static void game_project(float a, float x, float y, float z, float &sx, float &s
 
 // What the builder needs from the snapshot, shared read-only with the worker.
 struct SpriteData {
-    std::vector<VrsSpriteRect> rects;
+    std::vector<SwvSpriteRect> rects;
     std::vector<uint16_t> nstart;
-    std::vector<VrsFrame> frames;
-    std::vector<VrsElement> elements;
+    std::vector<SwvFrame> frames;
+    std::vector<SwvElement> elements;
     std::vector<uint8_t> pages;
     uint32_t stride = 6;
     float rgb[256][3]{};
@@ -972,12 +946,12 @@ public:
     // Model for a person in its current animation state, or nullptr when it
     // is not available (yet). rot_steps receives the facing of the figure in
     // views, and n_views the number of views around it.
-    const Model *get(const VrsThing &t, int &rot_steps, int &n_views)
+    const Model *get(const SwvThing &t, int &rot_steps, int &n_views)
     {
-        if (t.anim_mode == VrsAM_DIR8) {
+        if (t.anim_mode == SwvAM_DIR8) {
             n_views = 8;
             rot_steps = t.angle & 7;
-        } else if (t.anim_mode == VrsAM_DIR12) {
+        } else if (t.anim_mode == SwvAM_DIR12) {
             n_views = 12;
             rot_steps = (3 * t.angle >> 1) % 12;
         } else {
@@ -1069,7 +1043,7 @@ private:
         for (int el = sd.frames[frm].first_element;
              el > 0 && el < (int)sd.elements.size() && guard < 64;
              el = sd.elements[el].next, guard++) {
-            const VrsElement &e = sd.elements[el];
+            const SwvElement &e = sd.elements[el];
             if (e.to_sprite == 0 || e.to_sprite % sd.stride != 0)
                 continue;
             uint32_t si = e.to_sprite / sd.stride;
@@ -1079,13 +1053,13 @@ private:
             int ver = slot < 5 ? frv[slot] : 0;
             if (ver != ((e.flags >> 9) & 7))
                 continue;
-            const VrsSpriteRect &r = sd.rects[si];
-            size_t page_off = (size_t)r.page * VRS_TMAP_DIM * VRS_TMAP_DIM;
-            if ((page_off + VRS_TMAP_DIM * VRS_TMAP_DIM) * 2 > sd.pages.size())
+            const SwvSpriteRect &r = sd.rects[si];
+            size_t page_off = (size_t)r.page * SWV_TMAP_DIM * SWV_TMAP_DIM;
+            if ((page_off + SWV_TMAP_DIM * SWV_TMAP_DIM) * 2 > sd.pages.size())
                 continue;
             for (int v = 0; v < r.h; v++)
                 for (int u = 0; u < r.w; u++) {
-                    size_t ti = page_off + (size_t)(r.y + v) * VRS_TMAP_DIM + (r.x + u);
+                    size_t ti = page_off + (size_t)(r.y + v) * SWV_TMAP_DIM + (r.x + u);
                     if (sd.pages[ti * 2 + 1] == 0)
                         continue;
                     int su = (e.flags & 0x01) ? (r.w - 1 - u) : u;
@@ -1477,53 +1451,20 @@ private:
 
 #include "font_table.inc"
 
-// Sends commands to the game through its command block.
+// Sends commands to the game core of this process (swcore_command()).
 class CommandSender {
 public:
-    /** Commands go to the game core of this process (swcore_command()). */
-    bool in_process = false;
-
     void send(uint16_t type, int16_t thing = 0, int32_t x = 0, int32_t z = 0, uint32_t arg = 0)
     {
-        if (in_process) {
-            // the command types of swcore.h are those of vrshare.h
-            struct SwcCommand c{};
-            c.type = type;
-            c.thing = thing;
-            c.x = x;
-            c.z = z;
-            c.arg = arg;
-            swcore_command(&c);
-            logf("command %u thing %d at %d,%d arg %u", type, thing, x, z, arg);
-            return;
-        }
-        if (!q_ && !open())
-            return;
-        if (q_->magic != VRS_CMD_MAGIC)
-            return;
-        uint32_t w = q_->write;
-        VrsCmd &c = q_->cmds[w % VRS_CMDS_MAX];
+        struct SwcCommand c{};
         c.type = type;
         c.thing = thing;
         c.x = x;
         c.z = z;
         c.arg = arg;
-        MemoryBarrier();
-        q_->write = w + 1;
+        swcore_command(&c);
         logf("command %u thing %d at %d,%d arg %u", type, thing, x, z, arg);
     }
-
-private:
-    bool open()
-    {
-        HANDLE h = OpenFileMappingA(FILE_MAP_WRITE | FILE_MAP_READ, FALSE, VRS_CMD_MAPPING_NAME);
-        if (!h)
-            return false;
-        q_ = static_cast<VrsCmdQueue *>(MapViewOfFile(h, FILE_MAP_WRITE | FILE_MAP_READ, 0, 0,
-                                                       sizeof(VrsCmdQueue)));
-        return q_ != nullptr;
-    }
-    VrsCmdQueue *q_ = nullptr;
 };
 
 struct Ray {
@@ -1551,7 +1492,7 @@ public:
         alt_.assign(128 * 128, 0.0f);
         for (int tz = 0; tz < n; tz++)
             for (int tx = 0; tx < n; tx++) {
-                const VrsVert *v = &snap.static_verts[(size_t)(tz * n + tx) * 6];
+                const SwvVert *v = &snap.static_verts[(size_t)(tz * n + tx) * 6];
                 alt_[tz * 128 + tx] = v[0].y;
                 alt_[tz * 128 + tx + 1] = v[1].y;
                 alt_[(tz + 1) * 128 + tx + 1] = v[2].y;
@@ -1563,12 +1504,12 @@ public:
     void update_vehicles(const WorldSnapshot &snap)
     {
         vehicles_.clear();
-        for (const VrsDynGroup &g : snap.dyn_groups) {
+        for (const SwvDynGroup &g : snap.dyn_groups) {
             if ((g.id >> 28) != 0 || g.first + g.count > snap.dyn_verts.size() || g.count == 0)
                 continue;
             glm::vec3 lo(1e9f), hi(-1e9f);
             for (uint32_t i = 0; i < g.count; i++) {
-                const VrsVert &v = snap.dyn_verts[g.first + i];
+                const SwvVert &v = snap.dyn_verts[g.first + i];
                 lo = glm::min(lo, glm::vec3(v.x, v.y, v.z));
                 hi = glm::max(hi, glm::vec3(v.x, v.y, v.z));
             }
@@ -1604,7 +1545,7 @@ public:
         if (!r.valid)
             return best;
         for (const Person &pp : people) {
-            if (pp.flags & VrsTF_HIDDEN)
+            if (pp.flags & SwvTF_HIDDEN)
                 continue;
             // closest approach to the vertical axis through the person
             glm::vec2 o2(r.o.x - pp.p.x, r.o.z - pp.p.z), d2(r.d.x, r.d.z);
@@ -1828,7 +1769,7 @@ static void ground_ring(std::vector<GpuVert> &out, glm::vec3 c, float radius, fl
 
 // Reads the game's panel data out of the snapshot block.
 struct HudData {
-    VrsHud hud{};
+    SwvHud hud{};
     bool valid = false;
 };
 
@@ -1860,19 +1801,19 @@ public:
             cur_dyn_ = snap.dyn_verts;
             prev_groups_.swap(cur_groups_);
             cur_groups_.clear();
-            for (const VrsDynGroup &g : snap.dyn_groups)
+            for (const SwvDynGroup &g : snap.dyn_groups)
                 cur_groups_[g.id] = g;
             prev_pos_.swap(cur_pos_);
             cur_pos_.clear();
-            for (const VrsEffect &e : snap.effects)
+            for (const SwvEffect &e : snap.effects)
                 cur_pos_[e.id] = glm::vec3(e.x, e.y, e.z);
-            for (const VrsBar &b : snap.bars)
+            for (const SwvBar &b : snap.bars)
                 cur_pos_[0x80000000u ^ b.id] = glm::vec3(b.x, b.y, b.z);
-            for (const VrsGlow &g : snap.glows)
+            for (const SwvGlow &g : snap.glows)
                 cur_pos_[0x40000000u ^ g.id] = glm::vec3(g.x, g.y, g.z);
             prev_shadows_.swap(cur_shadows_);
             cur_shadows_.clear();
-            for (const VrsShadow &sh : snap.shadows)
+            for (const SwvShadow &sh : snap.shadows)
                 cur_shadows_[sh.id] = sh;
         }
     }
@@ -1894,7 +1835,7 @@ public:
 
     // Moving geometry between the last two turns: vertices of a thing
     // present in both, with the same count, glide from old to new.
-    void moving_geometry(double now, std::vector<VrsVert> &out) const
+    void moving_geometry(double now, std::vector<SwvVert> &out) const
     {
         float a = turn_fraction(now);
         out = cur_dyn_;
@@ -1902,17 +1843,17 @@ public:
             auto it = prev_groups_.find(kv.first);
             if (it == prev_groups_.end() || it->second.count != kv.second.count)
                 continue;
-            const VrsDynGroup &g = kv.second, &pg = it->second;
+            const SwvDynGroup &g = kv.second, &pg = it->second;
             if (g.first + g.count > out.size() || pg.first + pg.count > prev_dyn_.size())
                 continue;
             // skip teleports, such as things appearing elsewhere
-            const VrsVert &v0 = out[g.first], &p0 = prev_dyn_[pg.first];
+            const SwvVert &v0 = out[g.first], &p0 = prev_dyn_[pg.first];
             float dx = v0.x - p0.x, dz = v0.z - p0.z;
             if (dx * dx + dz * dz > 2048.0f * 2048.0f)
                 continue;
             for (uint32_t i = 0; i < g.count; i++) {
-                VrsVert &v = out[g.first + i];
-                const VrsVert &pv = prev_dyn_[pg.first + i];
+                SwvVert &v = out[g.first + i];
+                const SwvVert &pv = prev_dyn_[pg.first + i];
                 v.x = pv.x + (v.x - pv.x) * a;
                 v.y = pv.y + (v.y - pv.y) * a;
                 v.z = pv.z + (v.z - pv.z) * a;
@@ -1934,7 +1875,7 @@ public:
         float a = (float)std::clamp((now - turn_time_) / std::max(turn_dt_, 0.01), 0.0, 1.0);
         // shadows under vehicles and people, before anything they could cover
         for (const auto &kv : cur_shadows_) {
-            VrsShadow sh = kv.second;
+            SwvShadow sh = kv.second;
             auto it = prev_shadows_.find(kv.first);
             if (it != prev_shadows_.end())
                 for (int k = 0; k < 4; k++) {
@@ -1949,14 +1890,14 @@ public:
                 push(out, c[k], nullptr, 4.0f);
         }
         for (const auto &kv : cur_) {
-            const VrsThing &t = kv.second;
-            if ((t.flags & VrsTF_HIDDEN) || (t.flags & VrsTF_DEAD))
+            const SwvThing &t = kv.second;
+            if ((t.flags & SwvTF_HIDDEN) || (t.flags & SwvTF_DEAD))
                 continue;
             add_shadow(out, position(kv.first, t, a));
         }
         for (const auto &kv : cur_) {
-            const VrsThing &t = kv.second;
-            if (t.flags & VrsTF_HIDDEN)
+            const SwvThing &t = kv.second;
+            if (t.flags & SwvTF_HIDDEN)
                 continue;
             glm::vec3 p = position(kv.first, t, a);
             float top = 0;
@@ -1975,14 +1916,14 @@ public:
             } else if (!add_sprite(out, snap, t, p, eye, top)) {
                 top = add_figure(out, t, p);
             }
-            if (t.flags & VrsTF_PLAYER_AGENT) {
+            if (t.flags & SwvTF_PLAYER_AGENT) {
                 // marker above own agents, visible from afar
                 float mk[3] = {0.2f, 1.0f, 1.0f};
                 Renderer::add_box(out, p + glm::vec3(-14, top + 40, -14),
                                   p + glm::vec3(14, top + 68, 14), mk);
             }
         }
-        for (const VrsEffect &e : snap.effects) {
+        for (const SwvEffect &e : snap.effects) {
             glm::vec3 p = glide(e.id, glm::vec3(e.x, e.y, e.z), a);
             glm::vec2 fwd;
             view_angle(eye, p, fwd);
@@ -1990,21 +1931,21 @@ public:
                       std::clamp(e.brightness / 32.0f, 0.3f, 1.5f));
         }
         uint32_t seed = snap.hdr.gameturn * 2654435761u;
-        for (const VrsLine &l : snap.lines)
+        for (const SwvLine &l : snap.lines)
             add_line(out, l, eye, rend, seed);
         // health bars over damaged vehicles, guns and people
-        for (const VrsBar &b : snap.bars)
+        for (const SwvBar &b : snap.bars)
             add_bar(out, glide(0x80000000u ^ b.id, glm::vec3(b.x, b.y, b.z), a), b.frac, 220, eye);
         for (const auto &kv : cur_) {
-            const VrsThing &t = kv.second;
-            if ((t.flags & (VrsTF_HIDDEN | VrsTF_DEAD)) || t.max_health <= 0 ||
+            const SwvThing &t = kv.second;
+            if ((t.flags & (SwvTF_HIDDEN | SwvTF_DEAD)) || t.max_health <= 0 ||
                 t.health >= t.max_health || t.health <= 0)
                 continue;
             glm::vec3 p = position(kv.first, t, a);
             add_bar(out, p + glm::vec3(0, 250, 0), (float)t.health / t.max_health, 110, eye);
         }
         // glows, drawn by the renderer after everything else
-        for (const VrsGlow &g : snap.glows) {
+        for (const SwvGlow &g : snap.glows) {
             float rgb[3];
             rend.palette_rgb(rend.palette(), g.colour, rgb);
             add_glow(glow_out, glide(0x40000000u ^ g.id, glm::vec3(g.x, g.y, g.z), a),
@@ -2027,7 +1968,7 @@ private:
     // phi_game, else towards phi_game itself, instead of snapping. Facing
     // A of the game is walking towards atan2(vx, vz) = A * 45 degrees, the
     // same rotation as the figure's.
-    float facing(uint16_t index, const VrsThing &t, float phi_game, float dt) const
+    float facing(uint16_t index, const SwvThing &t, float phi_game, float dt) const
     {
         float target = phi_game;
         auto it = prev_.find(index);
@@ -2102,7 +2043,7 @@ private:
     }
 
     // Interpolated position between the last two game turns.
-    glm::vec3 position(uint16_t index, const VrsThing &t, float a) const
+    glm::vec3 position(uint16_t index, const SwvThing &t, float a) const
     {
         glm::vec3 p(t.x, t.y, t.z);
         auto it = prev_.find(index);
@@ -2161,7 +2102,7 @@ private:
         return ((seed >> 8) & 0xFFFF) / 32768.0f - 1.0f;
     }
 
-    void add_line(std::vector<GpuVert> &out, const VrsLine &l, glm::vec3 eye,
+    void add_line(std::vector<GpuVert> &out, const SwvLine &l, glm::vec3 eye,
                   const Renderer &rend, uint32_t &seed) const
     {
         glm::vec3 a(l.x1, l.y1, l.z1), b(l.x2, l.y2, l.z2);
@@ -2171,7 +2112,7 @@ private:
         float rgb[3];
         rend.palette_rgb(rend.palette(), l.colour, rgb);
         float w = std::max<float>(l.width, 2.0f);
-        if (l.flags & VrsLF_JAGGED) {
+        if (l.flags & SwvLF_JAGGED) {
             // lightning: zigzag through jittered points, like do_beam_electric()
             const int steps = 16;
             glm::vec3 dir = (b - a) / len;
@@ -2193,7 +2134,7 @@ private:
             return;
         }
         add_ribbon(out, a, b, w, eye, rgb);
-        if (l.flags & VrsLF_GLOW) {
+        if (l.flags & SwvLF_GLOW) {
             // whiter core, nudged towards the viewer to stay on top
             float core[3];
             for (int k = 0; k < 3; k++)
@@ -2215,21 +2156,21 @@ private:
         return ((int)std::lround(ang) + 2048) & 2047;
     }
 
-    static int frame_for(const WorldSnapshot &snap, const VrsThing &t, int cam_angle)
+    static int frame_for(const WorldSnapshot &snap, const SwvThing &t, int cam_angle)
     {
         int idx;
         switch (t.anim_mode) {
-        case VrsAM_DIR8: {
+        case SwvAM_DIR8: {
             int cam8 = ((cam_angle + 128) >> 8) & 7;
             idx = t.anim_start + 1 + ((t.angle + 8 - cam8) & 7);
             break;
         }
-        case VrsAM_DIR12: {
+        case SwvAM_DIR12: {
             int cam12 = ((cam_angle + 85) / 170) % 12;
             idx = t.anim_start + 1 + (((3 * t.angle >> 1) + 12 - cam12) % 12);
             break;
         }
-        case VrsAM_FIXED:
+        case SwvAM_FIXED:
             return t.anim_start;
         default:
             return -1;
@@ -2241,7 +2182,7 @@ private:
 
     // Adds the frame elements as quads; returns false if there is no frame.
     static bool add_sprite(std::vector<GpuVert> &out, const WorldSnapshot &snap,
-                           const VrsThing &t, glm::vec3 p, glm::vec3 eye, float &top)
+                           const SwvThing &t, glm::vec3 p, glm::vec3 eye, float &top)
     {
         glm::vec2 fwd;
         int frm = frame_for(snap, t, view_angle(eye, p, fwd));
@@ -2270,7 +2211,7 @@ private:
         for (int el = snap.frames[frm].first_element;
              el > 0 && el < (int)snap.elements.size() && guard < 64;
              el = snap.elements[el].next, guard++) {
-            const VrsElement &e = snap.elements[el];
+            const SwvElement &e = snap.elements[el];
             if (e.to_sprite == 0 || e.to_sprite % snap.sprite_stride != 0)
                 continue;
             uint32_t si = e.to_sprite / snap.sprite_stride;
@@ -2284,7 +2225,7 @@ private:
             } else if (e.flags & 0xFE00) {
                 continue;
             }
-            const VrsSpriteRect &r = snap.sprite_rects[si];
+            const SwvSpriteRect &r = snap.sprite_rects[si];
             if (r.w == 0 || r.h == 0)
                 continue;
             float x0 = (e.x >> 1) * pw, x1 = x0 + r.w * pw;
@@ -2319,11 +2260,11 @@ private:
     }
 
     // Box figure, for when sprites are not available; returns its height.
-    static float add_figure(std::vector<GpuVert> &out, const VrsThing &t, glm::vec3 p)
+    static float add_figure(std::vector<GpuVert> &out, const SwvThing &t, glm::vec3 p)
     {
         float rgb[3];
         colour_for(t, rgb);
-        if (t.flags & VrsTF_DEAD) {
+        if (t.flags & SwvTF_DEAD) {
             Renderer::add_box(out, p + glm::vec3(-70, 0, -24), p + glm::vec3(70, 14, 24), rgb);
             return 14;
         }
@@ -2334,10 +2275,10 @@ private:
         return h + 2 * hw;
     }
 
-    static void colour_for(const VrsThing &t, float *rgb)
+    static void colour_for(const SwvThing &t, float *rgb)
     {
         float c[3] = {0.75f, 0.75f, 0.7f};
-        if (t.flags & VrsTF_PLAYER_AGENT) {
+        if (t.flags & SwvTF_PLAYER_AGENT) {
             c[0] = 0.1f; c[1] = 0.9f; c[2] = 1.0f;
         } else {
             // vary by subtype so different kinds of people are distinguishable
@@ -2347,18 +2288,18 @@ private:
             const float *s = pal[t.subtype & 7];
             c[0] = s[0]; c[1] = s[1]; c[2] = s[2];
         }
-        if (t.flags & VrsTF_DEAD) {
+        if (t.flags & SwvTF_DEAD) {
             c[0] *= 0.4f; c[1] *= 0.2f; c[2] *= 0.2f;
         }
         memcpy(rgb, c, sizeof(c));
     }
 
-    std::unordered_map<uint16_t, VrsThing> cur_, prev_;
+    std::unordered_map<uint16_t, SwvThing> cur_, prev_;
     mutable std::unordered_map<uint16_t, float> facing_;
-    std::vector<VrsVert> cur_dyn_, prev_dyn_;
-    std::unordered_map<uint32_t, VrsDynGroup> cur_groups_, prev_groups_;
+    std::vector<SwvVert> cur_dyn_, prev_dyn_;
+    std::unordered_map<uint32_t, SwvDynGroup> cur_groups_, prev_groups_;
     std::unordered_map<uint32_t, glm::vec3> cur_pos_, prev_pos_;
-    std::unordered_map<uint32_t, VrsShadow> cur_shadows_, prev_shadows_;
+    std::unordered_map<uint32_t, SwvShadow> cur_shadows_, prev_shadows_;
     mutable double last_build_ = 0;
     uint32_t last_turn_ = 0;
     double turn_time_ = 0, turn_dt_ = 1.0 / 16;
@@ -2397,7 +2338,7 @@ struct TableView {
         return m;
     }
 
-    void follow_camera(const VrsHeader &h, float dt)
+    void follow_camera(const SwvHeader &h, float dt)
     {
         if (!follow || !h.in_mission)
             return;
@@ -2916,16 +2857,18 @@ int main(int argc, char **argv)
     bool use_voxels = false, voxel_dilate = false;
     int voxel_tol = 0;
     float voxel_photo = -1;
-    // the game in this process: --mission C,M (else the game's shared memory)
-    bool in_process = false;
-    unsigned campaign = 0, mission = 0;
+    // the mission the game core plays: --mission C,M
+    unsigned campaign = 0, mission = 1;
     const char *data_dir = getenv("SWARS_GAMEDATA");
     double turn_ms = 50.0;
     uint32_t dump_turn = 0;
     const char *dump_file = nullptr;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--mission") && i + 1 < argc) {
-            in_process = (sscanf(argv[++i], "%u,%u", &campaign, &mission) == 2);
+            if (sscanf(argv[++i], "%u,%u", &campaign, &mission) != 2) {
+                logf("--mission takes campaign,mission, e.g. 0,1");
+                return 1;
+            }
         } else if (!strcmp(argv[i], "--data") && i + 1 < argc) {
             data_dir = argv[++i];
         } else if (!strcmp(argv[i], "--dump-block") && i + 2 < argc) {
@@ -3012,7 +2955,6 @@ int main(int argc, char **argv)
     }
     SDL_GL_SetSwapInterval(use_xr ? 0 : 1);
 
-    SharedWorld shared;
     WorldSnapshot snap;
     People people;
     VoxelModels voxels;
@@ -3037,13 +2979,10 @@ int main(int argc, char **argv)
     double t_prev = now_seconds(), t_start = t_prev;
     CoreWorld core;
     double over_at = -1;
-    if (in_process) {
-        if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev))
-            return 1;
-        cmds.in_process = true;
-        if (dump_file != nullptr)
-            core.dump_at(dump_turn, dump_file);
-    }
+    if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev))
+        return 1;
+    if (dump_file != nullptr)
+        core.dump_at(dump_turn, dump_file);
     while (!quit) {
         double t = now_seconds();
         float dt = (float)std::min(0.1, t - t_prev);
@@ -3079,7 +3018,7 @@ int main(int argc, char **argv)
             else if (ev.type == SDL_KEYDOWN) {
                 switch (ev.key.keysym.sym) {
                 case SDLK_ESCAPE: quit = true; break;
-                case SDLK_RETURN: if (in_process) core.conclude(); break;
+                case SDLK_RETURN: core.conclude(); break;
                 case SDLK_f: tv.follow = !tv.follow; break;
                 case SDLK_LEFTBRACKET: key_wep_prev = true; break;
                 case SDLK_RIGHTBRACKET: key_wep_next = true; break;
@@ -3117,14 +3056,14 @@ int main(int argc, char **argv)
 
         if (use_xr)
             xr_in = xr.read_input();
-        if (in_process && !core.running()) {
+        if (!core.running()) {
             // the mission is over: show its end for a moment, then leave
             if (over_at < 0)
                 over_at = t;
             else if (t - over_at > 3.0)
                 quit = true;
         }
-        if (in_process ? core.poll(snap, t) : shared.poll(snap)) {
+        if (core.poll(snap, t)) {
             rend.upload_world(snap);
             // figures are built from the sprites and coloured by the palette
             if (snap.sprite_changed || snap.tmap_changed)
@@ -3137,7 +3076,7 @@ int main(int argc, char **argv)
         tv.follow_camera(snap.hdr, dt);
         voxels.collect();
         {
-            static std::vector<VrsVert> moving;
+            static std::vector<SwvVert> moving;
             people.moving_geometry(t, moving);
             rend.upload_dyn(moving);
             rend.turn = snap.hdr.gameturn + people.turn_fraction(t);
@@ -3197,17 +3136,17 @@ int main(int argc, char **argv)
 
         // panels: agents and weapons on the left wrist (or beside the
         // table on the desktop), the objective on a board behind the table
-        const VrsHud &hd = snap.hud;
+        const SwvHud &hd = snap.hud;
         auto weapon_name = [&](int w) {
             return std::string(hd.weapon_names[w], strnlen(hd.weapon_names[w], sizeof(hd.weapon_names[w])));
         };
         int selected_agent = -1;
         std::vector<int> weapon_rows;
-        for (int i = 0; i < VRS_AGENTS_MAX; i++)
+        for (int i = 0; i < SWV_AGENTS_MAX; i++)
             if (hd.agents[i].thing != 0 && hd.agents[i].thing == snap.hdr.selected)
                 selected_agent = i;
         if (selected_agent >= 0)
-            for (int w = 1; w < VRS_WEAPON_TYPES; w++)
+            for (int w = 1; w < SWV_WEAPON_TYPES; w++)
                 if (hd.agents[selected_agent].weapons & (1u << (w - 1)))
                     weapon_rows.push_back(w);
         const float row_h = 0.024f, px = 0.0016f;
@@ -3232,8 +3171,8 @@ int main(int argc, char **argv)
                          s, rgb, 26);
             };
             row_text(0, "AGENTS", cyan);
-            for (int i = 0; i < VRS_AGENTS_MAX; i++) {
-                const VrsAgent &ag = hd.agents[i];
+            for (int i = 0; i < SWV_AGENTS_MAX; i++) {
+                const SwvAgent &ag = hd.agents[i];
                 if (ag.thing == 0)
                     continue;
                 int r = 1 + i;
@@ -3241,14 +3180,14 @@ int main(int argc, char **argv)
                     hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, sel);
                 if (on_panel && hover_row == r)
                     hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, hov);
-                std::string wname = ag.current_weapon < VRS_WEAPON_TYPES
+                std::string wname = ag.current_weapon < SWV_WEAPON_TYPES
                     ? weapon_name(ag.current_weapon) : std::string();
                 char buf[64];
                 snprintf(buf, sizeof(buf), "%d %s", i + 1,
-                         (ag.flags & VrsTF_DEAD) ? "DEAD" : (wname.empty() ? "-" : wname.c_str()));
-                row_text(r, buf, (ag.flags & VrsTF_DEAD) ? dim : white);
+                         (ag.flags & SwvTF_DEAD) ? "DEAD" : (wname.empty() ? "-" : wname.c_str()));
+                row_text(r, buf, (ag.flags & SwvTF_DEAD) ? dim : white);
                 // health bar along the bottom of the row
-                if (ag.max_health > 0 && !(ag.flags & VrsTF_DEAD)) {
+                if (ag.max_health > 0 && !(ag.flags & SwvTF_DEAD)) {
                     float f = std::clamp((float)ag.health / ag.max_health, 0.0f, 1.0f);
                     float hb[3] = {std::min(1.0f, 2 * (1 - f)), std::min(1.0f, 2 * f), 0.1f};
                     hud.rect(row_tl(r) + panel.right * 0.17f - panel.up * 0.008f - back, panel.right,
@@ -3297,7 +3236,7 @@ int main(int argc, char **argv)
                 hit[h] = picker.pick(mr, people_now, clip_c, tv.half_map);
         }
         auto own_agent = [&](uint16_t thing) {
-            for (const VrsAgent &ag : hd.agents)
+            for (const SwvAgent &ag : hd.agents)
                 if (ag.thing == thing && thing != 0)
                     return true;
             return false;
@@ -3308,27 +3247,27 @@ int main(int argc, char **argv)
             if (act[1]) {
                 if (on_panel) {
                     if (hover_row >= 1 && hover_row <= 4 && hd.agents[hover_row - 1].thing != 0)
-                        cmds.send(VrsCmd_SELECT_AGENT, (int16_t)hd.agents[hover_row - 1].thing);
+                        cmds.send(SwcCmd_SELECT_AGENT, (int16_t)hd.agents[hover_row - 1].thing);
                     else if (hover_row >= 6 && hover_row - 6 < (int)weapon_rows.size())
-                        cmds.send(VrsCmd_WEAPON_SELECT, 0, 0, 0, weapon_rows[hover_row - 6]);
+                        cmds.send(SwcCmd_WEAPON_SELECT, 0, 0, 0, weapon_rows[hover_row - 6]);
                 } else if (hit[1].kind == Hit::PERSON && own_agent(hit[1].thing)) {
-                    cmds.send(VrsCmd_SELECT_AGENT, (int16_t)hit[1].thing);
+                    cmds.send(SwcCmd_SELECT_AGENT, (int16_t)hit[1].thing);
                 } else if (hit[1].kind == Hit::VEHICLE) {
-                    cmds.send(VrsCmd_ENTER_VEHICLE, (int16_t)hit[1].thing);
+                    cmds.send(SwcCmd_ENTER_VEHICLE, (int16_t)hit[1].thing);
                 } else if (hit[1].kind != Hit::NONE) {
-                    cmds.send(VrsCmd_GOTO, 0, (int32_t)hit[1].p.x, (int32_t)hit[1].p.z);
+                    cmds.send(SwcCmd_GOTO, 0, (int32_t)hit[1].p.x, (int32_t)hit[1].p.z);
                 }
             }
             if (act[0]) {
                 if ((hit[0].kind == Hit::PERSON && !own_agent(hit[0].thing)) || hit[0].kind == Hit::VEHICLE)
-                    cmds.send(VrsCmd_SHOOT_THING, (int16_t)hit[0].thing);
+                    cmds.send(SwcCmd_SHOOT_THING, (int16_t)hit[0].thing);
                 else if (hit[0].kind == Hit::GROUND || hit[0].kind == Hit::PERSON)
-                    cmds.send(VrsCmd_SHOOT_GROUND, 0, (int32_t)hit[0].p.x, (int32_t)hit[0].p.z);
+                    cmds.send(SwcCmd_SHOOT_GROUND, 0, (int32_t)hit[0].p.x, (int32_t)hit[0].p.z);
             }
             if (wep_next)
-                cmds.send(VrsCmd_WEAPON_NEXT);
+                cmds.send(SwcCmd_WEAPON_NEXT);
             if (wep_prev)
-                cmds.send(VrsCmd_WEAPON_PREV);
+                cmds.send(SwcCmd_WEAPON_PREV);
         }
 
         // rings on the table: own agents, the selected one, what is pointed at
@@ -3337,11 +3276,11 @@ int main(int argc, char **argv)
                                ring_r[3] = {1.0f, 0.9f, 0.2f}, ring_l[3] = {1.0f, 0.2f, 0.15f};
             float pulse = 0.85f + 0.15f * std::sin((float)t * 6.0f);
             for (const Picker::Person &pp : people_now) {
-                if (pp.flags & (VrsTF_HIDDEN | VrsTF_DEAD))
+                if (pp.flags & (SwvTF_HIDDEN | SwvTF_DEAD))
                     continue;
                 if (pp.thing == snap.hdr.selected)
                     ground_ring(people_verts, pp.p, 85.0f * pulse, 14.0f, ring_sel, eye_map);
-                else if (pp.flags & VrsTF_PLAYER_AGENT)
+                else if (pp.flags & SwvTF_PLAYER_AGENT)
                     ground_ring(people_verts, pp.p, 70.0f, 8.0f, ring_own, eye_map);
             }
             for (int h = 0; h < 2; h++) {
@@ -3492,8 +3431,7 @@ int main(int argc, char **argv)
             SDL_GL_SwapWindow(win);
         }
     }
-    if (in_process)
-        core.stop();
+    core.stop();
     SDL_GL_DeleteContext(ctx);
     SDL_DestroyWindow(win);
     SDL_Quit();

@@ -25,7 +25,7 @@ GROUPS = {
     'menus': '''feappbar febrief fecntrls fecryo fedebrief feequip felogin
         femain fenet feoptions fepanet fepause feresearch feshared festorage
         feworld packetfe devcreds game_options game_save'''.split(),
-    'shell': 'game swapp swmain vrspectate'.split(),
+    'shell': 'game swapp swmain'.split(),
     'input': 'keyboard mouse plyr_usrinp'.split(),
     'sound': 'sound fmvplay bfsmack smailfile smkdec'.split(),
     'test': '''difftest_fuzz difftest_hook_fe thing_debug pathtrig_debug'''.split(),

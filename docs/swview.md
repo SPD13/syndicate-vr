@@ -10,24 +10,22 @@ links with the core alone (`swcore_coreonly`), and has no threads, shared
 memory or OS calls (file access goes through bflib), so it can build for
 the web.
 
-It was the VR spectator's export (`vrspectate.c` of branch `vr/spectator`);
-the desktop game still publishes it in shared memory for the separate
-viewer process (`vrspectate.c`, `SWARS_VR_SPECTATOR=1`), with the same
-layout (`vrshare.h`).
+It was the VR spectator's export (`vrspectate.c` of branch `vr/spectator`,
+where the desktop game published it in shared memory for a viewer
+process, layout `vrshare.h`, the same as the block's).
 
 ## The VR viewer with the game inside (`--mission`)
 
-`vr/viewer/main.cpp` with `--mission C,M` (`vr\run_vr.cmd C,M`) runs
-the game core in its own process (`CoreWorld`): `swcore_core_init()`,
+`vr/viewer/main.cpp` (`vr\run_vr.cmd C,M`) runs the game core of
+mission `--mission C,M` (default 0,1) in its own process (`CoreWorld`): `swcore_core_init()`,
 `swview_load_assets()`, then `swcore_core_step()` on a fixed clock
 (`--turn-ms`, default 50) and `swview_update()` into its own block, read
-as the shared one was. Commands go to `swcore_command()`. Enter confirms
+by `BlockReader`. Commands go to `swcore_command()`. Enter confirms
 the end of a decided mission; the viewer quits 3 s after it ends. It
 links `libswarsview`, `libswarscore`, `libswarsnull` (`swfe_null.c`, no
 sound yet), `libswworld` and the platform libraries of `build/x64`
 (`vr/viewer/build.sh`), not the renderer. Game data from `--data DIR`,
-default `$SWARS_GAMEDATA`. Without `--mission` it reads the desktop
-game's shared memory, as before.
+default `$SWARS_GAMEDATA`.
 
 `--dump-block TURN FILE` writes the block of that turn: with the same
 `SWARS_SEED`/`SWARS_DIFFTEST_FAST` settings it equals the `block.bin` of
@@ -115,4 +113,3 @@ clock.
   `swcore_coreonly --view --view-dump TURN DIR` (core alone) write the
   export of a turn (`block.bin`, `persons.bin`, `fx.bin`, `hud.bin`) to
   compare; `--view` also prints the effect events counted at the end.
-- `vr/tools/inspect_share.py --launch` reads the desktop's shared memory.

@@ -111,9 +111,9 @@ lack clobber lists and break under optimisation.
   uses nothing from the front end (`coredeps.py`: "view uses 0 front-end
   symbols") and links with the core alone; check with
   `coreturn_compare.py harness --jobs 2 --core-only --view` (50/0).
-  Keep it portable: no threads, shared memory or OS calls. The desktop
-  publishes it for the separate VR viewer (`vrspectate.c`,
-  `SWARS_VR_SPECTATOR=1`, layout `vrshare.h` = the `SWV_OFF_*` block).
+  Keep it portable: no threads, shared memory or OS calls. The VR viewer
+  (`vr/viewer`, `vr/viewer/build.sh` after `build.sh --x64`) runs the core
+  in its own process and reads the world through it.
 - The direction: one C core, front ends per target (SDL desktop, VR,
   mobile), solo play only. Keep `swcore.h` free of game headers
   (`<stdint.h>` types only) and add to it, don't change it
