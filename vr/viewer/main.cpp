@@ -1,9 +1,14 @@
-// Syndicate Wars VR spectator viewer.
+// Syndicate Wars VR viewer.
 //
-// Reads the world snapshot which syndwarsfx publishes in shared memory (see
-// src/vrshare.h, enabled with SWARS_VR_SPECTATOR=1) and shows it as a
-// miniature on a table, in a SteamVR headset through OpenXR, or in a desktop
-// window with an orbit camera (--desktop, or when no headset is available).
+// With --mission C,M it plays the mission itself: the game core library
+// (swcore.h) steps the turns on a fixed clock (--turn-ms, default 50), the
+// world export (swview.h) gives the world; game data from --data DIR or
+// $SWARS_GAMEDATA; Enter confirms the end of a decided mission. Without it,
+// it reads the world snapshot which syndwarsfx publishes in shared memory
+// (see src/vrshare.h, enabled with SWARS_VR_SPECTATOR=1).
+// It shows the world as a miniature on a table, in a SteamVR headset
+// through OpenXR, or in a desktop window with an orbit camera (--desktop, or
+// when no headset is available).
 //
 // Controls (VR):  right trigger: point at an agent to select it, at the ground to
 //                 walk there, at a vehicle to get in, at a row of the wrist panel
@@ -14,7 +19,7 @@
 //                 left stick click recentres the table in front of you.
 // Options: --desktop, --voxel, --click X Y SECONDS BUTTON (simulated click), --voxel-tol N, --voxel-dilate, --voxel-photo T,
 //          --zoom HALF_MAP, --center X Z, --orbit YAW PITCH DIST,
-//          --screenshot FILE SECONDS.
+//          --screenshot FILE SECONDS, --dump-block TURN FILE (the world block of that turn, with --mission).
 // Controls (desktop): click as the right trigger, right click as the left
 //                 trigger, [ ] weapons, drag mouse to orbit, wheel to change distance,
 //                 arrows pan, +/- zoom, F follow, Q/E rotate the table,
@@ -51,7 +56,16 @@
 
 extern "C" {
 #include "vrshare.h"
+#include "swcore.h"
+#include "swview.h"
 }
+
+// the world block of libswarsview has the layout of the shared memory
+static_assert(SWV_TOTAL_SIZE == VRS_TOTAL_SIZE, "swview block layout");
+static_assert(SWV_OFF_HUD == VRS_OFF_HUD, "swview block layout");
+// and the core takes the viewer's commands as they are
+static_assert((int)SwcCmd_GOTO == (int)VrsCmd_GOTO, "command types");
+static_assert((int)SwcCmd_ENTER_VEHICLE == (int)VrsCmd_ENTER_VEHICLE, "command types");
 
 static void logf(const char *fmt, ...)
 {
@@ -94,6 +108,10 @@ struct WorldSnapshot {
 
 class SharedWorld {
 public:
+    /** Reads a block of this process (CoreWorld) instead of the game's
+     * shared memory. */
+    void attach(const uint8_t *block) { block_ = block; }
+
     bool poll(WorldSnapshot &snap)
     {
         if (!block_ && !open())
@@ -231,6 +249,112 @@ private:
     std::vector<VrsFrame> tmp_frames_;
     std::vector<VrsElement> tmp_elements_;
     std::vector<uint8_t> tmp_pages_;
+};
+
+/******************************************************************************/
+// The game in this process: the core library steps the mission, the world
+// export (libswarsview) fills a block read as the shared memory is
+
+class CoreWorld {
+public:
+    /** Starts the mission with the game data in data_dir (the core reads
+     * its files relative to the current directory). */
+    bool start(const char *data_dir, unsigned campaign, unsigned mission, double turn_seconds, double now)
+    {
+        if (data_dir && !SetCurrentDirectoryA(data_dir)) {
+            logf("cannot use game data folder %s", data_dir);
+            return false;
+        }
+        if (swcore_core_init(campaign, mission) != 0) {
+            logf("cannot start mission %u,%u", campaign, mission);
+            return false;
+        }
+        int missing = swview_load_assets();
+        if (missing != 0)
+            logf("%d asset files missing", missing);
+        block_.assign(swview_block_size(), 0);
+        swview_update(block_.data());
+        reader_.attach(block_.data());
+        turn_seconds_ = turn_seconds;
+        last_turn_ = now;
+        running_ = true;
+        fresh_ = true;
+        logf("game core: mission %u,%u, API %u, view API %u", campaign, mission,
+             (unsigned)SWCORE_API_VERSION, (unsigned)SWVIEW_API_VERSION);
+        return true;
+    }
+
+    /** Plays the turns due by now, on a fixed clock, and reads the world
+     * when it changed. */
+    bool poll(WorldSnapshot &snap, double now)
+    {
+        int n = 0;
+        while (running_ && (now - last_turn_ >= turn_seconds_) && (n < 4)) {
+            last_turn_ += turn_seconds_;
+            n++;
+            if (!swcore_core_step()) {
+                running_ = false;
+                struct SwcWorldInfo info;
+                swcore_world_info(&info);
+                logf("mission over at turn %u, status %u", info.gameturn, info.mission_status);
+            }
+            swview_update(block_.data());
+            if (dump_file_ != nullptr)
+                dump_block();
+        }
+        if (n == 4)
+            last_turn_ = now; // the game cannot keep up: no catching up
+        if ((n == 0) && !fresh_)
+            return false;
+        fresh_ = false;
+        return reader_.poll(snap);
+    }
+
+    /** The player confirms the end of a decided mission. */
+    void conclude()
+    {
+        struct SwcWorldInfo info;
+        swcore_world_info(&info);
+        if (running_ && ((info.mission_status == SwcMS_WON) || (info.mission_status == SwcMS_LOST)))
+            swcore_mission_conclude();
+    }
+
+    /** Writes the world block of that turn to fname, for comparisons. */
+    void dump_at(uint32_t turn, const char *fname)
+    {
+        dump_turn_ = turn;
+        dump_file_ = fname;
+    }
+
+    bool running() const { return running_; }
+    void stop()
+    {
+        swview_free_assets();
+        swcore_core_shutdown();
+    }
+
+private:
+    void dump_block()
+    {
+        struct SwcWorldInfo info;
+        swcore_world_info(&info);
+        if (info.gameturn != dump_turn_)
+            return;
+        FILE *f = fopen(dump_file_, "wb");
+        if (f != nullptr) {
+            fwrite(block_.data(), 1, block_.size(), f);
+            fclose(f);
+            logf("world block of turn %u written to %s", info.gameturn, dump_file_);
+        }
+        dump_file_ = nullptr;
+    }
+
+    std::vector<uint8_t> block_;
+    SharedWorld reader_;
+    uint32_t dump_turn_ = 0;
+    const char *dump_file_ = nullptr;
+    double turn_seconds_ = 0.05, last_turn_ = 0;
+    bool running_ = false, fresh_ = false;
 };
 
 /******************************************************************************/
@@ -1356,8 +1480,23 @@ private:
 // Sends commands to the game through its command block.
 class CommandSender {
 public:
+    /** Commands go to the game core of this process (swcore_command()). */
+    bool in_process = false;
+
     void send(uint16_t type, int16_t thing = 0, int32_t x = 0, int32_t z = 0, uint32_t arg = 0)
     {
+        if (in_process) {
+            // the command types of swcore.h are those of vrshare.h
+            struct SwcCommand c{};
+            c.type = type;
+            c.thing = thing;
+            c.x = x;
+            c.z = z;
+            c.arg = arg;
+            swcore_command(&c);
+            logf("command %u thing %d at %d,%d arg %u", type, thing, x, z, arg);
+            return;
+        }
         if (!q_ && !open())
             return;
         if (q_->magic != VRS_CMD_MAGIC)
@@ -2777,8 +2916,24 @@ int main(int argc, char **argv)
     bool use_voxels = false, voxel_dilate = false;
     int voxel_tol = 0;
     float voxel_photo = -1;
+    // the game in this process: --mission C,M (else the game's shared memory)
+    bool in_process = false;
+    unsigned campaign = 0, mission = 0;
+    const char *data_dir = getenv("SWARS_GAMEDATA");
+    double turn_ms = 50.0;
+    uint32_t dump_turn = 0;
+    const char *dump_file = nullptr;
     for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--desktop"))
+        if (!strcmp(argv[i], "--mission") && i + 1 < argc) {
+            in_process = (sscanf(argv[++i], "%u,%u", &campaign, &mission) == 2);
+        } else if (!strcmp(argv[i], "--data") && i + 1 < argc) {
+            data_dir = argv[++i];
+        } else if (!strcmp(argv[i], "--dump-block") && i + 2 < argc) {
+            dump_turn = (uint32_t)strtoul(argv[++i], nullptr, 0);
+            dump_file = argv[++i];
+        } else if (!strcmp(argv[i], "--turn-ms") && i + 1 < argc) {
+            turn_ms = std::max(1.0, atof(argv[++i]));
+        } else if (!strcmp(argv[i], "--desktop"))
             desktop = true;
         else if (!strcmp(argv[i], "--voxel"))
             use_voxels = true;
@@ -2880,6 +3035,15 @@ int main(int argc, char **argv)
     std::vector<Picker::Person> people_now;
     glm::mat4 desk_view(1.0f), desk_proj(1.0f);
     double t_prev = now_seconds(), t_start = t_prev;
+    CoreWorld core;
+    double over_at = -1;
+    if (in_process) {
+        if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev))
+            return 1;
+        cmds.in_process = true;
+        if (dump_file != nullptr)
+            core.dump_at(dump_turn, dump_file);
+    }
     while (!quit) {
         double t = now_seconds();
         float dt = (float)std::min(0.1, t - t_prev);
@@ -2915,6 +3079,7 @@ int main(int argc, char **argv)
             else if (ev.type == SDL_KEYDOWN) {
                 switch (ev.key.keysym.sym) {
                 case SDLK_ESCAPE: quit = true; break;
+                case SDLK_RETURN: if (in_process) core.conclude(); break;
                 case SDLK_f: tv.follow = !tv.follow; break;
                 case SDLK_LEFTBRACKET: key_wep_prev = true; break;
                 case SDLK_RIGHTBRACKET: key_wep_next = true; break;
@@ -2952,7 +3117,14 @@ int main(int argc, char **argv)
 
         if (use_xr)
             xr_in = xr.read_input();
-        if (shared.poll(snap)) {
+        if (in_process && !core.running()) {
+            // the mission is over: show its end for a moment, then leave
+            if (over_at < 0)
+                over_at = t;
+            else if (t - over_at > 3.0)
+                quit = true;
+        }
+        if (in_process ? core.poll(snap, t) : shared.poll(snap)) {
             rend.upload_world(snap);
             // figures are built from the sprites and coloured by the palette
             if (snap.sprite_changed || snap.tmap_changed)
@@ -3320,6 +3492,8 @@ int main(int argc, char **argv)
             SDL_GL_SwapWindow(win);
         }
     }
+    if (in_process)
+        core.stop();
     SDL_GL_DeleteContext(ctx);
     SDL_DestroyWindow(win);
     SDL_Quit();

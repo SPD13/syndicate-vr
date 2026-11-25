@@ -14,7 +14,10 @@ MKW = $(PYTHON) $(top_srcdir)/util/mkwrappers
 # hooks of front-end code are in libswarsfe (difftest_hook_fe.c).
 # libswarsview gives the world as a front end draws it its own way (VR,
 # a modern renderer): swview.h; it only reads the game.
-noinst_LIBRARIES = libswarscore.a libswarsfe.a libswarstest.a libswarsview.a
+# libswarsnull is the null front end (swfe_null.c), for a front end of its
+# own that has none of the desktop's services yet (the VR viewer).
+noinst_LIBRARIES = libswarscore.a libswarsfe.a libswarstest.a libswarsview.a \
+  libswarsnull.a
 
 syndwarsfx_SOURCES = \
 	swcore.h \
@@ -281,6 +284,11 @@ libswarsview_a_SOURCES = \
 	swview.c \
 	swview.h
 libswarsview_a_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
+
+libswarsnull_a_SOURCES = \
+	swfe.h \
+	swfe_null.c
+libswarsnull_a_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
 syndwarsfx_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
 
 # Watcom-to-C wrappers (ac_*) are called only from asm, which builds

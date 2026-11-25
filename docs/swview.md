@@ -15,6 +15,25 @@ the desktop game still publishes it in shared memory for the separate
 viewer process (`vrspectate.c`, `SWARS_VR_SPECTATOR=1`), with the same
 layout (`vrshare.h`).
 
+## The VR viewer with the game inside (`--mission`)
+
+`vr/viewer/main.cpp` with `--mission C,M` (`vr\run_vr.cmd C,M`) runs
+the game core in its own process (`CoreWorld`): `swcore_core_init()`,
+`swview_load_assets()`, then `swcore_core_step()` on a fixed clock
+(`--turn-ms`, default 50) and `swview_update()` into its own block, read
+as the shared one was. Commands go to `swcore_command()`. Enter confirms
+the end of a decided mission; the viewer quits 3 s after it ends. It
+links `libswarsview`, `libswarscore`, `libswarsnull` (`swfe_null.c`, no
+sound yet), `libswworld` and the platform libraries of `build/x64`
+(`vr/viewer/build.sh`), not the renderer. Game data from `--data DIR`,
+default `$SWARS_GAMEDATA`. Without `--mission` it reads the desktop
+game's shared memory, as before.
+
+`--dump-block TURN FILE` writes the block of that turn: with the same
+`SWARS_SEED`/`SWARS_DIFFTEST_FAST` settings it equals the `block.bin` of
+`swcore_coreonly --view --view-dump TURN DIR -m C,M` (0,1 turn 200,
+1,85 and 0,101 turn 600: identical).
+
 ## The world block (`swview_update()`)
 
 `swview_update(block)` fills a block of `swview_block_size()` bytes, laid
