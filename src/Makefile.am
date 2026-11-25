@@ -12,7 +12,9 @@ MKW = $(PYTHON) $(top_srcdir)/util/mkwrappers
 # libswarstest holds the test hooks of the game turn (the scripted player
 # and the hooks of statetrace.sh's scenarios), on the core alone; the
 # hooks of front-end code are in libswarsfe (difftest_hook_fe.c).
-noinst_LIBRARIES = libswarscore.a libswarsfe.a libswarstest.a
+# libswarsview gives the world as a front end draws it its own way (VR,
+# a modern renderer): swview.h; it only reads the game.
+noinst_LIBRARIES = libswarscore.a libswarsfe.a libswarstest.a libswarsview.a
 
 syndwarsfx_SOURCES = \
 	swcore.h \
@@ -274,6 +276,11 @@ libswarstest_a_SOURCES = \
 	difftest_hook_people.c \
 	difftest_hook_transport.c
 libswarstest_a_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
+
+libswarsview_a_SOURCES = \
+	swview.c \
+	swview.h
+libswarsview_a_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
 syndwarsfx_CPPFLAGS = $(libswarscore_a_CPPFLAGS)
 
 # Watcom-to-C wrappers (ac_*) are called only from asm, which builds
@@ -344,15 +351,15 @@ nodist_EXTRA_syndwarsfx_SOURCES = dummy.cxx
 syndwarsfx_PROJECT_LIBS = ../lib/libbullfrog.a ../lib/libbfsound.a ../lib/libswrender.a \
   ../lib/libswworld.a
 
-$(libswarscore_a_OBJECTS) $(libswarsfe_a_OBJECTS) $(libswarstest_a_OBJECTS) $(syndwarsfx_OBJECTS) $(bin_PROGRAMS): $(syndwarsfx_PROJECT_LIBS)
+$(libswarscore_a_OBJECTS) $(libswarsfe_a_OBJECTS) $(libswarstest_a_OBJECTS) $(libswarsview_a_OBJECTS) $(syndwarsfx_OBJECTS) $(bin_PROGRAMS): $(syndwarsfx_PROJECT_LIBS)
 
 # The whole libraries go in, as when their objects were linked directly:
 # the asm reference and the wrappers reach functions nothing else references
-syndwarsfx_LDFLAGS = -Wl,--whole-archive libswarscore.a libswarsfe.a libswarstest.a -Wl,--no-whole-archive
+syndwarsfx_LDFLAGS = -Wl,--whole-archive libswarscore.a libswarsfe.a libswarstest.a libswarsview.a -Wl,--no-whole-archive
 # (the drawing; the world data, libswworld, comes with LIBS for every program)
 syndwarsfx_LDADD = \
   $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS) ../lib/libswrender.a
-syndwarsfx_DEPENDENCIES = libswarscore.a libswarsfe.a libswarstest.a \
+syndwarsfx_DEPENDENCIES = libswarscore.a libswarsfe.a libswarstest.a libswarsview.a \
   $(syndwarsfx_WRAPPERS) $(syndwarsfx_RESRCS)
 
 # Test front ends; builds with asm have the wrappers outside the libraries,
@@ -370,7 +377,7 @@ nodist_EXTRA_swcore_headless_SOURCES = dummy.cxx
 # (whole, as syndwarsfx: the two libraries reference each other)
 swcore_headless_LDFLAGS = $(syndwarsfx_LDFLAGS)
 swcore_headless_LDADD = ../lib/libswrender.a
-swcore_headless_DEPENDENCIES = libswarscore.a libswarsfe.a libswarstest.a
+swcore_headless_DEPENDENCIES = libswarscore.a libswarsfe.a libswarstest.a libswarsview.a
 $(swcore_headless_OBJECTS): $(syndwarsfx_PROJECT_LIBS)
 swcore_coreonly_SOURCES = swcore.h swcore_headless.c swfe.h swfe_null.c
 swcore_coreonly_CPPFLAGS = $(libswarscore_a_CPPFLAGS) -DSWCORE_CORE_ONLY=1
