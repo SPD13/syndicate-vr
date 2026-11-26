@@ -1,7 +1,7 @@
-// Syndicate Wars VR viewer: people, drawn with the game's sprites (or voxel figures).
+// Syndicate Wars VR viewer: people, drawn with the game's sprites.
 #pragma once
 
-#include "voxels.h"
+#include "render_classic.h"
 #include "hud.h"
 
 /******************************************************************************/
@@ -93,16 +93,12 @@ public:
     }
 
     // eye: viewer position in map units, to face the sprites towards it
-    // With vox, people with a voxel figure become instances instead of sprites.
     void build(std::vector<GpuVert> &out, std::vector<GpuVert> &glow_out, double now,
-               const WorldSnapshot &snap, glm::vec3 eye, Renderer &rend, VoxelModels *vox,
-               glm::vec3 clip_center, float clip_half) const
+               const WorldSnapshot &snap, glm::vec3 eye, Renderer &rend) const
     {
         out.clear();
         glow_out.clear();
         rend.instances.clear();
-        float dt = (float)std::clamp(now - last_build_, 0.0, 0.1);
-        last_build_ = now;
         float a = (float)std::clamp((now - turn_time_) / std::max(turn_dt_, 0.01), 0.0, 1.0);
         // shadows under vehicles and people, before anything they could cover
         for (const auto &kv : cur_shadows_) {
@@ -132,21 +128,8 @@ public:
                 continue;
             glm::vec3 p = position(kv.first, t, a);
             float top = 0;
-            const VoxelModels::Model *vm = nullptr;
-            int rot_steps = 0, n_views = 8;
-            bool on_table = std::fabs(p.x - clip_center.x) < clip_half + 300 &&
-                            std::fabs(p.z - clip_center.z) < clip_half + 300;
-            if (vox && on_table)
-                vm = vox->get(t, rot_steps, n_views);
-            if (vm) {
-                float phi = facing(kv.first, t, rot_steps * 6.2831853f / n_views, dt);
-                glm::mat4 m = glm::rotate(glm::translate(glm::mat4(1.0f), p), phi, glm::vec3(0, 1, 0));
-                rend.instances.push_back({vm->vao, vm->count, m,
-                                          std::clamp(t.brightness / 32.0f, 0.3f, 1.5f)});
-                top = vm->top;
-            } else if (!add_sprite(out, snap, t, p, eye, top)) {
-                top = add_figure(out, t, p);
-            }
+            if (!add_sprite(out, snap, t, p, eye, top))
+                add_figure(out, t, p);
         }
         for (const SwvEffect &e : snap.effects) {
             glm::vec3 p = glide(e.id, glm::vec3(e.x, e.y, e.z), a);
@@ -188,7 +171,7 @@ private:
         return a;
     }
 
-    // Smoothly turning facing of a voxel figure, in radians. Eases towards
+    // Smoothly turning facing of a 3D figure, in radians. Eases towards
     // the direction of walking, when close to the game's 8-way facing
     // phi_game, else towards phi_game itself, instead of snapping. Facing
     // A of the game is walking towards atan2(vx, vz) = A * 45 degrees, the
@@ -525,7 +508,6 @@ private:
     std::unordered_map<uint32_t, SwvDynGroup> cur_groups_, prev_groups_;
     std::unordered_map<uint32_t, glm::vec3> cur_pos_, prev_pos_;
     std::unordered_map<uint32_t, SwvShadow> cur_shadows_, prev_shadows_;
-    mutable double last_build_ = 0;
     uint32_t last_turn_ = 0;
     double turn_time_ = 0, turn_dt_ = 1.0 / 16;
 };

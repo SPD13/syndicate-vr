@@ -3,6 +3,10 @@
 
 #include "common.h"
 
+// Game camera tilt: cos and sin of 30.3 degrees.
+static constexpr float kTiltCos = 0.8634f;
+static constexpr float kTiltSin = 0.5045f;
+
 /******************************************************************************/
 // Table view state: which part of the map is shown, and how
 

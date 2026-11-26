@@ -130,7 +130,7 @@ public:
         XR_CHECK(make(act_zoom_, "zoom_rotate", "Zoom and rotate", XR_ACTION_TYPE_VECTOR2F_INPUT));
         XR_CHECK(make(act_follow_, "toggle_follow", "Toggle follow camera", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_recenter_, "recenter", "Recenter table", XR_ACTION_TYPE_BOOLEAN_INPUT));
-        XR_CHECK(make(act_voxel_, "toggle_voxel", "Toggle voxel figures", XR_ACTION_TYPE_BOOLEAN_INPUT));
+        XR_CHECK(make(act_look_, "toggle_look", "Switch classic / upgraded look", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_aim_l_, "aim_left", "Left pointer", XR_ACTION_TYPE_POSE_INPUT));
         XR_CHECK(make(act_aim_r_, "aim_right", "Right pointer", XR_ACTION_TYPE_POSE_INPUT));
         XR_CHECK(make(act_trig_l_, "command_left", "Shoot", XR_ACTION_TYPE_BOOLEAN_INPUT));
@@ -161,7 +161,7 @@ public:
                 {act_zoom_, path("/user/hand/right/input/thumbstick")},
                 {act_follow_, path(pr.follow)},
                 {act_recenter_, path("/user/hand/left/input/thumbstick/click")},
-                {act_voxel_, path("/user/hand/right/input/b/click")},
+                {act_look_, path("/user/hand/right/input/b/click")},
                 {act_aim_l_, path("/user/hand/left/input/aim/pose")},
                 {act_aim_r_, path("/user/hand/right/input/aim/pose")},
                 {act_trig_l_, path((std::string("/user/hand/left") + pr.trigger).c_str())},
@@ -225,7 +225,7 @@ public:
 
     struct Input {
         glm::vec2 pan{0}, zoom{0};
-        bool follow_pressed = false, recenter_pressed = false, voxel_pressed = false;
+        bool follow_pressed = false, recenter_pressed = false, look_pressed = false;
         bool trig_pressed[2] = {false, false}; // left, right
         bool wep_next = false, wep_prev = false;
         bool aim_valid[2] = {false, false};
@@ -261,9 +261,9 @@ public:
         if (XR_SUCCEEDED(xrGetActionStateBoolean(session_, &gi, &b)))
             in.recenter_pressed = b.isActive && b.changedSinceLastSync && b.currentState;
         b = {XR_TYPE_ACTION_STATE_BOOLEAN};
-        gi.action = act_voxel_;
+        gi.action = act_look_;
         if (XR_SUCCEEDED(xrGetActionStateBoolean(session_, &gi, &b)))
-            in.voxel_pressed = b.isActive && b.changedSinceLastSync && b.currentState;
+            in.look_pressed = b.isActive && b.changedSinceLastSync && b.currentState;
         auto pressed = [&](XrAction a) {
             XrActionStateGetInfo g{XR_TYPE_ACTION_STATE_GET_INFO};
             g.action = a;
@@ -442,7 +442,7 @@ private:
     bool was_focused_ = false, just_focused_ = false;
     XrActionSet action_set_ = XR_NULL_HANDLE;
     XrAction act_pan_ = XR_NULL_HANDLE, act_zoom_ = XR_NULL_HANDLE, act_follow_ = XR_NULL_HANDLE,
-             act_recenter_ = XR_NULL_HANDLE, act_voxel_ = XR_NULL_HANDLE, act_aim_l_ = XR_NULL_HANDLE,
+             act_recenter_ = XR_NULL_HANDLE, act_look_ = XR_NULL_HANDLE, act_aim_l_ = XR_NULL_HANDLE,
              act_aim_r_ = XR_NULL_HANDLE, act_trig_l_ = XR_NULL_HANDLE, act_trig_r_ = XR_NULL_HANDLE,
              act_wep_next_ = XR_NULL_HANDLE, act_wep_prev_ = XR_NULL_HANDLE;
     XrSpace aim_space_[2] = {XR_NULL_HANDLE, XR_NULL_HANDLE};

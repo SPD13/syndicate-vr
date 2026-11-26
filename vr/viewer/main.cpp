@@ -14,25 +14,24 @@
 //                 to pick an agent or weapon; left trigger: shoot at what the
 //                 left hand points at; left A/B (X/Y): previous/next weapon;
 //                 left stick pan, right stick zoom (Y) / rotate (X),
-//                 A toggles following the game camera, B toggles voxel figures,
+//                 A toggles following the game camera,
 //                 left stick click recentres the table in front of you.
-// Options: --desktop, --voxel, --click X Y SECONDS BUTTON (simulated click), --voxel-tol N, --voxel-dilate, --voxel-photo T,
+// Options: --desktop, --click X Y SECONDS BUTTON (simulated click),
 //          --zoom HALF_MAP, --center X Z, --orbit YAW PITCH DIST,
 //          --screenshot FILE SECONDS, --dump-block TURN FILE (the world block of that turn), --mission C,M, --data DIR, --turn-ms MS.
 // Controls (desktop): click as the right trigger, right click as the left
 //                 trigger, [ ] weapons, drag mouse to orbit, wheel to change distance,
 //                 arrows pan, +/- zoom, F follow, Q/E rotate the table,
-//                 V voxel figures, T photo-consistency threshold, D dilation.
+//                 Esc quits, Enter confirms the end of a decided mission.
 //
 // Modules (headers, one translation unit): common.h, world_source.h (the
-// game core and its world), render_classic.h, voxels.h, play.h (commands,
+// game core and its world), render_classic.h, play.h (commands,
 // picking), hud.h, people.h, table_view.h, hud_vr.h (the VR HUD: wrist
 // panel, objective board, world markers), xr.h; main.cpp is the loop.
 
 #include "common.h"
 #include "world_source.h"
 #include "render_classic.h"
-#include "voxels.h"
 #include "play.h"
 #include "hud.h"
 #include "people.h"
@@ -83,9 +82,6 @@ int main(int argc, char **argv)
         bool done;
     };
     std::vector<SimClick> sim_clicks;
-    bool use_voxels = false, voxel_dilate = false;
-    int voxel_tol = 0;
-    float voxel_photo = -1;
     // the mission the game core plays: --mission C,M
     unsigned campaign = 0, mission = 1;
     const char *data_dir = getenv("SWARS_GAMEDATA");
@@ -107,8 +103,6 @@ int main(int argc, char **argv)
             turn_ms = std::max(1.0, atof(argv[++i]));
         } else if (!strcmp(argv[i], "--desktop"))
             desktop = true;
-        else if (!strcmp(argv[i], "--voxel"))
-            use_voxels = true;
         else if (!strcmp(argv[i], "--click") && i + 4 < argc) {
             SimClick c;
             c.x = atoi(argv[++i]);
@@ -118,12 +112,6 @@ int main(int argc, char **argv)
             c.done = false;
             sim_clicks.push_back(c);
         }
-        else if (!strcmp(argv[i], "--voxel-tol") && i + 1 < argc)
-            voxel_tol = atoi(argv[++i]);
-        else if (!strcmp(argv[i], "--voxel-dilate"))
-            voxel_dilate = true;
-        else if (!strcmp(argv[i], "--voxel-photo") && i + 1 < argc)
-            voxel_photo = (float)atof(argv[++i]);
         else if (!strcmp(argv[i], "--screenshot") && i + 2 < argc) {
             screenshot = argv[++i];
             screenshot_after = atof(argv[++i]);
@@ -186,11 +174,6 @@ int main(int argc, char **argv)
 
     WorldSnapshot snap;
     People people;
-    VoxelModels voxels;
-    voxels.params.tolerance = voxel_tol;
-    voxels.params.dilate = voxel_dilate;
-    if (voxel_photo >= 0)
-        voxels.params.photo = voxel_photo;
     std::vector<GpuVert> people_verts, glow_verts;
     bool placed = !use_xr;
     XrApp::Input xr_in;
@@ -252,22 +235,6 @@ int main(int argc, char **argv)
                 case SDLK_f: tv.follow = !tv.follow; break;
                 case SDLK_LEFTBRACKET: key_wep_prev = true; break;
                 case SDLK_RIGHTBRACKET: key_wep_next = true; break;
-                case SDLK_v: use_voxels = !use_voxels; break;
-                case SDLK_t: {
-                    // cycle the photo-consistency threshold, 0 is off
-                    static const float steps[] = {0.0f, 0.35f, 0.25f, 0.50f};
-                    static int si = 0;
-                    si = (si + 1) % 4;
-                    voxels.params.photo = steps[si];
-                    voxels.rebuild();
-                    logf("voxel photo-consistency threshold %.2f", voxels.params.photo);
-                    break;
-                }
-                case SDLK_d:
-                    voxels.params.dilate = !voxels.params.dilate;
-                    voxels.rebuild();
-                    logf("voxel dilation %s", voxels.params.dilate ? "on" : "off");
-                    break;
                 case SDLK_EQUALS: case SDLK_KP_PLUS: tv.zoom(0.8f); break;
                 case SDLK_MINUS: case SDLK_KP_MINUS: tv.zoom(1.25f); break;
                 case SDLK_q: tv.yaw += 0.2f; break;
@@ -295,16 +262,12 @@ int main(int argc, char **argv)
         }
         if (core.poll(snap, t)) {
             rend.upload_world(snap);
-            // figures are built from the sprites and coloured by the palette
-            if (snap.sprite_changed || snap.tmap_changed)
-                voxels.reset(snap, rend);
             people.update(snap, t);
             if (snap.static_changed)
                 picker.update_ground(snap);
             picker.update_vehicles(snap);
         }
         tv.follow_camera(snap.hdr, dt);
-        voxels.collect();
         {
             static std::vector<SwvVert> moving;
             people.moving_geometry(t, moving);
@@ -321,8 +284,7 @@ int main(int argc, char **argv)
         }
         glm::mat4 map_to_world = tv.map_model(), world_to_map = glm::inverse(map_to_world);
         glm::vec3 eye_map = glm::vec3(world_to_map * glm::vec4(eye_world, 1.0f));
-        people.build(people_verts, glow_verts, t, snap, eye_map, rend, use_voxels ? &voxels : nullptr,
-                     glm::vec3(tv.center.x, 0, tv.center.z), tv.half_map);
+        people.build(people_verts, glow_verts, t, snap, eye_map, rend);
 
         // ---- playing from the table: pointers, panels, commands
         HudBuilder hud;
@@ -531,8 +493,6 @@ int main(int argc, char **argv)
                 tv.yaw -= in.zoom.x * dt * 1.5f;
             if (in.follow_pressed)
                 tv.follow = !tv.follow;
-            if (in.voxel_pressed)
-                use_voxels = !use_voxels;
             if (in.recenter_pressed || xr.take_just_focused())
                 placed = false;
             XrTime xt = 0;
