@@ -42,8 +42,10 @@ appears; until then, and for types without a model, people stay sprites.
 Each person's clip follows `swview_persons_render()` (`anim_mode`,
 weapon, speed; table of the assets' `HANDOVER.md` 2.2) with crossfades;
 the weapon in hand comes from `models/weapons/held` on the right hand's
-socket of `agent_arsenal.glb`. Not yet: left-hand IK on two-handed
-weapons, items, scenery, effects.
+socket of `agent_arsenal.glb`; on two-handed weapons, during `rifle_*`
+clips, a two-bone IK of the left arm puts the hand on the weapon's
+`lhand_` node, with that node's orientation (blended over 0.1 s). Not
+yet: items, scenery, effects.
 
 Its VR HUD (`vr/viewer/hud_vr.h`) reads `swview_hud_info()` and
 `swview_persons_render()` every turn: a wrist panel (agents with health,

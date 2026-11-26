@@ -7,7 +7,8 @@
 // is seen, and stay loaded. Every person gets a state machine choosing the
 // clip from the game's animation state (HANDOVER.md 2.2), with crossfades,
 // a walk rate following the speed, and the weapon in hand parented to the
-// right hand (socket of agent_arsenal.glb). Nothing here writes to the game.
+// right hand (socket of agent_arsenal.glb), the left hand on two-handed
+// weapons by IK. Nothing here writes to the game.
 #pragma once
 
 #include "gltf_model.h"
@@ -250,6 +251,27 @@ public:
             m->globals(pose_a_, glob_);
             Draw dr;
             dr.model = m;
+            // the weapon in the right hand: its model and socket
+            const WeaponDef *wd = weapon_def(ps.weapon);
+            const GltfModel *wmodel = nullptr;
+            glm::mat4 socket(1.0f);
+            int hand = m->node("mixamorig:RightHand");
+            if (wd != nullptr && hand >= 0 && socket_for(wd->name, socket)) {
+                auto wm = models_.find(std::string("weapon:") + wd->name);
+                if (wm != models_.end())
+                    wmodel = wm->second.get();
+            }
+            // two-handed weapons in rifle clips: the left hand on the
+            // weapon (lhand_ node), blended in and out over 0.1 s
+            int lhand = (wmodel && wd->two_hands) ? wmodel->node(std::string("lhand_") + wd->name) : -1;
+            bool want_ik = lhand >= 0 && ps.clip_name.rfind("rifle_", 0) == 0;
+            ps.ik = std::clamp(ps.ik + (want_ik ? dt : -dt) / 0.1f, 0.0f, 1.0f);
+            if (lhand >= 0 && ps.ik > 0) {
+                GltfPose wp;
+                wmodel->rest_pose(wp);
+                wmodel->globals(wp, wglob_);
+                left_hand_ik(*m, glob_[hand] * socket * wglob_[lhand], smooth(ps.ik));
+            }
             dr.joint_base = (int)joints_.size();
             for (size_t j = 0; j < m->data.joints.size(); j++)
                 joints_.push_back(glob_[m->data.joints[j]] * m->data.inv_bind[j]);
@@ -262,16 +284,9 @@ public:
                        glm::scale(glm::mat4(1.0f), glm::vec3(k, k, -k));
             dr.bright = (ps.flags & SwvPF_IN_BUILDING) ? 0.5f : 1.0f;
             dr.nodes = glob_;
-            // weapon in the right hand
-            if (ps.weapon != 0) {
-                const WeaponDef *wd = weapon_def(ps.weapon);
-                auto wm = wd ? models_.find(std::string("weapon:") + wd->name) : models_.end();
-                int hand = m->node("mixamorig:RightHand");
-                glm::mat4 socket;
-                if (wm != models_.end() && hand >= 0 && socket_for(wd->name, socket)) {
-                    dr.weapon = wm->second.get();
-                    dr.weapon_xform = dr.xform * glob_[hand] * socket;
-                }
+            if (wmodel != nullptr) {
+                dr.weapon = wmodel;
+                dr.weapon_xform = dr.xform * glob_[hand] * socket;
             }
             draws_.push_back(std::move(dr));
         }
@@ -350,6 +365,7 @@ private:
         float time = 0, prev_time = 0, fade = 1.0f;
         bool loop = true, hold = false;
         std::string clip_name;
+        float ik = 0; // weight of the left hand IK
     };
     struct Draw {
         const GltfModel *model = nullptr;
@@ -578,6 +594,80 @@ private:
             ps.prev_clip = ps.clip, ps.prev_time = ps.time;
     }
 
+    static glm::vec3 pos_of(const glm::mat4 &m) { return glm::vec3(m[3]); }
+
+    static glm::quat rot_of(const glm::mat4 &m)
+    {
+        glm::mat3 r(glm::normalize(glm::vec3(m[0])), glm::normalize(glm::vec3(m[1])),
+                    glm::normalize(glm::vec3(m[2])));
+        return glm::normalize(glm::quat_cast(r));
+    }
+
+    // Shortest rotation turning direction u into v.
+    static glm::quat arc(glm::vec3 u, glm::vec3 v)
+    {
+        u = glm::normalize(u);
+        v = glm::normalize(v);
+        float d = glm::dot(u, v);
+        if (d < -0.9999f) {
+            glm::vec3 ax = glm::cross(glm::vec3(1, 0, 0), u);
+            if (glm::length(ax) < 1e-4f)
+                ax = glm::cross(glm::vec3(0, 1, 0), u);
+            return glm::angleAxis(3.1415927f, glm::normalize(ax));
+        }
+        glm::vec3 c = glm::cross(u, v);
+        return glm::normalize(glm::quat(1.0f + d, c.x, c.y, c.z));
+    }
+
+    // Turns node n (in pose_a_, globals in glob_) so that its world
+    // direction `from` becomes `to`.
+    void turn_node(const GltfModel &m, int n, glm::vec3 from, glm::vec3 to)
+    {
+        if (glm::length(from) < 1e-6f || glm::length(to) < 1e-6f)
+            return;
+        int par = m.data.nodes[n].parent;
+        glm::quat pw = par >= 0 ? rot_of(glob_[par]) : glm::quat(1, 0, 0, 0);
+        pose_a_.r[n] = glm::normalize(glm::inverse(pw) * arc(from, to) * rot_of(glob_[n]));
+    }
+
+    // Two-bone IK of the left arm (HANDOVER.md 3, 10.3): the wrist goes to
+    // the target's position, the elbow bends in the plane of its animated
+    // place pushed a little down, then the hand takes the target's
+    // orientation. w blends it with the clip. Model space, pose_a_/glob_.
+    void left_hand_ik(const GltfModel &m, const glm::mat4 &target, float w)
+    {
+        int a = m.node("mixamorig:LeftArm"), b = m.node("mixamorig:LeftForeArm"), c = m.node("mixamorig:LeftHand");
+        if (a < 0 || b < 0 || c < 0 || w <= 0)
+            return;
+        glm::quat ra = pose_a_.r[a], rb = pose_a_.r[b], rc = pose_a_.r[c];
+        glm::vec3 pa = pos_of(glob_[a]), pb = pos_of(glob_[b]), pc = pos_of(glob_[c]);
+        glm::vec3 t = pos_of(target);
+        float l1 = glm::distance(pa, pb), l2 = glm::distance(pb, pc);
+        float d = glm::distance(pa, t);
+        if (d < 1e-4f || l1 < 1e-4f || l2 < 1e-4f)
+            return;
+        glm::vec3 x = (t - pa) / d;
+        d = std::clamp(d, std::fabs(l1 - l2) + 1e-3f, l1 + l2 - 1e-3f);
+        glm::vec3 pole = pb - glm::vec3(0, 0.1f, 0) - pa;
+        glm::vec3 y = pole - x * glm::dot(pole, x);
+        if (glm::length(y) < 1e-5f)
+            y = glm::vec3(0, -1, 0) - x * x.y;
+        y = glm::normalize(y);
+        float cos_a = std::clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1.0f, 1.0f);
+        glm::vec3 elbow = pa + x * (l1 * cos_a) + y * (l1 * std::sqrt(1 - cos_a * cos_a));
+        turn_node(m, a, pb - pa, elbow - pa);
+        m.globals(pose_a_, glob_);
+        turn_node(m, b, pos_of(glob_[c]) - pos_of(glob_[b]), pa + x * d - pos_of(glob_[b]));
+        m.globals(pose_a_, glob_);
+        pose_a_.r[c] = glm::normalize(glm::inverse(rot_of(glob_[b])) * rot_of(target));
+        if (w < 1.0f) {
+            pose_a_.r[a] = glm::slerp(ra, pose_a_.r[a], w);
+            pose_a_.r[b] = glm::slerp(rb, pose_a_.r[b], w);
+            pose_a_.r[c] = glm::slerp(rc, pose_a_.r[c], w);
+        }
+        m.globals(pose_a_, glob_);
+    }
+
     bool init_gl()
     {
         GLuint vs = compile_shader(GL_VERTEX_SHADER, kModelVertSrc);
@@ -634,7 +724,7 @@ private:
     uint32_t turn_ = UINT32_MAX;
     double turn_time_ = 0, turn_dt_ = 0.05, last_prepare_ = 0;
     std::vector<Draw> draws_;
-    std::vector<glm::mat4> joints_, glob_;
+    std::vector<glm::mat4> joints_, glob_, wglob_;
     GltfPose pose_a_, pose_b_;
     std::vector<float> joint_tex_data_;
     GLuint prog_ = 0, joint_tex_ = 0;
