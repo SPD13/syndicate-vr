@@ -19,11 +19,12 @@
 // Options: --desktop, --look classic|upgraded (switch with L, or B on the
 //          right controller), --assets DIR (the assets repository, default
 //          $SWARS_ASSETS3D or assets3d next to the repository),
-//          --click X Y SECONDS BUTTON (simulated click), --key KEY SECONDS,
+//          --click X Y SECONDS BUTTON (simulated click), --press X Y SECONDS
+//          BUTTON HOLD (button held HOLD seconds), --key KEY SECONDS,
 //          --zoom HALF_MAP, --center X Z, --orbit YAW PITCH DIST,
 //          --screenshot FILE SECONDS, --dump-block TURN FILE (the world block of that turn), --mission C,M, --data DIR, --turn-ms MS.
-// Controls (desktop): click as the right trigger, right click as the left
-//                 trigger, [ ] weapons, drag mouse to orbit, wheel to change distance,
+// Controls (desktop): click as the right trigger, right button (held) as the
+//                 left trigger, [ ] weapons, drag mouse to orbit, wheel to change distance,
 //                 arrows pan, +/- zoom, F follow, Q/E rotate the table, L look,
 //                 Esc quits, Enter confirms the end of a decided mission.
 //
@@ -84,6 +85,8 @@ int main(int argc, char **argv)
         int x, y, button;
         double at;
         bool done;
+        double hold = 0; // --press: seconds the button stays down
+        bool released = false;
     };
     std::vector<SimClick> sim_clicks;
     // simulated key presses: --key KEY SECONDS (KEY as SDL names it: l, ], ...)
@@ -126,6 +129,15 @@ int main(int argc, char **argv)
             c.y = atoi(argv[++i]);
             c.at = atof(argv[++i]);
             c.button = atoi(argv[++i]);
+            c.done = false;
+            sim_clicks.push_back(c);
+        } else if (!strcmp(argv[i], "--press") && i + 5 < argc) {
+            SimClick c;
+            c.x = atoi(argv[++i]);
+            c.y = atoi(argv[++i]);
+            c.at = atof(argv[++i]);
+            c.button = atoi(argv[++i]);
+            c.hold = atof(argv[++i]);
             c.done = false;
             sim_clicks.push_back(c);
         } else if (!strcmp(argv[i], "--key") && i + 2 < argc) {
@@ -204,6 +216,7 @@ int main(int argc, char **argv)
     bool quit = false, dragging = false;
     int mouse_x = 0, mouse_y = 0, down_x = 0, down_y = 0;
     bool click_l = false, click_r = false, key_wep_next = false, key_wep_prev = false;
+    bool right_down = false; // the right button held: the trigger
     CommandSender cmds;
     Picker picker;
     std::vector<Picker::Person> people_now;
@@ -263,6 +276,8 @@ int main(int argc, char **argv)
                 down_y = ev.button.y;
                 if (ev.button.button == SDL_BUTTON_LEFT)
                     dragging = true;
+                else if (ev.button.button == SDL_BUTTON_RIGHT)
+                    right_down = true;
             } else if (ev.type == SDL_MOUSEBUTTONUP) {
                 // a click is a press and release without dragging
                 bool still = std::abs(ev.button.x - down_x) + std::abs(ev.button.y - down_y) < 5;
@@ -271,6 +286,7 @@ int main(int argc, char **argv)
                     click_l = click_l || still;
                 } else if (ev.button.button == SDL_BUTTON_RIGHT) {
                     click_r = click_r || still;
+                    right_down = false;
                 }
             } else if (ev.type == SDL_MOUSEMOTION) {
                 mouse_x = ev.motion.x;
@@ -365,14 +381,21 @@ int main(int argc, char **argv)
             wep_prev = in.wep_prev;
         } else {
             int mx = mouse_x, my = mouse_y;
-            for (SimClick &c : sim_clicks)
+            for (SimClick &c : sim_clicks) {
                 if (!c.done && t - t_start >= c.at) {
                     c.done = true;
                     mx = mouse_x = c.x;
                     my = mouse_y = c.y;
                     (c.button == 2 ? click_r : click_l) = true;
-                    logf("simulated click %d at %d,%d", c.button, c.x, c.y);
+                    if (c.button == 2)
+                        right_down = true;
+                    logf("simulated %s %d at %d,%d", c.hold > 0 ? "press" : "click", c.button, c.x, c.y);
                 }
+                if (c.done && !c.released && c.button == 2 && t - t_start >= c.at + c.hold) {
+                    c.released = true;
+                    right_down = false;
+                }
+            }
             glm::vec4 vpv(0, 0, win_w, win_h);
             glm::vec3 a = glm::unProject(glm::vec3(mx, win_h - my, 0.0f), desk_view, desk_proj, vpv);
             glm::vec3 b = glm::unProject(glm::vec3(mx, win_h - my, 1.0f), desk_view, desk_proj, vpv);
@@ -435,11 +458,25 @@ int main(int argc, char **argv)
                     vrhud.on_goto(hit[1].p.x, hit[1].p.z, (uint16_t)snap.hdr.selected, t);
                 }
             }
-            if (act[0]) {
-                if ((hit[0].kind == Hit::PERSON && !own_agent(hit[0].thing)) || hit[0].kind == Hit::VEHICLE)
-                    cmds.send(SwcCmd_SHOOT_THING, (int16_t)hit[0].thing);
-                else if (hit[0].kind == Hit::GROUND || hit[0].kind == Hit::PERSON)
-                    cmds.send(SwcCmd_SHOOT_GROUND, 0, (int32_t)hit[0].p.x, (int32_t)hit[0].p.z);
+            // shooting: while the left trigger (right button) is held, the
+            // shot is given every turn at what it points at, so weapons fire
+            // on and charging ones charge, and fire when it is let go
+            // a click held for less than a frame counts too (act[0])
+            bool trigger = (use_xr ? xr_in.trig_held[0] : right_down) || act[0];
+            if (trigger) {
+                SwcCommand c{};
+                if ((hit[0].kind == Hit::PERSON && !own_agent(hit[0].thing)) || hit[0].kind == Hit::VEHICLE) {
+                    c.type = SwcCmd_SHOOT_THING;
+                    c.thing = (int16_t)hit[0].thing;
+                } else if (hit[0].kind == Hit::GROUND || hit[0].kind == Hit::PERSON) {
+                    c.type = SwcCmd_SHOOT_GROUND;
+                    c.x = (int32_t)hit[0].p.x;
+                    c.z = (int32_t)hit[0].p.z;
+                }
+                if (c.type != SwcCmd_NONE)
+                    core.hold(&c);
+            } else {
+                core.hold(nullptr);
             }
             if (wep_next)
                 cmds.send(SwcCmd_WEAPON_NEXT);

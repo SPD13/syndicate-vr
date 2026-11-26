@@ -208,7 +208,12 @@ const char *swcore_weapon_name(uint32_t weapon_type);
 /******************************************************************************/
 /* Player commands, as mouse clicks would give them to the agent the player
  * controls. They are queued and executed one per turn, in the turns the
- * player gives no input of their own, while a mission is played. */
+ * player gives no input of their own, while a mission is played.
+ * A shot holds the trigger for its turn only: to keep it held (continuous
+ * fire, or charging a laser, electron mace, graviton gun or devastator),
+ * give the shot again before every turn, as the desktop does while its
+ * mouse button is down; the first turn without one releases it, and a
+ * charged weapon fires then. */
 
 enum SwcCommandType {
     SwcCmd_NONE = 0,

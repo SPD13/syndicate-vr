@@ -211,6 +211,17 @@ public:
         while (running_ && (now - last_turn_ >= turn_seconds_) && (n < 4)) {
             last_turn_ += turn_seconds_;
             n++;
+            // a held trigger: the shot again every turn, as the desktop's
+            // held mouse button; the first turn without it releases it
+            if (held_on_) {
+                swcore_command(&held_);
+                held_turns_++;
+                if (release_after_) {
+                    held_on_ = false;
+                    release_after_ = false;
+                    logf("trigger released after %d turns", held_turns_);
+                }
+            }
             if (!swcore_core_step()) {
                 running_ = false;
                 struct SwcWorldInfo info;
@@ -244,6 +255,29 @@ public:
         snap.fx_events.swap(fx_pending_);
         fx_pending_.clear();
         return true;
+    }
+
+    /** Holds the trigger with this shot (re-aimed by calling again), or
+     * releases it (nullptr). A press lasts at least one turn, so a quick
+     * click still shoots; a charging weapon fires on release. */
+    void hold(const SwcCommand *c)
+    {
+        if (c != nullptr) {
+            if (!held_on_) {
+                held_turns_ = 0;
+                logf("trigger held: command %u thing %d at %d,%d", c->type, c->thing, c->x, c->z);
+            }
+            held_ = *c;
+            held_on_ = true;
+            release_after_ = false;
+        } else if (held_on_) {
+            if (held_turns_ > 0) {
+                held_on_ = false;
+                logf("trigger released after %d turns", held_turns_);
+            } else {
+                release_after_ = true;
+            }
+        }
     }
 
     /** The player confirms the end of a decided mission. */
@@ -287,6 +321,9 @@ private:
 
     static constexpr uint32_t kPersonsMax = 2048;
     static constexpr uint32_t kPropsMax = 8192;
+    SwcCommand held_{};
+    bool held_on_ = false, release_after_ = false;
+    int held_turns_ = 0;
     std::vector<SwvFxEvent> fx_pending_;
     std::vector<uint8_t> block_;
     BlockReader reader_;

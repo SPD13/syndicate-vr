@@ -227,6 +227,7 @@ public:
         glm::vec2 pan{0}, zoom{0};
         bool follow_pressed = false, recenter_pressed = false, look_pressed = false;
         bool trig_pressed[2] = {false, false}; // left, right
+        bool trig_held[2] = {false, false};
         bool wep_next = false, wep_prev = false;
         bool aim_valid[2] = {false, false};
         glm::vec3 aim_pos[2], aim_dir[2];
@@ -273,6 +274,14 @@ public:
         };
         in.trig_pressed[0] = pressed(act_trig_l_);
         in.trig_pressed[1] = pressed(act_trig_r_);
+        auto held = [&](XrAction a) {
+            XrActionStateGetInfo g{XR_TYPE_ACTION_STATE_GET_INFO};
+            g.action = a;
+            XrActionStateBoolean st{XR_TYPE_ACTION_STATE_BOOLEAN};
+            return XR_SUCCEEDED(xrGetActionStateBoolean(session_, &g, &st)) && st.isActive && st.currentState;
+        };
+        in.trig_held[0] = held(act_trig_l_);
+        in.trig_held[1] = held(act_trig_r_);
         in.wep_next = pressed(act_wep_next_);
         in.wep_prev = pressed(act_wep_prev_);
         for (int h = 0; h < 2 && last_time_ != 0; h++) {
