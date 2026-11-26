@@ -96,8 +96,9 @@ class Fog {
 public:
     bool enabled = true;
     float radius_override = 0; // --fog-radius, map units; 0: from the game
+    float radius_scale = 1.0f; // --fog-scale, times the radius from the game
 
-    float radius() const { return radius_override > 0 ? radius_override : radius_; }
+    float radius() const { return radius_override > 0 ? radius_override : radius_ * radius_scale; }
 
     // Called every frame with where the living agents are (map x, z).
     void update(const WorldSnapshot &snap, const std::vector<glm::vec2> &agents, double now)

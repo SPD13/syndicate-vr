@@ -62,10 +62,11 @@ right stick click or C: only the table's square). Its fog of war
 (`vr/viewer/fog.h`, on by default; `--no-fog`, the right grip or G) shows
 the world around the player's agents only: a circle around each living
 agent, half as wide as the desktop window at its furthest zoom
-(`view_scale_min`; `--fog-radius`), the circles joining, their outer edge
+(`view_scale_min`; `--fog-scale`, `--fog-radius`), the circles joining, their outer edge
 dashed on the ground. Ground and buildings seen before stay grey under a
 slow smoke, without people, vehicles or effects; the rest is dark ground.
 Without the fog, the dashes show the most the desktop window can see.
+All options of the viewer: `docs/vr-viewer-options.md`.
 
 Its VR HUD (`vr/viewer/hud_vr.h`) reads `swview_hud_info()` and
 `swview_persons_render()` every turn: a wrist panel (agents with health,

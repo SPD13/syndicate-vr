@@ -19,7 +19,7 @@
 //                 right grip switches the fog of war,
 //                 left stick click recentres the table in front of you.
 // Options: --no-fog (the fog of war of fog.h is on by default; switch with
-//          G), --fog-radius R
+//          G), --fog-scale F (times the default radius), --fog-radius R
 //          (map units; default half the desktop window at its furthest
 //          zoom), --desktop, --table-only (draw only the map square on the table;
 //          the default draws the whole world around it; switch with C),
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
     // the whole map drawn around the table, or only the square on it
     bool whole_world = true;
     // the fog of war (fog.h): on unless --no-fog; G, the right grip
-    float fog_radius = 0;
+    float fog_radius = 0, fog_scale = 1.0f;
     std::string assets_dir = getenv("SWARS_ASSETS3D") ? getenv("SWARS_ASSETS3D") : "";
     double turn_ms = 50.0;
     uint32_t dump_turn = 0;
@@ -134,6 +134,8 @@ int main(int argc, char **argv)
             turn_ms = std::max(1.0, atof(argv[++i]));
         } else if (!strcmp(argv[i], "--fog-radius") && i + 1 < argc) {
             fog_radius = (float)atof(argv[++i]);
+        } else if (!strcmp(argv[i], "--fog-scale") && i + 1 < argc) {
+            fog_scale = std::max(0.05f, (float)atof(argv[++i]));
         } else if (!strcmp(argv[i], "--fog"))
             g_fog.enabled = true;
         else if (!strcmp(argv[i], "--no-fog"))
@@ -391,6 +393,7 @@ int main(int argc, char **argv)
         people.list(t, people_now);
         {
             g_fog.radius_override = fog_radius;
+            g_fog.radius_scale = fog_scale;
             std::vector<glm::vec2> agents;
             for (const Picker::Person &pp : people_now)
                 if ((pp.flags & SwvTF_PLAYER_AGENT) && !(pp.flags & SwvTF_DEAD))
