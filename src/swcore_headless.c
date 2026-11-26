@@ -24,7 +24,8 @@
  *         assets for it too); the export only reads the game, so the
  *         hashes must not change;
  *     "--view-dump TURN DIR" (with --view) writes the export of that turn
- *         to DIR: block.bin (the world block), persons.bin, fx.bin, hud.bin.
+ *         to DIR: block.bin (the world block), persons.bin, fx.bin, hud.bin,
+ *         props.bin.
  *     Built with SWCORE_CORE_ONLY (swcore_coreonly), it runs the game core
  *     alone: swcore_core_init() with the mission of "-m campaign,mission",
  *     and always the core turn; of the game's options it reads only that
@@ -107,11 +108,13 @@ static void dump_file(const char *dir, const char *name, const void *p_data, siz
 
 /** Effect events seen, per SwvFxKind. */
 static uint32_t view_fx_count[8];
+static uint32_t view_charge_turns, view_charge_max;
 
 static void print_view_fx(void)
 {
     printf("# view fx events: %u bangs, %u fires started, %u ended, %u scale effects, %u smoke\n",
       view_fx_count[1], view_fx_count[2], view_fx_count[3], view_fx_count[4], view_fx_count[5]);
+    printf("# view charges: %u turns, highest level %u\n", view_charge_turns, view_charge_max);
 }
 
 /** Exports the world as a front end drawing it would, every turn. */
@@ -121,7 +124,9 @@ static void view_turn(uint32_t turn, uint32_t dump_turn, const char *dump_dir)
     static struct SwvPersonRender persons[2048];
     static struct SwvFxEvent fx[SWV_FX_EVENTS_MAX];
     static struct SwvHudInfo hud;
-    uint32_t n_persons, n_fx;
+    static struct SwvProp props[4096];
+    static struct SwvCharge charges[8];
+    uint32_t n_persons, n_fx, n_props, n_charges;
 
     if (p_block == NULL) {
         p_block = calloc(1, swview_block_size());
@@ -132,6 +137,15 @@ static void view_turn(uint32_t turn, uint32_t dump_turn, const char *dump_dir)
     n_persons = swview_persons_render(persons, 2048);
     n_fx = swview_fx_events(fx, SWV_FX_EVENTS_MAX);
     swview_hud_info(&hud);
+    n_props = swview_props(props, 4096);
+    n_charges = swview_charges(charges, 8);
+    if (n_charges > 0) {
+        uint32_t i;
+        view_charge_turns++;
+        for (i = 0; i < n_charges; i++)
+            if (charges[i].level > view_charge_max)
+                view_charge_max = charges[i].level;
+    }
     {
         uint32_t i;
         for (i = 0; i < n_fx; i++) {
@@ -144,7 +158,9 @@ static void view_turn(uint32_t turn, uint32_t dump_turn, const char *dump_dir)
         dump_file(dump_dir, "persons.bin", persons, n_persons * sizeof(persons[0]));
         dump_file(dump_dir, "fx.bin", fx, n_fx * sizeof(fx[0]));
         dump_file(dump_dir, "hud.bin", &hud, sizeof(hud));
-        printf("# view dump turn %u: %u persons, %u fx events\n", turn, n_persons, n_fx);
+        dump_file(dump_dir, "props.bin", props, n_props * sizeof(props[0]));
+        printf("# view dump turn %u: %u persons, %u fx events, %u props, %u charging\n", turn, n_persons,
+          n_fx, n_props, n_charges);
     }
 }
 

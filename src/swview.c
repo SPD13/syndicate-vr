@@ -2178,4 +2178,102 @@ void swview_hud_info(struct SwvHudInfo *p_info)
         strncpy(p_info->objective, scrollinfo_text, sizeof(p_info->objective) - 1);
 }
 
+static void swv_prop_add(struct SwvProp *p_list, uint32_t max, uint32_t *p_n, float x, float y, float z,
+  uint32_t id, ubyte kind, ubyte weapon, ushort anim)
+{
+    struct SwvProp *p_prop;
+
+    if (*p_n >= max)
+        return;
+    p_prop = &p_list[(*p_n)++];
+    p_prop->x = x;
+    p_prop->y = y;
+    p_prop->z = z;
+    p_prop->id = id;
+    p_prop->kind = kind;
+    p_prop->weapon = weapon;
+    p_prop->anim = anim;
+}
+
+uint32_t swview_props(struct SwvProp *p_list, uint32_t max)
+{
+    ThingIdx thing;
+    uint32_t n;
+    int remain;
+
+    n = 0;
+    if ((things == NULL) || (sthings == NULL))
+        return 0;
+    // the same things, places and ids as swv_export_effects()
+    for (thing = 1; thing < THINGS_LIMIT; thing++)
+    {
+        struct Thing *p_thing;
+        short cor_x, cor_y, cor_z;
+        ubyte wtype;
+
+        p_thing = &things[thing];
+        if ((p_thing->Type != TT_MINE) && (p_thing->Type != TT_GRENADE))
+            continue;
+        get_thing_position_mapcoords(&cor_x, &cor_y, &cor_z, thing);
+        wtype = (p_thing->SubType < WEP_TYPES_COUNT) ? p_thing->SubType : 0;
+        swv_prop_add(p_list, max, &n, cor_x, cor_y, cor_z, thing, SwvEK_GRENADE, wtype, 0);
+    }
+    remain = sthings_used;
+    for (thing = sthings_used_head; thing < 0; thing = sthings[thing].LinkChild)
+    {
+        struct SimpleThing *p_sthing;
+        float x, y, z;
+
+        if (--remain < 0)
+            break;
+        p_sthing = &sthings[thing];
+        x = PRCCOORD_TO_MAPCOORD(p_sthing->X);
+        y = PRCCOORD_TO_YCOORD(p_sthing->Y);
+        z = PRCCOORD_TO_MAPCOORD(p_sthing->Z);
+        if (p_sthing->Type == SmTT_STATIC)
+        {
+            if (p_sthing->Frame == nstart_ani[1008])
+                continue;
+            swv_prop_add(p_list, max, &n, x, y, z, 0x01000000u | (ushort)thing, SwvEK_STATIC, 0,
+              (ushort)(p_sthing->StartFrame + 1));
+        }
+        else if (p_sthing->Type == SmTT_DROPPED_ITEM)
+        {
+            ushort wtype = (ushort)p_sthing->U.UWeapon.WeaponType;
+            swv_prop_add(p_list, max, &n, x, y, z, 0x01000000u | (ushort)thing, SwvEK_DROPPED_ITEM,
+              (wtype < WEP_TYPES_COUNT) ? (ubyte)wtype : 0, 0);
+        }
+    }
+    return n;
+}
+
+uint32_t swview_charges(struct SwvCharge *p_list, uint32_t max)
+{
+    PlayerInfo *p_locplayer;
+    uint32_t n;
+    int i;
+
+    n = 0;
+    if (things == NULL)
+        return 0;
+    p_locplayer = &players[local_player_no];
+    for (i = 0; i < AGENTS_SQUAD_MAX_COUNT; i++)
+    {
+        struct Thing *p_agent = p_locplayer->MyAgent[i];
+        WeaponType wtype;
+
+        if ((p_agent == NULL) || (p_agent->Type != TT_PERSON) || (n >= max))
+            continue;
+        wtype = p_agent->U.UPerson.CurrentWeapon;
+        if (((p_agent->Flag & TngF_WepCharging) == 0) || !weapon_can_be_charged(wtype))
+            continue;
+        // the charge stops growing at 15 (weapon.c, while TngF_WepCharging)
+        p_list[n].thing = p_agent->ThingOffset;
+        p_list[n].level = (ubyte)((p_agent->U.UPerson.WeaponTimer < 15) ? p_agent->U.UPerson.WeaponTimer : 15);
+        p_list[n].max = 15;
+        n++;
+    }
+    return n;
+}
+
 /******************************************************************************/

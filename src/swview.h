@@ -42,7 +42,7 @@ extern "C" {
 #endif
 /******************************************************************************/
 /** Version of this interface; grows when something is added. */
-#define SWVIEW_API_VERSION 2
+#define SWVIEW_API_VERSION 3
 
 #pragma pack(1)
 
@@ -384,6 +384,28 @@ struct SwvHudInfo {
     char objective[256];     /**< Current objective, as in the top bar */
 };
 
+/* Since version 3: what props are, the charge of weapons. */
+
+/** A thing a renderer with its own models can draw instead of its sprite:
+ * an item lying on the ground, a grenade or mine, a scenery static. It has
+ * the id of its SwvEffect in the world block. */
+struct SwvProp {
+    float x, y, z;
+    uint32_t id;
+    uint8_t kind;        /**< SwvEffectKind: STATIC, DROPPED_ITEM or GRENADE */
+    uint8_t weapon;      /**< Weapon type of items, grenades and mines, or 0 */
+    uint16_t anim;       /**< Statics: their animation (StartFrame + 1, as
+                              statics.json and scale.json of the assets) */
+};
+
+/** The charge of a weapon being charged (laser, electron mace, graviton
+ * gun, devastator): the long progress bar of the original. */
+struct SwvCharge {
+    uint16_t thing;      /**< The person charging */
+    uint8_t level;       /**< 0..max */
+    uint8_t max;
+};
+
 #pragma pack()
 
 /** Loads the assets of the classic look (texture pages, the sprites of the
@@ -404,6 +426,12 @@ uint32_t swview_fx_events(struct SwvFxEvent *p_list, uint32_t max);
 
 /** The panels' data of the current turn. */
 void swview_hud_info(struct SwvHudInfo *p_info);
+
+/** Fills the props of the current turn, up to max; returns the count. */
+uint32_t swview_props(struct SwvProp *p_list, uint32_t max);
+
+/** Fills the people charging a weapon, up to max; returns the count. */
+uint32_t swview_charges(struct SwvCharge *p_list, uint32_t max);
 
 /** Size of a world block, in bytes (SWV_TOTAL_SIZE). */
 uint32_t swview_block_size(void);
