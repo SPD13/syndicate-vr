@@ -4,8 +4,9 @@
 // The 2D panels of the game do not suit VR: the agents and their weapons
 // are on a panel at the left wrist, the objective on a board at the
 // table's edge, and the rest is in the scene as markers (HANDOVER.md 7.2
-// of the assets repository, markers/markers.json): M1 selection, M4 health,
-// M7 waypoint, M9 objective. Markers animate on real time; sizes are in
+// of the assets repository, markers/markers.json): M1 selection, M2 hover,
+// M3 lock, M4 health, M6 persuaded, M7 waypoint, M8 damage, M9 objective
+// (M5, weapon charge, needs the charge state from the export). Markers animate on real time; sizes are in
 // metres of a person's scale (kMetre map units) and keep a minimum angular
 // size on the table.
 #pragma once
@@ -24,6 +25,8 @@ static constexpr float kTau = 6.2831853f;
 static const float kFriend[3] = {0.15f, 0.85f, 1.0f};
 static const float kNeutral[3] = {0.92f, 0.95f, 1.0f};
 static const float kHostile[3] = {1.0f, 0.18f, 0.15f};
+static const float kAcquiring[3] = {1.0f, 0.72f, 0.15f};
+static const float kPersuaded[3] = {0.85f, 0.3f, 1.0f};
 static const float kHealthOk[3] = {0.3f, 1.0f, 0.35f};
 static const float kHealthMid[3] = {1.0f, 0.85f, 0.2f};
 static const float kHealthLow[3] = {1.0f, 0.2f, 0.15f};
@@ -144,6 +147,13 @@ public:
 // The HUD of the VR viewer: panels in the scene, markers in the world.
 class VrHud {
 public:
+    // What a hand points at in the world.
+    struct Pointed {
+        uint16_t thing = 0;
+        bool vehicle = false;
+        glm::vec3 p{0};
+    };
+
     // What the panels give the commands of the main loop.
     struct Panels {
         Panel wrist;
@@ -276,10 +286,11 @@ public:
         return out;
     }
 
-    // Markers M1 (selection), M4 (health), M7 (waypoint), M9 (objective).
+    // The world markers.
     void markers(MarkerBuilder &mb, double t, const WorldSnapshot &snap,
-                 const std::vector<Picker::Person> &people, const Picker &picker, uint16_t hovered)
+                 const std::vector<Picker::Person> &people, const Picker &picker, const Pointed &pointed)
     {
+        const uint16_t hovered = pointed.vehicle ? 0 : pointed.thing;
         using namespace mk;
         if (!snap.valid || !snap.hdr.in_mission)
             return;
@@ -358,6 +369,83 @@ public:
                 mb.rect(b, -w / 2 + w * s / 5 - h * 0.08f, -h / 2, h * 0.16f, h, kBack, 0.9f, 0.4f);
         }
 
+        // M2: brackets on what the right hand points at; M3: on the
+        // selected agent's target, shrinking while the weapon aims
+        bool own_hover = false;
+        for (const SwvHudAgent &ag : hi.agents)
+            if (ag.thing != 0 && ag.thing == pointed.thing)
+                own_hover = true;
+        if (pointed.thing != 0) {
+            auto it = pos.find(pointed.thing);
+            glm::vec3 c = it != pos.end() ? it->second : pointed.p;
+            float w = (pointed.vehicle ? 3.0f : 0.9f) * kMetre, h = (pointed.vehicle ? 2.0f : 2.0f) * kMetre;
+            float breathe = 1.0f + 0.03f * std::sin((float)t * 3.0f);
+            brackets(mb, c, w * breathe, h * breathe, own_hover ? kFriend : kNeutral, 0.8f);
+        }
+        for (const SwvHudAgent &ag : hi.agents) {
+            if (ag.thing == 0 || ag.thing != hi.selected || ag.target == 0)
+                continue;
+            auto it = pos.find(ag.target);
+            if (it == pos.end())
+                continue;
+            float s = std::max(1.0f, (18.0f - ag.weapon_timer) / 9.0f);
+            bool locked = s <= 1.0f;
+            float a = locked ? 0.6f + 0.4f * (std::sin((float)t * 12.0f) > 0 ? 1.0f : 0.0f) : 0.9f;
+            brackets(mb, it->second, 0.9f * kMetre * s, 2.0f * kMetre * s, locked ? kHostile : kAcquiring, a);
+            if (locked)
+                mb.diamond(it->second + glm::vec3(0, 1.0f * kMetre, 0), 0.08f * kMetre, (float)t * 4.0f,
+                           kHostile, 0.9f);
+        }
+
+        // M6: persuaded people: a diamond over them, a ring, and a tether
+        // whose dashes flow from the persuader
+        for (const SwvPersonRender &pr : snap.persons) {
+            if (!(pr.flags & SwvPF_PERSUADED) || (pr.flags & SwvPF_DEAD))
+                continue;
+            auto it = pos.find(pr.thing);
+            if (it == pos.end())
+                continue;
+            glm::vec3 p = it->second;
+            mb.diamond(p + glm::vec3(0, 2.2f * kMetre, 0), 0.12f * kMetre, (float)t * 2.0f, kPersuaded, 0.9f);
+            mb.ring(p + glm::vec3(0, 6, 0), 0.4f * kMetre, 0.03f * kMetre, kPersuaded, 0.6f);
+            auto ow = pos.find(pr.persuader);
+            if (pr.persuader == 0 || ow == pos.end())
+                continue;
+            glm::vec3 a = ow->second + glm::vec3(0, 1.0f * kMetre, 0), b = p + glm::vec3(0, 1.0f * kMetre, 0);
+            float len = glm::distance(a, b), dash = 0.25f * kMetre;
+            int n = std::min(80, (int)(len / dash));
+            float flow = (float)std::fmod(t * 2.0, 2.0) * 0.5f;
+            for (int d = 0; d < n; d += 2) {
+                float f0 = (d + flow * 2) / std::max(n, 1), f1 = (d + 1 + flow * 2) / std::max(n, 1);
+                if (f1 > 1.0f)
+                    continue;
+                glm::vec3 p0 = glm::mix(a, b, f0), p1 = glm::mix(a, b, f1);
+                glm::vec3 side = glm::cross(p1 - p0, mb.eye - p0);
+                if (glm::length(side) < 1e-3f)
+                    continue;
+                side = glm::normalize(side) * (0.02f * kMetre);
+                glm::vec3 q[4] = {p0 - side, p0 + side, p1 + side, p1 - side};
+                mb.quad(q, kPersuaded, 0.7f);
+            }
+        }
+
+        // M8: damage numbers rising from who was hit
+        for (auto it = pops_.begin(); it != pops_.end();) {
+            float age = (float)(t - it->at);
+            auto ps = pos.find(it->thing);
+            if (age > 1.8f || ps == pos.end()) {
+                it = pops_.erase(it);
+                continue;
+            }
+            glm::vec3 c = ps->second + glm::vec3(0, (2.0f + 0.8f * age / 1.8f) * kMetre, 0);
+            float kp = mb.keep_visible(c, 0.15f * kMetre, 0.0105f);
+            char buf[16];
+            snprintf(buf, sizeof(buf), "-%d", it->amount);
+            mb.text(mb.bill(c), 0, 0.016f * kMetre * kp, buf, it->enemy ? kHostile : kNeutral,
+                    1.0f - age / 1.8f);
+            ++it;
+        }
+
         // M7: where the selected agent walks, until it is there
         if (wp_.active) {
             auto it = pos.find(wp_.agent);
@@ -419,6 +507,27 @@ public:
     }
 
 private:
+    // Four corner brackets around a figure standing at c, facing the eye.
+    static void brackets(MarkerBuilder &mb, glm::vec3 c, float w, float h, const float *rgb, float a)
+    {
+        MarkerBuilder::Bill b = mb.bill(c + glm::vec3(0, h * 0.5f, 0));
+        float l = std::min(w, h) * 0.25f, th = std::min(w, h) * 0.04f;
+        for (int cx = -1; cx <= 1; cx += 2)
+            for (int cy = -1; cy <= 1; cy += 2) {
+                float x = cx * w / 2, y = cy * h / 2;
+                mb.rect(b, cx < 0 ? x : x - l, cy < 0 ? y : y - th, l, th, rgb, a, 0.5f);
+                mb.rect(b, cx < 0 ? x : x - th, cy < 0 ? y : y - l, th, l, rgb, a, 0.5f);
+            }
+    }
+
+    struct Pop {
+        uint16_t thing;
+        int amount;
+        bool enemy;
+        double at;
+    };
+    std::vector<Pop> pops_;
+
     struct Health {
         int16_t last = -1;
         float trail_from = 1.0f; // fraction shown before the last hit
@@ -440,6 +549,8 @@ private:
                     before = std::max(before, hs.trail_from);
                 hs.trail_from = before;
                 hs.hit_at = t;
+                if (pops_.size() < 64)
+                    pops_.push_back({pr.thing, hs.last - pr.health, !(pr.flags & SwvPF_PLAYER_AGENT), t});
             }
             hs.last = pr.health;
         }

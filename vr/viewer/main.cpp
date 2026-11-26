@@ -427,10 +427,13 @@ int main(int argc, char **argv)
         {
             MarkerBuilder mb;
             mb.eye = eye_map;
-            uint16_t pointed = 0;
+            VrHud::Pointed pointed;
             for (int h = 1; h >= 0; h--)
-                if (pointed == 0 && hit[h].kind == Hit::PERSON)
-                    pointed = hit[h].thing;
+                if (pointed.thing == 0 && (hit[h].kind == Hit::PERSON || hit[h].kind == Hit::VEHICLE)) {
+                    pointed.thing = hit[h].thing;
+                    pointed.vehicle = hit[h].kind == Hit::VEHICLE;
+                    pointed.p = hit[h].p;
+                }
             vrhud.markers(mb, t, snap, people_now, picker, pointed);
             rend.upload_markers(mb.verts);
         }

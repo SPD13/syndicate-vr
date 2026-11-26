@@ -37,9 +37,13 @@ Its VR HUD (`vr/viewer/hud_vr.h`) reads `swview_hud_info()` and
 energy and shield, the selected agent's weapons, the mission's outcome),
 the objective board at the table's edge, and world markers of the assets
 repository's `HANDOVER.md` 7.2: M1 selection (ring with turning ticks,
-number plate), M4 health (bar with a trail after a hit; agents always,
-others when hit or pointed at), M7 waypoint (the last walk order: rings
-and chevrons) and M9 objective (a light column over each scanner signal).
+number plate), M2 hover (brackets), M3 lock (brackets on the selected
+agent's target shrinking with its `weapon_timer`), M4 health (bar with a
+trail after a hit; agents always, others when hit or pointed at), M6
+persuaded (diamond, ring, tether to the persuader), M7 waypoint (the last
+walk order: rings and chevrons), M8 damage (numbers rising from who was
+hit) and M9 objective (a light column over each scanner signal). M5, the
+weapon charge ring, needs the charge state, which the export lacks.
 Markers are drawn twice: hidden by walls, then at 25 % over everything.
 
 ## The world block (`swview_update()`)
