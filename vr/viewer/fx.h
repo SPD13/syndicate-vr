@@ -235,6 +235,9 @@ public:
         glUniform3f(u_clip_center_, clip_center.x / kMetre, 0, clip_center.z / kMetre);
         glUniform1f(u_clip_half_, clip_half / kMetre);
         glUniform1i(u_linear_, linear_out ? 1 : 0);
+        // particles positions are in metres
+        g_fog.bind(prog_, kMetre);
+        g_fog.kind(prog_, FogK_MOVING);
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D_ARRAY, tex_);
         glUniform1i(u_tex_, 4);
@@ -624,6 +627,10 @@ void main() {
     vec2 d = abs(v_pos.xz - u_clip_center.xz);
     if (d.x > u_clip_half || d.y > u_clip_half)
         discard;
+    bool keep;
+    fog_apply(vec3(0.0), v_pos, false, keep);
+    if (!keep)
+        discard;
     float a = texture(u_tex, vec3(v_uv, v_layer)).r * v_col.a;
     if (a < 0.003)
         discard;
@@ -633,7 +640,7 @@ void main() {
     o_col = vec4(c, a);
 }
 )";
-        GLuint v = compile_shader(GL_VERTEX_SHADER, vs), f = compile_shader(GL_FRAGMENT_SHADER, fs);
+        GLuint v = compile_shader(GL_VERTEX_SHADER, vs), f = compile_shader(GL_FRAGMENT_SHADER, with_fog(fs).c_str());
         prog_ = glCreateProgram();
         glAttachShader(prog_, v);
         glAttachShader(prog_, f);

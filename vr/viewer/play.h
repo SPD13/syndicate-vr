@@ -93,6 +93,9 @@ public:
         glm::vec3 p;
     };
 
+    // With the fog of war: whether a vehicle can be seen, to point at it.
+    std::function<bool(glm::vec3)> visible;
+
     // Nearest of: people (upright cylinders), vehicles (spheres), ground.
     Hit pick(const Ray &r, const std::vector<Person> &people, glm::vec3 clip_center,
              float clip_half) const
@@ -122,6 +125,8 @@ public:
             }
         }
         for (const Vehicle &v : vehicles_) {
+            if (visible && !visible(v.c))
+                continue;
             glm::vec3 oc = r.o - v.c;
             float b = glm::dot(oc, r.d), c = glm::dot(oc, oc) - v.r * v.r;
             float disc = b * b - c;

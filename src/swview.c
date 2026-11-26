@@ -40,6 +40,7 @@
 #include "enginsngobjs.h"
 #include "enginsngtxtr.h"
 #include "engintxtrmap.h"
+#include "enginzoom.h"
 #include "frame_sprani.h"
 
 #include "bigmap.h"
@@ -1692,6 +1693,9 @@ static void swv_export_hud(struct SwvHeader *p_hdr)
     p_locplayer = &players[local_player_no];
     p_hdr->selected = p_locplayer->DirectControl[0];
     p_hdr->view_scale = overall_scale;
+    // as process_view_inputs(): the user can zoom out only as far as the
+    // weapon's range allows, so the furthest is that of the longest range
+    p_hdr->view_scale_min = get_scaled_zoom(get_zoom_from_range_bloks(ZOOM_RANGE_BLOCKS_LIMIT));
     if (vec_window_width != 0)
         p_hdr->view_size = ((u32)vec_window_width << 16) | ((u32)vec_window_height & 0xFFFF);
     else // the core alone: its view area is that of a 640x480 screen

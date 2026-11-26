@@ -131,6 +131,8 @@ public:
         XR_CHECK(make(act_follow_, "toggle_follow", "Toggle follow camera", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_recenter_, "recenter", "Recenter table", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_look_, "toggle_look", "Switch classic / upgraded look", XR_ACTION_TYPE_BOOLEAN_INPUT));
+        XR_CHECK(make(act_world_, "toggle_world", "Whole world / table only", XR_ACTION_TYPE_BOOLEAN_INPUT));
+        XR_CHECK(make(act_fog_, "toggle_fog", "Fog of war on / off", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_aim_l_, "aim_left", "Left pointer", XR_ACTION_TYPE_POSE_INPUT));
         XR_CHECK(make(act_aim_r_, "aim_right", "Right pointer", XR_ACTION_TYPE_POSE_INPUT));
         XR_CHECK(make(act_trig_l_, "command_left", "Shoot", XR_ACTION_TYPE_BOOLEAN_INPUT));
@@ -162,6 +164,8 @@ public:
                 {act_follow_, path(pr.follow)},
                 {act_recenter_, path("/user/hand/left/input/thumbstick/click")},
                 {act_look_, path("/user/hand/right/input/b/click")},
+                {act_world_, path("/user/hand/right/input/thumbstick/click")},
+                {act_fog_, path("/user/hand/right/input/squeeze/value")},
                 {act_aim_l_, path("/user/hand/left/input/aim/pose")},
                 {act_aim_r_, path("/user/hand/right/input/aim/pose")},
                 {act_trig_l_, path((std::string("/user/hand/left") + pr.trigger).c_str())},
@@ -225,7 +229,7 @@ public:
 
     struct Input {
         glm::vec2 pan{0}, zoom{0};
-        bool follow_pressed = false, recenter_pressed = false, look_pressed = false;
+        bool follow_pressed = false, recenter_pressed = false, look_pressed = false, world_pressed = false, fog_pressed = false;
         bool trig_pressed[2] = {false, false}; // left, right
         bool trig_held[2] = {false, false};
         bool wep_next = false, wep_prev = false;
@@ -265,6 +269,14 @@ public:
         gi.action = act_look_;
         if (XR_SUCCEEDED(xrGetActionStateBoolean(session_, &gi, &b)))
             in.look_pressed = b.isActive && b.changedSinceLastSync && b.currentState;
+        b = {XR_TYPE_ACTION_STATE_BOOLEAN};
+        gi.action = act_world_;
+        if (XR_SUCCEEDED(xrGetActionStateBoolean(session_, &gi, &b)))
+            in.world_pressed = b.isActive && b.changedSinceLastSync && b.currentState;
+        b = {XR_TYPE_ACTION_STATE_BOOLEAN};
+        gi.action = act_fog_;
+        if (XR_SUCCEEDED(xrGetActionStateBoolean(session_, &gi, &b)))
+            in.fog_pressed = b.isActive && b.changedSinceLastSync && b.currentState;
         auto pressed = [&](XrAction a) {
             XrActionStateGetInfo g{XR_TYPE_ACTION_STATE_GET_INFO};
             g.action = a;
@@ -453,7 +465,7 @@ private:
     XrAction act_pan_ = XR_NULL_HANDLE, act_zoom_ = XR_NULL_HANDLE, act_follow_ = XR_NULL_HANDLE,
              act_recenter_ = XR_NULL_HANDLE, act_look_ = XR_NULL_HANDLE, act_aim_l_ = XR_NULL_HANDLE,
              act_aim_r_ = XR_NULL_HANDLE, act_trig_l_ = XR_NULL_HANDLE, act_trig_r_ = XR_NULL_HANDLE,
-             act_wep_next_ = XR_NULL_HANDLE, act_wep_prev_ = XR_NULL_HANDLE;
+             act_wep_next_ = XR_NULL_HANDLE, act_wep_prev_ = XR_NULL_HANDLE, act_world_ = XR_NULL_HANDLE, act_fog_ = XR_NULL_HANDLE;
     XrSpace aim_space_[2] = {XR_NULL_HANDLE, XR_NULL_HANDLE};
     XrTime last_time_ = 0;
     Mirror last_left_;

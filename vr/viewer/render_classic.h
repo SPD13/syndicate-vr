@@ -2,6 +2,7 @@
 #pragma once
 
 #include "world_source.h"
+#include "fog.h"
 
 /******************************************************************************/
 // Rendering
@@ -43,6 +44,8 @@ layout(location=5) in float a_fx;
 uniform mat4 u_mvp;
 uniform mat4 u_inst;
 uniform float u_turn;
+uniform int u_terrain_verts;
+flat out int v_terrain;
 out vec3 v_map;
 flat out int v_fx;
 out float v_shimmer;
@@ -52,6 +55,7 @@ out vec3 v_rgb;
 flat out float v_textured;
 void main() {
     vec3 p = a_pos;
+    v_terrain = gl_VertexID < u_terrain_verts ? 1 : 0;
     int fx = int(a_fx + 0.5);
     v_fx = fx;
     v_shimmer = 0.0;
@@ -83,6 +87,7 @@ flat in float v_layer;
 in vec3 v_rgb;
 flat in float v_textured;
 flat in int v_fx;
+flat in int v_terrain;
 in float v_shimmer;
 uniform sampler2DArray u_tex;
 uniform sampler2DArray u_spr;
@@ -136,6 +141,10 @@ void main() {
         if (t.a < 0.5)
             discard;
         col = t.rgb * v_rgb;
+        bool keep;
+        col = fog_apply(col, v_map, false, keep);
+        if (!keep)
+            discard;
         if (u_linear_out != 0)
             col = pow(col, vec3(2.2));
         o_col = vec4(col, 1.0);
@@ -155,6 +164,10 @@ void main() {
         col = mix(col, vec3(0.55, 0.65, 0.8), 0.35) + vec3(0.06);
     if ((v_fx & 2) != 0)
         alpha = 0.5;
+    bool keep;
+    col = fog_apply(col, v_map, v_terrain != 0, keep);
+    if (!keep)
+        discard;
     if (u_linear_out != 0)
         col = pow(col, vec3(2.2));
     o_col = vec4(col, alpha);
@@ -166,7 +179,7 @@ public:
     bool init()
     {
         GLuint vs = compile_shader(GL_VERTEX_SHADER, kVertSrc);
-        GLuint fs = compile_shader(GL_FRAGMENT_SHADER, kFragSrc);
+        GLuint fs = compile_shader(GL_FRAGMENT_SHADER, with_fog(kFragSrc).c_str());
         prog_ = glCreateProgram();
         glAttachShader(prog_, vs);
         glAttachShader(prog_, fs);
@@ -238,7 +251,7 @@ public:
         if ((snap.sprite_changed || snap.tmap_changed) && !snap.sprite_pages.empty())
             upload_sprites(snap);
         if (snap.static_changed || snap.tmap_changed) {
-            upload_verts(static_mesh_, static_trans_, snap.static_verts);
+            upload_verts(static_mesh_, static_trans_, snap.static_verts, &terrain_verts_);
             // the terrain is the first part of the static vertices; take a
             // low percentile, so roads are above the table but small pits
             // and the map edge do not lift everything
@@ -339,6 +352,9 @@ public:
         glUniformMatrix4fv(u_inst_, 1, GL_FALSE, glm::value_ptr(ident));
         glUniform1f(u_tint_, 1.0f);
         glUniform1f(u_turn_, turn);
+        g_fog.bind(prog_);
+        GLint u_terrain = glGetUniformLocation(prog_, "u_terrain_verts");
+        glUniform1i(u_terrain, 0);
 
         glm::mat4 mvp = vp * table_model;
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(mvp));
@@ -348,7 +364,11 @@ public:
         mvp = vp * map_model;
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(mvp));
         glUniform1i(u_clip_, 1);
+        g_fog.kind(prog_, FogK_WORLD);
+        glUniform1i(u_terrain, terrain_verts_);
         draw_mesh(static_mesh_);
+        glUniform1i(u_terrain, 0);
+        g_fog.kind(prog_, FogK_MOVING);
         draw_mesh(dyn_mesh_);
         for (const Instance &in : instances) {
             glUniformMatrix4fv(u_inst_, 1, GL_FALSE, glm::value_ptr(in.model));
@@ -362,6 +382,9 @@ public:
             glUseProgram(prog_);
             glActiveTexture(GL_TEXTURE0);
         }
+        // people, effect sprites and the like: what may not show is left
+        // out when they are built; statics turn grey where seen before
+        g_fog.kind(prog_, FogK_THINGS);
         glUniformMatrix4fv(u_inst_, 1, GL_FALSE, glm::value_ptr(ident));
         glUniform1f(u_tint_, 1.0f);
         // people mesh holds translucent shadows, drawn first within it
@@ -370,8 +393,11 @@ public:
         draw_mesh(people_mesh_);
         // see-through faces last, without hiding what is behind them
         glDepthMask(GL_FALSE);
+        g_fog.kind(prog_, FogK_WORLD);
         draw_mesh(static_trans_);
+        g_fog.kind(prog_, FogK_MOVING);
         draw_mesh(dyn_trans_);
+        g_fog.kind(prog_, FogK_NONE);
         // glows add light, hidden by solid things in front but hiding nothing
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
         draw_mesh(glow_mesh_);
@@ -380,6 +406,7 @@ public:
         if (draw_effects) {
             draw_effects(mvp, clip_center, clip_half, linear_out);
             glUseProgram(prog_);
+            g_fog.kind(prog_, FogK_NONE);
             glEnable(GL_BLEND);
             glDepthMask(GL_FALSE);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -453,11 +480,15 @@ public:
 private:
 
     // Splits see-through faces into their own mesh, drawn after the rest.
-    void upload_verts(Mesh &opaque, Mesh &trans, const std::vector<SwvVert> &src)
+    // terrain: if given, how many of the opaque vertices are the terrain
+    // (the first 127 * 127 * 6 of the source)
+    void upload_verts(Mesh &opaque, Mesh &trans, const std::vector<SwvVert> &src, int *terrain = nullptr)
     {
         std::vector<GpuVert> vo, vt;
         vo.reserve(src.size());
         for (size_t i = 0; i + 2 < src.size(); i += 3) {
+            if (terrain && i == 127 * 127 * 6)
+                *terrain = (int)vo.size();
             bool see_through = (src[i].flags & SwvVF_TRANSLUCENT) != 0;
             for (size_t k = i; k < i + 3; k++) {
                 const SwvVert &s = src[k];
@@ -480,6 +511,8 @@ private:
                 (see_through ? vt : vo).push_back(g);
             }
         }
+        if (terrain && src.size() <= 127 * 127 * 6)
+            *terrain = (int)vo.size();
         upload_gpu(opaque, vo);
         upload_gpu(trans, vt);
     }
@@ -500,6 +533,7 @@ private:
     }
 
     GLuint prog_ = 0, tex_ = 0, spr_tex_ = 0;
+    int terrain_verts_ = 0;
     GLint u_mvp_ = -1, u_clip_center_ = -1, u_clip_half_ = -1, u_clip_ = -1, u_linear_ = -1,
           u_light_ = -1, u_inst_ = -1, u_tint_ = -1, u_turn_ = -1, u_marker_alpha_ = -1;
     Mesh static_mesh_, static_trans_, dyn_mesh_, dyn_trans_, people_mesh_, table_mesh_, glow_mesh_,

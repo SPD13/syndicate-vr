@@ -104,6 +104,12 @@ public:
         glm::vec3 p;
     };
 
+    // The fog of war: for a point, 2 seen now, 1 seen before, 0 never (see
+    // fog.h); none: everything shows. People, vehicles' shadows, effects,
+    // lines, bars and glows show only where seen now, statics also where
+    // seen before.
+    std::function<int(glm::vec3)> fog_state;
+
     // eye: viewer position in map units, to face the sprites towards it.
     // People for which as_model is true get no sprite: their place goes to
     // places, for the upgraded look. effect_mode tells for each effect
@@ -126,9 +132,12 @@ public:
         float dt = (float)std::clamp(now - last_build_, 0.0, 0.1);
         last_build_ = now;
         float a = (float)std::clamp((now - turn_time_) / std::max(turn_dt_, 0.01), 0.0, 1.0);
+        auto seen = [&](glm::vec3 p, int need = 2) { return !fog_state || fog_state(p) >= need; };
         // shadows under vehicles and people, before anything they could cover
         for (const auto &kv : cur_shadows_) {
             SwvShadow sh = kv.second;
+            if (!seen(glm::vec3((sh.x[0] + sh.x[2]) * 0.5f, sh.y, (sh.z[0] + sh.z[2]) * 0.5f)))
+                continue;
             auto it = prev_shadows_.find(kv.first);
             if (it != prev_shadows_.end())
                 for (int k = 0; k < 4; k++) {
@@ -146,13 +155,18 @@ public:
             const SwvThing &t = kv.second;
             if ((t.flags & SwvTF_HIDDEN) || (t.flags & SwvTF_DEAD))
                 continue;
-            add_shadow(out, position(kv.first, t, a));
+            glm::vec3 sp = position(kv.first, t, a);
+            if (!seen(sp))
+                continue;
+            add_shadow(out, sp);
         }
         for (const auto &kv : cur_) {
             const SwvThing &t = kv.second;
             if (t.flags & SwvTF_HIDDEN)
                 continue;
             glm::vec3 p = position(kv.first, t, a);
+            if (!seen(p))
+                continue;
             if (places && as_model && as_model(kv.first)) {
                 places->push_back({kv.first, p, facing(kv.first, t, t.angle * 0.78539816f, dt)});
                 continue;
@@ -163,6 +177,8 @@ public:
         }
         for (const SwvEffect &e : snap.effects) {
             glm::vec3 p = glide(e.id, glm::vec3(e.x, e.y, e.z), a);
+            if (!seen(p, e.kind == SwvEK_STATIC ? 1 : 2))
+                continue;
             int mode = effect_mode ? effect_mode(e) : 0;
             if (mode == 1)
                 continue;
@@ -177,24 +193,30 @@ public:
         }
         uint32_t seed = snap.hdr.gameturn * 2654435761u;
         for (const SwvLine &l : snap.lines)
-            add_line(out, l, eye, rend, seed);
+            if (seen(glm::vec3(l.x1, l.y1, l.z1)) || seen(glm::vec3(l.x2, l.y2, l.z2)))
+                add_line(out, l, eye, rend, seed);
         // health bars over damaged vehicles, guns and people
         for (const SwvBar &b : snap.bars)
-            add_bar(out, glide(0x80000000u ^ b.id, glm::vec3(b.x, b.y, b.z), a), b.frac, 220, eye);
+            if (seen(glm::vec3(b.x, b.y, b.z)))
+                add_bar(out, glide(0x80000000u ^ b.id, glm::vec3(b.x, b.y, b.z), a), b.frac, 220, eye);
         for (const auto &kv : cur_) {
             const SwvThing &t = kv.second;
             if ((t.flags & (SwvTF_HIDDEN | SwvTF_DEAD)) || t.max_health <= 0 ||
                 t.health >= t.max_health || t.health <= 0)
                 continue;
             glm::vec3 p = position(kv.first, t, a);
+            if (!seen(p))
+                continue;
             add_bar(out, p + glm::vec3(0, 250, 0), (float)t.health / t.max_health, 110, eye);
         }
         // glows, drawn by the renderer after everything else
         for (const SwvGlow &g : snap.glows) {
             float rgb[3];
+            glm::vec3 gp = glide(0x40000000u ^ g.id, glm::vec3(g.x, g.y, g.z), a);
+            if (!seen(gp))
+                continue;
             rend.palette_rgb(rend.palette(), g.colour, rgb);
-            add_glow(glow_out, glide(0x40000000u ^ g.id, glm::vec3(g.x, g.y, g.z), a),
-                     g.radius * 0.6f, rgb, eye);
+            add_glow(glow_out, gp, g.radius * 0.6f, rgb, eye);
         }
     }
 

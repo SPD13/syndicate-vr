@@ -172,8 +172,14 @@ void main() {
     vec3 n = normalize(v_nrm);
     float diff = max(abs(dot(n, normalize(u_light_dir))), 0.0);
     col *= (0.45 + 0.75 * diff) * u_bright;
-    if (u_linear_out == 0)
-        col = pow(col, vec3(1.0 / 2.2));
+    // the fog works on display colours
+    col = pow(max(col, vec3(0.0)), vec3(1.0 / 2.2));
+    bool keep;
+    col = fog_apply(col, v_map, false, keep);
+    if (!keep)
+        discard;
+    if (u_linear_out != 0)
+        col = pow(col, vec3(2.2));
     o_col = vec4(col, 1.0);
 }
 )";
@@ -419,6 +425,10 @@ public:
         glUniform1i(u_shield_, 0);
         glUniform3f(u_eye_, eye_map.x, eye_map.y, eye_map.z);
         glUniform1f(u_time_, (float)time_);
+        // people here are only those the fog lets show; props stay grey
+        // where seen before
+        g_fog.bind(prog_);
+        g_fog.kind(prog_, FogK_THINGS);
         glActiveTexture(GL_TEXTURE2);
         glUniform1f(u_bright_, 1.0f);
         glUniform1i(u_joint_base_, 0);
@@ -1098,7 +1108,7 @@ private:
     bool init_gl()
     {
         GLuint vs = compile_shader(GL_VERTEX_SHADER, kModelVertSrc);
-        GLuint fs = compile_shader(GL_FRAGMENT_SHADER, kModelFragSrc);
+        GLuint fs = compile_shader(GL_FRAGMENT_SHADER, with_fog(kModelFragSrc).c_str());
         prog_ = glCreateProgram();
         glAttachShader(prog_, vs);
         glAttachShader(prog_, fs);

@@ -42,7 +42,7 @@ extern "C" {
 #endif
 /******************************************************************************/
 /** Version of this interface; grows when something is added. */
-#define SWVIEW_API_VERSION 3
+#define SWVIEW_API_VERSION 4
 
 #pragma pack(1)
 
@@ -273,6 +273,10 @@ struct SwvHeader {
     uint32_t selected;    /**< Thing the player controls directly */
     uint32_t view_scale;  /**< Game zoom, overall_scale; 256 is one pixel per 8 units */
     uint32_t view_size;   /**< Game view size in pixels, width << 16 | height */
+    /* since version 4 */
+    uint32_t view_scale_min; /**< view_scale at the game's furthest zoom: the
+                                  longest-range weapon's, at the rules' ZoomMin;
+                                  view_size at it shows the most the desktop can */
 };
 
 #define SWV_OFF_STATIC  4096u

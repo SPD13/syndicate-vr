@@ -57,6 +57,16 @@ barrels (static S30); the sprites they replace are hidden. A shielded
 person gets a glowing shell (the body pushed out 6 cm, fresnel rim and
 bands, additive); a burnt one, an ash pile once the burning clip is over.
 
+The viewer draws the whole map around the table (`--table-only`, the
+right stick click or C: only the table's square). Its fog of war
+(`vr/viewer/fog.h`, on by default; `--no-fog`, the right grip or G) shows
+the world around the player's agents only: a circle around each living
+agent, half as wide as the desktop window at its furthest zoom
+(`view_scale_min`; `--fog-radius`), the circles joining, their outer edge
+dashed on the ground. Ground and buildings seen before stay grey under a
+slow smoke, without people, vehicles or effects; the rest is dark ground.
+Without the fog, the dashes show the most the desktop window can see.
+
 Its VR HUD (`vr/viewer/hud_vr.h`) reads `swview_hud_info()` and
 `swview_persons_render()` every turn: a wrist panel (agents with health,
 energy and shield, the selected agent's weapons, the mission's outcome),
@@ -111,6 +121,13 @@ Since version 3:
   (items, grenades) or animation (statics, `StartFrame + 1`).
 - `swview_charges()`: the player's agents charging a weapon, and how far
   (0..15, as the game's `WeaponTimer` while `TngF_WepCharging`).
+
+Since version 4:
+
+- `SwvHeader.view_scale_min`: the game's view scale at its furthest zoom
+  (the longest-range weapon's zoom, limited by `ZoomMin` of `rules.ini`).
+  With `view_size` it gives the most ground the desktop game can show; the
+  VR viewer outlines that area around the game camera.
 
 ## The panels' data (`swview_hud_info()`)
 

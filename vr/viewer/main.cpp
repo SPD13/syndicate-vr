@@ -14,9 +14,16 @@
 //                 to pick an agent or weapon; left trigger: shoot at what the
 //                 left hand points at; left A/B (X/Y): previous/next weapon;
 //                 left stick pan, right stick zoom (Y) / rotate (X),
-//                 A toggles following the game camera,
+//                 A toggles following the game camera, right stick click
+//                 shows the whole world or only the table's square, the
+//                 right grip switches the fog of war,
 //                 left stick click recentres the table in front of you.
-// Options: --desktop, --look classic|upgraded (switch with L, or B on the
+// Options: --no-fog (the fog of war of fog.h is on by default; switch with
+//          G), --fog-radius R
+//          (map units; default half the desktop window at its furthest
+//          zoom), --desktop, --table-only (draw only the map square on the table;
+//          the default draws the whole world around it; switch with C),
+//          --look classic|upgraded (switch with L, or B on the
 //          right controller), --assets DIR (the assets repository, default
 //          $SWARS_ASSETS3D or assets3d next to the repository),
 //          --click X Y SECONDS BUTTON (simulated click), --press X Y SECONDS
@@ -100,6 +107,10 @@ int main(int argc, char **argv)
     unsigned campaign = 0, mission = 1;
     const char *data_dir = getenv("SWARS_GAMEDATA");
     bool upgraded = false;
+    // the whole map drawn around the table, or only the square on it
+    bool whole_world = true;
+    // the fog of war (fog.h): on unless --no-fog; G, the right grip
+    float fog_radius = 0;
     std::string assets_dir = getenv("SWARS_ASSETS3D") ? getenv("SWARS_ASSETS3D") : "";
     double turn_ms = 50.0;
     uint32_t dump_turn = 0;
@@ -121,7 +132,17 @@ int main(int argc, char **argv)
             dump_file = argv[++i];
         } else if (!strcmp(argv[i], "--turn-ms") && i + 1 < argc) {
             turn_ms = std::max(1.0, atof(argv[++i]));
-        } else if (!strcmp(argv[i], "--desktop"))
+        } else if (!strcmp(argv[i], "--fog-radius") && i + 1 < argc) {
+            fog_radius = (float)atof(argv[++i]);
+        } else if (!strcmp(argv[i], "--fog"))
+            g_fog.enabled = true;
+        else if (!strcmp(argv[i], "--no-fog"))
+            g_fog.enabled = false;
+        else if (!strcmp(argv[i], "--table-only"))
+            whole_world = false;
+        else if (!strcmp(argv[i], "--whole-world"))
+            whole_world = true;
+        else if (!strcmp(argv[i], "--desktop"))
             desktop = true;
         else if (!strcmp(argv[i], "--click") && i + 4 < argc) {
             SimClick c;
@@ -302,6 +323,14 @@ int main(int argc, char **argv)
                 case SDLK_ESCAPE: quit = true; break;
                 case SDLK_RETURN: core.conclude(); break;
                 case SDLK_f: tv.follow = !tv.follow; break;
+                case SDLK_g:
+                    g_fog.enabled = !g_fog.enabled;
+                    logf("fog of war: %s", g_fog.enabled ? "on" : "off");
+                    break;
+                case SDLK_c:
+                    whole_world = !whole_world;
+                    logf("world: %s", whole_world ? "whole" : "table only");
+                    break;
                 case SDLK_l:
                     look.enabled = !look.enabled;
                     logf("look: %s", look.enabled ? "upgraded" : "classic");
@@ -358,6 +387,23 @@ int main(int argc, char **argv)
         glm::mat4 map_to_world = tv.map_model(), world_to_map = glm::inverse(map_to_world);
         glm::vec3 eye_map = glm::vec3(world_to_map * glm::vec4(eye_world, 1.0f));
         look.update(snap, t);
+        // the fog of war: where the agents are now, what they have seen
+        people.list(t, people_now);
+        {
+            g_fog.radius_override = fog_radius;
+            std::vector<glm::vec2> agents;
+            for (const Picker::Person &pp : people_now)
+                if ((pp.flags & SwvTF_PLAYER_AGENT) && !(pp.flags & SwvTF_DEAD))
+                    agents.push_back(glm::vec2(pp.p.x, pp.p.z));
+            g_fog.update(snap, agents, t);
+            if (g_fog.enabled) {
+                people.fog_state = [](glm::vec3 p) { return g_fog.state(p); };
+                picker.visible = [](glm::vec3 p) { return g_fog.visible(p); };
+            } else {
+                people.fog_state = nullptr;
+                picker.visible = nullptr;
+            }
+        }
         people.build(people_verts, glow_verts, t, snap, eye_map, rend,
                      [&](uint16_t thing) { return look.draws(thing); }, &model_places,
                      [&](const SwvEffect &e) { return look.effect_mode(e); }, &prop_places);
@@ -420,9 +466,20 @@ int main(int argc, char **argv)
         int hover_row = pn.hover_row;
         bool on_panel = pn.on_wrist;
 
-        // what each hand points at on the table
+        // what each hand points at on the table; with the fog of war, only
+        // the people the agents see (the markers follow this list too)
         people.list(t, people_now);
+        if (g_fog.enabled)
+            people_now.erase(std::remove_if(people_now.begin(), people_now.end(),
+                                            [](const Picker::Person &pp) { return !g_fog.visible(pp.p); }),
+                             people_now.end());
         glm::vec3 clip_c(tv.center.x, 0, tv.center.z);
+        float clip_h = tv.half_map;
+        if (whole_world) {
+            // the map's square: nothing lies outside it
+            clip_c = glm::vec3(16384.0f, 0, 16384.0f);
+            clip_h = 16384.0f + 256.0f;
+        }
         Hit hit[2];
         for (int h = 0; h < 2; h++) {
             if (!world_ray[h].valid)
@@ -432,7 +489,7 @@ int main(int argc, char **argv)
             mr.d = glm::normalize(glm::vec3(world_to_map * glm::vec4(world_ray[h].o + world_ray[h].d, 1.0f)) - mr.o);
             mr.valid = true;
             if (!(h == 1 && on_panel))
-                hit[h] = picker.pick(mr, people_now, clip_c, tv.half_map);
+                hit[h] = picker.pick(mr, people_now, clip_c, clip_h);
         }
         auto own_agent = [&](uint16_t thing) {
             for (const SwvAgent &ag : hd.agents)
@@ -512,10 +569,31 @@ int main(int argc, char **argv)
                 else if (hit[h].kind == Hit::GROUND)
                     ground_ring(people_verts, hit[h].p, 40.0f, 10.0f, rc, eye_map);
             }
-            // the area the game window shows, from its zoom and size
-            float scale = snap.hdr.view_scale > 0 ? (float)snap.hdr.view_scale : 256.0f;
+            // white dashes on the ground: with the fog of war, the edge of
+            // what the agents see; else the most the desktop game's window
+            // can show (its size at the game's furthest zoom)
+            static const float frame_col[3] = {0.75f, 0.75f, 0.8f};
+            auto dash = [&](glm::vec2 b1, glm::vec2 b2) {
+                glm::vec3 a1(b1.x, picker.ground_at(b1.x, b1.y) + 10, b1.y);
+                glm::vec3 a2(b2.x, picker.ground_at(b2.x, b2.y) + 10, b2.y);
+                glm::vec3 side = glm::normalize(glm::cross(a2 - a1, glm::vec3(0, 1, 0))) * 6.0f;
+                glm::vec3 q[4] = {a1 - side, a1 + side, a2 + side, a2 - side};
+                static const int tri[6] = {0, 1, 2, 0, 2, 3};
+                for (int kk : tri) {
+                    GpuVert g{};
+                    g.pos[0] = q[kk].x; g.pos[1] = q[kk].y; g.pos[2] = q[kk].z;
+                    g.rgb[0] = frame_col[0]; g.rgb[1] = frame_col[1]; g.rgb[2] = frame_col[2];
+                    g.textured = 3.0f;
+                    people_verts.push_back(g);
+                }
+            };
+            float scale = snap.hdr.view_scale_min > 0 ? (float)snap.hdr.view_scale_min
+                          : snap.hdr.view_scale > 0   ? (float)snap.hdr.view_scale
+                                                      : 256.0f;
             float vw = (float)(snap.hdr.view_size >> 16), vh = (float)(snap.hdr.view_size & 0xFFFF);
-            if (vw > 0 && vh > 0) {
+            if (g_fog.enabled) {
+                g_fog.outline(dash);
+            } else if (vw > 0 && vh > 0) {
                 float half_w = vw * 0.5f * 8.0f * 256.0f / scale;
                 float half_d = vh * 0.5f * 8.0f * 256.0f / scale / kTiltSin;
                 float a = snap.hdr.cam_angle;
@@ -523,24 +601,12 @@ int main(int argc, char **argv)
                 glm::vec3 c(snap.hdr.cam_x, 0, snap.hdr.cam_z);
                 glm::vec3 k[4] = {c - right * half_w - fwd * half_d, c + right * half_w - fwd * half_d,
                                   c + right * half_w + fwd * half_d, c - right * half_w + fwd * half_d};
-                static const float frame_col[3] = {0.75f, 0.75f, 0.8f};
                 for (int e = 0; e < 4; e++) {
                     glm::vec3 p1 = k[e], p2 = k[(e + 1) % 4];
                     const int seg = 16;
                     for (int s2 = 0; s2 < seg; s2 += 2) {
                         glm::vec3 a1 = glm::mix(p1, p2, (float)s2 / seg), a2 = glm::mix(p1, p2, (float)(s2 + 1) / seg);
-                        a1.y = picker.ground_at(a1.x, a1.z) + 10;
-                        a2.y = picker.ground_at(a2.x, a2.z) + 10;
-                        glm::vec3 side = glm::normalize(glm::cross(a2 - a1, glm::vec3(0, 1, 0))) * 6.0f;
-                        glm::vec3 q[4] = {a1 - side, a1 + side, a2 + side, a2 - side};
-                        static const int tri[6] = {0, 1, 2, 0, 2, 3};
-                        for (int kk : tri) {
-                            GpuVert g{};
-                            g.pos[0] = q[kk].x; g.pos[1] = q[kk].y; g.pos[2] = q[kk].z;
-                            g.rgb[0] = frame_col[0]; g.rgb[1] = frame_col[1]; g.rgb[2] = frame_col[2];
-                            g.textured = 3.0f;
-                            people_verts.push_back(g);
-                        }
+                        dash(glm::vec2(a1.x, a1.z), glm::vec2(a2.x, a2.z));
                     }
                 }
             }
@@ -571,11 +637,11 @@ int main(int argc, char **argv)
             built_half = tv.half_map;
         }
 
-        glm::vec3 clip_center(tv.center.x, 0, tv.center.z);
+        glm::vec3 clip_center = clip_c;
         auto draw_scene = [&](const glm::mat4 &vp, bool linear) {
             glClearColor(0.05f, 0.06f, 0.08f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            rend.draw(vp, tv.table_model(), tv.map_model(), clip_center, tv.half_map, linear);
+            rend.draw(vp, tv.table_model(), tv.map_model(), clip_center, clip_h, linear);
         };
 
         if (use_xr) {
@@ -584,7 +650,9 @@ int main(int argc, char **argv)
             XrApp::Input in = xr_in;
             if (std::fabs(in.pan.x) > 0.15f || std::fabs(in.pan.y) > 0.15f) {
                 tv.follow = false;
-                tv.pan(in.pan.x * dt * 0.8f, -in.pan.y * dt * 0.8f);
+                // the stick moves the map, not the view point: the table
+                // slides the way the stick is pushed
+                tv.pan(-in.pan.x * dt * 0.8f, in.pan.y * dt * 0.8f);
             }
             if (std::fabs(in.zoom.y) > 0.2f)
                 tv.zoom(std::pow(0.4f, in.zoom.y * dt));
@@ -593,6 +661,14 @@ int main(int argc, char **argv)
             if (in.look_pressed) {
                 look.enabled = !look.enabled;
                 logf("look: %s", look.enabled ? "upgraded" : "classic");
+            }
+            if (in.fog_pressed) {
+                g_fog.enabled = !g_fog.enabled;
+                logf("fog of war: %s", g_fog.enabled ? "on" : "off");
+            }
+            if (in.world_pressed) {
+                whole_world = !whole_world;
+                logf("world: %s", whole_world ? "whole" : "table only");
             }
             if (in.follow_pressed)
                 tv.follow = !tv.follow;
