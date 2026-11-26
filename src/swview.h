@@ -265,7 +265,7 @@ struct SwvHeader {
     uint32_t sprite_rev;  /**< Changes when sprites or animation tables change */
     uint32_t n_sprites;
     uint32_t n_sprite_pages;
-    uint32_t sprite_stride; /**< sizeof(TbSprite) in the game */
+    uint32_t sprite_stride; /**< Size of a sprite record in the .tab file (6) */
     uint32_t n_nstart, n_frames, n_elements;
     uint32_t n_effects;
     uint32_t n_lines;

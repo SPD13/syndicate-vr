@@ -1195,7 +1195,9 @@ static void swv_export_sprites(struct SwvHeader *p_hdr)
     }
     p_hdr->n_sprites = n_sprites;
     p_hdr->n_sprite_pages = (page < SWV_SPRITE_PAGES) ? page + 1 : SWV_SPRITE_PAGES;
-    p_hdr->sprite_stride = sizeof(struct TbSprite);
+    // frame elements give a sprite as a byte offset in the .tab file, whose
+    // records are smaller than TbSprite on 64-bit targets
+    p_hdr->sprite_stride = LB_SPRITE_FILE_SIZE;
 
     n = (nstart_ani != NULL) ? (uint)(nstart_ani_end - nstart_ani) : 0;
     if (n > SWV_NSTART_MAX)
