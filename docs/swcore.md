@@ -308,6 +308,12 @@ interface:
 
 ## Verification
 
+The web: the core alone builds with Emscripten (`tools/web/build_core.sh`)
+and plays the same game under node as the native builds:
+`tools/web/check_core.sh` compares the hash of every turn of the 50
+core-only scenarios with `coreturn_compare.py --core-only --view` (50/0),
+and the world export of a turn is byte for byte the same.
+
 The trace scripts start the game with `--original-bugs`, so the traces
 compare with the original. The traces of `swcore_headless` must equal the
 reference traces of the original asm, and its printed hashes those traces:

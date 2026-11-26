@@ -60,6 +60,15 @@ lack clobber lists and break under optimisation.
   traces; `statetrace_par.sh <build> <outdir> [jobs]` runs the traces in
   parallel and sets these. Traces of Linux x64 and arm64 equal the
   32-bit reference.
+- Web (WSL, emsdk in `~/emsdk`): `tools/web/build_core.sh` builds the
+  game core alone (`swcore_coreonly`, with the world export) with
+  Emscripten into `build/wasm`; it runs under node in the game data
+  folder. `tools/web/check_core.sh <Windows build/coreturn/core>` plays
+  the 50 core-only scenarios and compares every turn's hash with a native
+  `coreturn_compare.py harness --core-only --view` (50/0). wasm32 is
+  ILP32 like the 32-bit build but built by clang: code must not depend on
+  how the compiler places variables (`remove_sthing` once read the short
+  after `sthings_used` through memory).
 - All code is built with `-fsigned-char`: the decompiled code reads bytes
   as plain `char` and expects them signed, as on x86 (ARM's `char` is
   unsigned). New code uses `sbyte`/`ubyte` anyway.
