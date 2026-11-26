@@ -32,6 +32,16 @@ default `$SWARS_GAMEDATA`.
 `swcore_coreonly --view --view-dump TURN DIR -m C,M` (0,1 turn 200,
 1,85 and 0,101 turn 600: identical).
 
+Its VR HUD (`vr/viewer/hud_vr.h`) reads `swview_hud_info()` and
+`swview_persons_render()` every turn: a wrist panel (agents with health,
+energy and shield, the selected agent's weapons, the mission's outcome),
+the objective board at the table's edge, and world markers of the assets
+repository's `HANDOVER.md` 7.2: M1 selection (ring with turning ticks,
+number plate), M4 health (bar with a trail after a hit; agents always,
+others when hit or pointed at), M7 waypoint (the last walk order: rings
+and chevrons) and M9 objective (a light column over each scanner signal).
+Markers are drawn twice: hidden by walls, then at 25 % over everything.
+
 ## The world block (`swview_update()`)
 
 `swview_update(block)` fills a block of `swview_block_size()` bytes, laid

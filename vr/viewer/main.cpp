@@ -26,7 +26,8 @@
 //
 // Modules (headers, one translation unit): common.h, world_source.h (the
 // game core and its world), render_classic.h, voxels.h, play.h (commands,
-// picking), hud.h, people.h, table_view.h, xr.h; main.cpp is the loop.
+// picking), hud.h, people.h, table_view.h, hud_vr.h (the VR HUD: wrist
+// panel, objective board, world markers), xr.h; main.cpp is the loop.
 
 #include "common.h"
 #include "world_source.h"
@@ -36,6 +37,7 @@
 #include "hud.h"
 #include "people.h"
 #include "table_view.h"
+#include "hud_vr.h"
 #include "xr.h"
 
 /******************************************************************************/
@@ -205,6 +207,7 @@ int main(int argc, char **argv)
     glm::mat4 desk_view(1.0f), desk_proj(1.0f);
     double t_prev = now_seconds(), t_start = t_prev;
     CoreWorld core;
+    VrHud vrhud;
     double over_at = -1;
     if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev))
         return 1;
@@ -362,91 +365,13 @@ int main(int argc, char **argv)
         }
 
         // panels: agents and weapons on the left wrist (or beside the
-        // table on the desktop), the objective on a board behind the table
+        // table on the desktop), the objective on a board at the table's edge
         const SwvHud &hd = snap.hud;
-        auto weapon_name = [&](int w) {
-            return std::string(hd.weapon_names[w], strnlen(hd.weapon_names[w], sizeof(hd.weapon_names[w])));
-        };
-        int selected_agent = -1;
-        std::vector<int> weapon_rows;
-        for (int i = 0; i < SWV_AGENTS_MAX; i++)
-            if (hd.agents[i].thing != 0 && hd.agents[i].thing == snap.hdr.selected)
-                selected_agent = i;
-        if (selected_agent >= 0)
-            for (int w = 1; w < SWV_WEAPON_TYPES; w++)
-                if (hd.agents[selected_agent].weapons & (1u << (w - 1)))
-                    weapon_rows.push_back(w);
-        const float row_h = 0.024f, px = 0.0016f;
-        int n_rows = 6 + (int)weapon_rows.size();
-        glm::vec3 panel_c;
-        if (use_xr && world_ray[0].valid)
-            panel_c = world_ray[0].o + glm::vec3(0, 0.07f + n_rows * row_h * 0.5f, 0);
-        else
-            panel_c = glm::vec3(tv.table_pose * glm::vec4(-0.95f, 0.25f, 0.1f, 1.0f));
-        Panel panel = make_panel(panel_c, eye_world, 0.27f, n_rows * row_h, row_h);
-        int hover_row = panel.row_at(world_ray[1]);
-        bool on_panel = hover_row >= 0 && snap.valid && snap.hdr.in_mission;
-        if (snap.valid && snap.hdr.in_mission) {
-            static const float bg[3] = {0.04f, 0.06f, 0.09f}, sel[3] = {0.08f, 0.32f, 0.36f},
-                               hov[3] = {0.35f, 0.32f, 0.08f}, white[3] = {0.9f, 0.92f, 0.95f},
-                               dim[3] = {0.55f, 0.6f, 0.65f}, cyan[3] = {0.3f, 0.95f, 1.0f};
-            glm::vec3 back = -glm::cross(panel.right, panel.up) * 0.002f;
-            hud.rect(panel.tl + back, panel.right, panel.up, panel.w, panel.h, bg);
-            auto row_tl = [&](int r) { return panel.tl - panel.up * (r * row_h); };
-            auto row_text = [&](int r, const std::string &s, const float *rgb) {
-                hud.text(row_tl(r) + panel.right * 0.008f - panel.up * 0.004f, panel.right, panel.up, px,
-                         s, rgb, 26);
-            };
-            row_text(0, "AGENTS", cyan);
-            for (int i = 0; i < SWV_AGENTS_MAX; i++) {
-                const SwvAgent &ag = hd.agents[i];
-                if (ag.thing == 0)
-                    continue;
-                int r = 1 + i;
-                if (i == selected_agent)
-                    hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, sel);
-                if (on_panel && hover_row == r)
-                    hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, hov);
-                std::string wname = ag.current_weapon < SWV_WEAPON_TYPES
-                    ? weapon_name(ag.current_weapon) : std::string();
-                char buf[64];
-                snprintf(buf, sizeof(buf), "%d %s", i + 1,
-                         (ag.flags & SwvTF_DEAD) ? "DEAD" : (wname.empty() ? "-" : wname.c_str()));
-                row_text(r, buf, (ag.flags & SwvTF_DEAD) ? dim : white);
-                // health bar along the bottom of the row
-                if (ag.max_health > 0 && !(ag.flags & SwvTF_DEAD)) {
-                    float f = std::clamp((float)ag.health / ag.max_health, 0.0f, 1.0f);
-                    float hb[3] = {std::min(1.0f, 2 * (1 - f)), std::min(1.0f, 2 * f), 0.1f};
-                    hud.rect(row_tl(r) + panel.right * 0.17f - panel.up * 0.008f - back, panel.right,
-                             panel.up, 0.09f * f, 0.008f, hb);
-                }
-            }
-            row_text(5, "WEAPONS", cyan);
-            for (size_t k = 0; k < weapon_rows.size(); k++) {
-                int r = 6 + (int)k;
-                int w = weapon_rows[k];
-                if (selected_agent >= 0 && hd.agents[selected_agent].current_weapon == w)
-                    hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, sel);
-                if (on_panel && hover_row == r)
-                    hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, hov);
-                row_text(r, weapon_name(w), white);
-            }
-            // objective board
-            std::vector<std::string> lines = wrap_text(hd.objective, 34);
-            if (!lines.empty()) {
-                const float bpx = 0.003f, brow = 0.04f;
-                glm::vec3 bc = glm::vec3(tv.table_pose * glm::vec4(0.0f, 0.42f, -0.85f, 1.0f));
-                Panel board = make_panel(bc, eye_world, 34 * 6 * bpx + 0.03f,
-                                         (lines.size() + 1) * brow, brow);
-                glm::vec3 bback = -glm::cross(board.right, board.up) * 0.002f;
-                hud.rect(board.tl + bback, board.right, board.up, board.w, board.h, bg);
-                hud.text(board.tl + board.right * 0.015f - board.up * 0.006f, board.right, board.up,
-                         bpx * 0.8f, "OBJECTIVE", cyan);
-                for (size_t l = 0; l < lines.size(); l++)
-                    hud.text(board.tl + board.right * 0.015f - board.up * (brow * (l + 1) + 0.006f),
-                             board.right, board.up, bpx, lines[l], white);
-            }
-        }
+        VrHud::Panels pn = vrhud.panels(hud, snap, use_xr, world_ray[0], world_ray[1], tv, eye_world);
+        const Panel &panel = pn.wrist;
+        const std::vector<int> &weapon_rows = pn.weapon_rows;
+        int hover_row = pn.hover_row;
+        bool on_panel = pn.on_wrist;
 
         // what each hand points at on the table
         people.list(t, people_now);
@@ -483,6 +408,7 @@ int main(int argc, char **argv)
                     cmds.send(SwcCmd_ENTER_VEHICLE, (int16_t)hit[1].thing);
                 } else if (hit[1].kind != Hit::NONE) {
                     cmds.send(SwcCmd_GOTO, 0, (int32_t)hit[1].p.x, (int32_t)hit[1].p.z);
+                    vrhud.on_goto(hit[1].p.x, hit[1].p.z, (uint16_t)snap.hdr.selected, t);
                 }
             }
             if (act[0]) {
@@ -497,19 +423,21 @@ int main(int argc, char **argv)
                 cmds.send(SwcCmd_WEAPON_PREV);
         }
 
-        // rings on the table: own agents, the selected one, what is pointed at
+        // world markers: selection, health, waypoint, objective
+        {
+            MarkerBuilder mb;
+            mb.eye = eye_map;
+            uint16_t pointed = 0;
+            for (int h = 1; h >= 0; h--)
+                if (pointed == 0 && hit[h].kind == Hit::PERSON)
+                    pointed = hit[h].thing;
+            vrhud.markers(mb, t, snap, people_now, picker, pointed);
+            rend.upload_markers(mb.verts);
+        }
+
+        // rings on the table: what each hand points at
         if (snap.valid && snap.hdr.in_mission) {
-            static const float ring_sel[3] = {0.2f, 1.0f, 0.4f}, ring_own[3] = {0.2f, 0.8f, 0.9f},
-                               ring_r[3] = {1.0f, 0.9f, 0.2f}, ring_l[3] = {1.0f, 0.2f, 0.15f};
-            float pulse = 0.85f + 0.15f * std::sin((float)t * 6.0f);
-            for (const Picker::Person &pp : people_now) {
-                if (pp.flags & (SwvTF_HIDDEN | SwvTF_DEAD))
-                    continue;
-                if (pp.thing == snap.hdr.selected)
-                    ground_ring(people_verts, pp.p, 85.0f * pulse, 14.0f, ring_sel, eye_map);
-                else if (pp.flags & SwvTF_PLAYER_AGENT)
-                    ground_ring(people_verts, pp.p, 70.0f, 8.0f, ring_own, eye_map);
-            }
+            static const float ring_r[3] = {1.0f, 0.9f, 0.2f}, ring_l[3] = {1.0f, 0.2f, 0.15f};
             for (int h = 0; h < 2; h++) {
                 const float *rc = h ? ring_r : ring_l;
                 if (hit[h].kind == Hit::PERSON)

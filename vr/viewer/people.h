@@ -147,12 +147,6 @@ public:
             } else if (!add_sprite(out, snap, t, p, eye, top)) {
                 top = add_figure(out, t, p);
             }
-            if (t.flags & SwvTF_PLAYER_AGENT) {
-                // marker above own agents, visible from afar
-                float mk[3] = {0.2f, 1.0f, 1.0f};
-                Renderer::add_box(out, p + glm::vec3(-14, top + 40, -14),
-                                  p + glm::vec3(14, top + 68, 14), mk);
-            }
         }
         for (const SwvEffect &e : snap.effects) {
             glm::vec3 p = glide(e.id, glm::vec3(e.x, e.y, e.z), a);

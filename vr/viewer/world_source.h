@@ -31,6 +31,10 @@ struct WorldSnapshot {
     uint32_t static_rev = 0, tmap_rev = 0, sprite_rev = 0;
     bool static_changed = false, tmap_changed = false, sprite_changed = false;
     bool valid = false;
+    // read from the core in this process, not from the block: the panels'
+    // data and every person's state, for the VR HUD
+    SwvHudInfo hud_info{};
+    std::vector<SwvPersonRender> persons;
 };
 
 class BlockReader {
@@ -217,7 +221,12 @@ public:
         if ((n == 0) && !fresh_)
             return false;
         fresh_ = false;
-        return reader_.poll(snap);
+        if (!reader_.poll(snap))
+            return false;
+        swview_hud_info(&snap.hud_info);
+        snap.persons.resize(kPersonsMax);
+        snap.persons.resize(swview_persons_render(snap.persons.data(), kPersonsMax));
+        return true;
     }
 
     /** The player confirms the end of a decided mission. */
@@ -259,6 +268,7 @@ private:
         dump_file_ = nullptr;
     }
 
+    static constexpr uint32_t kPersonsMax = 2048;
     std::vector<uint8_t> block_;
     BlockReader reader_;
     uint32_t dump_turn_ = 0;

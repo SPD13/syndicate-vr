@@ -12,7 +12,8 @@ struct GpuVert {
     float layer;
     float rgb[3];
     // 0 flat colour, 1 texture page (tinted by rgb), 2 sprite page (tinted
-    // by rgb), 3 unlit colour, 4 shadow (translucent black), 5 soft glow
+    // by rgb), 3 unlit colour, 4 shadow (translucent black), 5 soft glow,
+    // 6 marker (unlit colour, alpha in uv[0])
     float textured;
     float fx; // SwvVertFlags bits, for water, glass and shine
 };
@@ -92,6 +93,7 @@ uniform int u_linear_out;
 uniform vec3 u_light_dir;
 uniform mat3 u_normal_mat;
 uniform float u_tint;
+uniform float u_marker_alpha;
 out vec4 o_col;
 void main() {
     if (u_clip != 0) {
@@ -100,6 +102,13 @@ void main() {
             discard;
     }
     vec3 col = v_rgb;
+    if (v_textured > 5.5) {
+        // VR markers: emissive colour, partly see-through
+        if (u_linear_out != 0)
+            col = pow(col, vec3(2.2));
+        o_col = vec4(col, clamp(v_uv.x, 0.0, 1.0) * u_marker_alpha);
+        return;
+    }
     if (v_textured > 4.5) {
         // soft round glow on a quad facing the viewer
         float r = length(v_uv * 2.0 - 1.0);
@@ -177,8 +186,9 @@ public:
         u_inst_ = glGetUniformLocation(prog_, "u_inst");
         u_tint_ = glGetUniformLocation(prog_, "u_tint");
         u_turn_ = glGetUniformLocation(prog_, "u_turn");
+        u_marker_alpha_ = glGetUniformLocation(prog_, "u_marker_alpha");
         for (auto *m : {&static_mesh_, &static_trans_, &dyn_mesh_, &dyn_trans_, &people_mesh_,
-                        &table_mesh_, &glow_mesh_, &hud_mesh_})
+                        &table_mesh_, &glow_mesh_, &hud_mesh_, &marker_mesh_})
             make_mesh(*m);
         glGenTextures(1, &tex_);
         glBindTexture(GL_TEXTURE_2D_ARRAY, tex_);
@@ -272,6 +282,8 @@ public:
     void upload_glows(const std::vector<GpuVert> &verts) { upload_gpu(glow_mesh_, verts); }
     // Pointers and panels, in world space (meters).
     void upload_hud(const std::vector<GpuVert> &verts) { upload_gpu(hud_mesh_, verts); }
+    // VR world markers, in map units (hud_vr.h)
+    void upload_markers(const std::vector<GpuVert> &verts) { upload_gpu(marker_mesh_, verts); }
 
     void build_table(float half_map, float thickness_map)
     {
@@ -358,6 +370,14 @@ public:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
         draw_mesh(glow_mesh_);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // markers: hidden by what is in front, then a faint copy over
+        // everything, so agents behind buildings stay in sight
+        glUniform1f(u_marker_alpha_, 1.0f);
+        draw_mesh(marker_mesh_);
+        glDisable(GL_DEPTH_TEST);
+        glUniform1f(u_marker_alpha_, 0.25f);
+        draw_mesh(marker_mesh_);
+        glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(vp));
@@ -464,9 +484,9 @@ private:
 
     GLuint prog_ = 0, tex_ = 0, spr_tex_ = 0;
     GLint u_mvp_ = -1, u_clip_center_ = -1, u_clip_half_ = -1, u_clip_ = -1, u_linear_ = -1,
-          u_light_ = -1, u_inst_ = -1, u_tint_ = -1, u_turn_ = -1;
+          u_light_ = -1, u_inst_ = -1, u_tint_ = -1, u_turn_ = -1, u_marker_alpha_ = -1;
     Mesh static_mesh_, static_trans_, dyn_mesh_, dyn_trans_, people_mesh_, table_mesh_, glow_mesh_,
-        hud_mesh_;
+        hud_mesh_, marker_mesh_;
     uint8_t palette_[768]{};
     float pal_scale_ = 4.0f;
     bool have_palette_ = false;
