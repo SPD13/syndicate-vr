@@ -35,6 +35,11 @@ struct WorldSnapshot {
     // data and every person's state, for the VR HUD
     SwvHudInfo hud_info{};
     std::vector<SwvPersonRender> persons;
+    // for the upgraded look: items, grenades and statics; weapons charging;
+    // the effects started or ended in the turns played since the last poll
+    std::vector<SwvProp> props;
+    std::vector<SwvCharge> charges;
+    std::vector<SwvFxEvent> fx_events;
 };
 
 class BlockReader {
@@ -213,6 +218,12 @@ public:
                 logf("mission over at turn %u, status %u", info.gameturn, info.mission_status);
             }
             swview_update(block_.data());
+            {
+                // events are those of the last update: keep every turn's
+                SwvFxEvent ev[SWV_FX_EVENTS_MAX];
+                uint32_t ne = swview_fx_events(ev, SWV_FX_EVENTS_MAX);
+                fx_pending_.insert(fx_pending_.end(), ev, ev + ne);
+            }
             if (dump_file_ != nullptr)
                 dump_block();
         }
@@ -226,6 +237,12 @@ public:
         swview_hud_info(&snap.hud_info);
         snap.persons.resize(kPersonsMax);
         snap.persons.resize(swview_persons_render(snap.persons.data(), kPersonsMax));
+        snap.props.resize(kPropsMax);
+        snap.props.resize(swview_props(snap.props.data(), kPropsMax));
+        snap.charges.resize(SWV_AGENTS_MAX);
+        snap.charges.resize(swview_charges(snap.charges.data(), SWV_AGENTS_MAX));
+        snap.fx_events.swap(fx_pending_);
+        fx_pending_.clear();
         return true;
     }
 
@@ -269,6 +286,8 @@ private:
     }
 
     static constexpr uint32_t kPersonsMax = 2048;
+    static constexpr uint32_t kPropsMax = 8192;
+    std::vector<SwvFxEvent> fx_pending_;
     std::vector<uint8_t> block_;
     BlockReader reader_;
     uint32_t dump_turn_ = 0;

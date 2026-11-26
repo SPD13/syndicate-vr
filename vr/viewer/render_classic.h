@@ -376,6 +376,14 @@ public:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
         draw_mesh(glow_mesh_);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // particle effects of the upgraded look, with their own program
+        if (draw_effects) {
+            draw_effects(mvp, clip_center, clip_half, linear_out);
+            glUseProgram(prog_);
+            glEnable(GL_BLEND);
+            glDepthMask(GL_FALSE);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
         // markers: hidden by what is in front, then a faint copy over
         // everything, so agents behind buildings stay in sight
         glUniform1f(u_marker_alpha_, 1.0f);
@@ -440,7 +448,7 @@ public:
     std::vector<Instance> instances;
     // draws other models in map space (mvp: map units -> clip)
     std::function<void(const glm::mat4 &mvp, glm::vec3 clip_center, float clip_half, bool linear_out)>
-        draw_models;
+        draw_models, draw_effects;
 
 private:
 

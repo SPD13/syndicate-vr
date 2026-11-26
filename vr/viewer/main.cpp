@@ -229,7 +229,12 @@ int main(int argc, char **argv)
     rend.draw_models = [&](const glm::mat4 &mvp, glm::vec3 cc, float ch, bool lin) {
         look.draw(mvp, cc, ch, lin);
     };
+    rend.draw_effects = [&](const glm::mat4 &mvp, glm::vec3 cc, float ch, bool lin) {
+        look.draw_effects(mvp, look.eye_map, cc, ch, lin);
+    };
+    look.ground = [&](float x, float z) { return picker.ground_at(x, z); };
     std::vector<People::ModelPlace> model_places;
+    std::vector<People::PropPlace> prop_places;
     double over_at = -1;
     if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev))
         return 1;
@@ -338,8 +343,10 @@ int main(int argc, char **argv)
         glm::vec3 eye_map = glm::vec3(world_to_map * glm::vec4(eye_world, 1.0f));
         look.update(snap, t);
         people.build(people_verts, glow_verts, t, snap, eye_map, rend,
-                     [&](uint16_t thing) { return look.draws(thing); }, &model_places);
-        look.prepare(t, model_places);
+                     [&](uint16_t thing) { return look.draws(thing); }, &model_places,
+                     [&](const SwvEffect &e) { return look.effect_mode(e); }, &prop_places);
+        look.eye_map = eye_map;
+        look.prepare(t, model_places, prop_places);
 
         // ---- playing from the table: pointers, panels, commands
         HudBuilder hud;

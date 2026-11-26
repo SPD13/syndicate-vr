@@ -8,10 +8,16 @@
 // clip from the game's animation state (HANDOVER.md 2.2), with crossfades,
 // a walk rate following the speed, and the weapon in hand parented to the
 // right hand (socket of agent_arsenal.glb), the left hand on two-handed
-// weapons by IK. Nothing here writes to the game.
+// weapons by IK. Items, grenades and scenery statics become their models
+// (HANDOVER.md 4, 5; sizes from models/scale.json); explosions, fires,
+// smoke, gas and impacts become particle effects (fx.h); a shielded person
+// gets a glowing shell (HANDOVER.md 10.6), a burnt one an ash pile.
+// Nothing here writes to the game.
 #pragma once
 
+#include "fx.h"
 #include "gltf_model.h"
+#include "json_min.h"
 #include "people.h"
 
 #include <condition_variable>
@@ -102,6 +108,7 @@ uniform mat4 u_model;    // model -> map units
 uniform int u_skinned;
 uniform int u_joint_base;
 uniform sampler2D u_joints; // 4 texels (a mat4) per joint, rows of 1024
+uniform float u_inflate;    // shield shell: metres along the normals
 out vec3 v_map;
 out vec3 v_nrm;
 out vec2 v_uv;
@@ -117,9 +124,10 @@ void main() {
     if (u_skinned != 0)
         skin = a_wgt.x * joint(a_jnt.x) + a_wgt.y * joint(a_jnt.y) +
                a_wgt.z * joint(a_jnt.z) + a_wgt.w * joint(a_jnt.w);
-    vec4 m = u_model * skin * vec4(a_pos, 1.0);
+    vec3 sn = normalize(mat3(skin) * a_nrm);
+    vec4 m = u_model * (skin * vec4(a_pos, 1.0) + vec4(sn * u_inflate, 0.0));
     v_map = m.xyz;
-    v_nrm = mat3(u_model) * mat3(skin) * a_nrm;
+    v_nrm = mat3(u_model) * sn;
     v_uv = a_uv;
     gl_Position = u_mvp * m;
 }
@@ -136,11 +144,28 @@ uniform vec3 u_clip_center;
 uniform float u_clip_half;
 uniform int u_linear_out;
 uniform float u_bright;
+uniform int u_shield;
+uniform vec3 u_eye;
+uniform float u_time;
 out vec4 o_col;
 void main() {
     vec2 d = abs(v_map.xz - u_clip_center.xz);
     if (d.x > u_clip_half || d.y > u_clip_half)
         discard;
+    if (u_shield != 0) {
+        // energy shield (HANDOVER.md 10.6): a fresnel rim, thin moving
+        // bands, pulsing; additive
+        vec3 n = normalize(v_nrm), v = normalize(u_eye - v_map);
+        float rim = pow(1.0 - abs(dot(n, v)), 3.0);
+        float band = sin(v_map.y * 0.09 + u_time * 5.0) * sin(v_map.x * 0.07 - u_time * 3.0 + v_map.z * 0.05);
+        float lines = smoothstep(0.9, 1.0, 1.0 - abs(band - 0.5) * 2.0);
+        float pulse = (2.2 + 1.2 * sin(7.0 * u_time)) / 3.4;
+        vec3 c = vec3(0.3, 0.9, 1.0) * (rim * 0.9 + lines * 0.35) * pulse;
+        if (u_linear_out != 0)
+            c = pow(c, vec3(2.2));
+        o_col = vec4(c, 1.0);
+        return;
+    }
     vec3 col = u_textured != 0 ? texture(u_tex, v_uv).rgb : vec3(0.6);
     // textures are sRGB: light in linear space
     col = pow(col, vec3(2.2));
@@ -160,6 +185,30 @@ public:
     /** Folder of the assets repository (absolute). */
     void set_assets(const std::string &dir) { dir_ = dir; }
     const std::string &assets() const { return dir_; }
+
+    /** Map height of the ground at a point (for effects). */
+    std::function<float(float, float)> ground;
+
+    // What becomes of an effect sprite: 0 drawn, 1 hidden (particles
+    // replace it), 2 a model (a prop whose model is loaded).
+    int effect_mode(const SwvEffect &e) const
+    {
+        if (!enabled)
+            return 0;
+        if (e.kind == SwvEK_SMOKE || e.kind == SwvEK_FLAME)
+            return fx_.loaded() ? 1 : 0;
+        // scale effects: only those of the animations particles replace
+        if (e.kind == SwvEK_SCALE_EFFECT)
+            return (fx_.loaded() && fx_frames_.count(e.frame)) ? 1 : 0;
+        if (e.kind == SwvEK_STATIC || e.kind == SwvEK_DROPPED_ITEM || e.kind == SwvEK_GRENADE) {
+            auto it = props_.find(e.id);
+            if (it == props_.end())
+                return 0;
+            PropModel pm;
+            return prop_model(it->second, pm) && models_.count(pm.key) ? 2 : 0;
+        }
+        return 0;
+    }
 
     // Whether the person is drawn as a model now.
     bool draws(uint16_t thing) const
@@ -218,16 +267,40 @@ public:
                     request_weapon(pr.weapon);
             }
             persons_.swap(next);
+            // props of this turn; their models are loaded when first seen
+            std::unordered_map<uint32_t, SwvProp> props;
+            for (const SwvProp &pr : snap.props) {
+                props[pr.id] = pr;
+                PropModel pm;
+                if (prop_model(pr, pm))
+                    request_file(pm.key, pm.path);
+            }
+            props_.swap(props);
+            if (fx_frames_.empty() || snap.sprite_changed)
+                collect_fx_frames(snap);
+            start_effects(snap);
         }
     }
 
-    /** Poses the people placed by People::build, for draw(). */
-    void prepare(double now, const std::vector<People::ModelPlace> &places)
+    /** Poses the people placed by People::build, places the props, moves
+     * the effects; for draw() and draw_effects(). */
+    void prepare(double now, const std::vector<People::ModelPlace> &places,
+                 const std::vector<People::PropPlace> &prop_places)
     {
         draws_.clear();
+        prop_draws_.clear();
         joints_.clear();
         float dt = (float)std::clamp(now - last_prepare_, 0.0, 0.1);
         last_prepare_ = now;
+        time_ += dt;
+        if (!enabled) {
+            if (fx_.loaded())
+                fx_.clear(), effect_handles_.clear();
+            return;
+        }
+        place_props(prop_places, now);
+        follow_effects(places);
+        fx_.update(dt);
         for (const People::ModelPlace &pl : places) {
             auto it = persons_.find(pl.thing);
             if (it == persons_.end())
@@ -238,6 +311,19 @@ public:
             if (ct == nullptr || m == nullptr)
                 continue;
             animate(ps, *m, dt);
+            // burnt: once the burning clip has played, an ash pile instead
+            if (ps.anim_mode == 18 && ps.clip >= 0 && ps.time >= m->data.clips[ps.clip].duration) {
+                auto ash = models_.find("models/items/ashpile.glb");
+                if (ash != models_.end()) {
+                    PropDraw pd;
+                    pd.model = ash->second.get();
+                    pd.xform = prop_xform(*pd.model, pl.p, 0.9f, 2, (uint32_t)pl.thing);
+                    prop_draws_.push_back(pd);
+                } else {
+                    request_file("models/items/ashpile.glb", dir_ + "/models/items/ashpile.glb");
+                }
+                continue;
+            }
             // pose: the current clip, faded in over the previous one
             m->rest_pose(pose_a_);
             m->sample(ps.prev_clip, ps.prev_time, pose_a_);
@@ -283,6 +369,7 @@ public:
                        glm::rotate(glm::mat4(1.0f), pl.phi - 3.1415927f, glm::vec3(0, 1, 0)) *
                        glm::scale(glm::mat4(1.0f), glm::vec3(k, k, -k));
             dr.bright = (ps.flags & SwvPF_IN_BUILDING) ? 0.5f : 1.0f;
+            dr.shield = (ps.flags & SwvPF_SHIELD) != 0;
             dr.nodes = glob_;
             if (wmodel != nullptr) {
                 dr.weapon = wmodel;
@@ -292,10 +379,22 @@ public:
         }
     }
 
-    /** Draws the posed people (inside Renderer::draw, map space). */
+    /** Draws the particle effects (after the opaque world). */
+    void draw_effects(const glm::mat4 &mvp_map, glm::vec3 eye_map, glm::vec3 clip_center, float clip_half,
+                      bool linear_out)
+    {
+        if (enabled)
+            fx_.draw(mvp_map, eye_map, clip_center, clip_half, linear_out);
+    }
+
+    /** Where the viewer is, in map units (shield rims face it). */
+    glm::vec3 eye_map{0.0f};
+
+    /** Draws the posed people and the props (inside Renderer::draw, map
+     * space). */
     void draw(const glm::mat4 &mvp_map, glm::vec3 clip_center, float clip_half, bool linear_out)
     {
-        if (draws_.empty())
+        if (draws_.empty() && prop_draws_.empty())
             return;
         if (prog_ == 0 && !init_gl())
             return;
@@ -316,7 +415,21 @@ public:
         glUniform3f(u_clip_center_, clip_center.x, clip_center.y, clip_center.z);
         glUniform1f(u_clip_half_, clip_half);
         glUniform1i(u_linear_, linear_out ? 1 : 0);
+        glUniform1f(u_inflate_, 0.0f);
+        glUniform1i(u_shield_, 0);
+        glUniform3f(u_eye_, eye_map.x, eye_map.y, eye_map.z);
+        glUniform1f(u_time_, (float)time_);
         glActiveTexture(GL_TEXTURE2);
+        glUniform1f(u_bright_, 1.0f);
+        glUniform1i(u_joint_base_, 0);
+        for (const PropDraw &pd : prop_draws_) {
+            const GltfModel &m = *pd.model;
+            for (size_t n = 0; n < m.data.nodes.size(); n++)
+                if (m.data.nodes[n].mesh >= 0)
+                    for (const GltfModel::Prim &p : m.meshes[m.data.nodes[n].mesh])
+                        if (!p.skinned)
+                            draw_prim(p, pd.xform * m.rest[n]);
+        }
         for (const Draw &dr : draws_) {
             glUniform1f(u_bright_, dr.bright);
             glUniform1i(u_joint_base_, dr.joint_base);
@@ -342,11 +455,324 @@ public:
                             draw_prim(p, dr.weapon_xform * wg[n]);
             }
         }
+        // shield shells: the body again, pushed out 6 cm, additive
+        bool any_shield = false;
+        for (const Draw &dr : draws_)
+            any_shield |= dr.shield;
+        if (any_shield) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ONE);
+            glDepthMask(GL_FALSE);
+            glUniform1i(u_shield_, 1);
+            glUniform1f(u_inflate_, 0.06f);
+            for (const Draw &dr : draws_) {
+                if (!dr.shield)
+                    continue;
+                glUniform1i(u_joint_base_, dr.joint_base);
+                const GltfModel &m = *dr.model;
+                for (size_t n = 0; n < m.data.nodes.size(); n++) {
+                    const GltfNode &nd = m.data.nodes[n];
+                    if (nd.mesh < 0 || nd.name.rfind("weapon_", 0) == 0)
+                        continue;
+                    for (const GltfModel::Prim &p : m.meshes[nd.mesh])
+                        if (p.skinned)
+                            draw_prim(p, dr.xform);
+                }
+            }
+            glUniform1i(u_shield_, 0);
+            glUniform1f(u_inflate_, 0.0f);
+            glDepthMask(GL_TRUE);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDisable(GL_BLEND);
+        }
         glBindVertexArray(0);
         glActiveTexture(GL_TEXTURE0);
     }
 
 private:
+    // ---- props: items, grenades, scenery (HANDOVER.md 4, 5, 6)
+    struct PropModel {
+        std::string key, path;
+        float size = 0;   // metres; 0: the model is in metres already
+        int size_axis = 0; // 0 height, 1 longest side
+    };
+    struct PropDraw {
+        const GltfModel *model = nullptr;
+        glm::mat4 xform{1.0f};
+    };
+
+    // scenery statics by their animation (statics.json, scale.json)
+    static const char *scenery_for(int anim)
+    {
+        static const std::pair<int, const char *> map[] = {
+            {1002, "tree_conifer"},   {1035, "tree_blossom"},   {1048, "tree_willow"},  {1036, "tree_round"},
+            {1086, "bush"},           {1050, "tree_planter"},   {1065, "tree_dead"},    {1063, "tree_dead_planter"},
+            {1010, "tree_red"},       {1039, "lamp_large"},     {1000, "lamp_post"},    {1051, "lamp_post"},
+            {1009, "lamp_post_red"},  {1033, "lamp_post_red"},  {1038, "lamp_post_globe"}, {1005, "neon_pole"},
+            {1001, "bin_grey"},       {1027, "bin_white"},      {1028, "barrel_yellow"}, {1026, "barrel_blue"},
+            {1055, "barrel_burning"}, {1053, "planter_hazard"}, {1030, "fountain_base"}, {1037, "bowl_chrome"},
+        };
+        for (const auto &e : map)
+            if (e.first == anim)
+                return e.second;
+        return nullptr;
+    }
+
+    // items by weapon type (HANDOVER.md 4)
+    static const char *item_for(int wtype)
+    {
+        static const std::pair<int, const char *> map[] = {
+            {0x06, "nuclgren"},  {0x0A, "crazygas"},  {0x0B, "kogas"},    {0x0C, "elemine"},
+            {0x0D, "explmine"},  {0x0E, "napalmmine"}, {0x10, "airstrike"}, {0x12, "razorwire"},
+            {0x17, "energyshld"}, {0x1A, "cerebusiff"}, {0x1B, "medi1"},   {0x1C, "medi2"},
+            {0x1D, "explwire"},  {0x1E, "cloneshld"},
+        };
+        for (const auto &e : map)
+            if (e.first == wtype)
+                return e.second;
+        return nullptr;
+    }
+
+    void load_scales()
+    {
+        if (scales_loaded_)
+            return;
+        scales_loaded_ = true;
+        if (!JsonParser::parse_file(dir_ + "/models/scale.json", scales_))
+            logf("upgraded look: cannot read models/scale.json");
+    }
+
+    // size of a raw model from scale.json: height, or its longest side
+    void raw_size(const std::string &rel, PropModel &pm) const
+    {
+        pm.size = 1.0f;
+        pm.size_axis = 1;
+        const Json *e = scales_.get(rel);
+        if (e == nullptr)
+            return;
+        if (e->has("height_m"))
+            pm.size = (float)e->n("height_m"), pm.size_axis = 0;
+        else if (e->has("length_m"))
+            pm.size = (float)e->n("length_m");
+        else if (e->has("width_m"))
+            pm.size = (float)e->n("width_m");
+    }
+
+    bool prop_model(const SwvProp &pr, PropModel &pm) const
+    {
+        const_cast<UpgradedLook *>(this)->load_scales();
+        std::string rel;
+        if (pr.kind == SwvEK_STATIC) {
+            const char *n = scenery_for(pr.anim);
+            if (n == nullptr)
+                return false;
+            rel = std::string("scenery/") + n + ".glb";
+        } else {
+            const WeaponDef *wd = weapon_def(pr.weapon);
+            if (wd != nullptr && pr.kind == SwvEK_DROPPED_ITEM) {
+                pm.key = std::string("weapon:") + wd->name;
+                pm.path = dir_ + "/models/weapons/held/" + wd->name + ".glb";
+                pm.size = 0;
+                return true;
+            }
+            const char *n = item_for(pr.weapon);
+            if (n == nullptr)
+                return false;
+            rel = std::string("items/") + n + ".glb";
+        }
+        pm.key = "models/" + rel;
+        pm.path = dir_ + "/" + pm.key;
+        raw_size(rel, pm);
+        return true;
+    }
+
+    // Model -> map units: scaled to its size, standing on p, turned by a
+    // yaw from its id (props have no facing in the game).
+    glm::mat4 prop_xform(const GltfModel &m, glm::vec3 p, float size, int axis, uint32_t id) const
+    {
+        glm::vec3 ext = m.bmax - m.bmin;
+        float k = 1.0f;
+        if (size > 0) {
+            float ref = axis == 0 ? ext.y : std::max(ext.x, std::max(ext.y, ext.z));
+            k = size / std::max(ref, 1e-4f);
+        }
+        float yaw = (float)((id * 2654435761u) >> 20) / 4096.0f * 6.2831853f;
+        glm::vec3 base((m.bmin.x + m.bmax.x) * 0.5f, m.bmin.y, (m.bmin.z + m.bmax.z) * 0.5f);
+        float s = mk_metre() * k;
+        return glm::translate(glm::mat4(1.0f), p) * glm::rotate(glm::mat4(1.0f), yaw, glm::vec3(0, 1, 0)) *
+               glm::scale(glm::mat4(1.0f), glm::vec3(s, s, -s)) * glm::translate(glm::mat4(1.0f), -base);
+    }
+
+    void place_props(const std::vector<People::PropPlace> &places, double now)
+    {
+        for (const People::PropPlace &pp : places) {
+            auto it = props_.find(pp.id);
+            if (it == props_.end())
+                continue;
+            PropModel pm;
+            if (!prop_model(it->second, pm))
+                continue;
+            auto mi = models_.find(pm.key);
+            if (mi == models_.end())
+                continue;
+            PropDraw pd;
+            pd.model = mi->second.get();
+            glm::vec3 p = pp.p;
+            float size = pm.size;
+            int axis = pm.size_axis;
+            uint32_t id = pp.id;
+            if (pm.size == 0) // a held weapon lying on the ground
+                size = 0;
+            pd.xform = prop_xform(*pd.model, p, size, axis, id);
+            if (it->second.kind == SwvEK_GRENADE && pm.size > 0) {
+                // grenades in flight tumble
+                float spin = (float)now * 9.0f;
+                pd.xform = pd.xform * glm::rotate(glm::mat4(1.0f), spin, glm::vec3(1, 0, 0));
+            }
+            prop_draws_.push_back(pd);
+        }
+    }
+
+    // ---- effects (HANDOVER.md 7.1, 10.5)
+    void start_effects(const WorldSnapshot &snap)
+    {
+        if (!fx_.loaded()) {
+            if (fx_tried_)
+                return;
+            fx_tried_ = true;
+            if (!fx_.load(dir_ + "/effects/effects.json"))
+                return;
+        }
+        auto gy = [&](float x, float z) { return ground ? ground(x, z) : 0.0f; };
+        for (const SwvFxEvent &ev : snap.fx_events) {
+            glm::vec3 p(ev.x, 0, ev.z);
+            float g = gy(ev.x, ev.z);
+            if (ev.y > g + 150) // on a roof or in the air
+                g = ev.y;
+            switch (ev.kind) {
+            case SwvFX_BANG:
+                fx_.start(ev.size >= 3 ? "explosion_large" : "explosion_small", p, g);
+                break;
+            case SwvFX_FIRE_START:
+                effect_handles_[0x10000000u | ev.id] = fx_.start("fire_ground", p, g);
+                break;
+            case SwvFX_FIRE_END: {
+                auto it = effect_handles_.find(0x10000000u | ev.id);
+                if (it != effect_handles_.end()) {
+                    fx_.stop(it->second);
+                    effect_handles_.erase(it);
+                }
+                break;
+            }
+            case SwvFX_SMOKE:
+                fx_.start("smoke_plume", p, g);
+                break;
+            case SwvFX_SCALE_EFFECT: {
+                const char *name = nullptr;
+                float scale = 1.75f; // impacts are tiny on a table (HANDOVER.md 7.1)
+                // the event gives StartFrame, the animation - 1
+                int anim = ev.anim + 1;
+                switch (anim) {
+                case 900: name = "explosion_small", scale = 1.0f; break;
+                case 907: name = "smoke_plume", scale = 1.0f; break;
+                case 908: name = "smoke_dark", scale = 1.0f; break;
+                case 920: name = "gas_cloud", scale = 1.0f; break;
+                case 1087: name = "impact_water"; break;
+                case 1091: name = "impact_sludge"; break;
+                case 1090: name = "impact_dust"; break;
+                case 1104: name = "sparkle"; break;
+                case 1101: case 1103: name = "smoke_dark", scale = 0.5f; break; // rocket smoke
+                default: break;
+                }
+                if (name == nullptr)
+                    break;
+                int h = fx_.start(name, p, g, scale);
+                // smoke puffs are short in the game: let them die out
+                if (anim == 907 || anim == 908 || anim == 1101 || anim == 1103)
+                    stop_later_.push_back({h, time_ + (anim > 1000 ? 0.6 : 2.5)});
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        for (auto it = stop_later_.begin(); it != stop_later_.end();) {
+            if (time_ >= it->second) {
+                fx_.stop(it->first);
+                it = stop_later_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        // barrels on fire (scenery S30) burn while they are there
+        std::set<uint32_t> barrels;
+        for (const auto &kv : props_)
+            if (kv.second.kind == SwvEK_STATIC && kv.second.anim == 1055) {
+                uint32_t key = 0x20000000u | (kv.first & 0xFFFFFF);
+                barrels.insert(key);
+                if (!effect_handles_.count(key))
+                    effect_handles_[key] = fx_.start("barrel_fire", glm::vec3(kv.second.x, 0, kv.second.z),
+                                                     gy(kv.second.x, kv.second.z));
+            }
+        // people on fire
+        for (const auto &kv : persons_) {
+            uint32_t key = 0x30000000u | kv.first;
+            bool burning = (kv.second.flags & SwvPF_BURNING) != 0 && kv.second.anim_mode != 18;
+            auto it = effect_handles_.find(key);
+            if (burning && it == effect_handles_.end())
+                effect_handles_[key] = fx_.start("burning_person", kv.second.last, gy(kv.second.last.x, kv.second.last.z));
+            else if (!burning && it != effect_handles_.end()) {
+                fx_.stop(it->second);
+                effect_handles_.erase(it);
+            }
+        }
+        for (auto it = effect_handles_.begin(); it != effect_handles_.end();) {
+            bool barrel = (it->first & 0xF0000000u) == 0x20000000u;
+            if ((barrel && !barrels.count(it->first)) || !fx_.alive(it->second)) {
+                fx_.stop(it->second);
+                it = effect_handles_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    // the sprite frames of the animations that particles replace
+    void collect_fx_frames(const WorldSnapshot &snap)
+    {
+        static const int anims[] = {900, 907, 908, 920, 1087, 1090, 1091, 1101, 1103, 1104};
+        fx_frames_.clear();
+        for (int a : anims) {
+            if (a >= (int)snap.nstart.size())
+                continue;
+            int f0 = snap.nstart[a], f = f0;
+            for (int guard = 0; f > 0 && f < (int)snap.frames.size() && guard < 128; guard++) {
+                fx_frames_.insert((uint16_t)f);
+                f = snap.frames[f].next;
+                if (f == f0)
+                    break;
+            }
+        }
+    }
+
+    // burning people's flames follow them
+    void follow_effects(const std::vector<People::ModelPlace> &places)
+    {
+        for (const People::ModelPlace &pl : places) {
+            auto it = effect_handles_.find(0x30000000u | pl.thing);
+            if (it != effect_handles_.end())
+                fx_.move(it->second, pl.p, ground ? ground(pl.p.x, pl.p.z) : pl.p.y);
+        }
+    }
+
+    void request_file(const std::string &key, const std::string &path)
+    {
+        if (requested_.count(key))
+            return;
+        requested_.insert(key);
+        loader_.request(key, path, true);
+    }
+
     struct CharType {
         int subtype;
         const char *file;
@@ -373,6 +799,7 @@ private:
         glm::mat4 xform{1.0f}, weapon_xform{1.0f};
         int joint_base = 0;
         float bright = 1.0f;
+        bool shield = false;
         std::vector<glm::mat4> nodes;
     };
 
@@ -698,6 +1125,10 @@ private:
         u_clip_half_ = glGetUniformLocation(prog_, "u_clip_half");
         u_linear_ = glGetUniformLocation(prog_, "u_linear_out");
         u_bright_ = glGetUniformLocation(prog_, "u_bright");
+        u_inflate_ = glGetUniformLocation(prog_, "u_inflate");
+        u_shield_ = glGetUniformLocation(prog_, "u_shield");
+        u_eye_ = glGetUniformLocation(prog_, "u_eye");
+        u_time_ = glGetUniformLocation(prog_, "u_time");
         glGenTextures(1, &joint_tex_);
         glBindTexture(GL_TEXTURE_2D, joint_tex_);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -724,11 +1155,20 @@ private:
     uint32_t turn_ = UINT32_MAX;
     double turn_time_ = 0, turn_dt_ = 0.05, last_prepare_ = 0;
     std::vector<Draw> draws_;
+    std::vector<PropDraw> prop_draws_;
+    std::unordered_map<uint32_t, SwvProp> props_;
+    Json scales_;
+    bool scales_loaded_ = false, fx_tried_ = false;
+    FxSystem fx_;
+    std::map<uint32_t, int> effect_handles_;
+    std::set<uint16_t> fx_frames_;
+    std::vector<std::pair<int, double>> stop_later_;
+    double time_ = 0;
     std::vector<glm::mat4> joints_, glob_, wglob_;
     GltfPose pose_a_, pose_b_;
     std::vector<float> joint_tex_data_;
     GLuint prog_ = 0, joint_tex_ = 0;
     GLint u_mvp_ = -1, u_model_ = -1, u_skinned_ = -1, u_joint_base_ = -1, u_joints_ = -1, u_tex_ = -1,
           u_textured_ = -1, u_light_ = -1, u_clip_center_ = -1, u_clip_half_ = -1, u_linear_ = -1,
-          u_bright_ = -1;
+          u_bright_ = -1, u_inflate_ = -1, u_shield_ = -1, u_eye_ = -1, u_time_ = -1;
 };

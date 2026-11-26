@@ -44,8 +44,18 @@ weapon, speed; table of the assets' `HANDOVER.md` 2.2) with crossfades;
 the weapon in hand comes from `models/weapons/held` on the right hand's
 socket of `agent_arsenal.glb`; on two-handed weapons, during `rifle_*`
 clips, a two-bone IK of the left arm puts the hand on the weapon's
-`lhand_` node, with that node's orientation (blended over 0.1 s). Not
-yet: items, scenery, effects.
+`lhand_` node, with that node's orientation (blended over 0.1 s).
+Items lying on the ground, grenades and mines, and scenery statics are
+their models too (`swview_props()`: dropped weapons are the held models,
+the others sized by `models/scale.json`, statics by their animation as in
+`statics.json`; S2/S4 ground dots stay sprites). Explosions, fires, smoke,
+gas and impacts are particle effects (`vr/viewer/fx.h`, from
+`effects/effects.json`, behaving as the assets' reference simulator
+`particles_sim.py`), started from `swview_fx_events()` (scale effects by
+their animation, `StartFrame + 1`), burning people (flag) and burning
+barrels (static S30); the sprites they replace are hidden. A shielded
+person gets a glowing shell (the body pushed out 6 cm, fresnel rim and
+bands, additive); a burnt one, an ash pile once the burning clip is over.
 
 Its VR HUD (`vr/viewer/hud_vr.h`) reads `swview_hud_info()` and
 `swview_persons_render()` every turn: a wrist panel (agents with health,
@@ -57,8 +67,9 @@ agent's target shrinking with its `weapon_timer`), M4 health (bar with a
 trail after a hit; agents always, others when hit or pointed at), M6
 persuaded (diamond, ring, tether to the persuader), M7 waypoint (the last
 walk order: rings and chevrons), M8 damage (numbers rising from who was
-hit) and M9 objective (a light column over each scanner signal). M5, the
-weapon charge ring, needs the charge state, which the export lacks.
+hit), M9 objective (a light column over each scanner signal) and M5
+charge (`swview_charges()`: a ring of 32 segments at the waist filling
+while a laser, electron mace, graviton gun or devastator charges).
 Markers are drawn twice: hidden by walls, then at 25 % over everything.
 
 ## The world block (`swview_update()`)
@@ -92,6 +103,14 @@ there) needs the state behind the sprites:
   turn: bangs (size from their smoke and shards: the game keeps no bang
   type), fires starting and going out, scale effects with their animation,
   smoke generators.
+
+Since version 3:
+
+- `swview_props()`: items lying on the ground, grenades and mines, scenery
+  statics, with the id of their `SwvEffect` in the block, their weapon type
+  (items, grenades) or animation (statics, `StartFrame + 1`).
+- `swview_charges()`: the player's agents charging a weapon, and how far
+  (0..15, as the game's `WeaponTimer` while `TngF_WepCharging`).
 
 ## The panels' data (`swview_hud_info()`)
 

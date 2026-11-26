@@ -98,15 +98,26 @@ public:
         glm::vec3 p;
         float phi;
     };
+    // An effect sprite drawn as a 3D model (item, grenade, static).
+    struct PropPlace {
+        uint32_t id;
+        glm::vec3 p;
+    };
 
     // eye: viewer position in map units, to face the sprites towards it.
     // People for which as_model is true get no sprite: their place goes to
-    // places, for the upgraded look.
+    // places, for the upgraded look. effect_mode tells for each effect
+    // sprite: 0 draw it, 1 not (the upgraded look has particles instead),
+    // 2 a model instead (its place goes to prop_places).
     void build(std::vector<GpuVert> &out, std::vector<GpuVert> &glow_out, double now,
                const WorldSnapshot &snap, glm::vec3 eye, Renderer &rend,
                const std::function<bool(uint16_t)> &as_model = nullptr,
-               std::vector<ModelPlace> *places = nullptr) const
+               std::vector<ModelPlace> *places = nullptr,
+               const std::function<int(const SwvEffect &)> &effect_mode = nullptr,
+               std::vector<PropPlace> *prop_places = nullptr) const
     {
+        if (prop_places)
+            prop_places->clear();
         out.clear();
         glow_out.clear();
         rend.instances.clear();
@@ -152,6 +163,13 @@ public:
         }
         for (const SwvEffect &e : snap.effects) {
             glm::vec3 p = glide(e.id, glm::vec3(e.x, e.y, e.z), a);
+            int mode = effect_mode ? effect_mode(e) : 0;
+            if (mode == 1)
+                continue;
+            if (mode == 2 && prop_places) {
+                prop_places->push_back({e.id, p});
+                continue;
+            }
             glm::vec2 fwd;
             view_angle(eye, p, fwd);
             add_frame(out, snap, e.frame, nullptr, p, fwd, e.scale / 256.0f,

@@ -290,10 +290,41 @@ public:
     std::vector<std::vector<Prim>> meshes;
     std::vector<GLuint> textures;
     std::vector<int> order; // nodes, parents first
+    std::vector<glm::mat4> rest; // world matrix of every node at rest
+    glm::vec3 bmin{0.0f}, bmax{0.0f}; // bounds of the meshes at rest
 
     /** Makes the GL objects (GL thread) and frees the CPU arrays. */
     void upload()
     {
+        // parents before children; the rest pose and the bounds
+        std::vector<int> depth(data.nodes.size(), 0);
+        for (size_t i = 0; i < data.nodes.size(); i++)
+            for (int p = data.nodes[i].parent; p >= 0; p = data.nodes[p].parent)
+                depth[i]++;
+        order.resize(data.nodes.size());
+        for (size_t i = 0; i < order.size(); i++)
+            order[i] = (int)i;
+        std::stable_sort(order.begin(), order.end(), [&](int a, int b) { return depth[a] < depth[b]; });
+        {
+            GltfPose p;
+            rest_pose(p);
+            globals(p, rest);
+        }
+        bool any = false;
+        for (size_t n = 0; n < data.nodes.size(); n++) {
+            int mi = data.nodes[n].mesh;
+            if (mi < 0 || mi >= (int)data.meshes.size() || data.nodes[n].name.rfind("weapon_", 0) == 0)
+                continue;
+            for (const GltfPrimCpu &c : data.meshes[mi]) {
+                glm::mat4 m = c.jnt.empty() ? rest[n] : glm::mat4(1.0f);
+                for (size_t k = 0; k + 2 < c.pos.size(); k += 3) {
+                    glm::vec3 v = glm::vec3(m * glm::vec4(c.pos[k], c.pos[k + 1], c.pos[k + 2], 1.0f));
+                    bmin = any ? glm::min(bmin, v) : v;
+                    bmax = any ? glm::max(bmax, v) : v;
+                    any = true;
+                }
+            }
+        }
         for (GltfImageCpu &im : data.images) {
             GLuint tx;
             glGenTextures(1, &tx);
@@ -348,15 +379,6 @@ public:
             node_index_[data.nodes[i].name] = (int)i;
         for (size_t i = 0; i < data.clips.size(); i++)
             clip_index_[data.clips[i].name] = (int)i;
-        // parents before children
-        std::vector<int> depth(data.nodes.size(), 0);
-        for (size_t i = 0; i < data.nodes.size(); i++)
-            for (int p = data.nodes[i].parent; p >= 0; p = data.nodes[p].parent)
-                depth[i]++;
-        order.resize(data.nodes.size());
-        for (size_t i = 0; i < order.size(); i++)
-            order[i] = (int)i;
-        std::stable_sort(order.begin(), order.end(), [&](int a, int b) { return depth[a] < depth[b]; });
     }
 
     int node(const std::string &name) const

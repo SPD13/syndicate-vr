@@ -5,8 +5,8 @@
 // are on a panel at the left wrist, the objective on a board at the
 // table's edge, and the rest is in the scene as markers (HANDOVER.md 7.2
 // of the assets repository, markers/markers.json): M1 selection, M2 hover,
-// M3 lock, M4 health, M6 persuaded, M7 waypoint, M8 damage, M9 objective
-// (M5, weapon charge, needs the charge state from the export). Markers animate on real time; sizes are in
+// M3 lock, M4 health, M5 charge, M6 persuaded, M7 waypoint, M8 damage,
+// M9 objective. Markers animate on real time; sizes are in
 // metres of a person's scale (kMetre map units) and keep a minimum angular
 // size on the table.
 #pragma once
@@ -27,6 +27,7 @@ static const float kNeutral[3] = {0.92f, 0.95f, 1.0f};
 static const float kHostile[3] = {1.0f, 0.18f, 0.15f};
 static const float kAcquiring[3] = {1.0f, 0.72f, 0.15f};
 static const float kPersuaded[3] = {0.85f, 0.3f, 1.0f};
+static const float kCharge[3] = {0.35f, 1.0f, 0.85f};
 static const float kHealthOk[3] = {0.3f, 1.0f, 0.35f};
 static const float kHealthMid[3] = {1.0f, 0.85f, 0.2f};
 static const float kHealthLow[3] = {1.0f, 0.2f, 0.15f};
@@ -395,6 +396,27 @@ public:
             if (locked)
                 mb.diamond(it->second + glm::vec3(0, 1.0f * kMetre, 0), 0.08f * kMetre, (float)t * 4.0f,
                            kHostile, 0.9f);
+        }
+
+        // M5: the charge of a weapon being charged: a ring of 32 segments
+        // at the waist filling clockwise, flashing when full
+        for (const SwvCharge &ch : snap.charges) {
+            auto it = pos.find(ch.thing);
+            if (it == pos.end() || ch.max == 0)
+                continue;
+            glm::vec3 c = it->second + glm::vec3(0, 1.0f * kMetre, 0);
+            float k = mb.keep_visible(c, 0.55f * kMetre, 0.0175f);
+            float r = 0.55f * kMetre * k, w = 0.06f * kMetre * k;
+            int lit = (int)std::lround(32.0f * ch.level / ch.max);
+            bool full = ch.level >= ch.max;
+            float flash = full ? (std::sin((float)t * 18.0f) > 0 ? 1.0f : 0.45f) : 0.9f;
+            const float seg = kTau / 32;
+            for (int sgi = 0; sgi < 32; sgi++) {
+                // clockwise seen from above: angles decrease in map space,
+                // whose z is mirrored on the table
+                float a0 = kTau / 4 + sgi * seg;
+                mb.arc(c, r, w, a0 + seg * 0.12f, a0 + seg * 0.88f, kCharge, sgi < lit ? flash : 0.18f, 2);
+            }
         }
 
         // M6: persuaded people: a diamond over them, a ring, and a tether
