@@ -210,6 +210,8 @@ public:
                            dim[3] = {0.55f, 0.6f, 0.65f}, cyan[3] = {0.3f, 0.95f, 1.0f},
                            energy[3] = {0.35f, 1.0f, 0.85f}, gold[3] = {1.0f, 0.8f, 0.25f},
                            red[3] = {1.0f, 0.3f, 0.25f}, bar_bg[3] = {0.1f, 0.12f, 0.15f};
+        // layers, front to back: bars, text, row highlights (1 mm behind the
+        // text, which would z-fight in one plane), the board (2 mm)
         glm::vec3 back = -glm::cross(panel.right, panel.up) * 0.002f;
         hud.rect(panel.tl + back, panel.right, panel.up, panel.w, panel.h, bg);
         auto row_tl = [&](int r) { return panel.tl - panel.up * (r * row_h); };
@@ -234,9 +236,9 @@ public:
                 continue;
             int r = 1 + i;
             if (i == out.selected_agent)
-                hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, sel);
+                hud.rect(row_tl(r) + back * 0.5f, panel.right, panel.up, panel.w, row_h, sel);
             if (out.on_wrist && out.hover_row == r)
-                hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, hov);
+                hud.rect(row_tl(r) + back * 0.5f, panel.right, panel.up, panel.w, row_h, hov);
             bool dead = (ag.flags & SwvTF_DEAD) != 0;
             std::string wname = ag.current_weapon < SWV_WEAPON_TYPES ? weapon_name(ag.current_weapon) : "";
             char buf[64];
@@ -260,9 +262,9 @@ public:
             int r = 6 + (int)k;
             int w = out.weapon_rows[k];
             if (out.selected_agent >= 0 && hd.agents[out.selected_agent].current_weapon == w)
-                hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, sel);
+                hud.rect(row_tl(r) + back * 0.5f, panel.right, panel.up, panel.w, row_h, sel);
             if (out.on_wrist && out.hover_row == r)
-                hud.rect(row_tl(r), panel.right, panel.up, panel.w, row_h, hov);
+                hud.rect(row_tl(r) + back * 0.5f, panel.right, panel.up, panel.w, row_h, hov);
             row_text(r, 0, weapon_name(w), white);
         }
 
