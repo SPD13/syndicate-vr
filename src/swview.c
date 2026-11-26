@@ -1886,6 +1886,100 @@ int32_t swview_load_assets(void)
     return missing;
 }
 
+int32_t swview_load_font(int32_t style, int32_t detail, struct SwvGlyph *p_glyphs, uint32_t max,
+    uint8_t *p_page)
+{
+    char locstr[64];
+    struct TbSprite *p_tab, *p_tab_end;
+    ubyte *p_dat;
+    s32 len_tab, len_dat;
+    int32_t n, i, px, py, shelf_h;
+
+    sprintf(locstr, "data/fontc%d-%d.tab", (int)style, (int)detail);
+    len_tab = LbFileLength(locstr);
+    sprintf(locstr, "data/fontc%d-%d.dat", (int)style, (int)detail);
+    len_dat = LbFileLength(locstr);
+    if ((len_tab <= 0) || (len_dat <= 0))
+        return -1;
+    p_dat = LbMemoryAlloc(len_dat + 512);
+    p_tab = LbMemoryAlloc(LB_SPRITE_TAB_MEM_SIZE(len_tab));
+    if ((p_dat == NULL) || (p_tab == NULL) || (LbFileLoadAt(locstr, p_dat) == -1)) {
+        n = -1;
+        goto done;
+    }
+    sprintf(locstr, "data/fontc%d-%d.tab", (int)style, (int)detail);
+    if (LbFileLoadAt(locstr, p_tab) == -1) {
+        n = -1;
+        goto done;
+    }
+    len_tab = LbSpriteTabExpand(p_tab, len_tab);
+    p_tab_end = (struct TbSprite *)((ubyte *)p_tab + len_tab);
+    LbSpriteSetup(p_tab, p_tab_end, p_dat);
+
+    memset(p_page, 0, 2 * SWV_FONT_PAGE_DIM * SWV_FONT_PAGE_DIM);
+    n = (int32_t)(p_tab_end - p_tab);
+    if (n > (int32_t)max)
+        n = (int32_t)max;
+    // shelf packing, with a texel between characters
+    px = py = shelf_h = 0;
+    for (i = 0; i < n; i++)
+    {
+        const struct TbSprite *p_spr = &p_tab[i];
+        struct SwvGlyph *p_gl = &p_glyphs[i];
+        const sbyte *p_src;
+        int x, y;
+
+        memset(p_gl, 0, sizeof(*p_gl));
+        p_gl->w = p_spr->SWidth;
+        p_gl->h = p_spr->SHeight;
+        if ((p_spr->SWidth == 0) || (p_spr->SHeight == 0) || (p_spr->Data == NULL))
+            continue;
+        if (px + p_spr->SWidth + 1 > SWV_FONT_PAGE_DIM) {
+            px = 0;
+            py += shelf_h + 1;
+            shelf_h = 0;
+        }
+        if (py + p_spr->SHeight > SWV_FONT_PAGE_DIM)
+            break;
+        p_gl->x = px;
+        p_gl->y = py;
+        // the RLE sprite format, as swv_decode_sprite(), one byte texels
+        p_src = (const sbyte *)p_spr->Data;
+        for (y = 0; y < p_spr->SHeight; y++)
+        {
+            ubyte *p_row = p_page + 2 * (SWV_FONT_PAGE_DIM * (py + y) + px);
+            x = 0;
+            while (1)
+            {
+                sbyte c = *p_src++;
+                if (c == 0)
+                    break;
+                if (c < 0) {
+                    x -= c;
+                    continue;
+                }
+                while (c-- > 0) {
+                    ubyte col = (ubyte)*p_src++;
+                    if (x < p_spr->SWidth) {
+                        p_row[2 * x + 0] = col;
+                        p_row[2 * x + 1] = 255;
+                    }
+                    x++;
+                }
+            }
+        }
+        px += p_spr->SWidth + 1;
+        if (p_spr->SHeight > shelf_h)
+            shelf_h = p_spr->SHeight;
+    }
+done:
+    if (p_dat != NULL)
+        LbMemoryFree(p_dat);
+    if (p_tab != NULL)
+        LbMemoryFree(p_tab);
+    return n;
+}
+
 void swview_free_assets(void)
 {
     int page;

@@ -3,6 +3,7 @@
 
 #include "world_source.h"
 #include "fog.h"
+#include "text.h"
 
 /******************************************************************************/
 // Rendering
@@ -14,7 +15,8 @@ struct GpuVert {
     float rgb[3];
     // 0 flat colour, 1 texture page (tinted by rgb), 2 sprite page (tinted
     // by rgb), 3 unlit colour, 4 shadow (translucent black), 5 soft glow,
-    // 6 marker (unlit colour, alpha in uv[0])
+    // 6 marker (unlit colour, alpha in uv[0]), 7 + 0.9 * alpha a character
+    // of the game font, 8 + 0.9 * alpha of the vector font (text.h)
     float textured;
     float fx; // SwvVertFlags bits, for water, glass and shine
 };
@@ -99,6 +101,8 @@ uniform vec3 u_light_dir;
 uniform mat3 u_normal_mat;
 uniform float u_tint;
 uniform float u_marker_alpha;
+uniform sampler2D u_font_game;
+uniform sampler2D u_font_vec;
 out vec4 o_col;
 void main() {
     if (u_clip != 0) {
@@ -107,6 +111,28 @@ void main() {
             discard;
     }
     vec3 col = v_rgb;
+    if (v_textured > 6.95) {
+        // text (text.h): the game font, its pixels shaded by their colour,
+        // or the vector font's distance field, smoothed over a texel
+        bool vec = v_textured > 7.95;
+        float a = clamp((v_textured - (vec ? 8.0 : 7.0)) / 0.9, 0.0, 1.0);
+        float cov;
+        if (vec) {
+            float d = texture(u_font_vec, v_uv).r;
+            float w = max(fwidth(d) * 0.75, 0.02);
+            cov = smoothstep(0.5 - w, 0.5 + w, d);
+        } else {
+            vec2 t = texture(u_font_game, v_uv).rg;
+            cov = t.g;
+            col *= 0.45 + 0.55 * t.r;
+        }
+        if (cov < 0.02)
+            discard;
+        if (u_linear_out != 0)
+            col = pow(col, vec3(2.2));
+        o_col = vec4(col, cov * a * u_marker_alpha);
+        return;
+    }
     if (v_textured > 5.5) {
         // VR markers: emissive colour, partly see-through
         if (u_linear_out != 0)
@@ -353,6 +379,7 @@ public:
         glUniform1f(u_tint_, 1.0f);
         glUniform1f(u_turn_, turn);
         g_fog.bind(prog_);
+        g_text.bind(prog_);
         GLint u_terrain = glGetUniformLocation(prog_, "u_terrain_verts");
         glUniform1i(u_terrain, 0);
 
@@ -420,9 +447,12 @@ public:
         draw_mesh(marker_mesh_);
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
-        glDisable(GL_BLEND);
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(vp));
         glUniform1i(u_clip_, 0);
+        // panels: opaque, but the edges of the text's letters blend
+        glUniform1f(u_marker_alpha_, 1.0f);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         draw_mesh(hud_mesh_);
         glDisable(GL_BLEND);
     }

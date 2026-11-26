@@ -130,6 +130,15 @@ Since version 4:
   With `view_size` it gives the most ground the desktop game can show; the
   VR viewer outlines that area around the game camera.
 
+Since version 5:
+
+- `swview_load_font()`: a game font (`data/fontc<style>-<detail>`; the
+  in-mission panels use style 0, detail 1 at high resolutions) drawn into
+  a page of 2-byte texels (palette index, coverage), with the place and
+  size of each character (`SwvGlyph`, entry i for code 31 + i, as the
+  game's `LbFontCharSprite()`). The VR viewer's HUD text uses it in the
+  classic look (`vr/viewer/text.h`).
+
 ## The panels' data (`swview_hud_info()`)
 
 The data of the game's panels without their layout, so each front end

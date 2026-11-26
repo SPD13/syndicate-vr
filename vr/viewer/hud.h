@@ -28,10 +28,30 @@ public:
         quad(tl, tl + right * w, tl + right * w - up * h, tl - up * h, rgb);
     }
 
-    // Text from its top left corner; px is the size of a font pixel.
+    // Text from its top left corner; px is the size of a font pixel (of
+    // the 6x11 cells of text.h, whichever font draws it).
     void text(glm::vec3 tl, glm::vec3 right, glm::vec3 up, float px, const std::string &s,
               const float *rgb, size_t max_chars = 1000)
     {
+        int kind = g_text.kind();
+        if (kind != TFK_PIXEL) {
+            g_text.layout(s, max_chars, [&](float x, float y, float w, float h, float u0, float v0, float u1,
+                                             float v1) {
+                glm::vec3 a = tl + right * (px * x) - up * (px * y);
+                glm::vec3 q[4] = {a, a + right * (px * w), a + right * (px * w) - up * (px * h), a - up * (px * h)};
+                float uv[4][2] = {{u0, v0}, {u1, v0}, {u1, v1}, {u0, v1}};
+                static const int tri[6] = {0, 1, 2, 0, 2, 3};
+                for (int k : tri) {
+                    GpuVert g{};
+                    g.pos[0] = q[k].x; g.pos[1] = q[k].y; g.pos[2] = q[k].z;
+                    g.uv[0] = uv[k][0]; g.uv[1] = uv[k][1];
+                    g.rgb[0] = rgb[0]; g.rgb[1] = rgb[1]; g.rgb[2] = rgb[2];
+                    g.textured = kind + 0.9f;
+                    verts.push_back(g);
+                }
+            });
+            return;
+        }
         for (size_t i = 0; i < s.size() && i < max_chars; i++) {
             int ch = (unsigned char)s[i];
             if (ch < 32 || ch > 126)

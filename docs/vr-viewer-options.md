@@ -43,6 +43,7 @@ Units used below:
 | Option | Default | Impact |
 |---|---|---|
 | `--look classic\|upgraded` | `classic` | Starting look. `classic`: the game's own sprites for people, items and effects. `upgraded`: the 3D models, animations and particle effects of the assets repository; anything without a model is still drawn as its sprite. Switch at runtime with L (desktop) or B on the right controller. |
+| (HUD font) | follows the look | The text of the wrist panel, objective board and world markers. Classic look: the game's own panel font (`data/fontc0-1`), its pixels shaded as in the game. Upgraded look: Share Tech Mono (`vr/viewer/fonts`, SIL Open Font License), drawn from a signed distance field so it stays sharp at any distance and angle. If neither can be loaded, a small built-in bitmap font. |
 | `--assets DIR` | `$SWARS_ASSETS3D`, else `assets3d` next to the repository | Assets repository of the upgraded look (`manifest.json`, `models/`, `effects/`). It is only read. Without it, the upgraded look draws nothing different. |
 
 ## World shown

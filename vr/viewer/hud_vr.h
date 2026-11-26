@@ -119,6 +119,28 @@ public:
     // Text centred on x = 0, its top at y; px is the size of a font pixel.
     void text(const Bill &b, float y, float px, const std::string &s, const float *rgb, float a)
     {
+        int kind = g_text.kind();
+        if (kind != TFK_PIXEL) {
+            float x0 = -g_text.width(s) * px * 0.5f;
+            glm::vec3 base = b.c + b.front * 0.5f;
+            g_text.layout(s, 1000, [&](float x, float gy, float w, float h, float u0, float v0, float u1,
+                                       float v1) {
+                glm::vec3 o = base + b.right * (x0 + px * x) + b.up * (y - px * gy);
+                glm::vec3 q[4] = {o, o + b.right * (px * w), o + b.right * (px * w) - b.up * (px * h),
+                                  o - b.up * (px * h)};
+                float uv[4][2] = {{u0, v0}, {u1, v0}, {u1, v1}, {u0, v1}};
+                static const int tri[6] = {0, 1, 2, 0, 2, 3};
+                for (int k : tri) {
+                    GpuVert g{};
+                    g.pos[0] = q[k].x; g.pos[1] = q[k].y; g.pos[2] = q[k].z;
+                    g.uv[0] = uv[k][0]; g.uv[1] = uv[k][1];
+                    g.rgb[0] = rgb[0]; g.rgb[1] = rgb[1]; g.rgb[2] = rgb[2];
+                    g.textured = kind + 0.9f * std::clamp(a, 0.0f, 1.0f);
+                    verts.push_back(g);
+                }
+            });
+            return;
+        }
         float x0 = -(float)s.size() * 6 * px * 0.5f;
         for (size_t i = 0; i < s.size(); i++) {
             int ch = (unsigned char)s[i];

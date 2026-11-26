@@ -32,6 +32,9 @@ g++ -std=c++17 -O2 -g -Wall -Wno-unused-function -mconsole \
     -Wl,--start-group "$GAME/src/libswarsview.a" "$GAME/src/libswarscore.a" "$GAME/src/libswarsnull.a" \
     "$GAME/lib/libswworld.a" "$GAME/lib/libbullfrog.a" "$GAME/lib/libbfsound.a" -Wl,--end-group \
     -lmingw32 -lSDL2main -lSDL2 -lglew32 -lopengl32 -lopenxr_loader -lopenal -lvorbisfile -lpng16
+# the upgraded look's font (text.h), next to the program
+mkdir -p "$OUT/fonts"
+cp -u "$HERE/fonts/ShareTechMono-Regular.ttf" "$HERE/fonts/OFL.txt" "$OUT/fonts/"
 # Bundle runtime DLLs
 for dll in $(ldd "$OUT/syndwars-vr.exe" | awk '/mingw64/ {print $3}'); do
     cp -u "$dll" "$OUT/"

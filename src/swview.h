@@ -42,7 +42,7 @@ extern "C" {
 #endif
 /******************************************************************************/
 /** Version of this interface; grows when something is added. */
-#define SWVIEW_API_VERSION 4
+#define SWVIEW_API_VERSION 5
 
 #pragma pack(1)
 
@@ -402,6 +402,17 @@ struct SwvProp {
                               statics.json and scale.json of the assets) */
 };
 
+/** Where a character of a game font lies in the page of
+ * swview_load_font(), in texels; w is also how far the text advances. */
+struct SwvGlyph {
+    uint16_t x, y;
+    uint8_t w, h;        /**< 0 for codes without a character */
+    uint8_t pad[2];
+};
+
+/** Width and height of the page swview_load_font() draws into. */
+#define SWV_FONT_PAGE_DIM 512
+
 /** The charge of a weapon being charged (laser, electron mace, graviton
  * gun, devastator): the long progress bar of the original. */
 struct SwvCharge {
@@ -420,6 +431,18 @@ struct SwvCharge {
  */
 int32_t swview_load_assets(void);
 void swview_free_assets(void);
+
+/** Loads the game font data/fontc<style>-<detail> (the in-mission panels
+ * use style 0: detail 0 for low resolutions, 1 for high) and draws its
+ * characters into p_page: SWV_FONT_PAGE_DIM squared
+ * texels of 2 bytes, a palette index and 255 where the character has a
+ * pixel (0, 0 elsewhere). Fills p_glyphs (max entries): entry i is the
+ * character of code 31 + i, as the game's LbFontCharSprite() takes them.
+ * Reads the data folder only, not the game. Returns the count of glyphs,
+ * or -1 when the font could not be loaded. Since version 5.
+ */
+int32_t swview_load_font(int32_t style, int32_t detail, struct SwvGlyph *p_glyphs, uint32_t max,
+    uint8_t *p_page);
 
 /** Fills the state of every person, up to max; returns the count. */
 uint32_t swview_persons_render(struct SwvPersonRender *p_list, uint32_t max);

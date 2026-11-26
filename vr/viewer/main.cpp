@@ -272,8 +272,16 @@ int main(int argc, char **argv)
     std::vector<People::ModelPlace> model_places;
     std::vector<People::PropPlace> prop_places;
     double over_at = -1;
+    // the HUD's fonts (text.h): the vector font next to the program, read
+    // before the game changes folder; the game's from its data folder
+    {
+        char *base = SDL_GetBasePath();
+        g_text.load_vector(std::string(base ? base : "./") + "fonts/ShareTechMono-Regular.ttf");
+        SDL_free(base);
+    }
     if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev))
         return 1;
+    g_text.load_game();
     if (dump_file != nullptr)
         core.dump_at(dump_turn, dump_file);
     while (!quit) {
@@ -365,6 +373,7 @@ int main(int argc, char **argv)
                 quit = true;
         }
         if (core.poll(snap, t)) {
+            g_text.set_palette(snap.palette);
             rend.upload_world(snap);
             people.update(snap, t);
             if (snap.static_changed)
@@ -389,6 +398,8 @@ int main(int argc, char **argv)
         glm::mat4 map_to_world = tv.map_model(), world_to_map = glm::inverse(map_to_world);
         glm::vec3 eye_map = glm::vec3(world_to_map * glm::vec4(eye_world, 1.0f));
         look.update(snap, t);
+        // the HUD's text follows the look: the game's font or the vector one
+        g_text.want = look.enabled ? TFK_VECTOR : TFK_GAME;
         // the fog of war: where the agents are now, what they have seen
         people.list(t, people_now);
         {

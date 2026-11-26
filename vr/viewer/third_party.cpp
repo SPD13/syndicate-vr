@@ -7,3 +7,6 @@
 #define STBI_ONLY_JPEG
 #define STBI_ONLY_PNG
 #include "third_party/stb_image.h"
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "third_party/stb_truetype.h"
