@@ -6012,10 +6012,15 @@ void remove_sthing(short tngno)
         sthings[link_parent].LinkChild = link_child;
 
     empty_head = sthings_empty_head;
-    // TODO the asm reads the upper 16 bits of a 32-bit load from `sthings_used`,
-    // ie. the short placed right after it in memory; originally that was most
-    // likely the previous `sthings_empty_head`. Replicated exactly.
-    nxt_empty = *(((short *)&sthings_used) + 1);
+    // The asm reads the upper 16 bits of a 32-bit load from `sthings_used`,
+    // ie. the short placed right after it in memory. Our builds, the asm
+    // reference included, keep these variables in C, where gcc places
+    // `sthings_used_head` there (declaration order): that is what every
+    // trace has, so it is read by name, the same for every compiler (the
+    // wasm build had a 0 there, which wrote into things[0]).
+    // TODO the DOS game had `sthings_empty_head` there (swars.sx, 0x19EC82),
+    // the old empty head: reading that would change the traces.
+    nxt_empty = sthings_used_head;
     p_sthing->LinkParent = 0;
     p_sthing->LinkChild = empty_head;
     sthings_empty_head = tngno;
