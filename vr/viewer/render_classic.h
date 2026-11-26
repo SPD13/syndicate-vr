@@ -356,6 +356,12 @@ public:
             glBindVertexArray(in.vao);
             glDrawArrays(GL_TRIANGLES, 0, in.count);
         }
+        // 3D models of the upgraded look, with their own program
+        if (draw_models) {
+            draw_models(mvp, clip_center, clip_half, linear_out);
+            glUseProgram(prog_);
+            glActiveTexture(GL_TEXTURE0);
+        }
         glUniformMatrix4fv(u_inst_, 1, GL_FALSE, glm::value_ptr(ident));
         glUniform1f(u_tint_, 1.0f);
         // people mesh holds translucent shadows, drawn first within it
@@ -432,6 +438,9 @@ public:
         float tint;
     };
     std::vector<Instance> instances;
+    // draws other models in map space (mvp: map units -> clip)
+    std::function<void(const glm::mat4 &mvp, glm::vec3 clip_center, float clip_half, bool linear_out)>
+        draw_models;
 
 private:
 

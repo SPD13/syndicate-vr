@@ -23,8 +23,12 @@ for lib in src/libswarscore.a src/libswarsview.a src/libswarsnull.a lib/libswwor
     fi
 done
 mkdir -p "$OUT"
+# the single-header libraries change never: compile them once
+if [ ! -f "$OUT/third_party.o" ] || [ "$HERE/third_party.cpp" -nt "$OUT/third_party.o" ]; then
+    g++ -std=c++17 -O2 -c -o "$OUT/third_party.o" "$HERE/third_party.cpp"
+fi
 g++ -std=c++17 -O2 -g -Wall -Wno-unused-function -mconsole \
-    -I"$REPO/src" -o "$OUT/syndwars-vr.exe" "$HERE/main.cpp" \
+    -I"$REPO/src" -o "$OUT/syndwars-vr.exe" "$HERE/main.cpp" "$OUT/third_party.o" \
     -Wl,--start-group "$GAME/src/libswarsview.a" "$GAME/src/libswarscore.a" "$GAME/src/libswarsnull.a" \
     "$GAME/lib/libswworld.a" "$GAME/lib/libbullfrog.a" "$GAME/lib/libbfsound.a" -Wl,--end-group \
     -lmingw32 -lSDL2main -lSDL2 -lglew32 -lopengl32 -lopenxr_loader -lopenal -lvorbisfile -lpng16

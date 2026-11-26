@@ -92,13 +92,28 @@ public:
         }
     }
 
-    // eye: viewer position in map units, to face the sprites towards it
+    // A person drawn as a 3D model: where, and its facing (radians).
+    struct ModelPlace {
+        uint16_t thing;
+        glm::vec3 p;
+        float phi;
+    };
+
+    // eye: viewer position in map units, to face the sprites towards it.
+    // People for which as_model is true get no sprite: their place goes to
+    // places, for the upgraded look.
     void build(std::vector<GpuVert> &out, std::vector<GpuVert> &glow_out, double now,
-               const WorldSnapshot &snap, glm::vec3 eye, Renderer &rend) const
+               const WorldSnapshot &snap, glm::vec3 eye, Renderer &rend,
+               const std::function<bool(uint16_t)> &as_model = nullptr,
+               std::vector<ModelPlace> *places = nullptr) const
     {
         out.clear();
         glow_out.clear();
         rend.instances.clear();
+        if (places)
+            places->clear();
+        float dt = (float)std::clamp(now - last_build_, 0.0, 0.1);
+        last_build_ = now;
         float a = (float)std::clamp((now - turn_time_) / std::max(turn_dt_, 0.01), 0.0, 1.0);
         // shadows under vehicles and people, before anything they could cover
         for (const auto &kv : cur_shadows_) {
@@ -127,6 +142,10 @@ public:
             if (t.flags & SwvTF_HIDDEN)
                 continue;
             glm::vec3 p = position(kv.first, t, a);
+            if (places && as_model && as_model(kv.first)) {
+                places->push_back({kv.first, p, facing(kv.first, t, t.angle * 0.78539816f, dt)});
+                continue;
+            }
             float top = 0;
             if (!add_sprite(out, snap, t, p, eye, top))
                 add_figure(out, t, p);
@@ -504,6 +523,7 @@ private:
 
     std::unordered_map<uint16_t, SwvThing> cur_, prev_;
     mutable std::unordered_map<uint16_t, float> facing_;
+    mutable double last_build_ = 0;
     std::vector<SwvVert> cur_dyn_, prev_dyn_;
     std::unordered_map<uint32_t, SwvDynGroup> cur_groups_, prev_groups_;
     std::unordered_map<uint32_t, glm::vec3> cur_pos_, prev_pos_;

@@ -16,12 +16,15 @@
 //                 left stick pan, right stick zoom (Y) / rotate (X),
 //                 A toggles following the game camera,
 //                 left stick click recentres the table in front of you.
-// Options: --desktop, --click X Y SECONDS BUTTON (simulated click),
+// Options: --desktop, --look classic|upgraded (switch with L, or B on the
+//          right controller), --assets DIR (the assets repository, default
+//          $SWARS_ASSETS3D or assets3d next to the repository),
+//          --click X Y SECONDS BUTTON (simulated click), --key KEY SECONDS,
 //          --zoom HALF_MAP, --center X Z, --orbit YAW PITCH DIST,
 //          --screenshot FILE SECONDS, --dump-block TURN FILE (the world block of that turn), --mission C,M, --data DIR, --turn-ms MS.
 // Controls (desktop): click as the right trigger, right click as the left
 //                 trigger, [ ] weapons, drag mouse to orbit, wheel to change distance,
-//                 arrows pan, +/- zoom, F follow, Q/E rotate the table,
+//                 arrows pan, +/- zoom, F follow, Q/E rotate the table, L look,
 //                 Esc quits, Enter confirms the end of a decided mission.
 //
 // Modules (headers, one translation unit): common.h, world_source.h (the
@@ -37,6 +40,7 @@
 #include "people.h"
 #include "table_view.h"
 #include "hud_vr.h"
+#include "look_upgraded.h"
 #include "xr.h"
 
 /******************************************************************************/
@@ -82,9 +86,18 @@ int main(int argc, char **argv)
         bool done;
     };
     std::vector<SimClick> sim_clicks;
+    // simulated key presses: --key KEY SECONDS (KEY as SDL names it: l, ], ...)
+    struct SimKey {
+        SDL_Keycode key;
+        double at;
+        bool done;
+    };
+    std::vector<SimKey> sim_keys;
     // the mission the game core plays: --mission C,M
     unsigned campaign = 0, mission = 1;
     const char *data_dir = getenv("SWARS_GAMEDATA");
+    bool upgraded = false;
+    std::string assets_dir = getenv("SWARS_ASSETS3D") ? getenv("SWARS_ASSETS3D") : "";
     double turn_ms = 50.0;
     uint32_t dump_turn = 0;
     const char *dump_file = nullptr;
@@ -96,6 +109,10 @@ int main(int argc, char **argv)
             }
         } else if (!strcmp(argv[i], "--data") && i + 1 < argc) {
             data_dir = argv[++i];
+        } else if (!strcmp(argv[i], "--look") && i + 1 < argc) {
+            upgraded = !strcmp(argv[++i], "upgraded");
+        } else if (!strcmp(argv[i], "--assets") && i + 1 < argc) {
+            assets_dir = argv[++i];
         } else if (!strcmp(argv[i], "--dump-block") && i + 2 < argc) {
             dump_turn = (uint32_t)strtoul(argv[++i], nullptr, 0);
             dump_file = argv[++i];
@@ -111,6 +128,9 @@ int main(int argc, char **argv)
             c.button = atoi(argv[++i]);
             c.done = false;
             sim_clicks.push_back(c);
+        } else if (!strcmp(argv[i], "--key") && i + 2 < argc) {
+            SDL_Keycode k = SDL_GetKeyFromName(argv[++i]);
+            sim_keys.push_back({k, atof(argv[++i]), false});
         }
         else if (!strcmp(argv[i], "--screenshot") && i + 2 < argc) {
             screenshot = argv[++i];
@@ -191,6 +211,25 @@ int main(int argc, char **argv)
     double t_prev = now_seconds(), t_start = t_prev;
     CoreWorld core;
     VrHud vrhud;
+    UpgradedLook look;
+    {
+        // the assets folder, made absolute before the game changes folder
+        if (assets_dir.empty()) {
+            char *base = SDL_GetBasePath(); // build/vr-viewer/
+            assets_dir = std::string(base ? base : "./") + "../../../assets3d";
+            SDL_free(base);
+        }
+        char full[MAX_PATH];
+        if (GetFullPathNameA(assets_dir.c_str(), MAX_PATH, full, nullptr) > 0)
+            assets_dir = full;
+        look.set_assets(assets_dir);
+        look.enabled = upgraded;
+        logf("look: %s (assets %s)", upgraded ? "upgraded" : "classic", assets_dir.c_str());
+    }
+    rend.draw_models = [&](const glm::mat4 &mvp, glm::vec3 cc, float ch, bool lin) {
+        look.draw(mvp, cc, ch, lin);
+    };
+    std::vector<People::ModelPlace> model_places;
     double over_at = -1;
     if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev))
         return 1;
@@ -202,6 +241,15 @@ int main(int argc, char **argv)
         t_prev = t;
 
         SDL_Event ev;
+        for (SimKey &k : sim_keys)
+            if (!k.done && t - t_start >= k.at) {
+                k.done = true;
+                SDL_Event e{};
+                e.type = SDL_KEYDOWN;
+                e.key.keysym.sym = k.key;
+                SDL_PushEvent(&e);
+                logf("simulated key %s", SDL_GetKeyName(k.key));
+            }
         while (SDL_PollEvent(&ev)) {
             if (ev.type == SDL_QUIT)
                 quit = true;
@@ -233,6 +281,10 @@ int main(int argc, char **argv)
                 case SDLK_ESCAPE: quit = true; break;
                 case SDLK_RETURN: core.conclude(); break;
                 case SDLK_f: tv.follow = !tv.follow; break;
+                case SDLK_l:
+                    look.enabled = !look.enabled;
+                    logf("look: %s", look.enabled ? "upgraded" : "classic");
+                    break;
                 case SDLK_LEFTBRACKET: key_wep_prev = true; break;
                 case SDLK_RIGHTBRACKET: key_wep_next = true; break;
                 case SDLK_EQUALS: case SDLK_KP_PLUS: tv.zoom(0.8f); break;
@@ -284,7 +336,10 @@ int main(int argc, char **argv)
         }
         glm::mat4 map_to_world = tv.map_model(), world_to_map = glm::inverse(map_to_world);
         glm::vec3 eye_map = glm::vec3(world_to_map * glm::vec4(eye_world, 1.0f));
-        people.build(people_verts, glow_verts, t, snap, eye_map, rend);
+        look.update(snap, t);
+        people.build(people_verts, glow_verts, t, snap, eye_map, rend,
+                     [&](uint16_t thing) { return look.draws(thing); }, &model_places);
+        look.prepare(t, model_places);
 
         // ---- playing from the table: pointers, panels, commands
         HudBuilder hud;
@@ -491,6 +546,10 @@ int main(int argc, char **argv)
                 tv.zoom(std::pow(0.4f, in.zoom.y * dt));
             if (std::fabs(in.zoom.x) > 0.2f)
                 tv.yaw -= in.zoom.x * dt * 1.5f;
+            if (in.look_pressed) {
+                look.enabled = !look.enabled;
+                logf("look: %s", look.enabled ? "upgraded" : "classic");
+            }
             if (in.follow_pressed)
                 tv.follow = !tv.follow;
             if (in.recenter_pressed || xr.take_just_focused())

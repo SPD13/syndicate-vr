@@ -32,6 +32,19 @@ default `$SWARS_GAMEDATA`.
 `swcore_coreonly --view --view-dump TURN DIR -m C,M` (0,1 turn 200,
 1,85 and 0,101 turn 600: identical).
 
+Two looks, switched at any time with L (or B on the right controller),
+or chosen with `--look classic|upgraded`: the classic one draws people
+with the game's sprites; the upgraded one (`vr/viewer/look_upgraded.h`,
+`gltf_model.h`) with the 3D models of the assets repository (`--assets
+DIR`, default `$SWARS_ASSETS3D` or `assets3d` next to the repository,
+only read). Models load on a worker thread when their person type first
+appears; until then, and for types without a model, people stay sprites.
+Each person's clip follows `swview_persons_render()` (`anim_mode`,
+weapon, speed; table of the assets' `HANDOVER.md` 2.2) with crossfades;
+the weapon in hand comes from `models/weapons/held` on the right hand's
+socket of `agent_arsenal.glb`. Not yet: left-hand IK on two-handed
+weapons, items, scenery, effects.
+
 Its VR HUD (`vr/viewer/hud_vr.h`) reads `swview_hud_info()` and
 `swview_persons_render()` every turn: a wrist panel (agents with health,
 energy and shield, the selected agent's weapons, the mission's outcome),
