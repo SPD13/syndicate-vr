@@ -777,7 +777,7 @@ int main(int argc, char **argv)
 
         // the desktop's panels: clicks as on the desktop (hud_panel.c
         // check_panel_button(), process_panel_state()). The click is the
-        // right hand's main trigger; the right click R2 on the Steam Frame,
+        // right hand's main trigger (R2 on the Steam Frame); the right click R1,
         // else the left trigger while the right hand points at the panels
         // (the right mouse button on the desktop)
         bool panel_alt_used = false;
@@ -1017,7 +1017,7 @@ int main(int argc, char **argv)
         }
 
         // the game's screen: the right hand points (the mouse), its trigger
-        // is the left button, the right click (R2 on the Steam Frame, else
+        // is the left button, the right click (R1 on the Steam Frame, else
         // the left trigger) the right one
         Panel scr_panel, kb_panel;
         bool scr_on = false, kb_on = false;

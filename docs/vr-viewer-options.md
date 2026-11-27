@@ -48,7 +48,7 @@ Units used below:
 
 | Option | Default | Impact |
 |---|---|---|
-| (mission end) | | When the mission is over (the desktop game leaves it, or its outcome is confirmed), the viewer quits 3 s later. Menus in VR are for later. |
+| (mission end) | | The whole game (no `--mission`): the game goes on to its debriefing and menus, on the screen panel. With `--mission`: when the mission is over (the desktop game leaves it, or its outcome is confirmed), the viewer quits 3 s later. |
 | `--mission C,M` | none: the whole game | `syndwars-vr.exe`: without it the whole game runs, its intro and menus first (below); with it the game starts straight in that mission. The table program always plays a mission (`0,1` by default). `run_vr.cmd` takes it as its first argument. |
 | `--data DIR` | `$SWARS_GAMEDATA`; `run_vr.cmd`: `gamedata` next to the repository | Game data folder (levels, textures, sprites, sounds). The viewer does not start without it. |
 | `--turn-ms MS` | `50` (20 turns a second) | Table program only: real time per game turn of the game core. Lower values play faster. The game itself is the same: it does not depend on time, only on turns. The desktop game keeps its own pace. |
@@ -60,8 +60,9 @@ the intro, the menus, the briefings, the missions the player starts. Outside
 a mission the headset shows the game's own screen on a flat panel standing
 above the far half of the table, facing you (1.4 m wide, fixed to the table:
 it does not follow the head; the table is empty meanwhile). The right hand
-points at it as the mouse: its trigger is the left button, the right click
-(R2 on the Steam Frame, else the left trigger) the right one. The keyboard
+points at it as the mouse: its trigger is the left button (Steam Frame: R2,
+the bottom trigger), the right click (R1 on the Steam Frame, the top one,
+else the left trigger) the right one. The keyboard
 of the desktop works as usual. When a mission starts the panel goes and the
 table shows it; at its end the panel comes back.
 
@@ -204,7 +205,8 @@ desktop game's own agent panels: the same sprites (`data/pop1-1`) and
 layout (`conf/pop1-1.ini`), the four agents' panels stacked top down, the
 energy column and grouping pane to their left (`vr/viewer/hud_panels.h`).
 Point at them with the right hand. The click is the right hand's main
-trigger (Steam Frame: R1); the right click is R2 on the Steam Frame, the
+trigger (Steam Frame: R2, the bottom one); the right click is R1 (the top
+one) on the Steam Frame, the
 left trigger on other controllers while the right hand points at the
 panels, the right mouse button in the table program. They do what the
 desktop's do:
@@ -250,7 +252,7 @@ VR (Valve Index, Oculus Touch):
 
 | Control | Action |
 |---|---|
-| Right trigger (Steam Frame: R1) | Point at an agent to select it, at the ground to walk there, at a vehicle to get in, at a row of the wrist panel to pick an agent or weapon |
+| Right trigger (Steam Frame: R2, the bottom one) | Point at an agent to select it, at the ground to walk there, at a vehicle to get in, at a row of the wrist panel to pick an agent or weapon |
 | Left trigger | Shoot at what the left hand points at; held, weapons fire on and charging weapons charge |
 | Left A / B (Touch: X / Y) | Previous / next weapon |
 | Left stick | Move the view the way the stick is pushed, as you see it (up: on towards what is away from you; the map slides towards you), whatever the table's turn |

@@ -198,9 +198,9 @@ public:
                 logf("bindings for %s rejected: %d", pr.name, (int)r);
         }
         if (frame_ext_) {
-            // Steam Frame: R1 (bumper) selects and clicks, R2 (trigger) is
-            // the right click on the HUD; L2 shoots; the left d-pad picks
-            // the weapon
+            // Steam Frame: R2 (the bottom trigger) selects and clicks (the
+            // left click), R1 (the top one, the bumper) is the right click;
+            // L2 shoots; the left d-pad picks the weapon
             std::vector<XrActionSuggestedBinding> b = {
                 {act_pan_, path("/user/hand/left/input/thumbstick")},
                 {act_zoom_, path("/user/hand/right/input/thumbstick")},
@@ -212,8 +212,8 @@ public:
                 {act_aim_l_, path("/user/hand/left/input/aim/pose")},
                 {act_aim_r_, path("/user/hand/right/input/aim/pose")},
                 {act_trig_l_, path("/user/hand/left/input/trigger/value")},
-                {act_trig_r_, path("/user/hand/right/input/bumper/click")},
-                {act_alt_r_, path("/user/hand/right/input/trigger/value")},
+                {act_trig_r_, path("/user/hand/right/input/trigger/value")},
+                {act_alt_r_, path("/user/hand/right/input/bumper/click")},
                 {act_wep_prev_, path("/user/hand/left/input/dpad_left/click")},
                 {act_wep_next_, path("/user/hand/left/input/dpad_right/click")},
             };
