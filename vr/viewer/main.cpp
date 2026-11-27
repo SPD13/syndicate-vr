@@ -348,6 +348,8 @@ int main(int argc, char **argv)
     double over_at = -1;
     double drive_until = -1, look_sent = -1;
     double align_logged = -100;
+    float zoom_ratio = 0, zoom_goal = 0; // table half size per desktop half width
+    uint32_t zoom_seen = 0;
     bool heading_set = false;
     // the HUD's fonts (text.h): the vector font next to the program, read
     // before the game changes folder; the game's from its data folder
@@ -487,10 +489,51 @@ int main(int argc, char **argv)
         }
         if (view_moved && tv.follow)
             drive_until = t + 1.2;
+        // the zooms: the table's half size and the desktop window's half
+        // width on the ground keep the ratio they had when the views were
+        // lined up; the desktop zooms only within what the game allows now
+        // (the weapon limits how far out), the table goes on further
+        float desk_vw = (float)(snap.hdr.view_size >> 16);
+        auto desk_half_w = [&](float zoom) {
+            float sc = zoom * (float)std::max<uint32_t>(snap.hdr.view_scale_256, 1) / 256.0f;
+            return desk_vw * 0.5f * 2048.0f / sc;
+        };
+        bool zoom_known = snap.valid && snap.hdr.in_mission && snap.hdr.view_zoom > 0 && desk_vw > 0;
+        if (zoom_known && zoom_ratio <= 0 && tv.synced()) {
+            zoom_ratio = tv.half_map / desk_half_w((float)snap.hdr.view_zoom);
+            zoom_seen = snap.hdr.view_zoom;
+            logf("zoom: table %.0f map units for the desktop's %.0f (zoom %u)", tv.half_map,
+                 desk_half_w((float)snap.hdr.view_zoom), snap.hdr.view_zoom);
+        }
         if (tv.follow && t < drive_until && t - look_sent > 0.15 && snap.valid && snap.hdr.in_mission) {
             glm::vec2 m = tv.map_at(tv.anchor);
             core.look_at((int32_t)m.x, (int32_t)m.y, tv.game_angle());
+            if (zoom_known && zoom_ratio > 0) {
+                float want = desk_vw * 0.5f * 2048.0f / (tv.half_map / zoom_ratio) * 256.0f /
+                             (float)std::max<uint32_t>(snap.hdr.view_scale_256, 1);
+                float lo = (float)snap.hdr.view_zoom_far, hi = (float)snap.hdr.view_zoom_near;
+                core.set_zoom((int32_t)std::lround(std::clamp(want, lo, std::max(lo, hi))));
+            }
             look_sent = t;
+        }
+        if (zoom_known && zoom_ratio > 0) {
+            if (t < drive_until) {
+                // our own zoom coming back from the game is not the desktop's
+                zoom_seen = snap.hdr.view_zoom;
+            } else if (snap.hdr.view_zoom != zoom_seen && tv.follow) {
+                // the desktop zoomed (its keys, a weapon's limit): the table
+                // follows, about the point in front of the viewer
+                zoom_seen = snap.hdr.view_zoom;
+                zoom_goal = zoom_ratio * desk_half_w((float)snap.hdr.view_zoom);
+            }
+            if (zoom_goal > 0 && t >= drive_until) {
+                float f = std::pow(zoom_goal / tv.half_map, 1.0f - std::exp(-dt * 4.0f));
+                tv.zoom_at_anchor(f);
+                if (std::fabs(tv.half_map / zoom_goal - 1.0f) < 0.005f)
+                    zoom_goal = 0;
+            } else if (t < drive_until) {
+                zoom_goal = 0;
+            }
         }
         if (t < drive_until)
             ;

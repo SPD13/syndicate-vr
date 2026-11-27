@@ -138,6 +138,13 @@ void swcore_camera_look_at(int32_t x, int32_t z);
  */
 void swcore_camera_set_angle(int32_t angle);
 
+/** Sets the zoom the player chose (the desktop's zoom keys), kept within
+ * the game's range (120 far to 256 close); the game still zooms no further
+ * out than the selected agent's weapon allows (swview.h view_zoom_far).
+ * Since version 5.
+ */
+void swcore_camera_set_zoom(int32_t zoom);
+
 /******************************************************************************/
 /* Reading the world. Positions are the game's fine coordinates: X and Z
  * across the map, x >> 8 and z >> 8 being map coordinates (256 per tile),

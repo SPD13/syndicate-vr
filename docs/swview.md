@@ -143,6 +143,10 @@ Since version 4:
 
 Since version 6:
 
+- `SwvHeader.view_zoom`, `view_zoom_far`, `view_zoom_near`,
+  `view_scale_256`: the desktop's zoom, the range the player may choose in
+  now (the weapon limits how far out), and the scale of a zoom (the VR
+  viewer zooms the desktop with the table, within that range).
 - `SwvHeader.view_tilt`, `view_perspective`: the camera's tilt and whether
   the desktop draws in perspective. With `view_scale`, `view_size` and the
   camera point and angle they give the ground the desktop's window shows

@@ -60,6 +60,7 @@
 #include "tngobjdrw.h"
 #include "vehicle.h"
 #include "weapon.h"
+#include "game_camera.h"
 #include "scanner.h"
 #include "swcore.h"
 #include "swlog.h"
@@ -1699,6 +1700,20 @@ static void swv_export_hud(struct SwvHeader *p_hdr)
     // the desktop's projection, to know what its window shows
     p_hdr->view_tilt = engn_cam_tilt;
     p_hdr->view_perspective = (game_perspective == ProjM_Perspective);
+    // the desktop's zoom and its range now, as process_view_inputs()
+    {
+        int far_zoom = CAMERA_ZOOM_MIN;
+        ThingIdx dcthing = players[local_player_no].DirectControl[0];
+        if ((dcthing > 0) && (things[dcthing].Type == TT_PERSON)) {
+            int wz = get_weapon_zoom_min(things[dcthing].U.UPerson.CurrentWeapon);
+            if (wz > far_zoom)
+                far_zoom = wz;
+        }
+        p_hdr->view_zoom = (ingame.UserZoom > far_zoom) ? ingame.UserZoom : far_zoom;
+        p_hdr->view_zoom_far = far_zoom;
+        p_hdr->view_zoom_near = CAMERA_ZOOM_MAX;
+        p_hdr->view_scale_256 = get_scaled_zoom(256);
+    }
     if (vec_window_width != 0)
         p_hdr->view_size = ((u32)vec_window_width << 16) | ((u32)vec_window_height & 0xFFFF);
     else // the core alone: its view area is that of a 640x480 screen

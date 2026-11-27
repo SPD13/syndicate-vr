@@ -167,6 +167,7 @@ struct TableView {
     // Lines the table up with the desktop's view again at the next
     // follow_camera(), as at the start (a new table placement).
     void resync() { synced_ = false; }
+    bool synced() const { return synced_; }
 
     void pan(float dx, float dz)
     {

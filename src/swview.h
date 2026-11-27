@@ -281,6 +281,13 @@ struct SwvHeader {
     int32_t view_tilt;        /**< Camera tilt, 2048 for a turn (negative: looking down) */
     uint32_t view_perspective; /**< Nonzero: the desktop draws in perspective
                                     (far things smaller), else isometric */
+    uint32_t view_zoom;       /**< The zoom the game aims at (the player's, or the
+                                   weapon's if closer): 120 far to 263 close */
+    uint32_t view_zoom_far;   /**< The furthest zoom allowed now: the selected
+                                   agent's weapon's, at least 120 */
+    uint32_t view_zoom_near;  /**< The closest zoom the player can choose (256) */
+    uint32_t view_scale_256;  /**< view_scale at zoom 256: view_scale is
+                                   zoom * view_scale_256 / 256 once it settles */
 };
 
 #define SWV_OFF_STATIC  4096u

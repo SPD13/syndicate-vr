@@ -295,6 +295,9 @@ public:
             swcore_camera_set_angle(angle);
     }
 
+    /** Sets the player's zoom of the game camera (120..256). */
+    void set_zoom(int32_t zoom) { swcore_camera_set_zoom(zoom); }
+
     /** The player confirms the end of a decided mission. */
     void conclude()
     {
@@ -434,6 +437,12 @@ public:
         look_ = true;
     }
 
+    void set_zoom(int32_t zoom)
+    {
+        std::lock_guard<std::mutex> lk(mu_);
+        zoom_ = zoom;
+    }
+
     // As CoreWorld::hold(), applied on the game's thread every turn.
     void hold(const SwcCommand *c)
     {
@@ -521,7 +530,7 @@ private:
     {
         std::vector<SwcCommand> q;
         bool conclude = false, look = false;
-        int32_t lx = 0, lz = 0, la = -1;
+        int32_t lx = 0, lz = 0, la = -1, zoom = -1;
         {
             std::lock_guard<std::mutex> lk(mu_);
             q.swap(queue_);
@@ -530,6 +539,8 @@ private:
             lz = look_z_;
             la = look_angle_;
             look_ = false;
+            zoom = zoom_;
+            zoom_ = -1;
             conclude = conclude_;
             conclude_ = false;
             if (held_on_) {
@@ -549,6 +560,8 @@ private:
             if (la >= 0)
                 swcore_camera_set_angle(la);
         }
+        if (zoom >= 0)
+            swcore_camera_set_zoom(zoom);
         if (conclude) {
             struct SwcWorldInfo info;
             swcore_world_info(&info);
@@ -608,7 +621,7 @@ private:
     bool held_on_ = false, release_after_ = false, conclude_ = false;
     int held_turns_ = 0;
     bool look_ = false;
-    int32_t look_x_ = 0, look_z_ = 0, look_angle_ = -1;
+    int32_t look_x_ = 0, look_z_ = 0, look_angle_ = -1, zoom_ = -1;
 };
 #endif
 

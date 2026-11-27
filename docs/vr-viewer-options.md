@@ -97,6 +97,16 @@ your heading slowly, so a glance does not move the map. Without a headset
   there, and turned as the table (`swcore_camera_set_angle()`); the table
   follows the desktop again 1.2 s after you stop. Zooming and turning keep
   the point in front of you where it is.
+- The zooms are linked too. When the views are lined up, the viewer
+  notes the ratio of the table's size to the ground the desktop's window
+  covers; zooming the table (right stick up/down) then zooms the desktop
+  in the same ratio (`swcore_camera_set_zoom()`), within what the game
+  allows at that moment: from 256 (closest) out to the selected agent's
+  weapon's limit (a short-range weapon, or none, keeps the desktop fully
+  zoomed in; the furthest is about 150). The table zooms on beyond that
+  range. When the desktop zooms (its own keys, or a weapon change), the
+  table follows in the same ratio. The yellow outline shows the desktop's
+  zoom as it is.
 - The desktop draws in perspective (an option of the game): lines running
   up its window converge, so a street straight up the map looks slanted
   there and straight on the table. The yellow outline shows the area

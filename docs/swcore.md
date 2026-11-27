@@ -49,6 +49,7 @@ out of scope for now: the library is for solo play.
 | `swcore_command()` | Queues a player command (select agent, go to, shoot, change weapon, enter vehicle) |
 | `swcore_mission_conclude()` | The player confirmed the end of a decided mission (the desktop's Enter or Esc on the end message): the next core turn ends it (API 4) |
 | `swcore_camera_look_at(x, z)` | Moves the game camera to look at a map point, as the desktop's scrolling: it glides there over the next turns. The VR viewer keeps the desktop's view on the place the headset looks at (API 5) |
+| `swcore_camera_set_zoom(z)` | Sets the player's zoom (120 far to 256 close; the weapon may keep it closer); the VR viewer zooms the desktop with the table (API 5) |
 | `swcore_camera_set_angle(a)` | Turns the game camera to an angle (0..2047), at once; the VR viewer turns the desktop's view with the table (API 5) |
 
 Commands are executed as the packets the mouse would build, one per turn,

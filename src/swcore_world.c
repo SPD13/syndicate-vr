@@ -27,6 +27,7 @@
 #include "engincam.h"
 
 #include "bigmap.h"
+#include "game_camera.h"
 #include "game.h"
 #include "game_options.h"
 #include "game_speed.h"
@@ -228,6 +229,15 @@ void swcore_camera_set_angle(int32_t angle)
 {
     engn_cam_yaw = (angle & 0x7FF) << 5; // as cam_angle above
     engn_cam_yaw_vel = 0;
+}
+
+void swcore_camera_set_zoom(int32_t zoom)
+{
+    if (zoom < CAMERA_ZOOM_MIN)
+        zoom = CAMERA_ZOOM_MIN;
+    if (zoom > CAMERA_ZOOM_MAX)
+        zoom = CAMERA_ZOOM_MAX;
+    ingame.UserZoom = zoom;
 }
 
 TbBool swcore_input_packet(struct Packet *p_pckt)
