@@ -186,7 +186,7 @@ desktop's do:
 | Medikit | Use it (when carried) | |
 | Energy column | Supershield on/off (when possible) | |
 | Grouping pane | One more agent protects the selected one; its thermal box: thermal view on/off | All agents protect it, or none |
-| Scanner (minimap, below) | The selected agent walks to the point clicked | |
+| Scanner (minimap, right of the agents) | The selected agent walks to the point clicked | |
 
 The scanner is the desktop's: its map (`SCANNER_data`: floor, roads, water,
 building outlines), centred on the desktop's camera point, turned with its

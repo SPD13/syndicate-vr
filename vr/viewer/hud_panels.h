@@ -127,7 +127,10 @@ public:
     }
 
     // The HUD's size in panel pixels (of the 640x480 layout).
-    glm::vec2 size() const { return glm::vec2(kLeft + kStripW, scan_top() + scan_h()); }
+    glm::vec2 size() const
+    {
+        return glm::vec2(scan_origin().x + scan_w(), std::max(std::max(4 * kStripH, kColH), scan_h()));
+    }
 
     // Where the panels are this frame: top left corner, axes, metres per
     // panel pixel.
@@ -312,7 +315,7 @@ public:
         }
         // the scanner: the map point under the pointer
         {
-            glm::vec2 q = p - glm::vec2(0, scan_top());
+            glm::vec2 q = p - scan_origin();
             if (in_scanner(q)) {
                 h.kind = Hit::SCANNER;
                 h.map = scan_to_map(snap, q);
@@ -411,10 +414,10 @@ private:
     static const int kEnergyShield = 0x17; // WEP_ENERGYSHLD, not in the list
     // the stack: the left column, then agent strips of kStripH pixels
     static constexpr float kLeft = 40, kStripW = 160, kStripH = 56, kColH = 302;
-    // the scanner below, across the whole width, shaped as the desktop's
-    // (130 x 123, its top right corner cut by 24)
-    float scan_top() const { return std::max(4 * kStripH, kColH) + 8; }
-    float scan_w() const { return kLeft + kStripW; }
+    // the scanner on the right of the stack, at its top, shaped as the
+    // desktop's (130 x 123, its top right corner cut by 24)
+    glm::vec2 scan_origin() const { return glm::vec2(kLeft + kStripW + 8, 0); }
+    float scan_w() const { return 240; }
     float scan_h() const { return scan_w() * 123.0f / 130.0f; }
     float scan_cut() const { return scan_w() * 24.0f / 130.0f; }
     bool in_scanner(glm::vec2 q) const
@@ -456,7 +459,7 @@ private:
     void draw_scanner(HudBuilder &hud, const Frame &f, const WorldSnapshot &snap, double now) const
     {
         const SwvPanelInfo &pi = snap.panel_info;
-        glm::vec2 o(0, scan_top());
+        glm::vec2 o = scan_origin();
         float w = scan_w(), hh = scan_h(), c = scan_cut();
         // the map: two quads, the right one under the cut corner
         glm::vec2 pts[2][4] = {{{0, 0}, {w - c, 0}, {w - c, hh}, {0, hh}}, {{w - c, 0}, {w, c}, {w, hh}, {w - c, hh}}};
