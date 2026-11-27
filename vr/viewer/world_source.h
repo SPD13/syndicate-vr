@@ -574,6 +574,12 @@ private:
         DesktopGameWorld *g = instance();
         if (!g || width <= 0 || height <= 0)
             return;
+        if (!g->idle_registered_) {
+            // after bflib's set up, which clears the idle handlers
+            // (LbBaseReset()): at the first frame
+            g->idle_registered_ = true;
+            LbRegisterIdleHandler(&DesktopGameWorld::idle_hook);
+        }
         std::lock_guard<std::mutex> lk(g->screen_mu_);
         g->screen_px_.resize((size_t)width * height);
         for (int y = 0; y < height; y++)
@@ -607,7 +613,6 @@ private:
         char *argv_full[] = {arg0, w, nullptr};
         instance() = this;
         lbScreenSwapHook = &DesktopGameWorld::swap_hook;
-        LbRegisterIdleHandler(&DesktopGameWorld::idle_hook);
         if (full_game_ ? swcore_init(2, argv_full) != 0 : swcore_init(5, argv_mission) != 0) {
             logf("the desktop game could not be set up");
             finish();
@@ -755,6 +760,7 @@ private:
     bool look_ = false;
     int32_t look_x_ = 0, look_z_ = 0, look_angle_ = -1, zoom_ = -1;
     bool full_game_ = false;
+    bool idle_registered_ = false; // on the game's thread
     std::mutex screen_mu_, mouse_mu_;
     std::vector<uint8_t> screen_px_;
     int screen_w_ = 0, screen_h_ = 0;

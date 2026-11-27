@@ -67,8 +67,12 @@ table shows it; at its end the panel comes back.
 
 The frame comes from bflib's screen swap (`lbScreenSwapHook`, with the
 pointer drawn), the pointer's moves and clicks go in through
-`LbMouseVirtualEvent()` from an idle handler of bflib's event loop, so they
-work in the intro's and the menus' own loops too.
+`LbMouseVirtualEvent()` from an idle handler of bflib's event loop
+(registered at the first frame, bflib's set up clears them), so they work in
+the intro's and the menus' own loops too. They are absolute places on the
+game's screen, not moves of the OS mouse (`MouseToScreen()` takes those as
+relative). The trigger skips the intro too (before the game's mouse is set
+up only the button's state is set, which the videos check).
 
 ## Look
 
@@ -228,6 +232,7 @@ of text.
 |---|---|
 | `SWARS_GAMEDATA` | Game data folder when `--data` is not given. |
 | `SWARS_ASSETS3D` | Assets repository when `--assets` is not given. |
+| `SWARS_VR_MOUSE_TEST` | A file: `syndwars-vr.exe` (whole game) presses the headset's mouse button at 12 s (skipping the intro), moves its pointer to a quarter of the screen at 20 s and saves the game's screen into the file (PPM) at 23 s, to check the pointer without a headset. |
 | `SWARS_VR_NO_HEADSET` | Set to 1: `syndwars-vr.exe` runs the desktop game even without a headset, for tests (instead of the table program). |
 | `SWARS_VR_DUMP_PANELS` | A folder: the wrist panels are drawn flat once (turn 100 of a mission), a unit per pixel of the 640x480 layout, into `verts.bin` (triangles: x, y, u, v, r, g, b, kind, 0 as floats) and `page.rgba` (the sprite page, 1024 square), to compare with a capture of the desktop. |
 

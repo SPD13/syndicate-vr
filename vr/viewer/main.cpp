@@ -490,6 +490,27 @@ int main(int argc, char **argv)
         // outside a mission (intro, menus, briefing) the game's own screen
         // on a panel, the table empty
         bool menus = full_game && !(snap.valid && snap.hdr.in_mission);
+#if VR_DESKTOP_GAME
+        if (getenv("SWARS_VR_MOUSE_TEST")) {
+            // test: a click (skips the intro), the pointer to a quarter of
+            // the screen, the frame then into the file named
+            static int step = 0;
+            if (step == 0 && t - t_start > 12) { core.mouse(2, 0.5f, 0.5f); step = 10; logf("test: press"); }
+            if (step == 10 && t - t_start > 12.5) { core.mouse(3, 0.5f, 0.5f); step = 1; logf("test: release"); }
+            if (step == 1 && t - t_start > 20) { core.mouse(1, 0.25f, 0.25f); step = 2; logf("test: mouse to 0.25"); }
+            if (step == 2 && t - t_start > 23) {
+                std::vector<uint8_t> px; int w = 0, h = 0; uint8_t pal[768]; uint32_t fr = 0;
+                if (core.screen(px, w, h, pal, fr)) {
+                    FILE *fp = fopen(getenv("SWARS_VR_MOUSE_TEST"), "wb");
+                    fprintf(fp, "P6 %d %d 255\n", w, h);
+                    for (uint8_t c : px) fwrite(&pal[3 * c], 1, 3, fp);
+                    fclose(fp);
+                    logf("test: frame %dx%d saved", w, h);
+                }
+                step = 3;
+            }
+        }
+#endif
         rend.world_visible = !menus;
         if (!menus && !was_in_mission && snap.valid && snap.hdr.in_mission) {
             // a mission begins: the table lines up with the desktop again

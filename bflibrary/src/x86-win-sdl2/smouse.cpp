@@ -364,17 +364,40 @@ extern "C" {
 TbResult MEvent(const SDL_Event *ev);
 };
 
+/** Leaves a point as it is: it is on the graphics screen already. */
+static void VirtualMouseToScreen(struct TbPoint *pos)
+{
+}
+
 TbResult LbMouseVirtualEvent(int action, float u, float v)
 {
     struct TbPoint pos;
+    TbMouseToScreen prev;
+    TbResult ret;
 
     if (u < 0.0f) u = 0.0f;
     if (u > 1.0f) u = 1.0f;
     if (v < 0.0f) v = 0.0f;
     if (v > 1.0f) v = 1.0f;
-    pos.x = (s32)(u * (lbScreenSurfaceDimensions.Width - 1) + 0.5f);
-    pos.y = (s32)(v * (lbScreenSurfaceDimensions.Height - 1) + 0.5f);
-    return mouseControl((TbMouseAction)action, &pos);
+    // straight to the graphics screen: MouseToScreen() would take it as a
+    // move of the OS mouse (relative, with auto reset) and may warp it
+    pos.x = (s32)(u * (lbDisplay.GraphicsScreenWidth - 1) + 0.5f);
+    pos.y = (s32)(v * (lbDisplay.GraphicsScreenHeight - 1) + 0.5f);
+    if (!lbMouseInstalled)
+    {
+        // before the mouse is set up (the intro), only the buttons' state,
+        // which the videos check to be skipped
+        if (action == MActn_LBUTTONDOWN) lbDisplay.MLeftButton = 1;
+        if (action == MActn_LBUTTONUP) lbDisplay.MLeftButton = 0;
+        if (action == MActn_RBUTTONDOWN) lbDisplay.MRightButton = 1;
+        if (action == MActn_RBUTTONUP) lbDisplay.MRightButton = 0;
+        return Lb_OK;
+    }
+    prev = lbMouseToScreen;
+    lbMouseToScreen = VirtualMouseToScreen;
+    ret = mouseControl((TbMouseAction)action, &pos);
+    lbMouseToScreen = prev;
+    return ret;
 }
 
 /** @internal
