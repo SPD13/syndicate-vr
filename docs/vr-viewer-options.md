@@ -276,6 +276,7 @@ press does nothing else); the wrist panels are on the inactive hand.
 | Right stick click | Whole world / table only |
 | Right A | Link the headset's and the desktop's views on/off |
 | Right B | Classic / upgraded look |
+| Left grip (Steam Frame; Touch: left menu button; Index: left trackpad press) | Centre the view on the selected agent: it comes under the point in front of you; with the views linked the desktop's camera goes there too |
 | Right grip (Steam Frame) | Fog of war on/off (other controllers: G on the desktop) |
 
 Desktop window of `syndwars-vr.exe`: the original game's own controls.

@@ -1182,6 +1182,18 @@ int main(int argc, char **argv)
                 tv.turn_at_anchor(-in.zoom.x * dt * 1.5f);
                 view_moved = true;
             }
+            if (in.center_pressed && snap.valid && snap.hdr.in_mission) {
+                // the selected agent under the point in front of the viewer;
+                // the desktop's camera goes there too (the views linked)
+                for (const SwvThing &th : snap.things)
+                    if (th.index == snap.hdr.selected && snap.hdr.selected != 0) {
+                        tv.center = tv.center_for(glm::vec2(th.x, th.z), tv.anchor);
+                        tv.clamp_center();
+                        view_moved = true;
+                        logf("view centred on agent %u", (unsigned)th.index);
+                        break;
+                    }
+            }
             if (view_moved && tv.follow)
                 drive_until = t + 1.2;
             if (in.look_pressed) {

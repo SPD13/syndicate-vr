@@ -148,6 +148,8 @@ public:
         XR_CHECK(make(act_look_, "toggle_look", "Switch classic / upgraded look", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_world_, "toggle_world", "Whole world / table only", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_fog_, "toggle_fog", "Fog of war on / off", XR_ACTION_TYPE_BOOLEAN_INPUT));
+        XR_CHECK(make(act_center_, "center_agent", "Centre the view on the selected agent",
+                      XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_aim_l_, "aim_left", "Left pointer", XR_ACTION_TYPE_POSE_INPUT));
         XR_CHECK(make(act_aim_r_, "aim_right", "Right pointer", XR_ACTION_TYPE_POSE_INPUT));
         XR_CHECK(make(act_trig_l_, "command_left", "Shoot", XR_ACTION_TYPE_BOOLEAN_INPUT));
@@ -167,12 +169,15 @@ public:
             const char *follow;
             const char *trigger; // per hand, after /user/hand/<side>
             const char *wep_prev, *wep_next;
+            const char *center; // centre the view on the selected agent
         };
         const Profile profiles[] = {
             {"/interaction_profiles/valve/index_controller", "/user/hand/right/input/a/click",
-             "/input/trigger/click", "/user/hand/left/input/a/click", "/user/hand/left/input/b/click"},
+             "/input/trigger/click", "/user/hand/left/input/a/click", "/user/hand/left/input/b/click",
+             "/user/hand/left/input/trackpad/force"},
             {"/interaction_profiles/oculus/touch_controller", "/user/hand/right/input/a/click",
-             "/input/trigger/value", "/user/hand/left/input/x/click", "/user/hand/left/input/y/click"},
+             "/input/trigger/value", "/user/hand/left/input/x/click", "/user/hand/left/input/y/click",
+             "/user/hand/left/input/menu/click"},
         };
         for (const auto &pr : profiles) {
             std::vector<XrActionSuggestedBinding> b = {
@@ -192,6 +197,7 @@ public:
                 {act_trig_r_, path((std::string("/user/hand/right") + pr.trigger).c_str())},
                 {act_wep_prev_, path(pr.wep_prev)},
                 {act_wep_next_, path(pr.wep_next)},
+                {act_center_, path(pr.center)},
             };
             XrInteractionProfileSuggestedBinding sb{XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING};
             sb.interactionProfile = path(pr.name);
@@ -219,6 +225,7 @@ public:
                 {act_trig_r_, path("/user/hand/right/input/trigger/value")},
                 {act_alt_r_, path("/user/hand/right/input/bumper/click")},
                 {act_alt_l_, path("/user/hand/left/input/bumper/click")},
+                {act_center_, path("/user/hand/left/input/squeeze/value")},
                 {act_wep_prev_, path("/user/hand/left/input/dpad_left/click")},
                 {act_wep_next_, path("/user/hand/left/input/dpad_right/click")},
             };
@@ -284,6 +291,7 @@ public:
     struct Input {
         glm::vec2 pan{0}, zoom{0};
         bool follow_pressed = false, recenter_pressed = false, look_pressed = false, world_pressed = false, fog_pressed = false;
+        bool center_pressed = false; // centre the view on the selected agent
         bool trig_pressed[2] = {false, false}; // left, right
         bool trig_held[2] = {false, false};
         bool alt_pressed = false, alt_held = false; // the right click on the HUD
@@ -334,6 +342,10 @@ public:
         gi.action = act_fog_;
         if (XR_SUCCEEDED(xrGetActionStateBoolean(session_, &gi, &b)))
             in.fog_pressed = b.isActive && b.changedSinceLastSync && b.currentState;
+        b = {XR_TYPE_ACTION_STATE_BOOLEAN};
+        gi.action = act_center_;
+        if (XR_SUCCEEDED(xrGetActionStateBoolean(session_, &gi, &b)))
+            in.center_pressed = b.isActive && b.changedSinceLastSync && b.currentState;
         auto pressed = [&](XrAction a) {
             XrActionStateGetInfo g{XR_TYPE_ACTION_STATE_GET_INFO};
             g.action = a;
@@ -533,7 +545,8 @@ private:
              act_recenter_ = XR_NULL_HANDLE, act_look_ = XR_NULL_HANDLE, act_aim_l_ = XR_NULL_HANDLE,
              act_aim_r_ = XR_NULL_HANDLE, act_trig_l_ = XR_NULL_HANDLE, act_trig_r_ = XR_NULL_HANDLE,
              act_alt_r_ = XR_NULL_HANDLE, act_alt_l_ = XR_NULL_HANDLE,
-             act_wep_next_ = XR_NULL_HANDLE, act_wep_prev_ = XR_NULL_HANDLE, act_world_ = XR_NULL_HANDLE, act_fog_ = XR_NULL_HANDLE;
+             act_wep_next_ = XR_NULL_HANDLE, act_wep_prev_ = XR_NULL_HANDLE, act_world_ = XR_NULL_HANDLE, act_fog_ = XR_NULL_HANDLE,
+             act_center_ = XR_NULL_HANDLE;
     XrSpace aim_space_[2] = {XR_NULL_HANDLE, XR_NULL_HANDLE};
     XrTime last_time_ = 0;
     Mirror last_left_;
