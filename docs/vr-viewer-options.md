@@ -212,6 +212,7 @@ of text.
 | `SWARS_GAMEDATA` | Game data folder when `--data` is not given. |
 | `SWARS_ASSETS3D` | Assets repository when `--assets` is not given. |
 | `SWARS_VR_NO_HEADSET` | Set to 1: `syndwars-vr.exe` runs the desktop game even without a headset, for tests (instead of the table program). |
+| `SWARS_VR_DUMP_PANELS` | A folder: the wrist panels are drawn flat once (turn 100 of a mission), a unit per pixel of the 640x480 layout, into `verts.bin` (triangles: x, y, u, v, r, g, b, kind, 0 as floats) and `page.rgba` (the sprite page, 1024 square), to compare with a capture of the desktop. |
 
 ## Controls
 

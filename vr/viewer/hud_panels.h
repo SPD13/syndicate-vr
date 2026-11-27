@@ -115,6 +115,39 @@ public:
         glUniform1i(glGetUniformLocation(prog, "u_scan_tex"), 9);
     }
 
+    // Debug: the panels drawn flat, a unit per panel pixel (x right, -y
+    // down), as triangles (pos, uv, rgb, kind) into dir/verts.bin, and the
+    // sprite page as RGBA into dir/page.rgba, for tools to compare with
+    // the desktop's screen.
+    void dump_flat(const WorldSnapshot &snap, const std::string &dir) const
+    {
+        HudBuilder hud;
+        Frame f;
+        f.tl = glm::vec3(0);
+        f.right = glm::vec3(1, 0, 0);
+        f.up = glm::vec3(0, 1, 0);
+        f.px = 1.0f;
+        draw(hud, f, snap, State(), glm::vec2(-100.0f), 0.0);
+        FILE *fp = fopen((dir + "/verts.bin").c_str(), "wb");
+        if (fp) {
+            for (const GpuVert &v : hud.verts) {
+                float r[9] = {v.pos[0], v.pos[1], v.uv[0], v.uv[1], v.rgb[0], v.rgb[1], v.rgb[2], v.textured, 0};
+                fwrite(r, sizeof(float), 9, fp);
+            }
+            fclose(fp);
+        }
+        fp = fopen((dir + "/page.rgba").c_str(), "wb");
+        if (fp) {
+            for (int i = 0; i < kDim * kDim; i++) {
+                uint8_t idx = page_[2 * i];
+                uint8_t c[4] = {pal_[idx * 3], pal_[idx * 3 + 1], pal_[idx * 3 + 2], page_[2 * i + 1]};
+                fwrite(c, 1, 4, fp);
+            }
+            fclose(fp);
+        }
+        logf("panels dumped to %s: %zu vertices", dir.c_str(), hud.verts.size());
+    }
+
     // A new reading of the scanner's map.
     void set_scanner(const WorldSnapshot &snap)
     {
@@ -641,20 +674,25 @@ private:
         hud.textured_quad(f.at(o.x, o.y, lift), f.at(o.x + w, o.y, lift), f.at(o.x + w, o.y + h, lift),
                           f.at(o.x, o.y + h, lift), u0, v0, u1, v1, 9.0f, bright);
     }
+    // Three sprites in a row (column), as draw_new_panel(): the desktop
+    // sizes the panel to the sprites' own widths (heights) added up
+    // (hud_panecfg.c SprWidth, SprHeight) and stretches the middle one only
+    // by what a screen wider (taller) than the layout's 640x480 adds: here
+    // nothing, so each is drawn at its own size, one after the other.
     void sprites_in_line(HudBuilder &hud, const Frame &f, glm::vec2 o, const P &p, float bright) const
     {
-        glm::vec2 l = sprite_size(p.spr[0], P()), r = sprite_size(p.spr[2], P());
+        glm::vec2 l = sprite_size(p.spr[0], P()), m = sprite_size(p.spr[1], P());
         sprite(hud, f, o, p.spr[0], bright);
-        sprite(hud, f, o + glm::vec2(l.x, 0), p.spr[1], bright, 0.0001f, std::max(0.0f, p.w - l.x - r.x), 0);
-        sprite(hud, f, o + glm::vec2(p.w - r.x, 0), p.spr[2], bright);
+        sprite(hud, f, o + glm::vec2(l.x, 0), p.spr[1], bright, 0.0001f);
+        sprite(hud, f, o + glm::vec2(l.x + m.x, 0), p.spr[2], bright);
     }
     void sprites_in_column(HudBuilder &hud, const Frame &f, glm::vec2 o, const P &p, bool extra) const
     {
         const int *s = extra && p.extra[0] ? p.extra : p.spr;
-        glm::vec2 t = sprite_size(s[0], P()), b = sprite_size(s[2], P());
+        glm::vec2 t = sprite_size(s[0], P()), m = sprite_size(s[1], P());
         sprite(hud, f, o, s[0], 1.0f);
-        sprite(hud, f, o + glm::vec2(0, t.y), s[1], 1.0f, 0.0001f, 0, std::max(0.0f, p.h - t.y - b.y));
-        sprite(hud, f, o + glm::vec2(0, p.h - b.y), s[2], 1.0f);
+        sprite(hud, f, o + glm::vec2(0, t.y), s[1], 1.0f, 0.0001f);
+        sprite(hud, f, o + glm::vec2(0, t.y + m.y), s[2], 1.0f);
     }
     void box(HudBuilder &hud, const Frame &f, glm::vec2 o, float w, float h, const float *rgb, float bright,
              float lift = 0.0002f) const

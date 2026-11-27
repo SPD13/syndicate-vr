@@ -472,6 +472,15 @@ int main(int argc, char **argv)
             g_text.set_palette(snap.palette);
             g_panels.set_palette(snap.palette);
             g_panels.set_scanner(snap);
+            {
+                // SWARS_VR_DUMP_PANELS=dir: the wrist panels drawn flat, once
+                static bool panels_dumped = false;
+                const char *dd = getenv("SWARS_VR_DUMP_PANELS");
+                if (dd && !panels_dumped && snap.hdr.in_mission && snap.hdr.gameturn >= 100 && g_panels.ok()) {
+                    g_panels.dump_flat(snap, dd);
+                    panels_dumped = true;
+                }
+            }
             rend.upload_world(snap);
             people.update(snap, t);
             if (snap.static_changed)
