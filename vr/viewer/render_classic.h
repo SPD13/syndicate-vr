@@ -392,8 +392,8 @@ public:
     }
 
     // model: map units -> world (meters); vp: projection*view
-    // the map and what is on it drawn (off outside missions: the table
-    // alone, the panels)
+    // the table, the map and what is on it drawn (off outside missions:
+    // the panels alone, in a black void)
     bool world_visible = true;
 
     void draw(const glm::mat4 &vp, const glm::mat4 &table_model, const glm::mat4 &map_model,
@@ -427,7 +427,8 @@ public:
         glm::mat4 mvp = vp * table_model;
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(mvp));
         glUniform1i(u_clip_, 0);
-        draw_mesh(table_mesh_);
+        if (world_visible)
+            draw_mesh(table_mesh_);
 
         if (world_visible) {
         mvp = vp * map_model;

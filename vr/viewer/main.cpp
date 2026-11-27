@@ -170,6 +170,8 @@ int main(int argc, char **argv)
                 return 1;
             }
             mission_given = true;
+        } else if (!strcmp(argv[i], "--screen-size") && i + 1 < argc) {
+            g_screen.width = std::clamp((float)atof(argv[++i]), 0.5f, 5.0f);
         } else if (!strcmp(argv[i], "--data") && i + 1 < argc) {
             data_dir = argv[++i];
         } else if (!strcmp(argv[i], "--look") && i + 1 < argc) {
@@ -1093,7 +1095,10 @@ int main(int argc, char **argv)
 
         glm::vec3 clip_center = clip_c;
         auto draw_scene = [&](const glm::mat4 &vp, bool linear) {
-            glClearColor(0.05f, 0.06f, 0.08f, 1.0f);
+            if (rend.world_visible)
+                glClearColor(0.05f, 0.06f, 0.08f, 1.0f);
+            else
+                glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // the menus: a black void
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             rend.draw(vp, tv.table_model(), tv.map_model(), clip_center, clip_h, linear);
         };

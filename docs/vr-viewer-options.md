@@ -50,6 +50,7 @@ Units used below:
 |---|---|---|
 | (mission end) | | The whole game (no `--mission`): the game goes on to its debriefing and menus, on the screen panel. With `--mission`: when the mission is over (the desktop game leaves it, or its outcome is confirmed), the viewer quits 3 s later. |
 | `--mission C,M` | none: the whole game | `syndwars-vr.exe`: without it the whole game runs, its intro and menus first (below); with it the game starts straight in that mission. The table program always plays a mission (`0,1` by default). `run_vr.cmd` takes it as its first argument. |
+| `--screen-size W` | `1.7` | `syndwars-vr.exe`, whole game: the width in metres (0.5 to 5) of the flat screen showing the game's intro, menus and briefings. |
 | `--data DIR` | `$SWARS_GAMEDATA`; `run_vr.cmd`: `gamedata` next to the repository | Game data folder (levels, textures, sprites, sounds). The viewer does not start without it. |
 | `--turn-ms MS` | `50` (20 turns a second) | Table program only: real time per game turn of the game core. Lower values play faster. The game itself is the same: it does not depend on time, only on turns. The desktop game keeps its own pace. |
 
@@ -58,8 +59,9 @@ Units used below:
 Without `--mission`, `syndwars-vr.exe` runs the game as `syndwarsfx` does:
 the intro, the menus, the briefings, the missions the player starts. Outside
 a mission the headset shows the game's own screen on a flat panel standing
-above the far half of the table, facing you (1.4 m wide, fixed to the table:
-it does not follow the head; the table is empty meanwhile). The right hand
+above the far half of the table's place, facing you (1.7 m wide by default,
+`--screen-size`; fixed to the table's place: it does not follow the head),
+in a black void: the table and the map are not drawn meanwhile. The right hand
 points at it as the mouse: its trigger is the left button (Steam Frame: R2,
 the bottom trigger), the right click (R1 on the Steam Frame, the top one,
 else the left trigger) the right one. The keyboard

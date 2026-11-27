@@ -51,11 +51,14 @@ public:
         glUniform1i(glGetUniformLocation(prog, "u_screen_tex"), 10);
     }
 
+    // Its width in metres (--screen-size).
+    float width = 1.7f;
+
     // Where it stands: in the table's frame (it does not follow the head),
-    // above the far half of the table, 1.4 m wide, the game's aspect.
+    // above the far half of the table, width wide, the game's aspect.
     Panel place(const glm::mat4 &table_pose) const
     {
-        float w = 1.4f, h = has_frame() ? w * h_ / w_ : w * 0.75f;
+        float w = width, h = has_frame() ? w * h_ / w_ : w * 0.75f;
         glm::vec3 c = glm::vec3(table_pose * glm::vec4(0.0f, 0.12f + h * 0.5f, -0.55f, 1.0f));
         glm::vec3 right = glm::normalize(glm::vec3(table_pose * glm::vec4(1, 0, 0, 0)));
         glm::vec3 up(0, 1, 0);
