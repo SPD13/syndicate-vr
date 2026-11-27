@@ -56,6 +56,7 @@
 #include "table_view.h"
 #include "hud_vr.h"
 #include "screen_panel.h"
+#include "vkeyboard.h"
 #include "look_upgraded.h"
 #include "xr.h"
 
@@ -492,11 +493,20 @@ int main(int argc, char **argv)
         bool menus = full_game && !(snap.valid && snap.hdr.in_mission);
 #if VR_DESKTOP_GAME
         if (getenv("SWARS_VR_MOUSE_TEST")) {
-            // test: a click (skips the intro), the pointer to a quarter of
-            // the screen, the frame then into the file named
+            // test: a click (skips the intro), a click on LOGIN, "VR" typed
+            // with the headset's keys into its text box, the pointer to a
+            // quarter of the screen, the frame then into the file named
             static int step = 0;
             if (step == 0 && t - t_start > 12) { core.mouse(2, 0.5f, 0.5f); step = 10; logf("test: press"); }
-            if (step == 10 && t - t_start > 12.5) { core.mouse(3, 0.5f, 0.5f); step = 1; logf("test: release"); }
+            if (step == 10 && t - t_start > 12.5) { core.mouse(3, 0.5f, 0.5f); step = 11; logf("test: release"); }
+            if (step == 11 && t - t_start > 17) { core.mouse(1, 0.5f, 0.64f); core.mouse(2, 0.5f, 0.64f); step = 12; }
+            if (step == 12 && t - t_start > 17.3) { core.mouse(3, 0.5f, 0.64f); step = 13; logf("test: LOGIN clicked"); }
+            if (step == 13 && t - t_start > 19) {
+                logf("test: text box focus %d", (int)core.text_focus());
+                core.key(0x2F); // V
+                core.key(0x13); // R
+                step = 1;
+            }
             if (step == 1 && t - t_start > 20) { core.mouse(1, 0.25f, 0.25f); step = 2; logf("test: mouse to 0.25"); }
             if (step == 2 && t - t_start > 23) {
                 std::vector<uint8_t> px; int w = 0, h = 0; uint8_t pal[768]; uint32_t fr = 0;
@@ -1009,13 +1019,30 @@ int main(int argc, char **argv)
         // the game's screen: the right hand points (the mouse), its trigger
         // is the left button, the right click (R2 on the Steam Frame, else
         // the left trigger) the right one
-        Panel scr_panel;
-        bool scr_on = false;
+        Panel scr_panel, kb_panel;
+        bool scr_on = false, kb_on = false;
         if (menus && use_xr) {
             scr_panel = g_screen.place(tv.table_pose);
             glm::vec2 uv(0.0f);
             scr_on = world_ray[1].valid && ScreenPanel::hit(scr_panel, world_ray[1], uv);
             g_screen.draw(hud, scr_panel, scr_on, uv);
+#if VR_DESKTOP_GAME
+            // a text box has the focus: the keyboard, its keys typed with
+            // the right trigger
+            static int kb_flash = -1;
+            static double kb_flash_until = 0;
+            if (core.text_focus()) {
+                kb_panel = g_keyboard.place(tv.table_pose);
+                kb_on = g_keyboard.on(kb_panel, world_ray[1]);
+                int k = kb_on ? g_keyboard.key_at(kb_panel, world_ray[1]) : -1;
+                if (k >= 0 && xr_in.trig_pressed[1]) {
+                    core.key(g_keyboard.key(k).code);
+                    kb_flash = k;
+                    kb_flash_until = t + 0.15;
+                }
+                g_keyboard.draw(hud, kb_panel, k, t < kb_flash_until ? kb_flash : -1);
+            }
+#endif
 #if VR_DESKTOP_GAME
             if (scr_on && glm::distance(uv, scr_uv_sent) > 1e-4f) {
                 core.mouse(1, uv.x, uv.y);
@@ -1044,6 +1071,8 @@ int main(int argc, char **argv)
                 if (menus) {
                     if (h == 1 && scr_on)
                         len = std::max(0.02f, scr_panel.hit_distance(world_ray[h]));
+                    else if (h == 1 && kb_on)
+                        len = std::max(0.02f, kb_panel.hit_distance(world_ray[h]));
                 } else if (h == 1 && on_panel)
                     len = std::max(0.02f, panel.hit_distance(world_ray[h]));
                 else if (hit[h].kind != Hit::NONE)

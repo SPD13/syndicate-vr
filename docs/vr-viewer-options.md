@@ -65,6 +65,14 @@ points at it as the mouse: its trigger is the left button, the right click
 of the desktop works as usual. When a mission starts the panel goes and the
 table shows it; at its end the panel comes back.
 
+While a text box of the game has the focus (the login name, a save slot's
+name: the game's `edit_flag`) a keyboard lies over the near half of the
+table, tilted towards you (`vr/viewer/vkeyboard.h`): digits, letters, `-`,
+`.`, space, backspace and enter. Point at a key with the right hand, its
+trigger types it; the key goes into bflib's keyboard as a real key press
+(`keyboardControl()`, held a tenth of a second, as the game reads
+backspace while held).
+
 The frame comes from bflib's screen swap (`lbScreenSwapHook`, with the
 pointer drawn), the pointer's moves and clicks go in through
 `LbMouseVirtualEvent()` from an idle handler of bflib's event loop
@@ -232,7 +240,7 @@ of text.
 |---|---|
 | `SWARS_GAMEDATA` | Game data folder when `--data` is not given. |
 | `SWARS_ASSETS3D` | Assets repository when `--assets` is not given. |
-| `SWARS_VR_MOUSE_TEST` | A file: `syndwars-vr.exe` (whole game) presses the headset's mouse button at 12 s (skipping the intro), moves its pointer to a quarter of the screen at 20 s and saves the game's screen into the file (PPM) at 23 s, to check the pointer without a headset. |
+| `SWARS_VR_MOUSE_TEST` | A file: `syndwars-vr.exe` (whole game) presses the headset's mouse button at 12 s (skipping the intro), clicks LOGIN at 17 s, types V and R with the headset's keys at 19 s, moves its pointer to a quarter of the screen at 20 s and saves the game's screen into the file (PPM) at 23 s, to check the pointer without a headset. |
 | `SWARS_VR_NO_HEADSET` | Set to 1: `syndwars-vr.exe` runs the desktop game even without a headset, for tests (instead of the table program). |
 | `SWARS_VR_DUMP_PANELS` | A folder: the wrist panels are drawn flat once (turn 100 of a mission), a unit per pixel of the 640x480 layout, into `verts.bin` (triangles: x, y, u, v, r, g, b, kind, 0 as floats) and `page.rgba` (the sprite page, 1024 square), to compare with a capture of the desktop. |
 

@@ -381,6 +381,10 @@ typedef void (*VrScreenSwapHook)(const unsigned char *pixels, int32_t pitch, int
 extern VrScreenSwapHook lbScreenSwapHook;
 int LbMouseVirtualEvent(int action, float u, float v);
 int LbRegisterIdleHandler(unsigned char (*cb)(void));
+// bflib's keyboard (bfkeybd.h: action 1 down, 2 up; a PC scan code)
+int keyboardControl(unsigned char action, unsigned char code, signed char modifiers);
+// the game: a text box has the focus (game.c)
+extern unsigned char edit_flag;
 }
 
 class DesktopGameWorld {
@@ -414,6 +418,20 @@ public:
         std::lock_guard<std::mutex> lk(mouse_mu_);
         mouse_q_.push_back(MouseAct{action, u, v});
     }
+
+    /** A key typed on the headset's keyboard (a PC scan code, bfkeybd.h):
+     * pressed now, released a moment later, so that the game sees it held
+     * (backspace is read as held). */
+    void key(uint8_t code)
+    {
+        double t = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        std::lock_guard<std::mutex> lk(mouse_mu_);
+        key_q_.push_back(KeyAct{1, code, t});
+        key_q_.push_back(KeyAct{2, code, t + 0.12});
+    }
+
+    /** Whether a text box of the game has the focus. */
+    bool text_focus() const { return edit_flag != 0; }
 
     /** Starts the desktop game on the mission, in the game data folder;
      * on_ready runs on the game's thread once the game is set up. Returns
@@ -561,6 +579,11 @@ private:
         int action;
         float u, v;
     };
+    struct KeyAct {
+        int action;
+        uint8_t code;
+        double due;
+    };
 
     static DesktopGameWorld *&instance()
     {
@@ -597,12 +620,22 @@ private:
         if (!g)
             return 1;
         std::vector<MouseAct> q;
+        std::vector<KeyAct> keys;
         {
+            double t = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
             std::lock_guard<std::mutex> lk(g->mouse_mu_);
             q.swap(g->mouse_q_);
+            // the keys due, in order
+            size_t n = 0;
+            while (n < g->key_q_.size() && g->key_q_[n].due <= t)
+                n++;
+            keys.assign(g->key_q_.begin(), g->key_q_.begin() + n);
+            g->key_q_.erase(g->key_q_.begin(), g->key_q_.begin() + n);
         }
         for (const MouseAct &m : q)
             LbMouseVirtualEvent(m.action, m.u, m.v);
+        for (const KeyAct &k : keys)
+            keyboardControl((unsigned char)k.action, k.code, 0);
         return 1;
     }
 
@@ -767,6 +800,7 @@ private:
     uint8_t screen_pal_[768] = {};
     uint32_t screen_frame_ = 0;
     std::vector<MouseAct> mouse_q_;
+    std::vector<KeyAct> key_q_; // by time due
     std::vector<uint8_t> scanner_; // the game's thread's copy
     uint32_t scanner_rev_ = 0;
     bool scanner_built_ = false;
