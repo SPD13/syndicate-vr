@@ -3,7 +3,8 @@ make_clips.py) and rebuilds what depends on them.
 
 python rebuild_clips.py [type ...]
 Per character: make_clips.py -> blender_merge_anims.py -> <combat>.glb, wrist
-check, then the Church agent's cape (blender_cape2.py), then the weapons
+check, then the Church agent's cape (blender_cape2.py) or a simulated
+ponytail (blender_ponytail.py, characters in PONYTAIL), then the weapons
 (attach_agent.json; the agent also gets attach_arsenal.json). The High
 Priest is not handled: it uses Tripo's presets.
 """
@@ -28,6 +29,7 @@ CHARS = {
     "zealot": ("raw_zealot3", "raw_zealot3/pistol_pack/zealot3_rigged.fbx", "zealot/zealot3_rigged.glb",
                "zealot/zealot3_combat.glb", "cape2_zealot.json", "zealot/zealot3_cape_armed.glb", None),
 }
+PONYTAIL = {"punk_f": None}   # type: options json (or None for the script's defaults)
 for t in REGULAR:
     CHARS[t] = ("raw", "%s_rigged.fbx" % t, "%s/%s_rigged.glb" % (t, t), "%s/%s_combat.glb" % (t, t), None,
                 "%s/%s_armed.glb" % (t, t), None)
@@ -56,6 +58,9 @@ def main():
         if cape:
             src = os.path.join(M, "zealot", "zealot3_cape.glb")
             bc.bl("blender_cape2.py", combat_p, src, os.path.join(HERE, cape))
+        elif t in PONYTAIL:
+            src = os.path.join(M, t, "%s_ponytail.glb" % t)
+            bc.bl("blender_ponytail.py", combat_p, src, *([os.path.join(HERE, PONYTAIL[t])] if PONYTAIL[t] else []))
         bc.bl("blender_attach_weapons.py", os.path.join(W, "attach_agent.json"), src, os.path.join(M, armed))
         if extra:
             bc.bl("blender_attach_weapons.py", os.path.join(W, extra[0]), src, os.path.join(M, extra[1]))
