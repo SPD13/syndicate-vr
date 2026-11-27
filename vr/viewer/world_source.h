@@ -41,6 +41,13 @@ struct WorldSnapshot {
     std::vector<uint8_t> scanner;
     uint32_t scanner_rev = 0;
     bool scanner_built = false;
+    // the desktop's panels as it drew them (the game build only: its
+    // screen's top rows, palette indices) and its panels' rectangles
+    // (pos and dyn, 8 shorts each): the wrist shows their bars from it
+    std::vector<uint8_t> grab;
+    int grab_w = 0, grab_h = 0;
+    uint32_t grab_frame = 0;
+    int16_t grab_rects[8 * 26] = {};
     std::vector<SwvPersonRender> persons;
     // for the upgraded look: items, grenades and statics; weapons charging;
     // the effects started or ended in the turns played since the last poll
@@ -373,6 +380,13 @@ private:
 // headset are queued and given to the game on its thread, before its next
 // turn. Only the game's thread uses the game and SDL's events.
 
+extern "C" {
+// the desktop front end's copy of its panels (src/hud_panel.h)
+void panel_grab_enable(unsigned char on);
+uint32_t panel_grab_copy(uint8_t *p_out, size_t max_bytes, int *p_w, int *p_h, int16_t *p_rects,
+                         int max_panels);
+}
+
 class DesktopGameWorld {
 public:
     /** Starts the desktop game on the mission, in the game data folder;
@@ -423,6 +437,13 @@ public:
                 snap.scanner = extra_.scanner;
                 snap.scanner_built = extra_.scanner_built;
                 snap.scanner_rev = extra_.scanner_rev;
+            }
+            if (extra_.grab_frame != snap.grab_frame && !extra_.grab.empty()) {
+                snap.grab = extra_.grab;
+                snap.grab_w = extra_.grab_w;
+                snap.grab_h = extra_.grab_h;
+                snap.grab_frame = extra_.grab_frame;
+                memcpy(snap.grab_rects, extra_.grab_rects, sizeof(snap.grab_rects));
             }
             snap.persons = extra_.persons;
             snap.props = extra_.props;
@@ -504,6 +525,10 @@ private:
         std::vector<uint8_t> scanner;
         uint32_t scanner_rev = 0;
         bool scanner_built = false;
+        std::vector<uint8_t> grab;
+        int grab_w = 0, grab_h = 0;
+        uint32_t grab_frame = 0;
+        int16_t grab_rects[8 * 26] = {};
         std::vector<SwvPersonRender> persons;
         std::vector<SwvProp> props;
         std::vector<SwvCharge> charges;
@@ -521,6 +546,7 @@ private:
         }
         if (on_ready_)
             on_ready_();
+        panel_grab_enable(1);
         update_world();
         {
             std::lock_guard<std::mutex> lk(mu_);
@@ -620,6 +646,25 @@ private:
             ex.props.resize(swview_props(ex.props.data(), 8192));
             ex.charges.resize(SWV_AGENTS_MAX);
             ex.charges.resize(swview_charges(ex.charges.data(), SWV_AGENTS_MAX));
+            // the panels as the desktop drew them: the rows down to the
+            // lowest of the panels the wrist shows (0..25)
+            if (grab_buf_.empty())
+                grab_buf_.resize((size_t)4096 * 2304);
+            int gw = 0, gh = 0;
+            uint32_t gf = panel_grab_copy(grab_buf_.data(), grab_buf_.size(), &gw, &gh, ex.grab_rects, 26);
+            if (gf != 0 && gw > 0 && gh > 0) {
+                int bottom = 0;
+                for (int k = 0; k < 26; k++) {
+                    const int16_t *r = &ex.grab_rects[8 * k];
+                    bottom = std::max(bottom, r[1] + r[3]);
+                    bottom = std::max(bottom, r[5] + r[7] + r[6] + 2);
+                }
+                gh = std::min(gh, bottom + 4);
+                ex.grab.assign(grab_buf_.begin(), grab_buf_.begin() + (size_t)gw * gh);
+                ex.grab_w = gw;
+                ex.grab_h = gh;
+                ex.grab_frame = gf;
+            }
         }
         static SwvFxEvent ev[SWV_FX_EVENTS_MAX];
         uint32_t ne = in_mission ? swview_fx_events(ev, SWV_FX_EVENTS_MAX) : 0;
@@ -660,6 +705,7 @@ private:
     int held_turns_ = 0;
     bool look_ = false;
     int32_t look_x_ = 0, look_z_ = 0, look_angle_ = -1, zoom_ = -1;
+    std::vector<uint8_t> grab_buf_; // the game's thread's
     std::vector<uint8_t> scanner_; // the game's thread's copy
     uint32_t scanner_rev_ = 0;
     bool scanner_built_ = false;

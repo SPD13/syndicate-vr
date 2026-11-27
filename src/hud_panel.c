@@ -18,6 +18,7 @@
 /******************************************************************************/
 #include "hud_panel.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include "bfanywnd.h"
@@ -2255,6 +2256,77 @@ void draw_new_panel_weapon_overlay(short panel, ushort plagent, TbBool darkened)
 {
 }
 
+/* A copy of the screen as the panels were last drawn, for a front end that
+ * shows them elsewhere (the VR viewer's wrist, vr/viewer/hud_panels.h): off
+ * unless panel_grab_enable() is called. Drawing and copying are both on
+ * the thread that runs the game.
+ */
+static TbBool panel_grab_on = false;
+static ubyte *panel_grab_pixels = NULL;
+static int panel_grab_w = 0, panel_grab_h = 0;
+static size_t panel_grab_cap = 0;
+static u32 panel_grab_frame = 0;
+
+void panel_grab_enable(TbBool on)
+{
+    panel_grab_on = on;
+}
+
+static void panel_grab_store(void)
+{
+    int w, h;
+    size_t n;
+
+    if (!panel_grab_on || (lbDisplay.WScreen == NULL))
+        return;
+    w = lbDisplay.GraphicsScreenWidth;
+    h = lbDisplay.GraphicsScreenHeight;
+    if ((w <= 0) || (h <= 0))
+        return;
+    n = (size_t)w * h;
+    if (n > panel_grab_cap)
+    {
+        ubyte *p = realloc(panel_grab_pixels, n);
+        if (p == NULL)
+            return;
+        panel_grab_pixels = p;
+        panel_grab_cap = n;
+    }
+    memcpy(panel_grab_pixels, lbDisplay.WScreen, n);
+    panel_grab_w = w;
+    panel_grab_h = h;
+    panel_grab_frame++;
+}
+
+u32 panel_grab_copy(ubyte *p_out, size_t max_bytes, int *p_w, int *p_h,
+  short *p_rects, int max_panels)
+{
+    int i;
+
+    if ((panel_grab_frame == 0) || (game_panel == NULL))
+        return 0;
+    if ((size_t)panel_grab_w * panel_grab_h > max_bytes)
+        return 0;
+    memcpy(p_out, panel_grab_pixels, (size_t)panel_grab_w * panel_grab_h);
+    *p_w = panel_grab_w;
+    *p_h = panel_grab_h;
+    for (i = 0; (i < max_panels) && (i < GAME_PANELS_LIMIT); i++)
+    {
+        struct GamePanel *p_panel = &game_panel[i];
+        short *r = &p_rects[8 * i];
+
+        r[0] = p_panel->pos.X;
+        r[1] = p_panel->pos.Y;
+        r[2] = p_panel->pos.Width;
+        r[3] = p_panel->pos.Height;
+        r[4] = p_panel->dyn.X;
+        r[5] = p_panel->dyn.Y;
+        r[6] = p_panel->dyn.Width;
+        r[7] = p_panel->dyn.Height;
+    }
+    return panel_grab_frame;
+}
+
 void draw_new_panel(void)
 {
     PlayerInfo *p_locplayer;
@@ -2516,6 +2588,7 @@ void draw_new_panel(void)
             }
         }
     }
+    panel_grab_store();
 }
 
 TbBool process_panel_state_one_agent_weapon(ushort agent)

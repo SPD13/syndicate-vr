@@ -174,6 +174,12 @@ The left wrist (beside the table in the table program's window) shows the
 desktop game's own agent panels: the same sprites (`data/pop1-1`) and
 layout (`conf/pop1-1.ini`), the four agents' panels stacked top down, the
 energy column and grouping pane to their left (`vr/viewer/hud_panels.h`).
+With the desktop game (`syndwars-vr.exe`) the bars (health and shield,
+mood and stamina, energy, the energy column) are the desktop's own pixels:
+the desktop's `draw_new_panel()` keeps a copy of the screen after drawing
+the panels (`panel_grab_enable()`, `src/hud_panel.c`) and the wrist shows
+those areas of it, so they are exactly what the desktop shows. The table
+program draws them itself after the same code.
 Point at them with the right hand. The click is the right hand's main
 trigger (Steam Frame: R1); the right click is R2 on the Steam Frame, the
 left trigger on other controllers while the right hand points at the

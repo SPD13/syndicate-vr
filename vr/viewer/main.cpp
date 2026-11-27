@@ -472,6 +472,7 @@ int main(int argc, char **argv)
             g_text.set_palette(snap.palette);
             g_panels.set_palette(snap.palette);
             g_panels.set_scanner(snap);
+            g_panels.set_grab(snap);
             rend.upload_world(snap);
             people.update(snap, t);
             if (snap.static_changed)

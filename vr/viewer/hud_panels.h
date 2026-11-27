@@ -110,10 +110,45 @@ public:
                          rgb.data());
             scan_dirty_ = false;
         }
+        // the desktop's panels as drawn, coloured with the palette
+        if (grab_tex_ == 0) {
+            glGenTextures(1, &grab_tex_);
+            glBindTexture(GL_TEXTURE_2D, grab_tex_);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        }
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, grab_tex_);
+        if (grab_dirty_ && grab_ok()) {
+            std::vector<uint8_t> rgb(3 * grab_.size());
+            for (size_t i = 0; i < grab_.size(); i++)
+                for (int k = 0; k < 3; k++)
+                    rgb[3 * i + k] = pal_[grab_[i] * 3 + k];
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, grab_w_, grab_h_, 0, GL_RGB, GL_UNSIGNED_BYTE, rgb.data());
+            grab_dirty_ = false;
+        }
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(glGetUniformLocation(prog, "u_panel_tex"), 8);
         glUniform1i(glGetUniformLocation(prog, "u_scan_tex"), 9);
+        glUniform1i(glGetUniformLocation(prog, "u_grab_tex"), 10);
     }
+
+    // The desktop's panels as it drew them (the game build).
+    void set_grab(const WorldSnapshot &snap)
+    {
+        if (snap.grab_frame == grab_frame_ || snap.grab.empty())
+            return;
+        grab_ = snap.grab;
+        grab_w_ = snap.grab_w;
+        grab_h_ = snap.grab_h;
+        memcpy(grab_rects_, snap.grab_rects, sizeof(grab_rects_));
+        grab_frame_ = snap.grab_frame;
+        grab_dirty_ = true;
+    }
+    bool grab_ok() const { return grab_frame_ != 0 && grab_w_ > 0 && grab_h_ > 0 && have_pal_; }
 
     // A new reading of the scanner's map.
     void set_scanner(const WorldSnapshot &snap)
@@ -183,63 +218,73 @@ public:
             sprites_in_line(hud, f, o, badge, bright);
             if ((pa.flags & SwvPAF_BADGE_BLINK) && (snap.hdr.gameturn & 4))
                 sprite(hud, f, o + glm::vec2(badge.dx - badge.x, badge.dy - badge.y), 6 + i, bright, 0.0004f);
-            // the bars as the desktop draws them (hud_panel.c
-            // draw_new_panel_{health,mood,energy}_overlay()), in the
-            // panels' dynamic boxes, row by row slanted as AppDrawSlantBox()
-            glm::vec3 wv = pi.colour_white ? pal_rgb(pi.colour_white) : glm::vec3(1.0f);
-            glm::vec3 rv = pi.colour_red ? pal_rgb(pi.colour_red) : glm::vec3(1.0f, 0.1f, 0.05f);
-            const float white[3] = {wv.x, wv.y, wv.z}, red[3] = {rv.x, rv.y, rv.z};
-            // health: white up to the maximum, beyond it red from the
-            // start; the shield over it (full at max_shield)
-            const P &hp = panel(8 + i);
-            glm::vec2 h0 = o + dyn_rel(hp, badge);
-            int lvmax = ag.max_health;
-            if (lvmax > 0) {
-                if (ag.health <= lvmax) {
-                    if (ag.health > 0)
-                        slant_rows(hud, f, h0, hp.dw * ag.health / lvmax, hp.dh, white, bright);
-                } else {
-                    slant_rows(hud, f, h0, hp.dw, hp.dh, white, bright);
-                    slant_rows(hud, f, h0, hp.dw * (ag.health - lvmax) / lvmax, hp.dh, red, bright, 0.0003f);
-                }
-            }
-            int max_sh = pi.max_shield ? pi.max_shield : 1024;
-            if (ag.shield > 0) {
-                int hw = 0;
-                if (lvmax > 0 && ag.health > 0)
-                    hw = hp.dw * std::min<int>(ag.health, lvmax) / lvmax + 1;
-                shield_bar(hud, f, snap, h0, hp.dw * ag.shield / max_sh, hp.dh, hw, wv, bright);
-            }
-            // mood: a slanted bar from the middle, (w / 2) * mood / 88
-            // wide (one pixel at 0: the red mark), coloured by the mood;
-            // the stamina limits: two slanted white lines 3/4 high
-            const P &mp = panel(4 + i);
-            glm::vec2 m0 = o + dyn_rel(mp, badge);
-            {
-                glm::vec3 mv = pi.mood_colour[i] ? pal_rgb(pi.mood_colour[i])
-                                                 : (pa.mood >= 0 ? glm::vec3(1.0f, 0.3f, 0.25f)
-                                                                 : glm::vec3(0.3f, 0.4f, 1.0f));
-                const float mc[3] = {mv.x, mv.y, mv.z};
-                float cx = m0.x + (float)(mp.dw >> 1);
-                int bw = (mp.dw >> 1) * pa.mood / 88;
-                float l = cx + (float)std::min(0, bw), r = cx + (float)std::max(0, bw) + 1.0f;
-                slant_span(hud, f, l, r, m0.y, (float)mp.dh, mc, bright);
-                if (pa.stamina > 0 && pa.max_stamina > 0) {
-                    int lh = mp.dh * 3 / 4;
-                    int sc = (mp.dw * pa.stamina / pa.max_stamina) >> 1;
-                    for (int side = -1; side <= 1; side += 2) {
-                        float lx = cx + (float)(side * sc) + 0.5f;
-                        line_px(hud, f, glm::vec2(lx, m0.y), glm::vec2(lx - lh, m0.y + lh), white, bright,
-                                0.0003f);
+            if (grab_ok()) {
+                // the bars as the desktop drew them: its own pixels, over
+                // the slots of the badge (health, mood, energy), each a
+                // little beyond its box for the slant
+                const P &hp = panel(8 + i), &mp = panel(4 + i), &ep = panel(12 + i);
+                grab_rect(hud, f, o, badge, 8 + i, hp.dx - hp.dh - 1, hp.dy, hp.dx + hp.dw + 2, hp.dy + hp.dh);
+                grab_rect(hud, f, o, badge, 4 + i, mp.dx - mp.dh - 1, mp.dy, mp.dx + mp.dw + 2, mp.dy + mp.dh);
+                grab_rect(hud, f, o, badge, 12 + i, ep.dx, ep.dy - ep.dh, ep.dx + ep.dw + ep.dh + 2, ep.dy + 1);
+            } else {
+                // the bars as the desktop draws them (hud_panel.c
+                // draw_new_panel_{health,mood,energy}_overlay()), in the
+                // panels' dynamic boxes, row by row slanted as AppDrawSlantBox()
+                glm::vec3 wv = pi.colour_white ? pal_rgb(pi.colour_white) : glm::vec3(1.0f);
+                glm::vec3 rv = pi.colour_red ? pal_rgb(pi.colour_red) : glm::vec3(1.0f, 0.1f, 0.05f);
+                const float white[3] = {wv.x, wv.y, wv.z}, red[3] = {rv.x, rv.y, rv.z};
+                // health: white up to the maximum, beyond it red from the
+                // start; the shield over it (full at max_shield)
+                const P &hp = panel(8 + i);
+                glm::vec2 h0 = o + dyn_rel(hp, badge);
+                int lvmax = ag.max_health;
+                if (lvmax > 0) {
+                    if (ag.health <= lvmax) {
+                        if (ag.health > 0)
+                            slant_rows(hud, f, h0, hp.dw * ag.health / lvmax, hp.dh, white, bright);
+                    } else {
+                        slant_rows(hud, f, h0, hp.dw, hp.dh, white, bright);
+                        slant_rows(hud, f, h0, hp.dw * (ag.health - lvmax) / lvmax, hp.dh, red, bright, 0.0003f);
                     }
                 }
+                int max_sh = pi.max_shield ? pi.max_shield : 1024;
+                if (ag.shield > 0) {
+                    int hw = 0;
+                    if (lvmax > 0 && ag.health > 0)
+                        hw = hp.dw * std::min<int>(ag.health, lvmax) / lvmax + 1;
+                    shield_bar(hud, f, snap, h0, hp.dw * ag.shield / max_sh, hp.dh, hw, wv, bright);
+                }
+                // mood: a slanted bar from the middle, (w / 2) * mood / 88
+                // wide (one pixel at 0: the red mark), coloured by the mood;
+                // the stamina limits: two slanted white lines 3/4 high
+                const P &mp = panel(4 + i);
+                glm::vec2 m0 = o + dyn_rel(mp, badge);
+                {
+                    glm::vec3 mv = pi.mood_colour[i] ? pal_rgb(pi.mood_colour[i])
+                                                     : (pa.mood >= 0 ? glm::vec3(1.0f, 0.3f, 0.25f)
+                                                                     : glm::vec3(0.3f, 0.4f, 1.0f));
+                    const float mc[3] = {mv.x, mv.y, mv.z};
+                    float cx = m0.x + (float)(mp.dw >> 1);
+                    int bw = (mp.dw >> 1) * pa.mood / 88;
+                    float l = cx + (float)std::min(0, bw), r = cx + (float)std::max(0, bw) + 1.0f;
+                    slant_span(hud, f, l, r, m0.y, (float)mp.dh, mc, bright);
+                    if (pa.stamina > 0 && pa.max_stamina > 0) {
+                        int lh = mp.dh * 3 / 4;
+                        int sc = (mp.dw * pa.stamina / pa.max_stamina) >> 1;
+                        for (int side = -1; side <= 1; side += 2) {
+                            float lx = cx + (float)(side * sc) + 0.5f;
+                            line_px(hud, f, glm::vec2(lx, m0.y), glm::vec2(lx - lh, m0.y + lh), white, bright,
+                                    0.0003f);
+                        }
+                    }
+                }
+                // energy: a slanted white bar growing up from the top of its
+                // box (draw_energy_bar(): a slant box of negative height)
+                const P &ep = panel(12 + i);
+                glm::vec2 e0 = o + dyn_rel(ep, badge);
+                if (ag.max_energy > 0)
+                    slant_rows(hud, f, e0, ep.dw, -(ep.dh * ag.energy / ag.max_energy), white, bright);
             }
-            // energy: a slanted white bar growing up from the top of its
-            // box (draw_energy_bar(): a slant box of negative height)
-            const P &ep = panel(12 + i);
-            glm::vec2 e0 = o + dyn_rel(ep, badge);
-            if (ag.max_energy > 0)
-                slant_rows(hud, f, e0, ep.dw, -(ep.dh * ag.energy / ag.max_energy), white, bright);
             // medikit
             const P &medp = panel(16 + i);
             sprite(hud, f, o + rel(medp, badge), (pa.flags & SwvPAF_MEDIKIT) ? medp.extra[0] : medp.spr[0], bright);
@@ -264,7 +309,10 @@ public:
             glm::vec2 c0 = col_origin();
             bool sup = sel >= 0 && (pi.agents[sel].flags & SwvPAF_SUPERSHIELD);
             sprites_in_column(hud, f, c0, cp, sup);
-            if (sel >= 0) {
+            if (sel >= 0 && grab_ok()) {
+                // the desktop's own pixels
+                grab_rect(hud, f, c0, cp, 24, cp.dx, cp.dy, cp.dx + cp.dw + 1, cp.dy + cp.dh + cp.dw + 2);
+            } else if (sel >= 0) {
                 // draw_weapon_energy_bar(): columns slanting down to the
                 // right, filled from the bottom up (AppDrawVSlantBox), red
                 // every other turn below 50
@@ -726,6 +774,28 @@ private:
             }
         }
     }
+    // A rectangle of the desktop's drawn panels: x0..x1, y0..y1 in the
+    // layout's coordinates (conf/pop1-1.ini) of panel p, put where the
+    // layout has it (o: where the stack has the panel's owner, owner: its
+    // layout box); sampled where the desktop has the panel now (its dyn
+    // box, scaled from the layout's).
+    void grab_rect(HudBuilder &hud, const Frame &f, glm::vec2 o, const P &owner, int p, int x0, int y0, int x1,
+                   int y1) const
+    {
+        const P &lp = panel(p);
+        const int16_t *r = &grab_rects_[8 * p];
+        if (p < 0 || p >= 26 || lp.dw <= 0 || lp.dh <= 0 || r[6] <= 0 || r[7] <= 0)
+            return;
+        float kx = (float)r[6] / lp.dw, ky = (float)r[7] / lp.dh;
+        auto uv = [&](int x, int y) {
+            return glm::vec2((r[4] + (x - lp.dx) * kx) / grab_w_, (r[5] + (y - lp.dy) * ky) / grab_h_);
+        };
+        glm::vec2 a = o + glm::vec2(x0 - owner.x, y0 - owner.y), b = o + glm::vec2(x1 - owner.x, y1 - owner.y);
+        glm::vec3 q[4] = {f.at(a.x, a.y, 0.0003f), f.at(b.x, a.y, 0.0003f), f.at(b.x, b.y, 0.0003f),
+                          f.at(a.x, b.y, 0.0003f)};
+        glm::vec2 t[4] = {uv(x0, y0), uv(x1, y0), uv(x1, y1), uv(x0, y1)};
+        hud.textured_quad_uv(q, t, 11.0f, 1.0f);
+    }
     static glm::vec2 dyn_rel(const P &p, const P &badge) { return glm::vec2(p.dx - badge.x, p.dy - badge.y); }
     // AppDrawSlantBox(x, y, w, h): rows of w + 1 pixels, each one a pixel
     // left of the one above (h > 0, down from y) or right of the one below
@@ -840,6 +910,12 @@ private:
     std::map<std::string, glm::vec2> shifts_;
     std::vector<SwvGlyph> glyphs_;
     std::vector<uint8_t> page_;
+    std::vector<uint8_t> grab_;
+    int grab_w_ = 0, grab_h_ = 0;
+    uint32_t grab_frame_ = 0;
+    int16_t grab_rects_[8 * 26] = {};
+    bool grab_dirty_ = false;
+    GLuint grab_tex_ = 0;
     uint8_t pal_[768] = {};
     bool ini_ok_ = false, sprites_ok_ = false, have_pal_ = false, dirty_ = false;
     GLuint tex_ = 0, scan_tex_ = 0;
