@@ -826,6 +826,16 @@ int main(int argc, char **argv)
             return false;
         };
 
+#if VR_DESKTOP_GAME
+        // the mission won or lost: the active hand's bottom trigger goes on,
+        // as Return on the desktop (input_mission_concluded())
+        if (use_xr && full_game && snap.valid && snap.hdr.in_mission &&
+            (snap.hud_info.mission_status == SwcMS_WON || snap.hud_info.mission_status == SwcMS_LOST) && act[1]) {
+            core.key(0x1C); // KC_RETURN
+            act[1] = false;
+            logf("mission end confirmed");
+        }
+#endif
         // the desktop's panels: clicks as on the desktop (hud_panel.c
         // check_panel_button(), process_panel_state()). The click is the
         // right hand's main trigger (R2 on the Steam Frame); the right click R1,

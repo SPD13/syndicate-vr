@@ -269,6 +269,7 @@ press does nothing else); the wrist panels are on the inactive hand.
 | Active hand's bottom trigger (Steam Frame: R2 / L2; others: the trigger) | The left button: point at an agent to select it, at the ground to walk there, at a vehicle to get in, at the wrist panels or the screen to click them, at a key of the virtual keyboard to type it |
 | Active hand's top trigger (Steam Frame: R1 / L1; others: the grip) | The right button: shoot at what it points at (held, weapons fire on and charging weapons charge); the right click on the wrist panels and the screen |
 | A trigger of the inactive hand | Make it the active hand |
+| Bottom trigger, the mission won or lost (whole game) | Go on, as Return on the desktop: to the debriefing (won), or what the desktop does on a loss; the wrist's status line says so |
 | Left A / B (Touch: X / Y) | Previous / next weapon |
 | Left stick | Move the view the way the stick is pushed, as you see it (up: on towards what is away from you; the map slides towards you), whatever the table's turn |
 | Left stick click | Place the table in front of you |

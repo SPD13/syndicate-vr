@@ -264,10 +264,10 @@ public:
             g_panels.draw(hud, fr, snap, pst, hover, now);
             if (hi.mission_status == SwcMS_WON)
                 hud.text(panel.tl + panel.right * (margin * ppx) - panel.up * (3 * ppx), panel.right, panel.up,
-                         ppx * 1.6f, "MISSION WON", gold);
+                         ppx * 1.6f, use_xr ? "MISSION WON - TRIGGER: CONTINUE" : "MISSION WON", gold);
             else if (hi.mission_status == SwcMS_LOST)
                 hud.text(panel.tl + panel.right * (margin * ppx) - panel.up * (3 * ppx), panel.right, panel.up,
-                         ppx * 1.6f, "MISSION LOST", red);
+                         ppx * 1.6f, use_xr ? "MISSION LOST - TRIGGER: CONTINUE" : "MISSION LOST", red);
         }
         // layers, front to back: bars, text, row highlights (1 mm behind the
         // text, which would z-fight in one plane), the board (2 mm)
