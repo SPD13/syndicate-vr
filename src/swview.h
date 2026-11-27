@@ -42,7 +42,7 @@ extern "C" {
 #endif
 /******************************************************************************/
 /** Version of this interface; grows when something is added. */
-#define SWVIEW_API_VERSION 5
+#define SWVIEW_API_VERSION 6
 
 #pragma pack(1)
 
@@ -277,6 +277,10 @@ struct SwvHeader {
     uint32_t view_scale_min; /**< view_scale at the game's furthest zoom: the
                                   longest-range weapon's, at the rules' ZoomMin;
                                   view_size at it shows the most the desktop can */
+    /* since version 6 */
+    int32_t view_tilt;        /**< Camera tilt, 2048 for a turn (negative: looking down) */
+    uint32_t view_perspective; /**< Nonzero: the desktop draws in perspective
+                                    (far things smaller), else isometric */
 };
 
 #define SWV_OFF_STATIC  4096u

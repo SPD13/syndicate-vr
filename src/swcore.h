@@ -132,6 +132,12 @@ void swcore_mission_conclude(void);
  */
 void swcore_camera_look_at(int32_t x, int32_t z);
 
+/** Turns the game camera to an angle, 0 to 2047 for a full turn (as
+ * SwcWorldInfo.cam_angle), at once and without spin. Call between turns.
+ * Since version 5.
+ */
+void swcore_camera_set_angle(int32_t angle);
+
 /******************************************************************************/
 /* Reading the world. Positions are the game's fine coordinates: X and Z
  * across the map, x >> 8 and z >> 8 being map coordinates (256 per tile),

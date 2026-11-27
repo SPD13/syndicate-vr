@@ -141,6 +141,13 @@ Since version 4:
   With `view_size` it gives the most ground the desktop game can show; the
   VR viewer outlines that area around the game camera.
 
+Since version 6:
+
+- `SwvHeader.view_tilt`, `view_perspective`: the camera's tilt and whether
+  the desktop draws in perspective. With `view_scale`, `view_size` and the
+  camera point and angle they give the ground the desktop's window shows
+  (the VR viewer outlines it in yellow on the table).
+
 Since version 5:
 
 - `swview_load_font()`: a game font (`data/fontc<style>-<detail>`; the

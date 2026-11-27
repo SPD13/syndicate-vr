@@ -8,6 +8,62 @@ static constexpr float kTiltCos = 0.8634f;
 static constexpr float kTiltSin = 0.5045f;
 
 /******************************************************************************/
+// What the desktop's window shows
+
+// The map point (x, z) of the ground seen at a point of the desktop's
+// window, (sx, sy) pixels from its centre, x to the right, y up; at view
+// scale scale (the header's view_scale, or view_scale_min for the furthest
+// zoom). The inverse of the engine's transform_shpoint() for ground at the
+// camera's height: a = cos*dx - sin*dz across the screen, b = sin*dx +
+// cos*dz into it; the tilt lifts b by -sin(tilt), and in perspective both
+// shrink by (16384 - d) / 16384 with d = cos(tilt) * b.
+static glm::vec2 desktop_screen_to_ground(const SwvHeader &h, float scale, float sx, float sy)
+{
+    float tilt = (h.view_tilt != 0 ? (float)h.view_tilt : -(303.0f * 1024.0f / 1800.0f)) * (6.2831853f / 2048.0f);
+    float ty = std::sin(tilt), txz = std::cos(tilt);
+    bool persp = h.view_perspective != 0;
+    auto shrink = [&](float b) {
+        if (!persp)
+            return 1.0f;
+        float d = txz * b;
+        if (d > 1024.0f)
+            d = 16384.0f * d / (d + 16384.0f);
+        return (16384.0f - d) / 16384.0f;
+    };
+    // the screen's height of depth b: -ty * b * scale / 2048, shrunk
+    float k = scale / 2048.0f;
+    float lo = -9000.0f, hi = 9000.0f;
+    for (int i = 0; i < 40; i++) {
+        float mid = 0.5f * (lo + hi);
+        float y = -ty * mid * k * shrink(mid);
+        if ((y < sy) == (-ty > 0))
+            lo = mid;
+        else
+            hi = mid;
+    }
+    float b = 0.5f * (lo + hi);
+    float a = sx / (k * shrink(b));
+    float s = std::sin(h.cam_angle), c = std::cos(h.cam_angle);
+    return glm::vec2(h.cam_x + c * a + s * b, h.cam_z - s * a + c * b);
+}
+
+// The border of the desktop's window on the ground, n points along each
+// edge, clockwise from the top left corner.
+static void desktop_view_outline(const SwvHeader &h, float scale, int n, std::vector<glm::vec2> &out)
+{
+    out.clear();
+    float w = (float)(h.view_size >> 16), hh = (float)(h.view_size & 0xFFFF);
+    if (w <= 0 || hh <= 0 || scale <= 0)
+        return;
+    glm::vec2 k[4] = {{-w / 2, hh / 2}, {w / 2, hh / 2}, {w / 2, -hh / 2}, {-w / 2, -hh / 2}};
+    for (int e = 0; e < 4; e++)
+        for (int i = 0; i < n; i++) {
+            glm::vec2 p = glm::mix(k[e], k[(e + 1) % 4], (float)i / n);
+            out.push_back(desktop_screen_to_ground(h, scale, p.x, p.y));
+        }
+}
+
+/******************************************************************************/
 // Table view state: which part of the map is shown, and how
 
 struct TableView {
@@ -75,10 +131,24 @@ struct TableView {
             synced_ = true;
             return;
         }
-        glm::vec3 target = center_for(glm::vec2(h.cam_x, h.cam_z), anchor);
+        // the table turns with the desktop's camera, about the point in
+        // front of the viewer, the shorter way
         float k = 1.0f - std::exp(-dt * 4.0f);
+        float da = std::remainder(h.cam_angle - yaw, 6.2831853f);
+        if (std::fabs(da) > 1e-4f)
+            turn_at_anchor(da * k);
+        glm::vec3 target = center_for(glm::vec2(h.cam_x, h.cam_z), anchor);
         center = glm::mix(center, target, k);
         clamp_center();
+    }
+
+    // The table's turn as a game camera angle, 0..2047.
+    int32_t game_angle() const
+    {
+        float a = std::remainder(yaw, 6.2831853f);
+        if (a < 0)
+            a += 6.2831853f;
+        return (int32_t)std::lround(a / 6.2831853f * 2048.0f) & 2047;
     }
     // Lines the table up with the desktop's view again at the next
     // follow_camera(), as at the start (a new table placement).

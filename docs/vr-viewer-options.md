@@ -70,6 +70,7 @@ Units used below:
 | `--zoom HALF` | `5120` | Map units from the table's centre to its edge at the start (1024 to 17000). Zoom at runtime with the right stick (up/down) or `+`/`-`, about the point in front of you. |
 | (linked views) | on | The headset and the desktop look at the same place (below). A on the right controller or F switches the link off and on. |
 | `--center X Z` | off: the views are linked | Map point at the table's centre at the start; the link is off. |
+| `--no-desktop-frame` | off: the frame is shown | Hides the yellow outline of what the desktop's window shows now (`--desktop-frame` shows it). The outline follows the desktop's camera, zoom, window size and projection (perspective or isometric), so with perspective it is wider at its far side. |
 
 **Linked views.** The desktop's centre of view is its camera point, the
 middle of its window. The headset's is the point of the table in front of
@@ -83,12 +84,19 @@ your heading slowly, so a glance does not move the map. Without a headset
   is turned as the desktop's view: what is at the top of the desktop
   window is away from you.
 - While the desktop's camera moves (the player scrolls, the camera follows
-  an agent), the table slides so that its point stays in front of you.
+  an agent) or turns, the table slides and turns with it, so that its
+  point stays in front of you and the top of the desktop window away from
+  you.
 - While you move the table (left stick, zoom and turn with the right
   stick), the desktop's camera is sent to the map point in front of you
   (`swcore_camera_look_at()`, as the desktop's scrolling) and glides
-  there; the table follows the desktop again 1.2 s after you stop. Zooming
-  and turning keep the point in front of you where it is.
+  there, and turned as the table (`swcore_camera_set_angle()`); the table
+  follows the desktop again 1.2 s after you stop. Zooming and turning keep
+  the point in front of you where it is.
+- The desktop draws in perspective (an option of the game): lines running
+  up its window converge, so a street straight up the map looks slanted
+  there and straight on the table. The yellow outline shows the area
+  exactly.
 
 ## Fog of war
 

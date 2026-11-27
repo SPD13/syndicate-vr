@@ -224,6 +224,12 @@ void swcore_camera_look_at(int32_t x, int32_t z)
     ingame.TrackZ = z;
 }
 
+void swcore_camera_set_angle(int32_t angle)
+{
+    engn_cam_yaw = (angle & 0x7FF) << 5; // as cam_angle above
+    engn_cam_yaw_vel = 0;
+}
+
 TbBool swcore_input_packet(struct Packet *p_pckt)
 {
     struct SwcCommand cmd;

@@ -18,7 +18,8 @@
 //                 shows the whole world or only the table's square, the
 //                 right grip switches the fog of war,
 //                 left stick click recentres the table in front of you.
-// Options: --companion game|table (with VR_DESKTOP_GAME: the desktop
+// Options: --no-desktop-frame (no yellow outline of the desktop's view),
+//          --companion game|table (with VR_DESKTOP_GAME: the desktop
 //          window is the desktop game, or the table program), --no-fog
 //          (the fog of war of fog.h is on by default; switch with G),
 //          --fog-scale F (times the default radius), --fog-radius R
@@ -152,6 +153,8 @@ int main(int argc, char **argv)
     bool whole_world = true;
     // the fog of war (fog.h): on unless --no-fog; G, the right grip
     float fog_radius = 0, fog_scale = 1.0f;
+    // the yellow outline of the desktop's view on the table
+    bool desktop_frame = true;
     std::string assets_dir = getenv("SWARS_ASSETS3D") ? getenv("SWARS_ASSETS3D") : "";
     double turn_ms = 50.0;
     uint32_t dump_turn = 0;
@@ -177,7 +180,11 @@ int main(int argc, char **argv)
             fog_radius = (float)atof(argv[++i]);
         } else if (!strcmp(argv[i], "--fog-scale") && i + 1 < argc) {
             fog_scale = std::max(0.05f, (float)atof(argv[++i]));
-        } else if (!strcmp(argv[i], "--fog"))
+        } else if (!strcmp(argv[i], "--desktop-frame"))
+            desktop_frame = true;
+        else if (!strcmp(argv[i], "--no-desktop-frame"))
+            desktop_frame = false;
+        else if (!strcmp(argv[i], "--fog"))
             g_fog.enabled = true;
         else if (!strcmp(argv[i], "--no-fog"))
             g_fog.enabled = false;
@@ -462,7 +469,7 @@ int main(int argc, char **argv)
             drive_until = t + 1.2;
         if (tv.follow && t < drive_until && t - look_sent > 0.15 && snap.valid && snap.hdr.in_mission) {
             glm::vec2 m = tv.map_at(tv.anchor);
-            core.look_at((int32_t)m.x, (int32_t)m.y);
+            core.look_at((int32_t)m.x, (int32_t)m.y, tv.game_angle());
             look_sent = t;
         }
         if (t < drive_until)
@@ -675,42 +682,46 @@ int main(int argc, char **argv)
             // what the agents see; else the most the desktop game's window
             // can show (its size at the game's furthest zoom)
             static const float frame_col[3] = {0.75f, 0.75f, 0.8f};
-            auto dash = [&](glm::vec2 b1, glm::vec2 b2) {
+            // a line on the ground, half_w map units each side
+            auto ground_line = [&](glm::vec2 b1, glm::vec2 b2, float half_w, const float *col) {
                 glm::vec3 a1(b1.x, picker.ground_at(b1.x, b1.y) + 10, b1.y);
                 glm::vec3 a2(b2.x, picker.ground_at(b2.x, b2.y) + 10, b2.y);
-                glm::vec3 side = glm::normalize(glm::cross(a2 - a1, glm::vec3(0, 1, 0))) * 6.0f;
+                if (glm::length(a2 - a1) < 1e-3f)
+                    return;
+                glm::vec3 side = glm::normalize(glm::cross(a2 - a1, glm::vec3(0, 1, 0))) * half_w;
                 glm::vec3 q[4] = {a1 - side, a1 + side, a2 + side, a2 - side};
                 static const int tri[6] = {0, 1, 2, 0, 2, 3};
                 for (int kk : tri) {
                     GpuVert g{};
                     g.pos[0] = q[kk].x; g.pos[1] = q[kk].y; g.pos[2] = q[kk].z;
-                    g.rgb[0] = frame_col[0]; g.rgb[1] = frame_col[1]; g.rgb[2] = frame_col[2];
+                    g.rgb[0] = col[0]; g.rgb[1] = col[1]; g.rgb[2] = col[2];
                     g.textured = 3.0f;
                     people_verts.push_back(g);
                 }
             };
+            auto dash = [&](glm::vec2 b1, glm::vec2 b2) { ground_line(b1, b2, 6.0f, frame_col); };
             float scale = snap.hdr.view_scale_min > 0 ? (float)snap.hdr.view_scale_min
                           : snap.hdr.view_scale > 0   ? (float)snap.hdr.view_scale
                                                       : 256.0f;
             float vw = (float)(snap.hdr.view_size >> 16), vh = (float)(snap.hdr.view_size & 0xFFFF);
+            // yellow: what the desktop's window shows now, around its camera
+            // point and turned with it (the engine's screen to map:
+            // right is (cos a, -sin a), up (sin a, cos a); depth is
+            // stretched by the camera's tilt)
+            static std::vector<glm::vec2> outline;
+            if (desktop_frame && snap.hdr.view_scale > 0) {
+                static const float yellow[3] = {1.0f, 0.85f, 0.1f};
+                desktop_view_outline(snap.hdr, (float)snap.hdr.view_scale, 12, outline);
+                for (size_t i = 0; i < outline.size(); i++)
+                    ground_line(outline[i], outline[(i + 1) % outline.size()], 4.0f, yellow);
+            }
             if (g_fog.enabled) {
                 g_fog.outline(dash);
             } else if (vw > 0 && vh > 0) {
-                float half_w = vw * 0.5f * 8.0f * 256.0f / scale;
-                float half_d = vh * 0.5f * 8.0f * 256.0f / scale / kTiltSin;
-                float a = snap.hdr.cam_angle;
-                glm::vec3 right(std::cos(a), 0, -std::sin(a)), fwd(std::sin(a), 0, std::cos(a));
-                glm::vec3 c(snap.hdr.cam_x, 0, snap.hdr.cam_z);
-                glm::vec3 k[4] = {c - right * half_w - fwd * half_d, c + right * half_w - fwd * half_d,
-                                  c + right * half_w + fwd * half_d, c - right * half_w + fwd * half_d};
-                for (int e = 0; e < 4; e++) {
-                    glm::vec3 p1 = k[e], p2 = k[(e + 1) % 4];
-                    const int seg = 16;
-                    for (int s2 = 0; s2 < seg; s2 += 2) {
-                        glm::vec3 a1 = glm::mix(p1, p2, (float)s2 / seg), a2 = glm::mix(p1, p2, (float)(s2 + 1) / seg);
-                        dash(glm::vec2(a1.x, a1.z), glm::vec2(a2.x, a2.z));
-                    }
-                }
+                // the same outline at the furthest zoom, dashed
+                desktop_view_outline(snap.hdr, scale, 8, outline);
+                for (size_t i = 0; i < outline.size(); i += 2)
+                    dash(outline[i], outline[(i + 1) % outline.size()]);
             }
         }
 

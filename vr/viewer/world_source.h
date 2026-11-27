@@ -286,8 +286,14 @@ public:
     /** A command of the player (swcore_command()). */
     void command(const SwcCommand &c) { swcore_command(&c); }
 
-    /** Moves the game camera to look at a map point. */
-    void look_at(int32_t x, int32_t z) { swcore_camera_look_at(x, z); }
+    /** Moves the game camera to look at a map point, turned to angle
+     * (0..2047), or not turned for a negative angle. */
+    void look_at(int32_t x, int32_t z, int32_t angle = -1)
+    {
+        swcore_camera_look_at(x, z);
+        if (angle >= 0)
+            swcore_camera_set_angle(angle);
+    }
 
     /** The player confirms the end of a decided mission. */
     void conclude()
@@ -419,11 +425,12 @@ public:
 
     /** Moves the desktop's camera to look at a map point (on the game's
      * thread, before its next turn). */
-    void look_at(int32_t x, int32_t z)
+    void look_at(int32_t x, int32_t z, int32_t angle = -1)
     {
         std::lock_guard<std::mutex> lk(mu_);
         look_x_ = x;
         look_z_ = z;
+        look_angle_ = angle;
         look_ = true;
     }
 
@@ -514,13 +521,14 @@ private:
     {
         std::vector<SwcCommand> q;
         bool conclude = false, look = false;
-        int32_t lx = 0, lz = 0;
+        int32_t lx = 0, lz = 0, la = -1;
         {
             std::lock_guard<std::mutex> lk(mu_);
             q.swap(queue_);
             look = look_;
             lx = look_x_;
             lz = look_z_;
+            la = look_angle_;
             look_ = false;
             conclude = conclude_;
             conclude_ = false;
@@ -536,8 +544,11 @@ private:
         }
         for (const SwcCommand &c : q)
             swcore_command(&c);
-        if (look)
+        if (look) {
             swcore_camera_look_at(lx, lz);
+            if (la >= 0)
+                swcore_camera_set_angle(la);
+        }
         if (conclude) {
             struct SwcWorldInfo info;
             swcore_world_info(&info);
@@ -597,7 +608,7 @@ private:
     bool held_on_ = false, release_after_ = false, conclude_ = false;
     int held_turns_ = 0;
     bool look_ = false;
-    int32_t look_x_ = 0, look_z_ = 0;
+    int32_t look_x_ = 0, look_z_ = 0, look_angle_ = -1;
 };
 #endif
 
