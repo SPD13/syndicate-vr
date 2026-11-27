@@ -292,6 +292,7 @@ int main(int argc, char **argv)
     People people;
     std::vector<GpuVert> people_verts, glow_verts;
     bool placed = !use_xr;
+    bool anchor_set = false; // the anchor of the table view, from the head
     XrApp::Input xr_in;
     glm::vec3 eye_world(0, 1.0f, 1.0f); // last known viewer position
     if (!use_xr)
@@ -338,6 +339,7 @@ int main(int argc, char **argv)
     std::vector<People::ModelPlace> model_places;
     std::vector<People::PropPlace> prop_places;
     double over_at = -1;
+    double drive_until = -1, look_sent = -1;
     // the HUD's fonts (text.h): the vector font next to the program, read
     // before the game changes folder; the game's from its data folder
     {
@@ -355,6 +357,9 @@ int main(int argc, char **argv)
         float dt = (float)std::min(0.1, t - t_prev);
         t_prev = t;
 
+        // whether the viewer moved the table this frame (then the desktop's
+        // camera follows it, not the other way round)
+        bool view_moved = false;
         SDL_Event ev;
         for (SimKey &k : sim_keys)
             if (!k.done && t - t_start >= k.at) {
@@ -414,14 +419,14 @@ int main(int argc, char **argv)
                     break;
                 case SDLK_LEFTBRACKET: key_wep_prev = true; break;
                 case SDLK_RIGHTBRACKET: key_wep_next = true; break;
-                case SDLK_EQUALS: case SDLK_KP_PLUS: tv.zoom(0.8f); break;
-                case SDLK_MINUS: case SDLK_KP_MINUS: tv.zoom(1.25f); break;
-                case SDLK_q: tv.yaw += 0.2f; break;
-                case SDLK_e: tv.yaw -= 0.2f; break;
-                case SDLK_LEFT: tv.follow = false; tv.pan(-0.1f, 0); break;
-                case SDLK_RIGHT: tv.follow = false; tv.pan(0.1f, 0); break;
-                case SDLK_UP: tv.follow = false; tv.pan(0, -0.1f); break;
-                case SDLK_DOWN: tv.follow = false; tv.pan(0, 0.1f); break;
+                case SDLK_EQUALS: case SDLK_KP_PLUS: tv.zoom_at_anchor(0.8f); view_moved = true; break;
+                case SDLK_MINUS: case SDLK_KP_MINUS: tv.zoom_at_anchor(1.25f); view_moved = true; break;
+                case SDLK_q: tv.turn_at_anchor(0.2f); view_moved = true; break;
+                case SDLK_e: tv.turn_at_anchor(-0.2f); view_moved = true; break;
+                case SDLK_LEFT: tv.pan(-0.1f, 0); view_moved = true; break;
+                case SDLK_RIGHT: tv.pan(0.1f, 0); view_moved = true; break;
+                case SDLK_UP: tv.pan(0, -0.1f); view_moved = true; break;
+                case SDLK_DOWN: tv.pan(0, 0.1f); view_moved = true; break;
                 default: break;
                 }
             } else if (ev.type == SDL_WINDOWEVENT && ev.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
@@ -447,7 +452,23 @@ int main(int argc, char **argv)
                 picker.update_ground(snap);
             picker.update_vehicles(snap);
         }
-        tv.follow_camera(snap.hdr, dt);
+        // the two views look at the same place: while the viewer moves the
+        // table (and a moment after, as the desktop's camera glides there)
+        // the desktop's camera is sent to the map point in front of the
+        // viewer; else the table follows the desktop's camera
+        if (!use_xr)
+            tv.anchor = glm::vec3(tv.table_pose[3]);
+        if (view_moved && tv.follow)
+            drive_until = t + 1.2;
+        if (tv.follow && t < drive_until && t - look_sent > 0.15 && snap.valid && snap.hdr.in_mission) {
+            glm::vec2 m = tv.map_at(tv.anchor);
+            core.look_at((int32_t)m.x, (int32_t)m.y);
+            look_sent = t;
+        }
+        if (t < drive_until)
+            ;
+        else if (placed)
+            tv.follow_camera(snap.hdr, dt);
         {
             static std::vector<SwvVert> moving;
             people.moving_geometry(t, moving);
@@ -730,15 +751,21 @@ int main(int argc, char **argv)
                 break;
             XrApp::Input in = xr_in;
             if (std::fabs(in.pan.x) > 0.15f || std::fabs(in.pan.y) > 0.15f) {
-                tv.follow = false;
                 // the stick moves the map, not the view point: the table
                 // slides the way the stick is pushed
                 tv.pan(-in.pan.x * dt * 0.8f, in.pan.y * dt * 0.8f);
+                view_moved = true;
             }
-            if (std::fabs(in.zoom.y) > 0.2f)
-                tv.zoom(std::pow(0.4f, in.zoom.y * dt));
-            if (std::fabs(in.zoom.x) > 0.2f)
-                tv.yaw -= in.zoom.x * dt * 1.5f;
+            if (std::fabs(in.zoom.y) > 0.2f) {
+                tv.zoom_at_anchor(std::pow(0.4f, in.zoom.y * dt));
+                view_moved = true;
+            }
+            if (std::fabs(in.zoom.x) > 0.2f) {
+                tv.turn_at_anchor(-in.zoom.x * dt * 1.5f);
+                view_moved = true;
+            }
+            if (view_moved && tv.follow)
+                drive_until = t + 1.2;
             if (in.look_pressed) {
                 look.enabled = !look.enabled;
                 logf("look: %s", look.enabled ? "upgraded" : "classic");
@@ -760,8 +787,33 @@ int main(int argc, char **argv)
             {
                 glm::vec3 hp;
                 glm::quat ho;
-                if (xt != 0 && xr.head_pose(xt, hp, ho))
+                if (xt != 0 && xr.head_pose(xt, hp, ho)) {
                     eye_world = hp;
+                    // the point of the table in front of the viewer: along
+                    // the head's heading, where a gaze 40 degrees down meets
+                    // the table top, kept on the table; it follows the head
+                    // slowly, so a glance does not move the map
+                    glm::vec3 fwd = ho * glm::vec3(0, 0, -1);
+                    fwd.y = 0;
+                    if (placed && glm::length(fwd) > 0.01f) {
+                        fwd = glm::normalize(fwd);
+                        float top = tv.table_pose[3].y;
+                        float d = std::clamp((hp.y - top) / std::tan(glm::radians(40.0f)), 0.25f, 1.2f);
+                        glm::vec3 a(hp.x + fwd.x * d, top, hp.z + fwd.z * d);
+                        glm::vec3 loc = glm::vec3(glm::inverse(tv.table_pose) * glm::vec4(a, 1.0f));
+                        float lim = tv.table_half_m * 0.85f;
+                        loc.x = std::clamp(loc.x, -lim, lim);
+                        loc.z = std::clamp(loc.z, -lim, lim);
+                        loc.y = 0;
+                        a = glm::vec3(tv.table_pose * glm::vec4(loc, 1.0f));
+                        if (!anchor_set) {
+                            tv.anchor = a;
+                            anchor_set = true;
+                        } else {
+                            tv.anchor = glm::mix(tv.anchor, a, 1.0f - std::exp(-dt * 1.5f));
+                        }
+                    }
+                }
             }
             if (!placed && xt != 0) {
                 glm::vec3 hp;
@@ -777,6 +829,8 @@ int main(int argc, char **argv)
                         tv.table_pose = glm::rotate(glm::translate(glm::mat4(1.0f), c), yaw,
                                                     glm::vec3(0, 1, 0));
                         placed = true;
+                        anchor_set = false;
+                        tv.resync();
                         logf("table placed at %.2f %.2f %.2f", c.x, c.y, c.z);
                     }
                 }

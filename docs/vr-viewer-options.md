@@ -67,8 +67,28 @@ Units used below:
 |---|---|---|
 | (whole world) `--whole-world` | on | The whole map is drawn, around and beyond the table. It costs nothing extra: the whole map is on the GPU anyway. |
 | `--table-only` | off | Only the square of the map on the table is drawn, as before. Switch at runtime with C (desktop) or a click of the right stick. Pointing and commands follow what is drawn. |
-| `--zoom HALF` | `5120` | Map units from the table's centre to its edge at the start (1024 to 17000). Zoom at runtime with the right stick (up/down) or `+`/`-`. |
-| `--center X Z` | off: the table follows the game camera | Map point at the table's centre at the start. Following stops; A on the right controller or F switches it back on. |
+| `--zoom HALF` | `5120` | Map units from the table's centre to its edge at the start (1024 to 17000). Zoom at runtime with the right stick (up/down) or `+`/`-`, about the point in front of you. |
+| (linked views) | on | The headset and the desktop look at the same place (below). A on the right controller or F switches the link off and on. |
+| `--center X Z` | off: the views are linked | Map point at the table's centre at the start; the link is off. |
+
+**Linked views.** The desktop's centre of view is its camera point, the
+middle of its window. The headset's is the point of the table in front of
+you: along your heading, where a gaze 40 degrees down meets the table top
+(about 0.6 m ahead at a usual height), kept on the table and following
+your heading slowly, so a glance does not move the map. Without a headset
+(the table program's window) it is the table's centre.
+
+- At the start, and whenever the table is placed again (left stick
+  click), the desktop's camera point is put in front of you and the table
+  is turned as the desktop's view: what is at the top of the desktop
+  window is away from you.
+- While the desktop's camera moves (the player scrolls, the camera follows
+  an agent), the table slides so that its point stays in front of you.
+- While you move the table (left stick, zoom and turn with the right
+  stick), the desktop's camera is sent to the map point in front of you
+  (`swcore_camera_look_at()`, as the desktop's scrolling) and glides
+  there; the table follows the desktop again 1.2 s after you stop. Zooming
+  and turning keep the point in front of you where it is.
 
 ## Fog of war
 
@@ -144,7 +164,7 @@ VR (Valve Index, Oculus Touch):
 | Left stick click | Place the table in front of you |
 | Right stick | Zoom (up/down), turn the table (left/right) |
 | Right stick click | Whole world / table only |
-| Right A | Follow the game camera on/off |
+| Right A | Link the headset's and the desktop's views on/off |
 | Right B | Classic / upgraded look |
 | Right grip | Fog of war on/off |
 
@@ -161,7 +181,7 @@ Desktop window of `syndwars-vr-table.exe`:
 | Arrows | Move the map |
 | `+` / `-` | Zoom |
 | Q / E | Turn the table |
-| F | Follow the game camera on/off |
+| F | Link the views on/off |
 | L | Classic / upgraded look |
 | C | Whole world / table only |
 | G | Fog of war on/off |

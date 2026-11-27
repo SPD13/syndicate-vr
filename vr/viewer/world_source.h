@@ -286,6 +286,9 @@ public:
     /** A command of the player (swcore_command()). */
     void command(const SwcCommand &c) { swcore_command(&c); }
 
+    /** Moves the game camera to look at a map point. */
+    void look_at(int32_t x, int32_t z) { swcore_camera_look_at(x, z); }
+
     /** The player confirms the end of a decided mission. */
     void conclude()
     {
@@ -414,6 +417,16 @@ public:
         queue_.push_back(c);
     }
 
+    /** Moves the desktop's camera to look at a map point (on the game's
+     * thread, before its next turn). */
+    void look_at(int32_t x, int32_t z)
+    {
+        std::lock_guard<std::mutex> lk(mu_);
+        look_x_ = x;
+        look_z_ = z;
+        look_ = true;
+    }
+
     // As CoreWorld::hold(), applied on the game's thread every turn.
     void hold(const SwcCommand *c)
     {
@@ -500,10 +513,15 @@ private:
     void apply_commands()
     {
         std::vector<SwcCommand> q;
-        bool conclude = false;
+        bool conclude = false, look = false;
+        int32_t lx = 0, lz = 0;
         {
             std::lock_guard<std::mutex> lk(mu_);
             q.swap(queue_);
+            look = look_;
+            lx = look_x_;
+            lz = look_z_;
+            look_ = false;
             conclude = conclude_;
             conclude_ = false;
             if (held_on_) {
@@ -518,6 +536,8 @@ private:
         }
         for (const SwcCommand &c : q)
             swcore_command(&c);
+        if (look)
+            swcore_camera_look_at(lx, lz);
         if (conclude) {
             struct SwcWorldInfo info;
             swcore_world_info(&info);
@@ -576,6 +596,8 @@ private:
     SwcCommand held_{};
     bool held_on_ = false, release_after_ = false, conclude_ = false;
     int held_turns_ = 0;
+    bool look_ = false;
+    int32_t look_x_ = 0, look_z_ = 0;
 };
 #endif
 

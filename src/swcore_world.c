@@ -216,6 +216,14 @@ static TbBool swc_map_point_valid(s32 x, s32 z)
     return (x > 0) && (x < MAP_COORD_WIDTH) && (z > 0) && (z < MAP_COORD_HEIGHT);
 }
 
+void swcore_camera_look_at(int32_t x, int32_t z)
+{
+    if (!swc_map_point_valid(x, z))
+        return;
+    ingame.TrackX = x;
+    ingame.TrackZ = z;
+}
+
 TbBool swcore_input_packet(struct Packet *p_pckt)
 {
     struct SwcCommand cmd;

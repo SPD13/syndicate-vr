@@ -31,7 +31,7 @@ extern "C" {
 /******************************************************************************/
 
 /** Version of this interface; grows when functions are added. */
-#define SWCORE_API_VERSION 4
+#define SWCORE_API_VERSION 5
 
 /** Sets the game up as the executable would: reads the command line options
  * (the same as syndwarsfx, e.g. "-m 1,2" to start a mission), the config
@@ -124,6 +124,13 @@ uint32_t swcore_state_hash(void);
  * Does nothing while the mission is not decided. Since version 4.
  */
 void swcore_mission_conclude(void);
+
+/** Moves the game camera to look at map point x, z, as the desktop's
+ * scrolling does: it glides there over the next turns (while it follows
+ * no thing). For a second view of the game, such as a VR table, to show
+ * the desktop the same place. Call between turns. Since version 5.
+ */
+void swcore_camera_look_at(int32_t x, int32_t z);
 
 /******************************************************************************/
 /* Reading the world. Positions are the game's fine coordinates: X and Z
