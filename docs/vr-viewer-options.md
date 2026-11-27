@@ -207,6 +207,9 @@ most-zoomed-out desktop view does. The value comes from the game
 
 ## The wrist panels
 
+The mission's objective is on a board just above them, in their plane and
+as wide (the objective text wrapped to fit).
+
 The wrist of the inactive hand (the left one at first; beside the table in
 the table program's window) shows the
 desktop game's own agent panels: the same sprites (`data/pop1-1`) and

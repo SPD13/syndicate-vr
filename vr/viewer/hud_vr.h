@@ -2,8 +2,8 @@
 // world markers.
 //
 // The 2D panels of the game do not suit VR: the agents and their weapons
-// are on a panel at the left wrist, the objective on a board at the
-// table's edge, and the rest is in the scene as markers (HANDOVER.md 7.2
+// are on a panel at the inactive hand's wrist, the objective on a board
+// just above it (at the table's edge without the desktop's panels), and the rest is in the scene as markers (HANDOVER.md 7.2
 // of the assets repository, markers/markers.json): M1 selection, M2 hover,
 // M3 lock, M4 health, M5 charge, M6 persuaded, M7 waypoint, M8 damage,
 // M9 objective. Markers animate on real time; sizes are in
@@ -330,7 +330,26 @@ public:
         }
         } // !out.desk
 
-        // objective board, leaning back at the far edge of the table
+        // objective board: above the wrist panels, in their plane and as
+        // wide, when they are shown; else leaning back at the far edge of
+        // the table
+        if (out.desk) {
+            const float bpx = 0.0022f, brow = 0.03f, pad = 0.012f, gap = 0.012f;
+            int cols = std::max(10, (int)((panel.w - 2 * pad) / (6.0f * bpx)));
+            std::vector<std::string> ol = wrap_text(hd.objective, cols);
+            if (!ol.empty()) {
+                float bh = (ol.size() + 1) * brow + pad;
+                glm::vec3 tl = panel.tl + panel.up * (bh + gap);
+                glm::vec3 bback = -glm::cross(panel.right, panel.up) * 0.002f;
+                hud.rect(tl + bback, panel.right, panel.up, panel.w, bh, bg);
+                hud.text(tl + panel.right * pad - panel.up * 0.006f, panel.right, panel.up, bpx * 0.8f, "OBJECTIVE",
+                         gold);
+                for (size_t l = 0; l < ol.size(); l++)
+                    hud.text(tl + panel.right * pad - panel.up * (brow * (l + 1) + 0.006f), panel.right, panel.up, bpx,
+                             ol[l], white);
+            }
+            return out;
+        }
         std::vector<std::string> lines = wrap_text(hd.objective, 34);
         if (!lines.empty()) {
             const float bpx = 0.003f, brow = 0.04f;
