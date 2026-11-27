@@ -75,18 +75,18 @@ Units used below:
 **Linked views.** The desktop's centre of view is its camera point, the
 middle of its window. The headset's is the point of the table in front of
 you: along your heading, where a gaze 40 degrees down meets the table top
-(about 0.6 m ahead at a usual height), kept on the table and following
-your heading slowly, so a glance does not move the map. Without a headset
-(the table program's window) it is the table's centre.
+(about 0.6 m ahead at a usual height), kept on the table. It and your
+heading are taken once, when the table is placed (at the start, and
+again with a left stick click); after that, turning your head or body
+changes neither the desktop's view nor its yellow outline on the table.
+Without a headset (the table program's window) it is the table's centre.
 
-- The desktop's camera looks the way you do: the table is turned so that
-  the top of the desktop window lies along your heading (from your eyes to
-  the point in front of you), wherever you stand around the table. At the
-  start, and whenever the table is placed again (left stick click), the
-  desktop's camera point is put in front of you.
-- Walking round the table or turning your body by more than 20 degrees
-  (glances do not count: the heading follows the head slowly) turns the
-  desktop's camera to look from your side.
+- The desktop's camera looks the way you did when the table was placed:
+  the top of the desktop window lies along that heading (from your eyes
+  to the point in front of you), and the desktop's camera point is put in
+  front of you.
+- The view turns only with the turn controls (right stick left/right, Q/E
+  on the desktop) or when the desktop's camera turns.
 - While the desktop's camera moves (the player scrolls, the camera follows
   an agent) or turns, the table slides and turns with it, so that its
   point stays in front of you and the top of the desktop window away from

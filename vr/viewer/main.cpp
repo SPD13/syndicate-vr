@@ -482,20 +482,13 @@ int main(int argc, char **argv)
             tv.anchor = glm::vec3(tv.table_pose[3]);
         {
             // the viewer's heading: from their eyes to the point in front of
-            // them (which follows the head slowly); turning by over 20
-            // degrees moves the desktop's camera round to their side
+            // them, taken once when the table is placed (or recentred); the
+            // head turning changes nothing, the view turns only with the
+            // turn controls
             glm::vec3 hv = tv.anchor - eye_world;
-            if (hv.x * hv.x + hv.z * hv.z > 1e-6f) {
-                float h = std::atan2(hv.x, -hv.z);
-                if (!heading_set) {
-                    tv.heading = h;
-                    heading_set = true;
-                } else if (std::fabs(std::remainder(h - tv.heading, 6.2831853f)) > glm::radians(20.0f)) {
-                    tv.heading = h;
-                    view_moved = true;
-                } else if (t < drive_until) {
-                    tv.heading = h;
-                }
+            if (!heading_set && (!use_xr || anchor_set) && hv.x * hv.x + hv.z * hv.z > 1e-6f) {
+                tv.heading = std::atan2(hv.x, -hv.z);
+                heading_set = true;
             }
         }
         if (view_moved && tv.follow)
@@ -1034,11 +1027,12 @@ int main(int argc, char **argv)
                         loc.z = std::clamp(loc.z, -lim, lim);
                         loc.y = 0;
                         a = glm::vec3(tv.table_pose * glm::vec4(loc, 1.0f));
+                        // taken once, when the table is placed (or
+                        // recentred): turning the head moves neither the
+                        // desktop's view nor its outline on the table
                         if (!anchor_set) {
                             tv.anchor = a;
                             anchor_set = true;
-                        } else {
-                            tv.anchor = glm::mix(tv.anchor, a, 1.0f - std::exp(-dt * 1.5f));
                         }
                     }
                 }
