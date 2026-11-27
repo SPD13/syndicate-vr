@@ -109,6 +109,12 @@ map's edges, where the desktop shows black, it showed as a brown floor).
 | `--center X Z` | off: the views are linked | Map point at the table's centre at the start; the link is off. |
 | `--no-desktop-frame` | off: the frame is shown | Hides the yellow outline of what the desktop's window shows now (`--desktop-frame` shows it). The outline follows the desktop's camera, zoom, window size and projection (perspective or isometric), so with perspective it is wider at its far side. |
 
+**Tracking.** When you send the selected agent walking (pointing at the
+ground, or at the scanner), the view tracks it: it stays under the point in
+front of you, and the desktop's camera with it when the views are linked.
+Panning (the left stick, the arrows in the table program) stops the
+tracking until the next walk order; zooming and turning do not.
+
 **Linked views.** The desktop's centre of view is its camera point, the
 middle of its window. The headset's is the point of the table in front of
 you: along your heading, where a gaze 40 degrees down meets the table top

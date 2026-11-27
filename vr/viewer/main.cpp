@@ -381,6 +381,8 @@ int main(int argc, char **argv)
         g_screen.bind(prog);
     };
     bool full_game = false;
+    // the agent the view tracks (sent walking), 0 for none
+    uint16_t track_thing = 0;
 #if VR_DESKTOP_GAME
     core.set_full_game(!mission_given);
     full_game = core.full_game();
@@ -404,6 +406,9 @@ int main(int argc, char **argv)
         // whether the viewer moved the table this frame (then the desktop's
         // camera follows it, not the other way round)
         bool view_moved = false;
+        // the viewer panned this frame (the arrows, the left stick): the
+        // tracking of a walking agent stops
+        bool key_panned = false;
         SDL_Event ev;
         for (SimKey &k : sim_keys)
             if (!k.done && t - t_start >= k.at) {
@@ -468,10 +473,10 @@ int main(int argc, char **argv)
                 case SDLK_q: tv.turn_at_anchor(0.2f); view_moved = true; break;
                 case SDLK_e: tv.turn_at_anchor(-0.2f); view_moved = true; break;
                 // the arrows move the view: the map slides the other way
-                case SDLK_LEFT: tv.slide(0.1f, 0); view_moved = true; break;
-                case SDLK_RIGHT: tv.slide(-0.1f, 0); view_moved = true; break;
-                case SDLK_UP: tv.slide(0, -0.1f); view_moved = true; break;
-                case SDLK_DOWN: tv.slide(0, 0.1f); view_moved = true; break;
+                case SDLK_LEFT: tv.slide(0.1f, 0); view_moved = key_panned = true; break;
+                case SDLK_RIGHT: tv.slide(-0.1f, 0); view_moved = key_panned = true; break;
+                case SDLK_UP: tv.slide(0, -0.1f); view_moved = key_panned = true; break;
+                case SDLK_DOWN: tv.slide(0, 0.1f); view_moved = key_panned = true; break;
                 default: break;
                 }
             } else if (ev.type == SDL_WINDOWEVENT && ev.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
@@ -583,6 +588,33 @@ int main(int argc, char **argv)
             if (!use_xr && !heading_set && hv.x * hv.x + hv.z * hv.z > 1e-6f) {
                 tv.heading = std::atan2(hv.x, -hv.z);
                 heading_set = true;
+            }
+        }
+        // tracking: the agent sent walking stays under the point in front
+        // of the viewer (and the desktop's camera on it, the views linked)
+        // until the viewer pans; the next walk order tracks again. Zooming
+        // and turning go on tracking.
+        {
+            bool panned = key_panned ||
+                          (use_xr && (std::fabs(xr_in.pan.x) > 0.15f || std::fabs(xr_in.pan.y) > 0.15f));
+            if (track_thing != 0 && (panned || !(snap.valid && snap.hdr.in_mission))) {
+                track_thing = 0;
+                logf("tracking off");
+            }
+            if (track_thing != 0) {
+                bool found = false;
+                for (const SwvThing &th : snap.things)
+                    if (th.index == track_thing && !(th.flags & SwvTF_DEAD)) {
+                        glm::vec3 target = tv.center_for(glm::vec2(th.x, th.z), tv.anchor);
+                        float k = 1.0f - std::exp(-dt * 3.0f);
+                        tv.center = glm::mix(tv.center, target, k);
+                        tv.clamp_center();
+                        view_moved = true;
+                        found = true;
+                        break;
+                    }
+                if (!found)
+                    track_thing = 0;
             }
         }
         if (view_moved && tv.follow)
@@ -922,6 +954,7 @@ int main(int argc, char **argv)
                     // the selected agent walks there, as a click on the
                     // desktop's scanner
                     cmds.send(SwcCmd_GOTO, 0, (int32_t)ph.map.x, (int32_t)ph.map.y);
+                    track_thing = (uint16_t)snap.hdr.selected;
                     vrhud.on_goto(ph.map.x, ph.map.y, (uint16_t)snap.hdr.selected, t);
                     break;
                 default:
@@ -970,6 +1003,7 @@ int main(int argc, char **argv)
                     cmds.send(SwcCmd_ENTER_VEHICLE, (int16_t)hit[1].thing);
                 } else if (hit[1].kind != Hit::NONE) {
                     cmds.send(SwcCmd_GOTO, 0, (int32_t)hit[1].p.x, (int32_t)hit[1].p.z);
+                    track_thing = (uint16_t)snap.hdr.selected;
                     vrhud.on_goto(hit[1].p.x, hit[1].p.z, (uint16_t)snap.hdr.selected, t);
                 }
             }
