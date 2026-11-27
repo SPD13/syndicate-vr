@@ -137,14 +137,17 @@ struct TableView {
     // (its top away from the viewer).
     void follow_camera(const SwvHeader &h, float dt)
     {
-        if (!follow || !h.in_mission)
+        if (!h.in_mission)
             return;
+        // lined up once after each placement, even with the views unlinked
         if (!synced_) {
             yaw = yaw_for(h.cam_angle);
             center = center_for(glm::vec2(h.cam_x, h.cam_z), anchor);
             synced_ = true;
             return;
         }
+        if (!follow)
+            return;
         // the table turns with the desktop's camera, about the point in
         // front of the viewer, the shorter way
         float k = 1.0f - std::exp(-dt * 4.0f);

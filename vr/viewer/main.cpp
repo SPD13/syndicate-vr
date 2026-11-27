@@ -481,12 +481,12 @@ int main(int argc, char **argv)
         if (!use_xr)
             tv.anchor = glm::vec3(tv.table_pose[3]);
         {
-            // the viewer's heading: from their eyes to the point in front of
-            // them, taken once when the table is placed (or recentred); the
-            // head turning changes nothing, the view turns only with the
-            // turn controls
+            // the viewer's heading: in the headset the table's front, set
+            // when it is placed (or recentred), so the head turning changes
+            // nothing and the view turns only with the turn controls; in
+            // the table program's window from the orbit camera, once
             glm::vec3 hv = tv.anchor - eye_world;
-            if (!heading_set && (!use_xr || anchor_set) && hv.x * hv.x + hv.z * hv.z > 1e-6f) {
+            if (!use_xr && !heading_set && hv.x * hv.x + hv.z * hv.z > 1e-6f) {
                 tv.heading = std::atan2(hv.x, -hv.z);
                 heading_set = true;
             }
@@ -1033,6 +1033,9 @@ int main(int argc, char **argv)
                         if (!anchor_set) {
                             tv.anchor = a;
                             anchor_set = true;
+                            // line the table up with the desktop's view
+                            // from this anchor and heading
+                            tv.resync();
                         }
                     }
                 }
@@ -1052,7 +1055,11 @@ int main(int argc, char **argv)
                                                     glm::vec3(0, 1, 0));
                         placed = true;
                         anchor_set = false;
-                        heading_set = false;
+                        // the desktop's "up" goes along the table's front,
+                        // away from the viewer (the table is turned to face
+                        // them: its pose yaw is minus their heading)
+                        tv.heading = -tv.pose_yaw();
+                        heading_set = true;
                         tv.resync();
                         logf("table placed at %.2f %.2f %.2f", c.x, c.y, c.z);
                     }

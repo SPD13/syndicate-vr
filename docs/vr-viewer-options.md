@@ -75,10 +75,12 @@ Units used below:
 **Linked views.** The desktop's centre of view is its camera point, the
 middle of its window. The headset's is the point of the table in front of
 you: along your heading, where a gaze 40 degrees down meets the table top
-(about 0.6 m ahead at a usual height), kept on the table. It and your
-heading are taken once, when the table is placed (at the start, and
-again with a left stick click); after that, turning your head or body
-changes neither the desktop's view nor its yellow outline on the table.
+(about 0.6 m ahead at a usual height), kept on the table. It and the
+direction are taken once, when the table is placed in front of you (at
+the start, and again with a left stick click): the table's far edge is
+the top of the desktop window, and the views are lined up again (even
+when unlinked). After that, turning your head or body changes neither
+the desktop's view nor its yellow outline on the table.
 Without a headset (the table program's window) it is the table's centre.
 
 - The desktop's camera looks the way you did when the table was placed:
