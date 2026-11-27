@@ -2296,6 +2296,21 @@ void swview_panel_info(struct SwvPanelInfo *p_info)
         pc[SubTT_PERS_WHIT_BLOND_F] = pc[SubTT_PERS_BRIEFCASE_M];
         pc[SubTT_PERS_LETH_JACKT_M] = pc[SubTT_PERS_BRIEFCASE_M];
     }
+    // the signals' circles, as SCANNER_draw_blips() colours them
+    for (i = 0; (i < signal_count) && (i < SCANNER_BIG_BLIP_COUNT) && (i < SWV_SIGNALS_MAX); i++)
+    {
+        const struct BigBlip *p_bblip = &ingame.Scanner.BigBlip[i];
+        int c;
+
+        p_info->signal_counter[i] = p_bblip->Counter;
+        for (c = 0; c < 32; c++)
+        {
+            if (pixmap.fade_table != NULL)
+                p_info->signal_colour[i][c] = pixmap.fade_table[512 * (31 - c) + p_bblip->Colour];
+            else
+                p_info->signal_colour[i][c] = p_bblip->Colour;
+        }
+    }
     p_locplayer = &players[local_player_no];
     dcthing = p_locplayer->DirectControl[0];
     p_info->thermal = (ingame.Flags & GamF_ThermalView) != 0;

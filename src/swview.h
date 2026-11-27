@@ -469,6 +469,12 @@ struct SwvPanelInfo {
     uint8_t scanner_vehicle_colour;
     uint8_t pad2;
     uint8_t scanner_people_colour[16]; /**< Dot colour by person type */
+    /** The signals' circles (SwvHudInfo signals, same order): the turn of
+     * each one's 32 turn cycle (the circle's radius is 1024 map units per
+     * turn of it) and its palette colour at each turn, darkening as it
+     * grows (the desktop's fade table) */
+    uint8_t signal_counter[SWV_SIGNALS_MAX];
+    uint8_t signal_colour[SWV_SIGNALS_MAX][32];
 };
 
 /** The charge of a weapon being charged (laser, electron mace, graviton

@@ -168,7 +168,14 @@ arranges its own HUD (the VR wrist panel, objective board and world
 markers): per agent health, energy, shield, weapons, current weapon, its
 charge or re-fire delay, mods, target; the selected agent; the places the
 scanner points at for the current objective; mission status; objective
-text.
+text. `swview_panel_info()` adds what the desktop's panels and scanner
+draw from: mood, stamina, medikit and shield state per agent, weapon
+sprites, the scanner's zoom and dot colours, and per signal its circle's
+turn (`signal_counter`) and colour at each turn (`signal_colour`, from the
+fade table, as the desktop draws it). `swview_scanner_map()` copies the
+scanner's map. Both need the desktop front end for some fields (it builds
+the map, advances the circles and loads the fade table); with the core
+alone these stay 0.
 
 ## Assets (`swview_load_assets()`)
 

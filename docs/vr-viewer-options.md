@@ -194,9 +194,13 @@ desktop's do:
 The scanner is the desktop's: its map (`SCANNER_data`: floor, roads, water,
 building outlines), centred on the desktop's camera point, turned with its
 view, at its zoom; people as dots in its colours (the player's agents
-pulsing, persuaded people yellow), vehicles, and rings growing from the
-objective's places. Its map comes from the desktop game; with the game
-core alone (the table program) its background is plain.
+pulsing, persuaded people yellow), vehicles, and the objective's signals:
+a blinking mark on each place and a circle starting there every 32 turns
+and sweeping across the whole scanner, darkening as it grows, in the
+game's colours (red for a target). Its map, and the signals' turn and
+colours, come from the desktop game; with the game core alone (the table
+program) its background is plain and the circles are red on the viewer's
+own clock.
 
 If the sprites or layout cannot be loaded, the panel falls back to rows
 of text.

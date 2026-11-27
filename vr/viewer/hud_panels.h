@@ -503,24 +503,50 @@ private:
                 dot(glm::vec2(pr.x, pr.z), (turn & 1) ? 1.5f : 1.0f, col, 0.0002f);
             }
         }
-        // the objective's places: rings growing from them every 32 turns
+        // the objective's places, as the desktop's scanner draws them
+        // (scanner.c SCANNER_process_bbpoints(), scandraw.c
+        // SCANNER_draw_blips()): a circle starting at the place every 32
+        // turns and growing by 1024 map units a turn (16 points spreading
+        // at sin table / 4 << 4 in 1/256 map units), so it sweeps across
+        // the whole scanner, darkening as it grows; a blinking mark on the
+        // place
         const SwvHudInfo &hi = snap.hud_info;
+        float k_px = 1.0f / scan_scale(snap);
         for (uint32_t i = 0; i < hi.n_signals && i < SWV_SIGNALS_MAX; i++) {
             const SwvSignal &sg = hi.signals[i];
             glm::vec2 s = map_to_scan(snap, glm::vec2(sg.x, sg.z));
-            glm::vec3 col = pal_rgb(sg.colour);
-            float ph = (float)((turn + (int)i * 5) % 32) / 32.0f;
-            float r = 2.0f + ph * 18.0f;
-            float cc[3] = {col.x * (1 - ph), col.y * (1 - ph), col.z * (1 - ph)};
-            for (int k = 0; k < 16; k++) {
-                float a = k * 6.2831853f / 16;
+            // the game's own turn of the circle and its colour then (the
+            // signal's colour is a fade table base, too dark by itself);
+            // the game core alone (no desktop scanner: zoom 0) neither
+            // advances the circles nor has their colours: our own turn
+            // and red
+            bool own = pi.scanner_zoom <= 0;
+            int cnt = own ? turn % 32 : pi.signal_counter[i] & 31;
+            glm::vec3 col = own ? glm::vec3(1.0f, 0.15f, 0.1f) : pal_rgb(pi.signal_colour[i][0]);
+            glm::vec3 rc = own ? col * (1.0f - cnt / 36.0f) : pal_rgb(pi.signal_colour[i][cnt]);
+            float r = 1024.0f * (float)(cnt + 1) * k_px;
+            float cc[3] = {rc.x, rc.y, rc.z};
+            // segments of about 3 pixels (only those inside are drawn)
+            const int n = std::clamp((int)(6.2831853f * r / 3.0f), 32, 2048);
+            glm::vec2 prev = s + glm::vec2(r, 0);
+            for (int k = 1; k <= n; k++) {
+                float a = k * 6.2831853f / n;
                 glm::vec2 pt = s + glm::vec2(std::cos(a), std::sin(a)) * r;
-                if (in_scanner(pt))
-                    box(hud, f, o + pt - glm::vec2(0.75f), 1.5f, 1.5f, cc, 1.0f, 0.0004f);
+                if (in_scanner(prev) && in_scanner(pt)) {
+                    glm::vec2 d = pt - prev;
+                    float len = glm::length(d);
+                    if (len > 1e-3f) {
+                        glm::vec2 nn = glm::vec2(-d.y, d.x) / len * 0.6f;
+                        glm::vec2 a0 = o + prev, a1 = o + pt;
+                        hud.quad(f.at(a0.x - nn.x, a0.y - nn.y, 0.0004f), f.at(a1.x - nn.x, a1.y - nn.y, 0.0004f),
+                                 f.at(a1.x + nn.x, a1.y + nn.y, 0.0004f), f.at(a0.x + nn.x, a0.y + nn.y, 0.0004f), cc);
+                    }
+                }
+                prev = pt;
             }
-            if (in_scanner(s)) {
+            if (in_scanner(s) && (turn & 4) == 0) {
                 float cs[3] = {col.x, col.y, col.z};
-                box(hud, f, o + s - glm::vec2(1.5f), 3, 3, cs, 1.0f, 0.0004f);
+                box(hud, f, o + s - glm::vec2(2.0f), 4, 4, cs, 1.0f, 0.0004f);
             }
         }
         // the frame
