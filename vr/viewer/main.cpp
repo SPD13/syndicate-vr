@@ -845,10 +845,10 @@ int main(int argc, char **argv)
                 break;
             XrApp::Input in = xr_in;
             if (std::fabs(in.pan.x) > 0.15f || std::fabs(in.pan.y) > 0.15f) {
-                // the stick moves the map, not the view point: it slides
-                // the way the stick is pushed, as the viewer sees it (up:
-                // away from them), whatever the table's turn
-                tv.slide(in.pan.x * dt * 0.8f, in.pan.y * dt * 0.8f);
+                // the stick moves the view, as the viewer sees it (up: on
+                // towards what is away from them), whatever the table's
+                // turn: the map slides the other way
+                tv.slide(-in.pan.x * dt * 0.8f, -in.pan.y * dt * 0.8f);
                 view_moved = true;
             }
             if (std::fabs(in.zoom.y) > 0.2f) {

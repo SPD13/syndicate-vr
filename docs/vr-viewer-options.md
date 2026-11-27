@@ -182,7 +182,7 @@ VR (Valve Index, Oculus Touch):
 | Right trigger | Point at an agent to select it, at the ground to walk there, at a vehicle to get in, at a row of the wrist panel to pick an agent or weapon |
 | Left trigger | Shoot at what the left hand points at; held, weapons fire on and charging weapons charge |
 | Left A / B (Touch: X / Y) | Previous / next weapon |
-| Left stick | Move the map: it slides the way the stick is pushed as you see it (up: away from you), whatever the table's turn |
+| Left stick | Move the view the way the stick is pushed, as you see it (up: on towards what is away from you; the map slides towards you), whatever the table's turn |
 | Left stick click | Place the table in front of you |
 | Right stick | Zoom (up/down), turn the table (left/right) |
 | Right stick click | Whole world / table only |
