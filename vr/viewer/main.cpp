@@ -1021,36 +1021,69 @@ int main(int argc, char **argv)
         // the game's screen: the right hand points (the mouse), its trigger
         // is the left button, the right click (R1 on the Steam Frame, else
         // the left trigger) the right one
+        // The flat screens (outside missions): one hand points, the active
+        // one, the right at first; a trigger of the other hand makes it the
+        // active one, without clicking. Its bottom trigger (Steam Frame: R2,
+        // L2) is the left button and types the keyboard's keys, its top one
+        // (R1, L1) the right button.
         Panel scr_panel, kb_panel;
         bool scr_on = false, kb_on = false;
+        static int act_hand = 1;
         if (menus && use_xr) {
+#if VR_DESKTOP_GAME
+            static bool swallow_l = false, swallow_r = false, eff_l_was = false;
+            bool main_held[2] = {xr_in.trig_held[0], xr_in.trig_held[1]};
+            bool alt_held[2] = {xr_in.alt_l_held, xr_in.alt_held};
+            bool any_press[2] = {xr_in.trig_pressed[0] || xr_in.alt_l_pressed,
+                                 xr_in.trig_pressed[1] || xr_in.alt_pressed};
+            int other = 1 - act_hand;
+            if (any_press[other] && world_ray[other].valid) {
+                // the swap: buttons the old hand held go up, the new hand's
+                // are not clicks until released
+                if (scr_l)
+                    core.mouse(3, scr_uv_sent.x, scr_uv_sent.y);
+                if (scr_r)
+                    core.mouse(5, scr_uv_sent.x, scr_uv_sent.y);
+                scr_l = scr_r = false;
+                act_hand = other;
+                swallow_l = main_held[act_hand];
+                swallow_r = alt_held[act_hand];
+                eff_l_was = false;
+                logf("active controller: %s", act_hand ? "right" : "left");
+            }
+            if (!main_held[act_hand])
+                swallow_l = false;
+            if (!alt_held[act_hand])
+                swallow_r = false;
+            bool l = main_held[act_hand] && !swallow_l, r = alt_held[act_hand] && !swallow_r;
+            bool l_press = l && !eff_l_was;
+            eff_l_was = l;
+#endif
+            const Ray &ray = world_ray[act_hand];
             scr_panel = g_screen.place(tv.table_pose);
             glm::vec2 uv(0.0f);
-            scr_on = world_ray[1].valid && ScreenPanel::hit(scr_panel, world_ray[1], uv);
+            scr_on = ray.valid && ScreenPanel::hit(scr_panel, ray, uv);
             g_screen.draw(hud, scr_panel, scr_on, uv);
 #if VR_DESKTOP_GAME
             // a text box has the focus: the keyboard, its keys typed with
-            // the right trigger
+            // the bottom trigger
             static int kb_flash = -1;
             static double kb_flash_until = 0;
             if (core.text_focus()) {
                 kb_panel = g_keyboard.place(tv.table_pose);
-                kb_on = g_keyboard.on(kb_panel, world_ray[1]);
-                int k = kb_on ? g_keyboard.key_at(kb_panel, world_ray[1]) : -1;
-                if (k >= 0 && xr_in.trig_pressed[1]) {
+                kb_on = g_keyboard.on(kb_panel, ray);
+                int k = kb_on ? g_keyboard.key_at(kb_panel, ray) : -1;
+                if (k >= 0 && l_press) {
                     core.key(g_keyboard.key(k).code);
                     kb_flash = k;
                     kb_flash_until = t + 0.15;
                 }
                 g_keyboard.draw(hud, kb_panel, k, t < kb_flash_until ? kb_flash : -1);
             }
-#endif
-#if VR_DESKTOP_GAME
             if (scr_on && glm::distance(uv, scr_uv_sent) > 1e-4f) {
                 core.mouse(1, uv.x, uv.y);
                 scr_uv_sent = uv;
             }
-            bool l = xr_in.trig_held[1], r = xr.frame_ext_ ? xr_in.alt_held : xr_in.trig_held[0];
             glm::vec2 at = scr_on ? uv : scr_uv_sent;
             if (l != scr_l && (scr_on || !l))
                 core.mouse(l ? 2 : 3, at.x, at.y);
@@ -1065,16 +1098,22 @@ int main(int argc, char **argv)
 
         // pointer beams from the controllers
         if (use_xr) {
-            static const float beam_r[3] = {1.0f, 0.9f, 0.3f}, beam_l[3] = {1.0f, 0.3f, 0.2f};
+            static const float beam_r[3] = {1.0f, 0.9f, 0.3f}, beam_l[3] = {1.0f, 0.3f, 0.2f},
+                               beam_blue[3] = {0.25f, 0.55f, 1.0f};
             for (int h = 0; h < 2; h++) {
                 if (!world_ray[h].valid)
                     continue;
+                // the flat screens: the active hand's beam alone, blue
+                if (menus && h != act_hand)
+                    continue;
                 float len = 2.0f;
                 if (menus) {
-                    if (h == 1 && scr_on)
+                    if (scr_on)
                         len = std::max(0.02f, scr_panel.hit_distance(world_ray[h]));
-                    else if (h == 1 && kb_on)
+                    else if (kb_on)
                         len = std::max(0.02f, kb_panel.hit_distance(world_ray[h]));
+                    hud.line(world_ray[h].o, world_ray[h].o + world_ray[h].d * len, 0.003f, eye_world, beam_blue);
+                    continue;
                 } else if (h == 1 && on_panel)
                     len = std::max(0.02f, panel.hit_distance(world_ray[h]));
                 else if (hit[h].kind != Hit::NONE)

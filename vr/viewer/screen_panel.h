@@ -84,10 +84,17 @@ public:
         if (has_frame())
             hud.textured_quad_uv(q, t, 11.0f, 1.0f);
         if (hovering) {
-            static const float dot[3] = {1.0f, 0.85f, 0.2f};
+            // a round dot where the pointer is
+            static const float dot[3] = {0.35f, 0.65f, 1.0f};
             glm::vec3 c = p.tl + p.right * (uv.x * p.w) - p.up * (uv.y * p.h) - back * 0.5f;
-            float r = 0.006f;
-            hud.rect(c - p.right * r + p.up * r, p.right, p.up, 2 * r, 2 * r, dot);
+            const float r = 0.007f;
+            const int n = 20;
+            for (int i = 0; i < n; i++) {
+                float a0 = i * 6.2831853f / n, a1 = (i + 1) * 6.2831853f / n;
+                glm::vec3 e0 = c + (p.right * std::cos(a0) + p.up * std::sin(a0)) * r;
+                glm::vec3 e1 = c + (p.right * std::cos(a1) + p.up * std::sin(a1)) * r;
+                hud.quad(c, e0, e1, e1, dot);
+            }
         }
     }
 

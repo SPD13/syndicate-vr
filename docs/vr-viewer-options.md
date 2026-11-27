@@ -61,10 +61,13 @@ the intro, the menus, the briefings, the missions the player starts. Outside
 a mission the headset shows the game's own screen on a flat panel standing
 above the far half of the table's place, facing you (1.7 m wide by default,
 `--screen-size`; fixed to the table's place: it does not follow the head),
-in a black void: the table and the map are not drawn meanwhile. The right hand
-points at it as the mouse: its trigger is the left button (Steam Frame: R2,
-the bottom trigger), the right click (R1 on the Steam Frame, the top one,
-else the left trigger) the right one. The keyboard
+in a black void: the table and the map are not drawn meanwhile. One hand
+points at it as the mouse, the active one, shown by a blue beam and a round
+dot on the screen: the right hand at first; a trigger of the left hand makes
+it the active one (that press is not a click), and the other way round. The
+active hand's bottom trigger (Steam Frame: R2 or L2) is the left button, its
+top one (R1 or L1) the right one. In missions both hands keep their beams
+and roles (the left one shoots). The keyboard
 of the desktop works as usual. When a mission starts the panel goes and the
 table shows it; at its end the panel comes back.
 
@@ -72,7 +75,7 @@ While a text box of the game has the focus (the login name, a save slot's
 name: the game's `edit_flag`) a keyboard lies over the near half of the
 table, tilted towards you (`vr/viewer/vkeyboard.h`): digits, letters, `-`,
 `.`, space, backspace and enter. Point at a key with the right hand, its
-trigger types it; the key goes into bflib's keyboard as a real key press
+the active hand's bottom trigger types it; the key goes into bflib's keyboard as a real key press
 (`keyboardControl()`, held a tenth of a second, as the game reads
 backspace while held).
 

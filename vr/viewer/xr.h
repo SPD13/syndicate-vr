@@ -155,6 +155,7 @@ public:
         XR_CHECK(make(act_wep_next_, "weapon_next", "Next weapon", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_wep_prev_, "weapon_prev", "Previous weapon", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_alt_r_, "hud_right_click", "Right click on the HUD", XR_ACTION_TYPE_BOOLEAN_INPUT));
+        XR_CHECK(make(act_alt_l_, "left_right_click", "Right click with the left hand", XR_ACTION_TYPE_BOOLEAN_INPUT));
 
         auto path = [&](const char *s) {
             XrPath p;
@@ -214,6 +215,7 @@ public:
                 {act_trig_l_, path("/user/hand/left/input/trigger/value")},
                 {act_trig_r_, path("/user/hand/right/input/trigger/value")},
                 {act_alt_r_, path("/user/hand/right/input/bumper/click")},
+                {act_alt_l_, path("/user/hand/left/input/bumper/click")},
                 {act_wep_prev_, path("/user/hand/left/input/dpad_left/click")},
                 {act_wep_next_, path("/user/hand/left/input/dpad_right/click")},
             };
@@ -282,6 +284,8 @@ public:
         bool trig_pressed[2] = {false, false}; // left, right
         bool trig_held[2] = {false, false};
         bool alt_pressed = false, alt_held = false; // the right click on the HUD
+        // the left hand's top trigger (Steam Frame: L1)
+        bool alt_l_pressed = false, alt_l_held = false;
         bool wep_next = false, wep_prev = false;
         bool aim_valid[2] = {false, false};
         glm::vec3 aim_pos[2], aim_dir[2];
@@ -346,6 +350,8 @@ public:
         in.trig_held[1] = held(act_trig_r_);
         in.alt_pressed = pressed(act_alt_r_);
         in.alt_held = held(act_alt_r_);
+        in.alt_l_pressed = pressed(act_alt_l_);
+        in.alt_l_held = held(act_alt_l_);
         in.wep_next = pressed(act_wep_next_);
         in.wep_prev = pressed(act_wep_prev_);
         for (int h = 0; h < 2 && last_time_ != 0; h++) {
@@ -523,7 +529,7 @@ private:
     XrAction act_pan_ = XR_NULL_HANDLE, act_zoom_ = XR_NULL_HANDLE, act_follow_ = XR_NULL_HANDLE,
              act_recenter_ = XR_NULL_HANDLE, act_look_ = XR_NULL_HANDLE, act_aim_l_ = XR_NULL_HANDLE,
              act_aim_r_ = XR_NULL_HANDLE, act_trig_l_ = XR_NULL_HANDLE, act_trig_r_ = XR_NULL_HANDLE,
-             act_alt_r_ = XR_NULL_HANDLE,
+             act_alt_r_ = XR_NULL_HANDLE, act_alt_l_ = XR_NULL_HANDLE,
              act_wep_next_ = XR_NULL_HANDLE, act_wep_prev_ = XR_NULL_HANDLE, act_world_ = XR_NULL_HANDLE, act_fog_ = XR_NULL_HANDLE;
     XrSpace aim_space_[2] = {XR_NULL_HANDLE, XR_NULL_HANDLE};
     XrTime last_time_ = 0;
