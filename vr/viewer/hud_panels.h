@@ -475,7 +475,21 @@ private:
     static constexpr float kLeft = 40, kStripW = 160, kStripH = 56, kColH = 302;
     // the scanner on the right of the stack, at its top, shaped as the
     // desktop's (130 x 123, its top right corner cut by 24)
-    glm::vec2 scan_origin() const { return glm::vec2(kLeft + kStripW + 8, 0); }
+    // its left edge 4 pixels right of the agents' badges (drawn at their
+    // sprites' own widths, sprites_in_line())
+    glm::vec2 scan_origin() const
+    {
+        float right = kLeft + kStripW;
+        for (int i = 0; i < 4; i++) {
+            const P &b = panel(i);
+            float w = 0;
+            for (int k = 0; k < 3; k++)
+                if (b.spr[k] > 0)
+                    w += sprite_size(b.spr[k], P()).x;
+            right = std::max(right, kLeft + w);
+        }
+        return glm::vec2(std::floor(right) + 4, 0);
+    }
     float scan_w() const { return 240; }
     float scan_h() const { return scan_w() * 123.0f / 130.0f; }
     float scan_cut() const { return scan_w() * 24.0f / 130.0f; }
