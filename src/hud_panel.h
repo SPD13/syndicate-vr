@@ -157,19 +157,6 @@ extern ubyte byte_153198;
 extern short gui_scale;
 
 void panel_conclusion_info_set(const char *text);
-
-/** Keeps a copy of the screen after each drawing of the panels, for a
- * front end that shows them elsewhere (the VR viewer's wrist).
- */
-void panel_grab_enable(TbBool on);
-
-/** The last copy: the screen's pixels (palette indices, rows of *p_w) into
- * p_out, and per panel 0..max_panels-1 its pos and dyn rectangles (8
- * shorts: X, Y, Width, Height twice). Returns the number of copies made so
- * far, 0 when there is none (or it does not fit).
- */
-u32 panel_grab_copy(ubyte *p_out, size_t max_bytes, int *p_w, int *p_h,
-  short *p_rects, int max_panels);
 void panel_conclusion_info_draw(void);
 
 /** Resets panel text scrolling to the beginning.
