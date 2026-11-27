@@ -66,8 +66,7 @@ points at it as the mouse, the active one, shown by a blue beam and a round
 dot on the screen: the right hand at first; a trigger of the left hand makes
 it the active one (that press is not a click), and the other way round. The
 active hand's bottom trigger (Steam Frame: R2 or L2) is the left button, its
-top one (R1 or L1) the right one. In missions both hands keep their beams
-and roles (the left one shoots). The keyboard
+top one (R1 or L1) the right one; the same in missions (below). The keyboard
 of the desktop works as usual. When a mission starts the panel goes and the
 table shows it; at its end the panel comes back.
 
@@ -205,15 +204,15 @@ most-zoomed-out desktop view does. The value comes from the game
 
 ## The wrist panels
 
-The left wrist (beside the table in the table program's window) shows the
+The wrist of the inactive hand (the left one at first; beside the table in
+the table program's window) shows the
 desktop game's own agent panels: the same sprites (`data/pop1-1`) and
 layout (`conf/pop1-1.ini`), the four agents' panels stacked top down, the
 energy column and grouping pane to their left (`vr/viewer/hud_panels.h`).
-Point at them with the right hand. The click is the right hand's main
-trigger (Steam Frame: R2, the bottom one); the right click is R1 (the top
-one) on the Steam Frame, the
-left trigger on other controllers while the right hand points at the
-panels, the right mouse button in the table program. They do what the
+Point at them with the active hand. The click is its bottom trigger
+(Steam Frame: R2 or L2); the right click its top one (R1 or L1; the grip
+on other controllers), the right mouse button in the table program. They
+do what the
 desktop's do:
 
 | Element | Click | Right click |
@@ -253,12 +252,16 @@ of text.
 
 ## Controls
 
-VR (Valve Index, Oculus Touch):
+VR (Steam Frame, Valve Index, Oculus Touch). One hand is the active one: it
+points, with a blue beam, as the desktop's mouse does; the right one at
+first. A trigger of the other hand makes that one the active hand (that
+press does nothing else); the wrist panels are on the inactive hand.
 
 | Control | Action |
 |---|---|
-| Right trigger (Steam Frame: R2, the bottom one) | Point at an agent to select it, at the ground to walk there, at a vehicle to get in, at a row of the wrist panel to pick an agent or weapon |
-| Left trigger | Shoot at what the left hand points at; held, weapons fire on and charging weapons charge |
+| Active hand's bottom trigger (Steam Frame: R2 / L2; others: the trigger) | The left button: point at an agent to select it, at the ground to walk there, at a vehicle to get in, at the wrist panels or the screen to click them, at a key of the virtual keyboard to type it |
+| Active hand's top trigger (Steam Frame: R1 / L1; others: the grip) | The right button: shoot at what it points at (held, weapons fire on and charging weapons charge); the right click on the wrist panels and the screen |
+| A trigger of the inactive hand | Make it the active hand |
 | Left A / B (Touch: X / Y) | Previous / next weapon |
 | Left stick | Move the view the way the stick is pushed, as you see it (up: on towards what is away from you; the map slides towards you), whatever the table's turn |
 | Left stick click | Place the table in front of you |
@@ -266,7 +269,7 @@ VR (Valve Index, Oculus Touch):
 | Right stick click | Whole world / table only |
 | Right A | Link the headset's and the desktop's views on/off |
 | Right B | Classic / upgraded look |
-| Right grip | Fog of war on/off |
+| Right grip (Steam Frame) | Fog of war on/off (other controllers: G on the desktop) |
 
 Desktop window of `syndwars-vr.exe`: the original game's own controls.
 

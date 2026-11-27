@@ -690,17 +690,55 @@ int main(int argc, char **argv)
 
         // ---- playing from the table: pointers, panels, commands
         HudBuilder hud;
-        Ray world_ray[2]; // left hand: shoot; right hand: select and move
+        // [0] shoots (the right button), [1] selects and moves (the left
+        // one): in the headset both are the active hand's
+        Ray world_ray[2];
         bool act[2] = {false, false};
         bool wep_next = false, wep_prev = false;
+        // The active hand points (one blue beam), the right one at first; a
+        // trigger of the other hand makes it the active one, without
+        // clicking (that press counts once released). Its bottom trigger
+        // (Steam Frame: R2, L2) is the left button, its top one (R1, L1;
+        // the grip on other controllers) the right one. The wrist panels
+        // are on the other hand.
+        static int act_hand = 1;
+        Ray wrist_ray; // the inactive hand
+        bool vr_l = false, vr_r = false, vr_l_press = false;
         if (use_xr) {
             const XrApp::Input &in = xr_in;
+            Ray hand[2];
             for (int h = 0; h < 2; h++) {
-                world_ray[h].valid = in.aim_valid[h];
-                world_ray[h].o = in.aim_pos[h];
-                world_ray[h].d = glm::normalize(in.aim_dir[h]);
-                act[h] = in.trig_pressed[h];
+                hand[h].valid = in.aim_valid[h];
+                hand[h].o = in.aim_pos[h];
+                hand[h].d = glm::normalize(in.aim_dir[h]);
             }
+            static bool swallow_l = false, swallow_r = false, l_was = false, r_was = false;
+            bool main_held[2] = {in.trig_held[0], in.trig_held[1]};
+            bool alt_held[2] = {in.alt_l_held, in.alt_held};
+            bool any_press[2] = {in.trig_pressed[0] || in.alt_l_pressed, in.trig_pressed[1] || in.alt_pressed};
+            int other = 1 - act_hand;
+            if (any_press[other] && hand[other].valid) {
+                act_hand = other;
+                swallow_l = main_held[act_hand] || in.trig_pressed[act_hand];
+                swallow_r = alt_held[act_hand] || (act_hand ? in.alt_pressed : in.alt_l_pressed);
+                logf("active controller: %s", act_hand ? "right" : "left");
+            }
+            if (!main_held[act_hand])
+                swallow_l = false;
+            if (!alt_held[act_hand])
+                swallow_r = false;
+            vr_l = main_held[act_hand] && !swallow_l;
+            vr_r = alt_held[act_hand] && !swallow_r;
+            // a press shorter than a frame counts too
+            bool l_pressed = (act_hand ? in.trig_pressed[1] : in.trig_pressed[0]) && !swallow_l;
+            bool r_pressed = (act_hand ? in.alt_pressed : in.alt_l_pressed) && !swallow_r;
+            vr_l_press = (vr_l && !l_was) || l_pressed;
+            act[1] = vr_l_press;
+            act[0] = (vr_r && !r_was) || r_pressed;
+            l_was = vr_l;
+            r_was = vr_r;
+            world_ray[0] = world_ray[1] = hand[act_hand];
+            wrist_ray = hand[1 - act_hand];
             wep_next = in.wep_next;
             wep_prev = in.wep_prev;
         } else {
@@ -739,7 +777,7 @@ int main(int argc, char **argv)
         // table on the desktop), the objective on a board at the table's edge
         const SwvHud &hd = snap.hud;
         VrHud::Panels pn =
-            menus ? VrHud::Panels() : vrhud.panels(hud, snap, use_xr, world_ray[0], world_ray[1], tv, eye_world, pst, t);
+            menus ? VrHud::Panels() : vrhud.panels(hud, snap, use_xr, wrist_ray, world_ray[1], tv, eye_world, pst, t);
         const Panel &panel = pn.wrist;
         const std::vector<int> &weapon_rows = pn.weapon_rows;
         int hover_row = pn.hover_row;
@@ -784,11 +822,12 @@ int main(int argc, char **argv)
         // (the right mouse button on the desktop)
         bool panel_alt_used = false;
         if (pn.desk && snap.valid && snap.hdr.in_mission) {
-            bool m_held = use_xr ? xr_in.trig_held[1] : dragging;
-            bool a_held = use_xr ? (xr.frame_ext_ ? xr_in.alt_held : (on_panel && xr_in.trig_held[0])) : right_down;
+            bool m_held = use_xr ? vr_l : dragging;
+            bool a_held = use_xr ? vr_r : right_down;
             bool m_press = (m_held && !panel_main_was) || (act[1] && on_panel);
             bool a_press = a_held && !panel_alt_was;
-            panel_alt_used = on_panel && !xr.frame_ext_;
+            // the right button on the panels is theirs, not a shot
+            panel_alt_used = use_xr && on_panel;
             const DesktopPanels::Hit &ph = pn.hit;
             const SwvHudInfo &phi = snap.hud_info;
             auto thing_of = [&](int i) { return (int16_t)(i >= 0 && i < 4 ? phi.agents[i].thing : 0); };
@@ -917,7 +956,7 @@ int main(int argc, char **argv)
             // shot is given every turn at what it points at, so weapons fire
             // on and charging ones charge, and fire when it is let go
             // a click held for less than a frame counts too (act[0])
-            bool trigger = (use_xr ? xr_in.trig_held[0] : right_down) || act[0];
+            bool trigger = (use_xr ? vr_r : right_down) || act[0];
             // the left trigger (right button) is the right click on the
             // panels while the right hand points at them
             if (panel_alt_used || (pn.desk && on_panel && !use_xr))
@@ -960,9 +999,11 @@ int main(int argc, char **argv)
 
         // rings on the table: what each hand points at
         if (snap.valid && snap.hdr.in_mission) {
-            static const float ring_r[3] = {1.0f, 0.9f, 0.2f}, ring_l[3] = {1.0f, 0.2f, 0.15f};
-            for (int h = 0; h < 2; h++) {
-                const float *rc = h ? ring_r : ring_l;
+            static const float ring_r[3] = {1.0f, 0.9f, 0.2f}, ring_l[3] = {1.0f, 0.2f, 0.15f},
+                               ring_blue[3] = {0.25f, 0.55f, 1.0f};
+            // in the headset the active hand's alone (both rays are its)
+            for (int h = use_xr ? 1 : 0; h < 2; h++) {
+                const float *rc = use_xr ? ring_blue : h ? ring_r : ring_l;
                 if (hit[h].kind == Hit::PERSON)
                     ground_ring(people_verts, hit[h].p, 100.0f, 10.0f, rc, eye_map);
                 else if (hit[h].kind == Hit::VEHICLE)
@@ -1021,45 +1062,16 @@ int main(int argc, char **argv)
         // the game's screen: the right hand points (the mouse), its trigger
         // is the left button, the right click (R1 on the Steam Frame, else
         // the left trigger) the right one
-        // The flat screens (outside missions): one hand points, the active
-        // one, the right at first; a trigger of the other hand makes it the
-        // active one, without clicking. Its bottom trigger (Steam Frame: R2,
-        // L2) is the left button and types the keyboard's keys, its top one
-        // (R1, L1) the right button.
+        // The flat screens (outside missions): the active hand points (see
+        // above), its bottom trigger the left button and the keyboard's
+        // keys, its top one the right button.
         Panel scr_panel, kb_panel;
         bool scr_on = false, kb_on = false;
-        static int act_hand = 1;
         if (menus && use_xr) {
 #if VR_DESKTOP_GAME
-            static bool swallow_l = false, swallow_r = false, eff_l_was = false;
-            bool main_held[2] = {xr_in.trig_held[0], xr_in.trig_held[1]};
-            bool alt_held[2] = {xr_in.alt_l_held, xr_in.alt_held};
-            bool any_press[2] = {xr_in.trig_pressed[0] || xr_in.alt_l_pressed,
-                                 xr_in.trig_pressed[1] || xr_in.alt_pressed};
-            int other = 1 - act_hand;
-            if (any_press[other] && world_ray[other].valid) {
-                // the swap: buttons the old hand held go up, the new hand's
-                // are not clicks until released
-                if (scr_l)
-                    core.mouse(3, scr_uv_sent.x, scr_uv_sent.y);
-                if (scr_r)
-                    core.mouse(5, scr_uv_sent.x, scr_uv_sent.y);
-                scr_l = scr_r = false;
-                act_hand = other;
-                swallow_l = main_held[act_hand];
-                swallow_r = alt_held[act_hand];
-                eff_l_was = false;
-                logf("active controller: %s", act_hand ? "right" : "left");
-            }
-            if (!main_held[act_hand])
-                swallow_l = false;
-            if (!alt_held[act_hand])
-                swallow_r = false;
-            bool l = main_held[act_hand] && !swallow_l, r = alt_held[act_hand] && !swallow_r;
-            bool l_press = l && !eff_l_was;
-            eff_l_was = l;
+            bool l = vr_l, r = vr_r, l_press = vr_l_press;
 #endif
-            const Ray &ray = world_ray[act_hand];
+            const Ray &ray = world_ray[1];
             scr_panel = g_screen.place(tv.table_pose);
             glm::vec2 uv(0.0f);
             scr_on = ray.valid && ScreenPanel::hit(scr_panel, ray, uv);
@@ -1098,13 +1110,10 @@ int main(int argc, char **argv)
 
         // pointer beams from the controllers
         if (use_xr) {
-            static const float beam_r[3] = {1.0f, 0.9f, 0.3f}, beam_l[3] = {1.0f, 0.3f, 0.2f},
-                               beam_blue[3] = {0.25f, 0.55f, 1.0f};
-            for (int h = 0; h < 2; h++) {
+            static const float beam_blue[3] = {0.25f, 0.55f, 1.0f};
+            for (int h = 1; h < 2; h++) {
+                // the active hand's beam alone (both rays are its), blue
                 if (!world_ray[h].valid)
-                    continue;
-                // the flat screens: the active hand's beam alone, blue
-                if (menus && h != act_hand)
                     continue;
                 float len = 2.0f;
                 if (menus) {
@@ -1118,8 +1127,7 @@ int main(int argc, char **argv)
                     len = std::max(0.02f, panel.hit_distance(world_ray[h]));
                 else if (hit[h].kind != Hit::NONE)
                     len = glm::distance(world_ray[h].o, glm::vec3(map_to_world * glm::vec4(hit[h].p, 1.0f)));
-                hud.line(world_ray[h].o, world_ray[h].o + world_ray[h].d * len, 0.003f, eye_world,
-                         h ? beam_r : beam_l);
+                hud.line(world_ray[h].o, world_ray[h].o + world_ray[h].d * len, 0.003f, eye_world, beam_blue);
             }
         }
         rend.upload_hud(hud.verts);

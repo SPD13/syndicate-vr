@@ -182,7 +182,10 @@ public:
                 {act_recenter_, path("/user/hand/left/input/thumbstick/click")},
                 {act_look_, path("/user/hand/right/input/b/click")},
                 {act_world_, path("/user/hand/right/input/thumbstick/click")},
-                {act_fog_, path("/user/hand/right/input/squeeze/value")},
+                // the grips: each hand's right button (the fog is G on
+                // the desktop with these controllers)
+                {act_alt_l_, path("/user/hand/left/input/squeeze/value")},
+                {act_alt_r_, path("/user/hand/right/input/squeeze/value")},
                 {act_aim_l_, path("/user/hand/left/input/aim/pose")},
                 {act_aim_r_, path("/user/hand/right/input/aim/pose")},
                 {act_trig_l_, path((std::string("/user/hand/left") + pr.trigger).c_str())},
