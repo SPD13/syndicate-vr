@@ -321,11 +321,14 @@ public:
             const P &gp = panel(25);
             glm::vec2 g0 = group_origin();
             sprite(hud, f, g0, gp.spr[0], 1.0f);
-            static const char *slots[4] = {"", "GroupPaneAgents2", "GroupPaneAgents3", "GroupPaneAgents4"};
+            // as draw_agent_grouping_bars(): the n-th protector (from 0) at
+            // shift PaSh_GROUP_PANE_AGENTS + n, which the layout names
+            // GroupPaneAgents2..4 (hud_panecfg.c stores name N at N - 1)
+            static const char *slots[3] = {"GroupPaneAgents2", "GroupPaneAgents3", "GroupPaneAgents4"};
             int n = 0;
-            for (int i = 0; i < 4 && n < 4; i++)
+            for (int i = 0; i < 4 && n < 3; i++)
                 if (pi.agents[i].flags & SwvPAF_PROTECTING) {
-                    sprite(hud, f, g0 + (n ? shift(slots[n]) : glm::vec2(0)), 69, 1.0f, 0.0002f);
+                    sprite(hud, f, g0 + shift(slots[n]), 69, 1.0f, 0.0002f);
                     n++;
                 }
             if (pi.thermal)
