@@ -1907,15 +1907,21 @@ int32_t swview_load_assets(void)
 int32_t swview_load_font(int32_t style, int32_t detail, struct SwvGlyph *p_glyphs, uint32_t max,
     uint8_t *p_page)
 {
+    return swview_load_sprites("fontc", style, detail, p_glyphs, max, p_page, SWV_FONT_PAGE_DIM);
+}
+
+int32_t swview_load_sprites(const char *name, int32_t style, int32_t detail, struct SwvGlyph *p_glyphs,
+    uint32_t max, uint8_t *p_page, uint32_t page_dim)
+{
     char locstr[64];
     struct TbSprite *p_tab, *p_tab_end;
     ubyte *p_dat;
     s32 len_tab, len_dat;
     int32_t n, i, px, py, shelf_h;
 
-    sprintf(locstr, "data/fontc%d-%d.tab", (int)style, (int)detail);
+    sprintf(locstr, "data/%.16s%d-%d.tab", name, (int)style, (int)detail);
     len_tab = LbFileLength(locstr);
-    sprintf(locstr, "data/fontc%d-%d.dat", (int)style, (int)detail);
+    sprintf(locstr, "data/%.16s%d-%d.dat", name, (int)style, (int)detail);
     len_dat = LbFileLength(locstr);
     if ((len_tab <= 0) || (len_dat <= 0))
         return -1;
@@ -1925,7 +1931,7 @@ int32_t swview_load_font(int32_t style, int32_t detail, struct SwvGlyph *p_glyph
         n = -1;
         goto done;
     }
-    sprintf(locstr, "data/fontc%d-%d.tab", (int)style, (int)detail);
+    sprintf(locstr, "data/%.16s%d-%d.tab", name, (int)style, (int)detail);
     if (LbFileLoadAt(locstr, p_tab) == -1) {
         n = -1;
         goto done;
@@ -1934,7 +1940,7 @@ int32_t swview_load_font(int32_t style, int32_t detail, struct SwvGlyph *p_glyph
     p_tab_end = (struct TbSprite *)((ubyte *)p_tab + len_tab);
     LbSpriteSetup(p_tab, p_tab_end, p_dat);
 
-    memset(p_page, 0, 2 * SWV_FONT_PAGE_DIM * SWV_FONT_PAGE_DIM);
+    memset(p_page, 0, 2 * page_dim * page_dim);
     n = (int32_t)(p_tab_end - p_tab);
     if (n > (int32_t)max)
         n = (int32_t)max;
@@ -1952,12 +1958,12 @@ int32_t swview_load_font(int32_t style, int32_t detail, struct SwvGlyph *p_glyph
         p_gl->h = p_spr->SHeight;
         if ((p_spr->SWidth == 0) || (p_spr->SHeight == 0) || (p_spr->Data == NULL))
             continue;
-        if (px + p_spr->SWidth + 1 > SWV_FONT_PAGE_DIM) {
+        if (px + p_spr->SWidth + 1 > (int32_t)page_dim) {
             px = 0;
             py += shelf_h + 1;
             shelf_h = 0;
         }
-        if (py + p_spr->SHeight > SWV_FONT_PAGE_DIM)
+        if (py + p_spr->SHeight > (int32_t)page_dim)
             break;
         p_gl->x = px;
         p_gl->y = py;
@@ -1965,7 +1971,7 @@ int32_t swview_load_font(int32_t style, int32_t detail, struct SwvGlyph *p_glyph
         p_src = (const sbyte *)p_spr->Data;
         for (y = 0; y < p_spr->SHeight; y++)
         {
-            ubyte *p_row = p_page + 2 * (SWV_FONT_PAGE_DIM * (py + y) + px);
+            ubyte *p_row = p_page + 2 * (page_dim * (py + y) + px);
             x = 0;
             while (1)
             {
@@ -2242,6 +2248,65 @@ uint32_t swview_fx_events(struct SwvFxEvent *p_list, uint32_t max)
 /* The panels' data, for a front end's own layout */
 
 extern ushort signal_count;
+
+void swview_panel_info(struct SwvPanelInfo *p_info)
+{
+    PlayerInfo *p_locplayer;
+    ThingIdx dcthing;
+    int i;
+
+    memset(p_info, 0, sizeof(*p_info));
+    for (i = 1; (i < SWV_WEAPON_TYPES) && (i < WEP_TYPES_COUNT); i++) {
+        p_info->weapon_sprite[i][0] = weapon_sprite_index(i, false);
+        p_info->weapon_sprite[i][1] = weapon_sprite_index(i, true);
+        switch (i) {
+        case WEP_NUCLGREN: case WEP_ELEMINE: case WEP_EXPLMINE: case WEP_KOGAS: case WEP_CRAZYGAS:
+            p_info->weapon_fourpack[i] = weapon_fourpack_index(i) + 1;
+            break;
+        default:
+            break;
+        }
+    }
+    if (things == NULL)
+        return;
+    p_locplayer = &players[local_player_no];
+    dcthing = p_locplayer->DirectControl[0];
+    p_info->thermal = (ingame.Flags & GamF_ThermalView) != 0;
+    p_info->can_thermal = player_can_toggle_thermal(local_player_no);
+    for (i = 0; (i < SWV_AGENTS_MAX) && (i < AGENTS_SQUAD_MAX_COUNT); i++)
+    {
+        struct SwvPanelAgent *p_pa = &p_info->agents[i];
+        struct Thing *p_agent = p_locplayer->MyAgent[i];
+        int k;
+
+        if ((p_agent == NULL) || (p_agent->Type != TT_PERSON))
+            continue;
+        p_pa->thing = p_agent->ThingOffset;
+        p_pa->mood = p_agent->U.UPerson.Mood;
+        p_pa->stamina = p_agent->U.UPerson.Stamina;
+        p_pa->max_stamina = p_agent->U.UPerson.MaxStamina;
+        p_pa->prev_weapon = p_locplayer->PrevWeapon[i];
+        for (k = 0; k < WFRPK_COUNT; k++)
+            p_pa->fourpacks[k] = p_locplayer->FourPacks[k][i];
+        if (p_agent->U.UPerson.CurrentWeapon < WEP_TYPES_COUNT)
+            p_pa->weapon_delay = player_agent_weapon_delay(local_player_no, i, p_agent->U.UPerson.CurrentWeapon);
+        if (person_carries_any_medikit(p_agent->ThingOffset))
+            p_pa->flags |= SwvPAF_MEDIKIT;
+        if (person_can_use_medikit(p_agent->ThingOffset))
+            p_pa->flags |= SwvPAF_CAN_MEDIKIT;
+        if ((dcthing > 0) && (p_agent->ThingOffset != dcthing)
+          && (((p_agent->State == PerSt_PROTECT_PERSON) && (p_agent->GotoThingIndex == dcthing))
+          || (((p_agent->Flag2 & TgF2_Unkn10000000) != 0) && (p_agent->Owner == dcthing))))
+            p_pa->flags |= SwvPAF_PROTECTING;
+        if (((p_agent->Flag2 & TgF2_Unkn10000000) != 0) || person_is_executing_commands(p_agent->ThingOffset)
+          || (p_agent->State == PerSt_PROTECT_PERSON))
+            p_pa->flags |= SwvPAF_DISABLED;
+        if ((p_agent->Flag & TngF_PersSupShld) != 0)
+            p_pa->flags |= SwvPAF_SUPERSHIELD;
+        if (person_can_toggle_supershield(p_agent->ThingOffset))
+            p_pa->flags |= SwvPAF_CAN_SUPERSHIELD;
+    }
+}
 
 void swview_hud_info(struct SwvHudInfo *p_info)
 {

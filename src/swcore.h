@@ -31,7 +31,7 @@ extern "C" {
 /******************************************************************************/
 
 /** Version of this interface; grows when functions are added. */
-#define SWCORE_API_VERSION 5
+#define SWCORE_API_VERSION 6
 
 /** Sets the game up as the executable would: reads the command line options
  * (the same as syndwarsfx, e.g. "-m 1,2" to start a mission), the config
@@ -245,6 +245,19 @@ enum SwcCommandType {
     SwcCmd_WEAPON_PREV,
     SwcCmd_WEAPON_SELECT, /**< arg: weapon type */
     SwcCmd_ENTER_VEHICLE, /**< thing: vehicle */
+    /* since version 6: the desktop's agent panels; thing: one of the
+     * player's agents (the selected one for the last four) */
+    SwcCmd_AGENT_WEAPON,  /**< arg: weapon type; that agent draws or puts
+                               away the weapon (its panel's weapon list) */
+    SwcCmd_GROUP_WEAPON,  /**< arg: weapon type; the whole group too */
+    SwcCmd_DROP_WEAPON,   /**< arg: weapon type; that agent drops it */
+    SwcCmd_SET_MOOD,      /**< x: mood, -88..88 */
+    SwcCmd_GROUP_SET_MOOD,/**< x: mood, -88..88, for the whole group */
+    SwcCmd_USE_MEDIKIT,
+    SwcCmd_SHIELD_TOGGLE, /**< supershield on/off */
+    SwcCmd_PROTECT_INC,   /**< one more agent protects the selected one */
+    SwcCmd_PROTECT_TOGGLE,/**< all agents protect it, or none */
+    SwcCmd_THERMAL_TOGGLE,
 };
 
 struct SwcCommand {

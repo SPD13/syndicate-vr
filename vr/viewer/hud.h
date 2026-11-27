@@ -22,6 +22,24 @@ public:
         }
     }
 
+    // A quad of a texture (kind: GpuVert::textured, e.g. 9 the panel
+    // sprites), tinted by bright.
+    void textured_quad(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d, float u0, float v0, float u1, float v1,
+                       float kind, float bright)
+    {
+        glm::vec3 q[4] = {a, b, c, d};
+        float uv[4][2] = {{u0, v0}, {u1, v0}, {u1, v1}, {u0, v1}};
+        static const int tri[6] = {0, 1, 2, 0, 2, 3};
+        for (int k : tri) {
+            GpuVert g{};
+            g.pos[0] = q[k].x; g.pos[1] = q[k].y; g.pos[2] = q[k].z;
+            g.uv[0] = uv[k][0]; g.uv[1] = uv[k][1];
+            g.rgb[0] = g.rgb[1] = g.rgb[2] = bright;
+            g.textured = kind;
+            verts.push_back(g);
+        }
+    }
+
     // Rectangle in the plane of (right, up) from its top left corner.
     void rect(glm::vec3 tl, glm::vec3 right, glm::vec3 up, float w, float h, const float *rgb)
     {
@@ -108,6 +126,25 @@ struct Panel {
         if (u < 0 || u > w || v < 0 || v > h)
             return -1;
         return (int)(v / row_h);
+    }
+
+    // Where the ray meets the panel's plane, from its top left corner: u
+    // along right, v down; false when it does not.
+    bool local(const Ray &r, float &u, float &v) const
+    {
+        if (!valid || !r.valid)
+            return false;
+        glm::vec3 n = glm::cross(right, up);
+        float den = glm::dot(n, r.d);
+        if (std::fabs(den) < 1e-6f)
+            return false;
+        float t = glm::dot(tl - r.o, n) / den;
+        if (t < 0)
+            return false;
+        glm::vec3 q = r.o + r.d * t - tl;
+        u = glm::dot(q, right);
+        v = -glm::dot(q, up);
+        return true;
     }
 
     float hit_distance(const Ray &r) const

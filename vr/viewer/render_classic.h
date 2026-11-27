@@ -16,7 +16,8 @@ struct GpuVert {
     // 0 flat colour, 1 texture page (tinted by rgb), 2 sprite page (tinted
     // by rgb), 3 unlit colour, 4 shadow (translucent black), 5 soft glow,
     // 6 marker (unlit colour, alpha in uv[0]), 7 + 0.9 * alpha a character
-    // of the game font, 8 + 0.9 * alpha of the vector font (text.h)
+    // of the game font, 8 + 0.9 * alpha of the vector font (text.h), 9 a
+    // sprite of the desktop's panels (hud_panels.h), tinted by rgb
     float textured;
     float fx; // SwvVertFlags bits, for water, glass and shine
 };
@@ -103,6 +104,7 @@ uniform float u_tint;
 uniform float u_marker_alpha;
 uniform sampler2D u_font_game;
 uniform sampler2D u_font_vec;
+uniform sampler2D u_panel_tex;
 out vec4 o_col;
 void main() {
     if (u_clip != 0) {
@@ -111,6 +113,17 @@ void main() {
             discard;
     }
     vec3 col = v_rgb;
+    if (v_textured > 8.95) {
+        // the desktop's panel sprites: their own colours, cut out
+        vec4 t = texture(u_panel_tex, v_uv);
+        if (t.a < 0.5)
+            discard;
+        col = t.rgb * v_rgb;
+        if (u_linear_out != 0)
+            col = pow(col, vec3(2.2));
+        o_col = vec4(col, 1.0);
+        return;
+    }
     if (v_textured > 6.95) {
         // text (text.h): the game font, its pixels shaded by their colour,
         // or the vector font's distance field, smoothed over a texel
@@ -380,6 +393,8 @@ public:
         glUniform1f(u_turn_, turn);
         g_fog.bind(prog_);
         g_text.bind(prog_);
+        if (bind_extra)
+            bind_extra(prog_);
         GLint u_terrain = glGetUniformLocation(prog_, "u_terrain_verts");
         glUniform1i(u_terrain, 0);
 
@@ -503,6 +518,8 @@ public:
         float tint;
     };
     std::vector<Instance> instances;
+    // binds more textures of the program (the panel sprites, hud_panels.h)
+    std::function<void(GLuint)> bind_extra;
     // draws other models in map space (mvp: map units -> clip)
     std::function<void(const glm::mat4 &mvp, glm::vec3 clip_center, float clip_half, bool linear_out)>
         draw_models, draw_effects;

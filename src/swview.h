@@ -42,7 +42,7 @@ extern "C" {
 #endif
 /******************************************************************************/
 /** Version of this interface; grows when something is added. */
-#define SWVIEW_API_VERSION 6
+#define SWVIEW_API_VERSION 7
 
 #pragma pack(1)
 
@@ -424,6 +424,44 @@ struct SwvGlyph {
 /** Width and height of the page swview_load_font() draws into. */
 #define SWV_FONT_PAGE_DIM 512
 
+/* Since version 7: the desktop's agent panels, for a front end drawing
+ * them with the game's own panel sprites (swview_load_sprites()). */
+
+enum SwvPanelAgentFlags {
+    SwvPAF_MEDIKIT = 0x01,        /**< Carries a medikit */
+    SwvPAF_CAN_MEDIKIT = 0x02,    /**< Could use one now */
+    SwvPAF_PROTECTING = 0x04,     /**< Protects the selected agent (grouping pane) */
+    SwvPAF_DISABLED = 0x08,       /**< Panels drawn darkened: busy or subordinate */
+    SwvPAF_SUPERSHIELD = 0x10,    /**< Supershield on */
+    SwvPAF_CAN_SUPERSHIELD = 0x20,/**< Supershield can be toggled */
+};
+
+/** An agent's panel state beyond SwvHudAgent. */
+struct SwvPanelAgent {
+    uint16_t thing;
+    int16_t mood;            /**< -88 (slow, calm) .. 88 (fast, aggressive) */
+    int16_t stamina, max_stamina;
+    uint8_t flags;           /**< SwvPanelAgentFlags */
+    uint8_t prev_weapon;     /**< Shown, dark, when no weapon is drawn */
+    uint8_t fourpacks[5];    /**< Uses left of the four-pack weapons, by
+                                  SwvPanelInfo.weapon_fourpack index */
+    uint8_t pad;
+    uint16_t weapon_delay;   /**< Turns until the current weapon is ready */
+};
+
+/** The panels' extra state. */
+struct SwvPanelInfo {
+    struct SwvPanelAgent agents[SWV_AGENTS_MAX];
+    uint8_t thermal;         /**< Thermal view on */
+    uint8_t can_thermal;     /**< Thermal view can be toggled */
+    uint8_t pad[2];
+    /** Panel sprite of each weapon type's icon (weapon_sprite_index()):
+     * [0] put away, [1] drawn */
+    uint16_t weapon_sprite[SWV_WEAPON_TYPES][2];
+    /** Four-pack index + 1 of each weapon type, 0 for others */
+    uint8_t weapon_fourpack[SWV_WEAPON_TYPES];
+};
+
 /** The charge of a weapon being charged (laser, electron mace, graviton
  * gun, devastator): the long progress bar of the original. */
 struct SwvCharge {
@@ -454,6 +492,17 @@ void swview_free_assets(void);
  */
 int32_t swview_load_font(int32_t style, int32_t detail, struct SwvGlyph *p_glyphs, uint32_t max,
     uint8_t *p_page);
+
+/** As swview_load_font(), for any sprite set data/<name><style>-<detail>,
+ * such as the desktop's in-mission panels ("pop", style 1, detail 1 for
+ * 640x480: conf/pop1-1.ini places them), into a page of page_dim squared
+ * texels; entry i is sprite i. Since version 7.
+ */
+int32_t swview_load_sprites(const char *name, int32_t style, int32_t detail, struct SwvGlyph *p_glyphs,
+    uint32_t max, uint8_t *p_page, uint32_t page_dim);
+
+/** The panels' extra state of the current turn. Since version 7. */
+void swview_panel_info(struct SwvPanelInfo *p_info);
 
 /** Fills the state of every person, up to max; returns the count. */
 uint32_t swview_persons_render(struct SwvPersonRender *p_list, uint32_t max);

@@ -12,6 +12,7 @@
 #pragma once
 
 #include "hud.h"
+#include "hud_panels.h"
 #include "play.h"
 #include "table_view.h"
 
@@ -184,6 +185,10 @@ public:
         int selected_agent = -1;
         int hover_row = -1;
         bool on_wrist = false;
+        // the desktop's panels (hud_panels.h), when loaded: what the right
+        // hand points at on them
+        bool desk = false;
+        DesktopPanels::Hit hit;
     };
 
     // The player's walk order, for the waypoint marker (M7).
@@ -198,7 +203,8 @@ public:
     // Wrist panel (agents with health, energy and shield; the weapons of the
     // selected one) and the objective board.
     Panels panels(HudBuilder &hud, const WorldSnapshot &snap, bool use_xr, const Ray &left_hand,
-                  const Ray &right_hand, const TableView &tv, glm::vec3 eye_world) const
+                  const Ray &right_hand, const TableView &tv, glm::vec3 eye_world,
+                  const DesktopPanels::State &pst, double now) const
     {
         Panels out;
         const SwvHud &hd = snap.hud;
@@ -232,10 +238,42 @@ public:
                            dim[3] = {0.55f, 0.6f, 0.65f}, cyan[3] = {0.3f, 0.95f, 1.0f},
                            energy[3] = {0.35f, 1.0f, 0.85f}, gold[3] = {1.0f, 0.8f, 0.25f},
                            red[3] = {1.0f, 0.3f, 0.25f}, bar_bg[3] = {0.1f, 0.12f, 0.15f};
+        // the desktop's panels, stacked: on the left wrist (beside the table
+        // on the desktop), a line of mission status above them
+        if (g_panels.ok()) {
+            const float ppx = 0.0011f, head = 14.0f, margin = 4.0f;
+            glm::vec2 sz = g_panels.size();
+            float w_m = (sz.x + 2 * margin) * ppx, h_m = (sz.y + 2 * margin + head) * ppx;
+            glm::vec3 c = use_xr && left_hand.valid ? left_hand.o + glm::vec3(0, 0.07f + h_m * 0.5f, 0)
+                                                    : glm::vec3(tv.table_pose * glm::vec4(-1.05f, 0.25f, 0.1f, 1.0f));
+            panel = make_panel(c, eye_world, w_m, h_m, h_m);
+            DesktopPanels::Frame fr;
+            fr.px = ppx;
+            fr.right = panel.right;
+            fr.up = panel.up;
+            fr.tl = panel.tl + panel.right * (margin * ppx) - panel.up * ((margin + head) * ppx);
+            glm::vec2 hover(-100.0f);
+            float u, v;
+            if (panel.local(right_hand, u, v) && u >= 0 && v >= 0 && u <= w_m && v <= h_m) {
+                hover = glm::vec2(u / ppx - margin, v / ppx - margin - head);
+                out.on_wrist = true;
+            }
+            out.hover_row = -1;
+            out.desk = true;
+            out.hit = g_panels.hit_test(snap, pst, hover);
+            g_panels.draw(hud, fr, snap, pst, hover, now);
+            if (hi.mission_status == SwcMS_WON)
+                hud.text(panel.tl + panel.right * (margin * ppx) - panel.up * (3 * ppx), panel.right, panel.up,
+                         ppx * 1.6f, "MISSION WON", gold);
+            else if (hi.mission_status == SwcMS_LOST)
+                hud.text(panel.tl + panel.right * (margin * ppx) - panel.up * (3 * ppx), panel.right, panel.up,
+                         ppx * 1.6f, "MISSION LOST", red);
+        }
         // layers, front to back: bars, text, row highlights (1 mm behind the
         // text, which would z-fight in one plane), the board (2 mm)
         glm::vec3 back = -glm::cross(panel.right, panel.up) * 0.002f;
-        hud.rect(panel.tl + back, panel.right, panel.up, panel.w, panel.h, bg);
+        if (!out.desk)
+            hud.rect(panel.tl + back, panel.right, panel.up, panel.w, panel.h, bg);
         auto row_tl = [&](int r) { return panel.tl - panel.up * (r * row_h); };
         auto row_text = [&](int r, float x, const std::string &s, const float *rgb, size_t n = 26) {
             hud.text(row_tl(r) + panel.right * (0.008f + x) - panel.up * 0.004f, panel.right, panel.up, px,
@@ -247,6 +285,7 @@ public:
             if (f > 0)
                 hud.rect(o - back, panel.right, panel.up, 0.09f * std::clamp(f, 0.0f, 1.0f), h, rgb);
         };
+        if (!out.desk) {
         row_text(0, 0, "AGENTS", cyan);
         if (hi.mission_status == SwcMS_WON)
             row_text(0, 0.13f, "MISSION WON", gold);
@@ -289,6 +328,7 @@ public:
                 hud.rect(row_tl(r) + back * 0.5f, panel.right, panel.up, panel.w, row_h, hov);
             row_text(r, 0, weapon_name(w), white);
         }
+        } // !out.desk
 
         // objective board, leaning back at the far edge of the table
         std::vector<std::string> lines = wrap_text(hd.objective, 34);

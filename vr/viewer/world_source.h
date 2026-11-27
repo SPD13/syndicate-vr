@@ -34,6 +34,7 @@ struct WorldSnapshot {
     // read from the core in this process, not from the block: the panels'
     // data and every person's state, for the VR HUD
     SwvHudInfo hud_info{};
+    SwvPanelInfo panel_info{}; // the desktop's agent panels' extra state
     std::vector<SwvPersonRender> persons;
     // for the upgraded look: items, grenades and statics; weapons charging;
     // the effects started or ended in the turns played since the last poll
@@ -249,6 +250,7 @@ public:
         if (!reader_.poll(snap))
             return false;
         swview_hud_info(&snap.hud_info);
+        swview_panel_info(&snap.panel_info);
         snap.persons.resize(kPersonsMax);
         snap.persons.resize(swview_persons_render(snap.persons.data(), kPersonsMax));
         snap.props.resize(kPropsMax);
@@ -405,6 +407,7 @@ public:
         {
             std::lock_guard<std::mutex> lk(mu_);
             snap.hud_info = extra_.hud_info;
+            snap.panel_info = extra_.panel_info;
             snap.persons = extra_.persons;
             snap.props = extra_.props;
             snap.charges = extra_.charges;
@@ -481,6 +484,7 @@ public:
 private:
     struct Extra {
         SwvHudInfo hud_info{};
+        SwvPanelInfo panel_info{};
         std::vector<SwvPersonRender> persons;
         std::vector<SwvProp> props;
         std::vector<SwvCharge> charges;
@@ -585,6 +589,7 @@ private:
         bool in_mission = h->in_mission != 0;
         if (in_mission) {
             swview_hud_info(&ex.hud_info);
+            swview_panel_info(&ex.panel_info);
             ex.persons.resize(2048);
             ex.persons.resize(swview_persons_render(ex.persons.data(), 2048));
             ex.props.resize(8192);

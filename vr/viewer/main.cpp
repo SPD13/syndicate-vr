@@ -348,6 +348,10 @@ int main(int argc, char **argv)
     double over_at = -1;
     double drive_until = -1, look_sent = -1;
     double align_logged = -100;
+    // the desktop's panels on the wrist: open weapon list, mood drag; the
+    // buttons held the frame before
+    DesktopPanels::State pst;
+    bool panel_main_was = false, panel_alt_was = false;
     float zoom_ratio = 0, zoom_goal = 0; // table half size per desktop half width
     uint32_t zoom_seen = 0;
     bool heading_set = false;
@@ -359,7 +363,11 @@ int main(int argc, char **argv)
         SDL_free(base);
     }
     // the game font is read on the game's thread, once it is set up
-    if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev, [] { g_text.load_game(); }))
+    rend.bind_extra = [](GLuint prog) { g_panels.bind(prog); };
+    if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev, [] {
+            g_text.load_game();
+            g_panels.load();
+        }))
         return 1;
     if (dump_file != nullptr)
         core.dump_at(dump_turn, dump_file);
@@ -458,6 +466,7 @@ int main(int argc, char **argv)
         }
         if (core.poll(snap, t)) {
             g_text.set_palette(snap.palette);
+            g_panels.set_palette(snap.palette);
             rend.upload_world(snap);
             people.update(snap, t);
             if (snap.static_changed)
@@ -652,7 +661,7 @@ int main(int argc, char **argv)
         // panels: agents and weapons on the left wrist (or beside the
         // table on the desktop), the objective on a board at the table's edge
         const SwvHud &hd = snap.hud;
-        VrHud::Panels pn = vrhud.panels(hud, snap, use_xr, world_ray[0], world_ray[1], tv, eye_world);
+        VrHud::Panels pn = vrhud.panels(hud, snap, use_xr, world_ray[0], world_ray[1], tv, eye_world, pst, t);
         const Panel &panel = pn.wrist;
         const std::vector<int> &weapon_rows = pn.weapon_rows;
         int hover_row = pn.hover_row;
@@ -690,10 +699,123 @@ int main(int argc, char **argv)
             return false;
         };
 
+        // the desktop's panels: clicks as on the desktop (hud_panel.c
+        // check_panel_button(), process_panel_state()). The click is the
+        // right hand's main trigger; the right click R2 on the Steam Frame,
+        // else the left trigger while the right hand points at the panels
+        // (the right mouse button on the desktop)
+        bool panel_alt_used = false;
+        if (pn.desk && snap.valid && snap.hdr.in_mission) {
+            bool m_held = use_xr ? xr_in.trig_held[1] : dragging;
+            bool a_held = use_xr ? (xr.frame_ext_ ? xr_in.alt_held : (on_panel && xr_in.trig_held[0])) : right_down;
+            bool m_press = (m_held && !panel_main_was) || (act[1] && on_panel);
+            bool a_press = a_held && !panel_alt_was;
+            panel_alt_used = on_panel && !xr.frame_ext_;
+            const DesktopPanels::Hit &ph = pn.hit;
+            const SwvHudInfo &phi = snap.hud_info;
+            auto thing_of = [&](int i) { return (int16_t)(i >= 0 && i < 4 ? phi.agents[i].thing : 0); };
+            auto mood_of = [&](float f) { return (int32_t)std::lround(f * 176.0f - 88.0f); };
+            if (pst.mood_agent >= 0) {
+                // dragging the mood bar: a new mood when it changes
+                bool held = pst.mood_group ? a_held : m_held;
+                if (!held) {
+                    pst.mood_agent = -1;
+                } else if (ph.kind == DesktopPanels::Hit::MOOD && ph.agent == pst.mood_agent) {
+                    int v = mood_of(ph.frac);
+                    if (v != pst.mood_sent && t - pst.mood_at > 0.1) {
+                        cmds.send(pst.mood_group ? SwcCmd_GROUP_SET_MOOD : SwcCmd_SET_MOOD, thing_of(pst.mood_agent),
+                                  v);
+                        pst.mood_sent = v;
+                        pst.mood_at = t;
+                    }
+                }
+            } else if (pst.list_agent >= 0) {
+                // a weapon list is open: released over an entry, that
+                // weapon; over the button, its weapon (draw / put away);
+                // the other button pressed meanwhile drops the entry's
+                bool group = pst.list_group;
+                bool held = group ? a_held : m_held, other = group ? m_press : a_press;
+                int16_t ag = thing_of(pst.list_agent);
+                int w = 0;
+                if (ph.kind == DesktopPanels::Hit::LIST)
+                    w = ph.weapon;
+                else if (ph.kind == DesktopPanels::Hit::WEAPON && ph.agent == pst.list_agent)
+                    w = g_panels.button_weapon(snap, pst.list_agent);
+                if (other) {
+                    if (w > 0)
+                        cmds.send(SwcCmd_DROP_WEAPON, ag, 0, 0, w);
+                    pst.list_agent = -1;
+                } else if (!held) {
+                    if (w > 0)
+                        cmds.send(group ? SwcCmd_GROUP_WEAPON : SwcCmd_AGENT_WEAPON, ag, 0, 0, w);
+                    pst.list_agent = -1;
+                }
+            } else if (m_press && on_panel) {
+                switch (ph.kind) {
+                case DesktopPanels::Hit::BADGE:
+                case DesktopPanels::Hit::HEALTH:
+                case DesktopPanels::Hit::ENERGY:
+                    cmds.send(SwcCmd_SELECT_AGENT, thing_of(ph.agent));
+                    break;
+                case DesktopPanels::Hit::MOOD:
+                    pst.mood_agent = ph.agent;
+                    pst.mood_group = false;
+                    pst.mood_sent = mood_of(ph.frac);
+                    pst.mood_at = t;
+                    cmds.send(SwcCmd_SET_MOOD, thing_of(ph.agent), pst.mood_sent);
+                    break;
+                case DesktopPanels::Hit::WEAPON:
+                    pst.list_agent = ph.agent;
+                    pst.list_group = false;
+                    break;
+                case DesktopPanels::Hit::MEDI:
+                    cmds.send(SwcCmd_USE_MEDIKIT, thing_of(ph.agent));
+                    break;
+                case DesktopPanels::Hit::COLUMN:
+                    cmds.send(SwcCmd_SHIELD_TOGGLE);
+                    break;
+                case DesktopPanels::Hit::THERMAL:
+                    cmds.send(SwcCmd_THERMAL_TOGGLE);
+                    break;
+                case DesktopPanels::Hit::GROUP:
+                    cmds.send(SwcCmd_PROTECT_INC);
+                    break;
+                default:
+                    break;
+                }
+            } else if (a_press && on_panel) {
+                switch (ph.kind) {
+                case DesktopPanels::Hit::MOOD:
+                    pst.mood_agent = ph.agent;
+                    pst.mood_group = true;
+                    pst.mood_sent = mood_of(ph.frac);
+                    pst.mood_at = t;
+                    cmds.send(SwcCmd_GROUP_SET_MOOD, thing_of(ph.agent), pst.mood_sent);
+                    break;
+                case DesktopPanels::Hit::WEAPON:
+                    pst.list_agent = ph.agent;
+                    pst.list_group = true;
+                    break;
+                case DesktopPanels::Hit::GROUP:
+                case DesktopPanels::Hit::THERMAL:
+                    cmds.send(SwcCmd_PROTECT_TOGGLE);
+                    break;
+                default:
+                    break;
+                }
+            }
+            panel_main_was = m_held;
+            panel_alt_was = a_held;
+        } else {
+            pst = DesktopPanels::State();
+        }
+
         // commands
         if (snap.valid && snap.hdr.in_mission) {
             if (act[1]) {
-                if (on_panel) {
+                if (on_panel && pn.desk) {
+                    // done above
+                } else if (on_panel) {
                     if (hover_row >= 1 && hover_row <= 4 && hd.agents[hover_row - 1].thing != 0)
                         cmds.send(SwcCmd_SELECT_AGENT, (int16_t)hd.agents[hover_row - 1].thing);
                     else if (hover_row >= 6 && hover_row - 6 < (int)weapon_rows.size())
@@ -712,6 +834,10 @@ int main(int argc, char **argv)
             // on and charging ones charge, and fire when it is let go
             // a click held for less than a frame counts too (act[0])
             bool trigger = (use_xr ? xr_in.trig_held[0] : right_down) || act[0];
+            // the left trigger (right button) is the right click on the
+            // panels while the right hand points at them
+            if (panel_alt_used || (pn.desk && on_panel && !use_xr))
+                trigger = false;
             if (trigger) {
                 SwcCommand c{};
                 if ((hit[0].kind == Hit::PERSON && !own_agent(hit[0].thing)) || hit[0].kind == Hit::VEHICLE) {

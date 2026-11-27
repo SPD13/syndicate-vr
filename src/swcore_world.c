@@ -240,6 +240,30 @@ void swcore_camera_set_zoom(int32_t zoom)
     ingame.UserZoom = zoom;
 }
 
+/** Whether thing is one of the player's living agents. */
+static TbBool swc_own_agent(PlayerInfo *p_player, s32 thing)
+{
+    int i;
+
+    for (i = 0; i < AGENTS_SQUAD_MAX_COUNT; i++) {
+        struct Thing *p_agent = p_player->MyAgent[i];
+        if ((p_agent != NULL) && (p_agent->ThingOffset == thing)
+          && ((p_agent->Flag & TngF_Destroyed) == 0))
+            return true;
+    }
+    return false;
+}
+
+/** A mood of the panels' range, -88..88. */
+static int swc_mood(s32 mood)
+{
+    if (mood < -88)
+        return -88;
+    if (mood > 88)
+        return 88;
+    return mood;
+}
+
 TbBool swcore_input_packet(struct Packet *p_pckt)
 {
     struct SwcCommand cmd;
@@ -299,6 +323,43 @@ TbBool swcore_input_packet(struct Packet *p_pckt)
     case SwcCmd_ENTER_VEHICLE:
         if ((cmd.thing > 0) && (cmd.thing < THINGS_LIMIT) && (things[cmd.thing].Type == TT_VEHICLE))
             my_build_packet(p_pckt, PAct_GO_ENTER_VEHICLE, dcthing, cmd.thing, 0, 0);
+        break;
+    // the desktop's panels (hud_panel.c), with the same packets
+    case SwcCmd_AGENT_WEAPON:
+        if (swc_own_agent(p_locplayer, cmd.thing) && (cmd.arg > 0) && (cmd.arg < WEP_TYPES_COUNT))
+            my_build_packet(p_pckt, PAct_SELECT_SPECIFIC_WEAPON, cmd.thing, cmd.arg, WepSel_TOGGLE, 0);
+        break;
+    case SwcCmd_GROUP_WEAPON:
+        if (swc_own_agent(p_locplayer, cmd.thing) && (cmd.arg > 0) && (cmd.arg < WEP_TYPES_COUNT))
+            my_build_packet(p_pckt, PAct_SELECT_GRP_SPEC_WEAPON, cmd.thing, cmd.arg, WepSel_TOGGLE, 0);
+        break;
+    case SwcCmd_DROP_WEAPON:
+        if (swc_own_agent(p_locplayer, cmd.thing) && (cmd.arg > 0) && (cmd.arg < WEP_TYPES_COUNT))
+            my_build_packet(p_pckt, PAct_DROP_HELD_WEAPON_SECR, cmd.thing, cmd.arg, 0, 0);
+        break;
+    case SwcCmd_SET_MOOD:
+        if (swc_own_agent(p_locplayer, cmd.thing))
+            my_build_packet(p_pckt, PAct_AGENT_SET_MOOD, cmd.thing, swc_mood(cmd.x), 0, 0);
+        break;
+    case SwcCmd_GROUP_SET_MOOD:
+        if (swc_own_agent(p_locplayer, cmd.thing))
+            my_build_packet(p_pckt, PAct_GROUP_SET_MOOD, cmd.thing, swc_mood(cmd.x), 0, 0);
+        break;
+    case SwcCmd_USE_MEDIKIT:
+        if (swc_own_agent(p_locplayer, cmd.thing))
+            my_build_packet(p_pckt, PAct_AGENT_USE_MEDIKIT, cmd.thing, 0, 0, 0);
+        break;
+    case SwcCmd_SHIELD_TOGGLE:
+        my_build_packet(p_pckt, PAct_SHIELD_TOGGLE, dcthing, 0, 0, 0);
+        break;
+    case SwcCmd_PROTECT_INC:
+        my_build_packet(p_pckt, PAct_PROTECT_INC, dcthing, 0, 0, 0);
+        break;
+    case SwcCmd_PROTECT_TOGGLE:
+        my_build_packet(p_pckt, PAct_PROTECT_TOGGLE, dcthing, 0, 0, 0);
+        break;
+    case SwcCmd_THERMAL_TOGGLE:
+        my_build_packet(p_pckt, PAct_THERMAL_TOGGLE, dcthing, 0, 0, 0);
         break;
     default:
         break;

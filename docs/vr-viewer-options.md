@@ -165,6 +165,31 @@ most-zoomed-out desktop view does. The value comes from the game
 | `--key KEY SECONDS` | off | Desktop: simulates a key press (an SDL key name, e.g. `L`). |
 | `--dump-block TURN FILE` | off | Writes the world export of that turn to FILE and quits, to compare with `swcore_coreonly --view-dump`. |
 
+## The wrist panels
+
+The left wrist (beside the table in the table program's window) shows the
+desktop game's own agent panels: the same sprites (`data/pop1-1`) and
+layout (`conf/pop1-1.ini`), the four agents' panels stacked top down, the
+energy column and grouping pane to their left (`vr/viewer/hud_panels.h`).
+Point at them with the right hand. The click is the right hand's main
+trigger (Steam Frame: R1); the right click is R2 on the Steam Frame, the
+left trigger on other controllers while the right hand points at the
+panels, the right mouse button in the table program. They do what the
+desktop's do:
+
+| Element | Click | Right click |
+|---|---|---|
+| Badge, health bar, energy mini bar | Select the agent | |
+| Mood bar (red: faster, blue: slower) | Set the agent's mood where pointed; hold and move to change it | The same for the whole group |
+| Weapon button | Open the agent's weapon list; release over a weapon to draw it, over the button to draw or put away the shown one | The list for the whole group; release on a weapon |
+| Weapon list, while open | Press the other button over a weapon: drop it | |
+| Medikit | Use it (when carried) | |
+| Energy column | Supershield on/off (when possible) | |
+| Grouping pane | One more agent protects the selected one; its thermal box: thermal view on/off | All agents protect it, or none |
+
+If the sprites or layout cannot be loaded, the panel falls back to rows
+of text.
+
 ## Environment variables
 
 | Variable | Impact |
@@ -179,7 +204,7 @@ VR (Valve Index, Oculus Touch):
 
 | Control | Action |
 |---|---|
-| Right trigger | Point at an agent to select it, at the ground to walk there, at a vehicle to get in, at a row of the wrist panel to pick an agent or weapon |
+| Right trigger (Steam Frame: R1) | Point at an agent to select it, at the ground to walk there, at a vehicle to get in, at a row of the wrist panel to pick an agent or weapon |
 | Left trigger | Shoot at what the left hand points at; held, weapons fire on and charging weapons charge |
 | Left A / B (Touch: X / Y) | Previous / next weapon |
 | Left stick | Move the view the way the stick is pushed, as you see it (up: on towards what is away from you; the map slides towards you), whatever the table's turn |

@@ -17,9 +17,24 @@
 
 class XrApp {
 public:
+    // whether the Steam Frame's controller profile is in use
+    bool frame_ext_ = false;
     bool init()
     {
         std::vector<const char *> exts = {XR_KHR_OPENGL_ENABLE_EXTENSION_NAME};
+        // the Steam Frame's controllers have their own profile, behind a
+        // Valve extension: asked for when the runtime has it
+        {
+            uint32_t n_ext = 0;
+            xrEnumerateInstanceExtensionProperties(nullptr, 0, &n_ext, nullptr);
+            std::vector<XrExtensionProperties> props(n_ext, {XR_TYPE_EXTENSION_PROPERTIES});
+            xrEnumerateInstanceExtensionProperties(nullptr, n_ext, &n_ext, props.data());
+            for (const XrExtensionProperties &p : props)
+                if (!strcmp(p.extensionName, "XR_VALVE_frame_controller_interaction"))
+                    frame_ext_ = true;
+            if (frame_ext_)
+                exts.push_back("XR_VALVE_frame_controller_interaction");
+        }
         XrInstanceCreateInfo ci{XR_TYPE_INSTANCE_CREATE_INFO};
         strcpy(ci.applicationInfo.applicationName, "SyndWarsVR Spectator");
         ci.applicationInfo.applicationVersion = 1;
@@ -139,6 +154,7 @@ public:
         XR_CHECK(make(act_trig_r_, "command_right", "Select or move", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_wep_next_, "weapon_next", "Next weapon", XR_ACTION_TYPE_BOOLEAN_INPUT));
         XR_CHECK(make(act_wep_prev_, "weapon_prev", "Previous weapon", XR_ACTION_TYPE_BOOLEAN_INPUT));
+        XR_CHECK(make(act_alt_r_, "hud_right_click", "Right click on the HUD", XR_ACTION_TYPE_BOOLEAN_INPUT));
 
         auto path = [&](const char *s) {
             XrPath p;
@@ -180,6 +196,33 @@ public:
             XrResult r = xrSuggestInteractionProfileBindings(instance_, &sb);
             if (XR_FAILED(r))
                 logf("bindings for %s rejected: %d", pr.name, (int)r);
+        }
+        if (frame_ext_) {
+            // Steam Frame: R1 (bumper) selects and clicks, R2 (trigger) is
+            // the right click on the HUD; L2 shoots; the left d-pad picks
+            // the weapon
+            std::vector<XrActionSuggestedBinding> b = {
+                {act_pan_, path("/user/hand/left/input/thumbstick")},
+                {act_zoom_, path("/user/hand/right/input/thumbstick")},
+                {act_follow_, path("/user/hand/right/input/a/click")},
+                {act_recenter_, path("/user/hand/left/input/thumbstick/click")},
+                {act_look_, path("/user/hand/right/input/b/click")},
+                {act_world_, path("/user/hand/right/input/thumbstick/click")},
+                {act_fog_, path("/user/hand/right/input/squeeze/value")},
+                {act_aim_l_, path("/user/hand/left/input/aim/pose")},
+                {act_aim_r_, path("/user/hand/right/input/aim/pose")},
+                {act_trig_l_, path("/user/hand/left/input/trigger/value")},
+                {act_trig_r_, path("/user/hand/right/input/bumper/click")},
+                {act_alt_r_, path("/user/hand/right/input/trigger/value")},
+                {act_wep_prev_, path("/user/hand/left/input/dpad_left/click")},
+                {act_wep_next_, path("/user/hand/left/input/dpad_right/click")},
+            };
+            XrInteractionProfileSuggestedBinding sb{XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING};
+            sb.interactionProfile = path("/interaction_profiles/valve/frame_controller_valve");
+            sb.suggestedBindings = b.data();
+            sb.countSuggestedBindings = (uint32_t)b.size();
+            XrResult r = xrSuggestInteractionProfileBindings(instance_, &sb);
+            logf("Steam Frame controller bindings %s", XR_FAILED(r) ? "rejected" : "set");
         }
         XrSessionActionSetsAttachInfo at{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
         at.countActionSets = 1;
@@ -232,6 +275,7 @@ public:
         bool follow_pressed = false, recenter_pressed = false, look_pressed = false, world_pressed = false, fog_pressed = false;
         bool trig_pressed[2] = {false, false}; // left, right
         bool trig_held[2] = {false, false};
+        bool alt_pressed = false, alt_held = false; // the right click on the HUD
         bool wep_next = false, wep_prev = false;
         bool aim_valid[2] = {false, false};
         glm::vec3 aim_pos[2], aim_dir[2];
@@ -294,6 +338,8 @@ public:
         };
         in.trig_held[0] = held(act_trig_l_);
         in.trig_held[1] = held(act_trig_r_);
+        in.alt_pressed = pressed(act_alt_r_);
+        in.alt_held = held(act_alt_r_);
         in.wep_next = pressed(act_wep_next_);
         in.wep_prev = pressed(act_wep_prev_);
         for (int h = 0; h < 2 && last_time_ != 0; h++) {
@@ -465,6 +511,7 @@ private:
     XrAction act_pan_ = XR_NULL_HANDLE, act_zoom_ = XR_NULL_HANDLE, act_follow_ = XR_NULL_HANDLE,
              act_recenter_ = XR_NULL_HANDLE, act_look_ = XR_NULL_HANDLE, act_aim_l_ = XR_NULL_HANDLE,
              act_aim_r_ = XR_NULL_HANDLE, act_trig_l_ = XR_NULL_HANDLE, act_trig_r_ = XR_NULL_HANDLE,
+             act_alt_r_ = XR_NULL_HANDLE,
              act_wep_next_ = XR_NULL_HANDLE, act_wep_prev_ = XR_NULL_HANDLE, act_world_ = XR_NULL_HANDLE, act_fog_ = XR_NULL_HANDLE;
     XrSpace aim_space_[2] = {XR_NULL_HANDLE, XR_NULL_HANDLE};
     XrTime last_time_ = 0;
