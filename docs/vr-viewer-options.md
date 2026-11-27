@@ -186,6 +186,14 @@ desktop's do:
 | Medikit | Use it (when carried) | |
 | Energy column | Supershield on/off (when possible) | |
 | Grouping pane | One more agent protects the selected one; its thermal box: thermal view on/off | All agents protect it, or none |
+| Scanner (minimap, below) | The selected agent walks to the point clicked | |
+
+The scanner is the desktop's: its map (`SCANNER_data`: floor, roads, water,
+building outlines), centred on the desktop's camera point, turned with its
+view, at its zoom; people as dots in its colours (the player's agents
+pulsing, persuaded people yellow), vehicles, and rings growing from the
+objective's places. Its map comes from the desktop game; with the game
+core alone (the table program) its background is plain.
 
 If the sprites or layout cannot be loaded, the panel falls back to rows
 of text.

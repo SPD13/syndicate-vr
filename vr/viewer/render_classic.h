@@ -17,7 +17,8 @@ struct GpuVert {
     // by rgb), 3 unlit colour, 4 shadow (translucent black), 5 soft glow,
     // 6 marker (unlit colour, alpha in uv[0]), 7 + 0.9 * alpha a character
     // of the game font, 8 + 0.9 * alpha of the vector font (text.h), 9 a
-    // sprite of the desktop's panels (hud_panels.h), tinted by rgb
+    // sprite of the desktop's panels (hud_panels.h), tinted by rgb, 10 the
+    // scanner's map (uv: map / 32768)
     float textured;
     float fx; // SwvVertFlags bits, for water, glass and shine
 };
@@ -105,6 +106,7 @@ uniform float u_marker_alpha;
 uniform sampler2D u_font_game;
 uniform sampler2D u_font_vec;
 uniform sampler2D u_panel_tex;
+uniform sampler2D u_scan_tex;
 out vec4 o_col;
 void main() {
     if (u_clip != 0) {
@@ -113,6 +115,17 @@ void main() {
             discard;
     }
     vec3 col = v_rgb;
+    if (v_textured > 9.95) {
+        // the scanner's map; dim grey off the map, as the desktop's
+        vec3 t = texture(u_scan_tex, v_uv).rgb;
+        if (v_uv.x < 0.0 || v_uv.y < 0.0 || v_uv.x > 1.0 || v_uv.y > 1.0)
+            t = vec3(0.12);
+        col = t * v_rgb;
+        if (u_linear_out != 0)
+            col = pow(col, vec3(2.2));
+        o_col = vec4(col, 1.0);
+        return;
+    }
     if (v_textured > 8.95) {
         // the desktop's panel sprites: their own colours, cut out
         vec4 t = texture(u_panel_tex, v_uv);

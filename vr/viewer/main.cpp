@@ -467,6 +467,7 @@ int main(int argc, char **argv)
         if (core.poll(snap, t)) {
             g_text.set_palette(snap.palette);
             g_panels.set_palette(snap.palette);
+            g_panels.set_scanner(snap);
             rend.upload_world(snap);
             people.update(snap, t);
             if (snap.static_changed)
@@ -779,6 +780,12 @@ int main(int argc, char **argv)
                     break;
                 case DesktopPanels::Hit::GROUP:
                     cmds.send(SwcCmd_PROTECT_INC);
+                    break;
+                case DesktopPanels::Hit::SCANNER:
+                    // the selected agent walks there, as a click on the
+                    // desktop's scanner
+                    cmds.send(SwcCmd_GOTO, 0, (int32_t)ph.map.x, (int32_t)ph.map.y);
+                    vrhud.on_goto(ph.map.x, ph.map.y, (uint16_t)snap.hdr.selected, t);
                     break;
                 default:
                     break;

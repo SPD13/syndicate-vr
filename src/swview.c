@@ -27,6 +27,7 @@
 #include "bffile.h"
 #include "bfmath.h"
 #include "bfmemory.h"
+#include "bfgentab.h"
 #include "bfpalette.h"
 #include "bfsprite.h"
 #include "poly.h"
@@ -62,6 +63,7 @@
 #include "weapon.h"
 #include "game_camera.h"
 #include "scanner.h"
+#include "scandraw.h" // SCANNER_colour (game_state.c)
 #include "swcore.h"
 #include "swlog.h"
 /******************************************************************************/
@@ -2269,6 +2271,31 @@ void swview_panel_info(struct SwvPanelInfo *p_info)
     }
     if (things == NULL)
         return;
+    // the scanner: its zoom (the desktop's), frame and dot colours, these
+    // computed as SCANNER_init_people_colours() does, without writing them
+    p_info->scanner_zoom = ingame.Scanner.Zoom;
+    p_info->scanner_frame_colour = SCANNER_colour[ScnClr_Frame];
+    p_info->scanner_persuaded_colour = colour_lookup[ColLU_YELLOW];
+    p_info->scanner_vehicle_colour = 1;
+    if (pixmap.fade_table != NULL)
+    {
+        ubyte *ft = pixmap.fade_table;
+        ubyte *pc = p_info->scanner_people_colour;
+        pc[SubTT_PERS_AGENT] = ft[24 * PALETTE_8b_COLORS + colour_lookup[ColLU_RED]];
+        pc[SubTT_PERS_MERCENARY] = ft[10 * PALETTE_8b_COLORS + colour_lookup[ColLU_PINK]];
+        pc[SubTT_PERS_POLICE] = ft[40 * PALETTE_8b_COLORS + colour_lookup[ColLU_BLUE]];
+        pc[SubTT_PERS_SCIENTIST] = ft[24 * PALETTE_8b_COLORS + colour_lookup[ColLU_YELLOW]];
+        pc[SubTT_PERS_PUNK_F] = ft[24 * PALETTE_8b_COLORS + colour_lookup[ColLU_GREEN]];
+        pc[SubTT_PERS_PUNK_M] = pc[SubTT_PERS_PUNK_F];
+        pc[SubTT_PERS_ZEALOT] = ft[32 * PALETTE_8b_COLORS + colour_lookup[ColLU_WHITE]];
+        pc[SubTT_PERS_HIGH_PRIEST] = pc[SubTT_PERS_ZEALOT];
+        pc[SubTT_PERS_MECH_SPIDER] = pc[SubTT_PERS_ZEALOT];
+        pc[SubTT_PERS_SHADY_M] = ft[40 * PALETTE_8b_COLORS + colour_lookup[ColLU_GREYMD]];
+        pc[SubTT_PERS_BRIEFCASE_M] = ft[32 * PALETTE_8b_COLORS + colour_lookup[ColLU_GREYMD]];
+        pc[SubTT_PERS_WHITE_BRUN_F] = pc[SubTT_PERS_BRIEFCASE_M];
+        pc[SubTT_PERS_WHIT_BLOND_F] = pc[SubTT_PERS_BRIEFCASE_M];
+        pc[SubTT_PERS_LETH_JACKT_M] = pc[SubTT_PERS_BRIEFCASE_M];
+    }
     p_locplayer = &players[local_player_no];
     dcthing = p_locplayer->DirectControl[0];
     p_info->thermal = (ingame.Flags & GamF_ThermalView) != 0;
@@ -2306,6 +2333,18 @@ void swview_panel_info(struct SwvPanelInfo *p_info)
         if (person_can_toggle_supershield(p_agent->ThingOffset))
             p_pa->flags |= SwvPAF_CAN_SUPERSHIELD;
     }
+}
+
+uint32_t swview_scanner_map(uint8_t *p_cells)
+{
+    const ubyte *p_src = &SCANNER_data[0][0];
+    size_t i, n = (size_t)SWV_SCANNER_DIM * SWV_SCANNER_DIM;
+
+    memcpy(p_cells, p_src, n);
+    for (i = 1; i < n; i++)
+        if (p_src[i] != p_src[0])
+            return 1;
+    return 0;
 }
 
 void swview_hud_info(struct SwvHudInfo *p_info)

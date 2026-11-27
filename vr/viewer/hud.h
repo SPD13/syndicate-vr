@@ -40,6 +40,20 @@ public:
         }
     }
 
+    // A quad of a texture with a texture point per corner.
+    void textured_quad_uv(const glm::vec3 *q, const glm::vec2 *uv, float kind, float bright)
+    {
+        static const int tri[6] = {0, 1, 2, 0, 2, 3};
+        for (int k : tri) {
+            GpuVert g{};
+            g.pos[0] = q[k].x; g.pos[1] = q[k].y; g.pos[2] = q[k].z;
+            g.uv[0] = uv[k].x; g.uv[1] = uv[k].y;
+            g.rgb[0] = g.rgb[1] = g.rgb[2] = bright;
+            g.textured = kind;
+            verts.push_back(g);
+        }
+    }
+
     // Rectangle in the plane of (right, up) from its top left corner.
     void rect(glm::vec3 tl, glm::vec3 right, glm::vec3 up, float w, float h, const float *rgb)
     {

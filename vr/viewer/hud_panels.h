@@ -27,10 +27,11 @@ class DesktopPanels {
 public:
     // What a point of the HUD is over.
     struct Hit {
-        enum Kind { NONE, BADGE, HEALTH, MOOD, ENERGY, MEDI, WEAPON, LIST, COLUMN, GROUP, THERMAL } kind = NONE;
+        enum Kind { NONE, BADGE, HEALTH, MOOD, ENERGY, MEDI, WEAPON, LIST, COLUMN, GROUP, THERMAL, SCANNER } kind = NONE;
         int agent = -1;  // slot 0..3
         int weapon = 0;  // LIST: the entry's weapon type
         float frac = 0;  // MOOD: 0..1 across the bar
+        glm::vec2 map{0}; // SCANNER: the map point (x, z)
     };
 
     bool ok() const { return sprites_ok_ && ini_ok_; }
@@ -88,12 +89,45 @@ public:
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, kDim, kDim, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
             dirty_ = false;
         }
+        // the scanner's map, coloured with the palette
+        if (scan_tex_ == 0) {
+            glGenTextures(1, &scan_tex_);
+            glBindTexture(GL_TEXTURE_2D, scan_tex_);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        }
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, scan_tex_);
+        if (scan_dirty_ && have_pal_ && scan_cells_.size() == SWV_SCANNER_DIM * SWV_SCANNER_DIM) {
+            std::vector<uint8_t> rgb(3 * scan_cells_.size());
+            for (size_t i = 0; i < scan_cells_.size(); i++)
+                for (int k = 0; k < 3; k++)
+                    rgb[3 * i + k] = scan_built_ ? pal_[scan_cells_[i] * 3 + k] : 18;
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, SWV_SCANNER_DIM, SWV_SCANNER_DIM, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                         rgb.data());
+            scan_dirty_ = false;
+        }
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(glGetUniformLocation(prog, "u_panel_tex"), 8);
+        glUniform1i(glGetUniformLocation(prog, "u_scan_tex"), 9);
+    }
+
+    // A new reading of the scanner's map.
+    void set_scanner(const WorldSnapshot &snap)
+    {
+        if (snap.scanner_rev == scan_rev_ || snap.scanner.empty())
+            return;
+        scan_cells_ = snap.scanner;
+        scan_built_ = snap.scanner_built;
+        scan_rev_ = snap.scanner_rev;
+        scan_dirty_ = true;
     }
 
     // The HUD's size in panel pixels (of the 640x480 layout).
-    glm::vec2 size() const { return glm::vec2(kLeft + kStripW, std::max(4 * kStripH, kColH)); }
+    glm::vec2 size() const { return glm::vec2(kLeft + kStripW, scan_top() + scan_h()); }
 
     // Where the panels are this frame: top left corner, axes, metres per
     // panel pixel.
@@ -252,6 +286,7 @@ public:
                 fourpack_boxes(hud, f, e, ws[k], snap.panel_info.agents[st.list_agent], pi, 1.0f, 0.0008f);
             }
         }
+        draw_scanner(hud, f, snap, now);
     }
 
     // What panel pixel p is over.
@@ -273,6 +308,15 @@ public:
                     h.weapon = ws[k];
                     return h;
                 }
+            }
+        }
+        // the scanner: the map point under the pointer
+        {
+            glm::vec2 q = p - glm::vec2(0, scan_top());
+            if (in_scanner(q)) {
+                h.kind = Hit::SCANNER;
+                h.map = scan_to_map(snap, q);
+                return h;
             }
         }
         // the grouping pane, its thermal box; the energy column
@@ -367,6 +411,127 @@ private:
     static const int kEnergyShield = 0x17; // WEP_ENERGYSHLD, not in the list
     // the stack: the left column, then agent strips of kStripH pixels
     static constexpr float kLeft = 40, kStripW = 160, kStripH = 56, kColH = 302;
+    // the scanner below, across the whole width, shaped as the desktop's
+    // (130 x 123, its top right corner cut by 24)
+    float scan_top() const { return std::max(4 * kStripH, kColH) + 8; }
+    float scan_w() const { return kLeft + kStripW; }
+    float scan_h() const { return scan_w() * 123.0f / 130.0f; }
+    float scan_cut() const { return scan_w() * 24.0f / 130.0f; }
+    bool in_scanner(glm::vec2 q) const
+    {
+        float w = scan_w(), hh = scan_h(), c = scan_cut();
+        if (q.x < 0 || q.y < 0 || q.x > w || q.y > hh)
+            return false;
+        return !(q.x > w - c && q.y < q.x - (w - c));
+    }
+    // Map units per scanner pixel: the desktop's scanner shows zoom / 256
+    // cells (128 map units) per pixel of its 130 wide panel.
+    float scan_scale(const WorldSnapshot &snap) const
+    {
+        float zoom = snap.panel_info.scanner_zoom > 0 ? (float)snap.panel_info.scanner_zoom : 128.0f;
+        return zoom / 256.0f * 128.0f * 130.0f / scan_w();
+    }
+    // Centred on the desktop's camera point and turned with it (the
+    // engine's screen axes: right (cos a, -sin a), up (sin a, cos a)).
+    glm::vec2 scan_to_map(const WorldSnapshot &snap, glm::vec2 q) const
+    {
+        float a = snap.hdr.cam_angle, k = scan_scale(snap);
+        glm::vec2 rt(std::cos(a), -std::sin(a)), up(std::sin(a), std::cos(a));
+        glm::vec2 d(q.x - scan_w() * 0.5f, q.y - scan_h() * 0.5f);
+        return glm::vec2(snap.hdr.cam_x, snap.hdr.cam_z) + rt * (d.x * k) - up * (d.y * k);
+    }
+    glm::vec2 map_to_scan(const WorldSnapshot &snap, glm::vec2 m) const
+    {
+        float a = snap.hdr.cam_angle, k = scan_scale(snap);
+        glm::vec2 rt(std::cos(a), -std::sin(a)), up(std::sin(a), std::cos(a));
+        glm::vec2 d = m - glm::vec2(snap.hdr.cam_x, snap.hdr.cam_z);
+        return glm::vec2(glm::dot(d, rt) / k + scan_w() * 0.5f, -glm::dot(d, up) / k + scan_h() * 0.5f);
+    }
+    glm::vec3 pal_rgb(int idx) const
+    {
+        idx &= 255;
+        return glm::vec3(pal_[idx * 3], pal_[idx * 3 + 1], pal_[idx * 3 + 2]) / 255.0f;
+    }
+
+    void draw_scanner(HudBuilder &hud, const Frame &f, const WorldSnapshot &snap, double now) const
+    {
+        const SwvPanelInfo &pi = snap.panel_info;
+        glm::vec2 o(0, scan_top());
+        float w = scan_w(), hh = scan_h(), c = scan_cut();
+        // the map: two quads, the right one under the cut corner
+        glm::vec2 pts[2][4] = {{{0, 0}, {w - c, 0}, {w - c, hh}, {0, hh}}, {{w - c, 0}, {w, c}, {w, hh}, {w - c, hh}}};
+        for (auto &quad : pts) {
+            glm::vec3 q[4];
+            glm::vec2 uv[4];
+            for (int k = 0; k < 4; k++) {
+                q[k] = f.at(o.x + quad[k].x, o.y + quad[k].y, 0.0001f);
+                uv[k] = scan_to_map(snap, quad[k]) / 32768.0f;
+            }
+            hud.textured_quad_uv(q, uv, 10.0f, 0.85f);
+        }
+        auto dot = [&](glm::vec2 m, float r, glm::vec3 col, float lift) {
+            glm::vec2 s = map_to_scan(snap, m);
+            if (!in_scanner(s))
+                return;
+            float cc[3] = {col.x, col.y, col.z};
+            box(hud, f, o + s - glm::vec2(r), 2 * r, 2 * r, cc, 1.0f, lift);
+        };
+        int turn = (int)snap.hdr.gameturn;
+        // vehicles, from their moving geometry
+        for (const SwvDynGroup &g : snap.dyn_groups) {
+            if ((g.id >> 28) != 0 || g.count == 0 || g.first + g.count > snap.dyn_verts.size())
+                continue;
+            const SwvVert &v = snap.dyn_verts[g.first];
+            dot(glm::vec2(v.x, v.z), 1.5f, pal_rgb(pi.scanner_vehicle_colour), 0.0002f);
+        }
+        // people: by type, persuaded yellow; the player's agents grow and
+        // blink, the others blink small and large (SCANNER_draw_thing())
+        for (const SwvPersonRender &pr : snap.persons) {
+            if (pr.flags & (SwvPF_DEAD | SwvPF_IN_BUILDING | SwvPF_IN_VEHICLE))
+                continue;
+            int ci = (pr.flags & SwvPF_PERSUADED) ? pi.scanner_persuaded_colour
+                                                  : pi.scanner_people_colour[pr.subtype & 15];
+            glm::vec3 col = ci ? pal_rgb(ci) : glm::vec3(0.8f);
+            if (pr.flags & SwvPF_PLAYER_AGENT) {
+                int ph = turn & 3;
+                if (ph != 3)
+                    dot(glm::vec2(pr.x, pr.z), 1.0f + ph, col, 0.0003f);
+            } else {
+                dot(glm::vec2(pr.x, pr.z), (turn & 1) ? 1.5f : 1.0f, col, 0.0002f);
+            }
+        }
+        // the objective's places: rings growing from them every 32 turns
+        const SwvHudInfo &hi = snap.hud_info;
+        for (uint32_t i = 0; i < hi.n_signals && i < SWV_SIGNALS_MAX; i++) {
+            const SwvSignal &sg = hi.signals[i];
+            glm::vec2 s = map_to_scan(snap, glm::vec2(sg.x, sg.z));
+            glm::vec3 col = pal_rgb(sg.colour);
+            float ph = (float)((turn + (int)i * 5) % 32) / 32.0f;
+            float r = 2.0f + ph * 18.0f;
+            float cc[3] = {col.x * (1 - ph), col.y * (1 - ph), col.z * (1 - ph)};
+            for (int k = 0; k < 16; k++) {
+                float a = k * 6.2831853f / 16;
+                glm::vec2 pt = s + glm::vec2(std::cos(a), std::sin(a)) * r;
+                if (in_scanner(pt))
+                    box(hud, f, o + pt - glm::vec2(0.75f), 1.5f, 1.5f, cc, 1.0f, 0.0004f);
+            }
+            if (in_scanner(s)) {
+                float cs[3] = {col.x, col.y, col.z};
+                box(hud, f, o + s - glm::vec2(1.5f), 3, 3, cs, 1.0f, 0.0004f);
+            }
+        }
+        // the frame
+        glm::vec3 fc = pi.scanner_frame_colour ? pal_rgb(pi.scanner_frame_colour) : glm::vec3(0.2f, 0.11f, 0.47f);
+        float fcol[3] = {fc.x, fc.y, fc.z};
+        glm::vec2 fr[5] = {{0, 0}, {w - c, 0}, {w, c}, {w, hh}, {0, hh}};
+        for (int k = 0; k < 5; k++) {
+            glm::vec2 a = o + fr[k], b = o + fr[(k + 1) % 5];
+            glm::vec2 d = glm::normalize(b - a), n(-d.y, d.x);
+            hud.quad(f.at(a.x - n.x, a.y - n.y, 0.0005f), f.at(b.x - n.x, b.y - n.y, 0.0005f),
+                     f.at(b.x + n.x, b.y + n.y, 0.0005f), f.at(a.x + n.x, a.y + n.y, 0.0005f), fcol);
+        }
+        (void)now;
+    }
 
     const P &panel(int i) const
     {
@@ -534,7 +699,10 @@ private:
     std::vector<uint8_t> page_;
     uint8_t pal_[768] = {};
     bool ini_ok_ = false, sprites_ok_ = false, have_pal_ = false, dirty_ = false;
-    GLuint tex_ = 0;
+    GLuint tex_ = 0, scan_tex_ = 0;
+    std::vector<uint8_t> scan_cells_;
+    uint32_t scan_rev_ = 0;
+    bool scan_built_ = false, scan_dirty_ = false;
 };
 
 // The panels of the viewer.

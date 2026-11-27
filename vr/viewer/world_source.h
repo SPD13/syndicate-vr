@@ -35,6 +35,12 @@ struct WorldSnapshot {
     // data and every person's state, for the VR HUD
     SwvHudInfo hud_info{};
     SwvPanelInfo panel_info{}; // the desktop's agent panels' extra state
+    // the scanner's map (swview_scanner_map()), re-read now and then (it
+    // changes with explosions): rev counts the readings, built is false
+    // with the game core alone (no map)
+    std::vector<uint8_t> scanner;
+    uint32_t scanner_rev = 0;
+    bool scanner_built = false;
     std::vector<SwvPersonRender> persons;
     // for the upgraded look: items, grenades and statics; weapons charging;
     // the effects started or ended in the turns played since the last poll
@@ -251,6 +257,11 @@ public:
             return false;
         swview_hud_info(&snap.hud_info);
         swview_panel_info(&snap.panel_info);
+        if (snap.scanner.empty() || snap.hdr.gameturn % 20 == 0) {
+            snap.scanner.resize(SWV_SCANNER_DIM * SWV_SCANNER_DIM);
+            snap.scanner_built = swview_scanner_map(snap.scanner.data()) != 0;
+            snap.scanner_rev++;
+        }
         snap.persons.resize(kPersonsMax);
         snap.persons.resize(swview_persons_render(snap.persons.data(), kPersonsMax));
         snap.props.resize(kPropsMax);
@@ -408,6 +419,11 @@ public:
             std::lock_guard<std::mutex> lk(mu_);
             snap.hud_info = extra_.hud_info;
             snap.panel_info = extra_.panel_info;
+            if (extra_.scanner_rev != snap.scanner_rev && !extra_.scanner.empty()) {
+                snap.scanner = extra_.scanner;
+                snap.scanner_built = extra_.scanner_built;
+                snap.scanner_rev = extra_.scanner_rev;
+            }
             snap.persons = extra_.persons;
             snap.props = extra_.props;
             snap.charges = extra_.charges;
@@ -485,6 +501,9 @@ private:
     struct Extra {
         SwvHudInfo hud_info{};
         SwvPanelInfo panel_info{};
+        std::vector<uint8_t> scanner;
+        uint32_t scanner_rev = 0;
+        bool scanner_built = false;
         std::vector<SwvPersonRender> persons;
         std::vector<SwvProp> props;
         std::vector<SwvCharge> charges;
@@ -590,6 +609,11 @@ private:
         if (in_mission) {
             swview_hud_info(&ex.hud_info);
             swview_panel_info(&ex.panel_info);
+            if (scanner_rev_ == 0 || h->gameturn % 20 == 0) {
+                scanner_.resize(SWV_SCANNER_DIM * SWV_SCANNER_DIM);
+                scanner_built_ = swview_scanner_map(scanner_.data()) != 0;
+                scanner_rev_++;
+            }
             ex.persons.resize(2048);
             ex.persons.resize(swview_persons_render(ex.persons.data(), 2048));
             ex.props.resize(8192);
@@ -603,6 +627,15 @@ private:
             std::lock_guard<std::mutex> lk(mu_);
             ex.fx_events.swap(extra_.fx_events);
             ex.fx_events.insert(ex.fx_events.end(), ev, ev + ne);
+            if (scanner_rev_ != extra_.scanner_rev) {
+                ex.scanner = scanner_;
+                ex.scanner_built = scanner_built_;
+                ex.scanner_rev = scanner_rev_;
+            } else {
+                ex.scanner.swap(extra_.scanner);
+                ex.scanner_built = extra_.scanner_built;
+                ex.scanner_rev = extra_.scanner_rev;
+            }
             extra_ = std::move(ex);
         }
         turns_++;
@@ -627,6 +660,9 @@ private:
     int held_turns_ = 0;
     bool look_ = false;
     int32_t look_x_ = 0, look_z_ = 0, look_angle_ = -1, zoom_ = -1;
+    std::vector<uint8_t> scanner_; // the game's thread's copy
+    uint32_t scanner_rev_ = 0;
+    bool scanner_built_ = false;
 };
 #endif
 

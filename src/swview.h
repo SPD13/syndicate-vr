@@ -460,6 +460,15 @@ struct SwvPanelInfo {
     uint16_t weapon_sprite[SWV_WEAPON_TYPES][2];
     /** Four-pack index + 1 of each weapon type, 0 for others */
     uint8_t weapon_fourpack[SWV_WEAPON_TYPES];
+    /* the scanner (the minimap) */
+    int32_t scanner_zoom;          /**< Scanner cells (half tiles) per 256 pixels
+                                        of the 640x480 layout's 130 wide scanner;
+                                        0 when the desktop has not set it */
+    uint8_t scanner_frame_colour;  /**< Palette index of its frame */
+    uint8_t scanner_persuaded_colour;
+    uint8_t scanner_vehicle_colour;
+    uint8_t pad2;
+    uint8_t scanner_people_colour[16]; /**< Dot colour by person type */
 };
 
 /** The charge of a weapon being charged (laser, electron mace, graviton
@@ -503,6 +512,17 @@ int32_t swview_load_sprites(const char *name, int32_t style, int32_t detail, str
 
 /** The panels' extra state of the current turn. Since version 7. */
 void swview_panel_info(struct SwvPanelInfo *p_info);
+
+/** Width and height of the scanner's map, in cells of half a tile. */
+#define SWV_SCANNER_DIM 256
+
+/** Copies the scanner's map (the desktop's SCANNER_data: floor, roads,
+ * water and building outlines as palette indices, row z, column x, a cell
+ * per half tile) into p_cells, SWV_SCANNER_DIM squared bytes. Returns 0
+ * when the map is not built (the game core alone), else nonzero. Since
+ * version 7.
+ */
+uint32_t swview_scanner_map(uint8_t *p_cells);
 
 /** Fills the state of every person, up to max; returns the count. */
 uint32_t swview_persons_render(struct SwvPersonRender *p_list, uint32_t max);
