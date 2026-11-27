@@ -364,6 +364,19 @@ extern "C" {
 TbResult MEvent(const SDL_Event *ev);
 };
 
+TbResult LbMouseVirtualEvent(int action, float u, float v)
+{
+    struct TbPoint pos;
+
+    if (u < 0.0f) u = 0.0f;
+    if (u > 1.0f) u = 1.0f;
+    if (v < 0.0f) v = 0.0f;
+    if (v > 1.0f) v = 1.0f;
+    pos.x = (s32)(u * (lbScreenSurfaceDimensions.Width - 1) + 0.5f);
+    pos.y = (s32)(v * (lbScreenSurfaceDimensions.Height - 1) + 0.5f);
+    return mouseControl((TbMouseAction)action, &pos);
+}
+
 /** @internal
  * Triggers mouse control function for given SDL mouse event.
  * @return SUCCESS if the event was processed, FAIL if key isn't supported, OK if no mouse event.

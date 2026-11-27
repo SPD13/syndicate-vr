@@ -33,6 +33,11 @@ shift
 goto args
 
 :run
-if not defined MISSION set MISSION=0,1
+rem without a mission: the whole game, its intro and menus first
+if not defined MISSION goto full
 "%VIEWER%" --mission %MISSION% --data "%SWARS_GAMEDATA%" %VIEWER_ARGS%
+goto done
+:full
+"%VIEWER%" --data "%SWARS_GAMEDATA%" %VIEWER_ARGS%
+:done
 endlocal

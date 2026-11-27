@@ -49,9 +49,26 @@ Units used below:
 | Option | Default | Impact |
 |---|---|---|
 | (mission end) | | When the mission is over (the desktop game leaves it, or its outcome is confirmed), the viewer quits 3 s later. Menus in VR are for later. |
-| `--mission C,M` | `0,1` | Campaign and mission the game core plays. `run_vr.cmd` takes it as its first argument. |
+| `--mission C,M` | none: the whole game | `syndwars-vr.exe`: without it the whole game runs, its intro and menus first (below); with it the game starts straight in that mission. The table program always plays a mission (`0,1` by default). `run_vr.cmd` takes it as its first argument. |
 | `--data DIR` | `$SWARS_GAMEDATA`; `run_vr.cmd`: `gamedata` next to the repository | Game data folder (levels, textures, sprites, sounds). The viewer does not start without it. |
 | `--turn-ms MS` | `50` (20 turns a second) | Table program only: real time per game turn of the game core. Lower values play faster. The game itself is the same: it does not depend on time, only on turns. The desktop game keeps its own pace. |
+
+### The whole game
+
+Without `--mission`, `syndwars-vr.exe` runs the game as `syndwarsfx` does:
+the intro, the menus, the briefings, the missions the player starts. Outside
+a mission the headset shows the game's own screen on a flat panel standing
+above the far half of the table, facing you (1.4 m wide, fixed to the table:
+it does not follow the head; the table is empty meanwhile). The right hand
+points at it as the mouse: its trigger is the left button, the right click
+(R2 on the Steam Frame, else the left trigger) the right one. The keyboard
+of the desktop works as usual. When a mission starts the panel goes and the
+table shows it; at its end the panel comes back.
+
+The frame comes from bflib's screen swap (`lbScreenSwapHook`, with the
+pointer drawn), the pointer's moves and clicks go in through
+`LbMouseVirtualEvent()` from an idle handler of bflib's event loop, so they
+work in the intro's and the menus' own loops too.
 
 ## Look
 

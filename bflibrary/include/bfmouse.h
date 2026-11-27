@@ -74,6 +74,13 @@ extern volatile TbMouseToScreen lbMouseToScreen;
 extern volatile TbBool lbMouseCapture;
 
 TbResult LbMousePlace(void);
+
+/** A mouse action from elsewhere than the OS mouse (a VR controller
+ * pointing at the screen shown in a headset): action is a TbMouseAction,
+ * u and v the place on the window from its top left corner, 0..1.
+ * Call it on the thread that processes the events.
+ */
+TbResult LbMouseVirtualEvent(int action, float u, float v);
 TbResult LbMouseRemove(void);
 
 /** Update mouse state as screen swap begins.

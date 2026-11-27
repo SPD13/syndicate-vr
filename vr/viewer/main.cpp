@@ -55,6 +55,7 @@
 #include "people.h"
 #include "table_view.h"
 #include "hud_vr.h"
+#include "screen_panel.h"
 #include "look_upgraded.h"
 #include "xr.h"
 
@@ -147,6 +148,8 @@ int main(int argc, char **argv)
     std::vector<SimKey> sim_keys;
     // the mission the game core plays: --mission C,M
     unsigned campaign = 0, mission = 1;
+    // the game build without --mission plays the whole game: intro, menus
+    bool mission_given = false;
     const char *data_dir = getenv("SWARS_GAMEDATA");
     bool upgraded = false;
     // the whole map drawn around the table, or only the square on it
@@ -165,6 +168,7 @@ int main(int argc, char **argv)
                 logf("--mission takes campaign,mission, e.g. 0,1");
                 return 1;
             }
+            mission_given = true;
         } else if (!strcmp(argv[i], "--data") && i + 1 < argc) {
             data_dir = argv[++i];
         } else if (!strcmp(argv[i], "--look") && i + 1 < argc) {
@@ -367,7 +371,19 @@ int main(int argc, char **argv)
         SDL_free(base);
     }
     // the game font is read on the game's thread, once it is set up
-    rend.bind_extra = [](GLuint prog) { g_panels.bind(prog); };
+    rend.bind_extra = [](GLuint prog) {
+        g_panels.bind(prog);
+        g_screen.bind(prog);
+    };
+    bool full_game = false;
+#if VR_DESKTOP_GAME
+    core.set_full_game(!mission_given);
+    full_game = core.full_game();
+#endif
+    (void)mission_given;
+    // the game's screen on its panel (outside missions): pointer, buttons
+    glm::vec2 scr_uv_sent(-1.0f);
+    bool scr_l = false, scr_r = false, was_in_mission = false;
     if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev, [] {
             g_text.load_game();
             g_panels.load();
@@ -461,6 +477,27 @@ int main(int argc, char **argv)
 
         if (use_xr)
             xr_in = xr.read_input();
+#if VR_DESKTOP_GAME
+        {
+            static std::vector<uint8_t> spx;
+            static uint32_t sframe = 0;
+            int sw = 0, sh = 0;
+            uint8_t spal[768];
+            if (core.screen(spx, sw, sh, spal, sframe))
+                g_screen.set_frame(spx, sw, sh, spal);
+        }
+#endif
+        // outside a mission (intro, menus, briefing) the game's own screen
+        // on a panel, the table empty
+        bool menus = full_game && !(snap.valid && snap.hdr.in_mission);
+        rend.world_visible = !menus;
+        if (!menus && !was_in_mission && snap.valid && snap.hdr.in_mission) {
+            // a mission begins: the table lines up with the desktop again
+            tv.resync();
+            zoom_ratio = 0;
+            zoom_goal = 0;
+        }
+        was_in_mission = snap.valid && snap.hdr.in_mission;
         if (!core.running()) {
             // the mission is over: show its end for a moment, then leave
             if (over_at < 0)
@@ -668,7 +705,8 @@ int main(int argc, char **argv)
         // panels: agents and weapons on the left wrist (or beside the
         // table on the desktop), the objective on a board at the table's edge
         const SwvHud &hd = snap.hud;
-        VrHud::Panels pn = vrhud.panels(hud, snap, use_xr, world_ray[0], world_ray[1], tv, eye_world, pst, t);
+        VrHud::Panels pn =
+            menus ? VrHud::Panels() : vrhud.panels(hud, snap, use_xr, world_ray[0], world_ray[1], tv, eye_world, pst, t);
         const Panel &panel = pn.wrist;
         const std::vector<int> &weapon_rows = pn.weapon_rows;
         int hover_row = pn.hover_row;
@@ -947,6 +985,34 @@ int main(int argc, char **argv)
             }
         }
 
+        // the game's screen: the right hand points (the mouse), its trigger
+        // is the left button, the right click (R2 on the Steam Frame, else
+        // the left trigger) the right one
+        Panel scr_panel;
+        bool scr_on = false;
+        if (menus && use_xr) {
+            scr_panel = g_screen.place(tv.table_pose);
+            glm::vec2 uv(0.0f);
+            scr_on = world_ray[1].valid && ScreenPanel::hit(scr_panel, world_ray[1], uv);
+            g_screen.draw(hud, scr_panel, scr_on, uv);
+#if VR_DESKTOP_GAME
+            if (scr_on && glm::distance(uv, scr_uv_sent) > 1e-4f) {
+                core.mouse(1, uv.x, uv.y);
+                scr_uv_sent = uv;
+            }
+            bool l = xr_in.trig_held[1], r = xr.frame_ext_ ? xr_in.alt_held : xr_in.trig_held[0];
+            glm::vec2 at = scr_on ? uv : scr_uv_sent;
+            if (l != scr_l && (scr_on || !l))
+                core.mouse(l ? 2 : 3, at.x, at.y);
+            if (r != scr_r && (scr_on || !r))
+                core.mouse(r ? 4 : 5, at.x, at.y);
+            if (scr_on || !l)
+                scr_l = l;
+            if (scr_on || !r)
+                scr_r = r;
+#endif
+        }
+
         // pointer beams from the controllers
         if (use_xr) {
             static const float beam_r[3] = {1.0f, 0.9f, 0.3f}, beam_l[3] = {1.0f, 0.3f, 0.2f};
@@ -954,7 +1020,10 @@ int main(int argc, char **argv)
                 if (!world_ray[h].valid)
                     continue;
                 float len = 2.0f;
-                if (h == 1 && on_panel)
+                if (menus) {
+                    if (h == 1 && scr_on)
+                        len = std::max(0.02f, scr_panel.hit_distance(world_ray[h]));
+                } else if (h == 1 && on_panel)
                     len = std::max(0.02f, panel.hit_distance(world_ray[h]));
                 else if (hit[h].kind != Hit::NONE)
                     len = glm::distance(world_ray[h].o, glm::vec3(map_to_world * glm::vec4(hit[h].p, 1.0f)));

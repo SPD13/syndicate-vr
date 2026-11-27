@@ -373,8 +373,48 @@ private:
 // headset are queued and given to the game on its thread, before its next
 // turn. Only the game's thread uses the game and SDL's events.
 
+extern "C" {
+// bflib (bfscreen.h, bfmouse.h, bfwindows.h): the frame at each screen swap,
+// mouse actions from the headset, an idle handler of the event loop
+typedef void (*VrScreenSwapHook)(const unsigned char *pixels, int32_t pitch, int32_t width, int32_t height,
+                                 const unsigned char *palette_rgb);
+extern VrScreenSwapHook lbScreenSwapHook;
+int LbMouseVirtualEvent(int action, float u, float v);
+int LbRegisterIdleHandler(unsigned char (*cb)(void));
+}
+
 class DesktopGameWorld {
 public:
+    /** The whole game: its intro and menus first (no -q, no -m), the
+     * missions the player starts from them; else straight into the mission
+     * given to start(). Before start(). */
+    void set_full_game(bool on) { full_game_ = on; }
+    bool full_game() const { return full_game_; }
+
+    /** The game's screen as last shown (outside missions the headset
+     * shows it on a panel): copies it when there is a new frame. */
+    bool screen(std::vector<uint8_t> &px, int &w, int &h, uint8_t *pal_rgb, uint32_t &frame)
+    {
+        std::lock_guard<std::mutex> lk(screen_mu_);
+        if (screen_frame_ == frame || screen_w_ <= 0)
+            return false;
+        px = screen_px_;
+        w = screen_w_;
+        h = screen_h_;
+        memcpy(pal_rgb, screen_pal_, sizeof(screen_pal_));
+        frame = screen_frame_;
+        return true;
+    }
+
+    /** A mouse action on the game's window (bfmouse.h TbMouseAction: 1
+     * move, 2/3 left down/up, 4/5 right down/up), u, v from its top left
+     * corner, 0..1; done on the game's thread as it reads its events. */
+    void mouse(int action, float u, float v)
+    {
+        std::lock_guard<std::mutex> lk(mouse_mu_);
+        mouse_q_.push_back(MouseAct{action, u, v});
+    }
+
     /** Starts the desktop game on the mission, in the game data folder;
      * on_ready runs on the game's thread once the game is set up. Returns
      * when the game has played its first turn, or failed. */
@@ -390,6 +430,13 @@ public:
         snprintf(mission_arg_, sizeof(mission_arg_), "%u,%u", campaign, mission);
         on_ready_ = on_ready;
         thread_ = std::thread([this] { game_thread(); });
+        if (full_game_) {
+            // the intro plays within the game's set up: the headset shows it
+            // meanwhile, on the screen panel
+            logf("desktop game: the whole game (intro, menus), API %u, view API %u", (unsigned)SWCORE_API_VERSION,
+                 (unsigned)SWVIEW_API_VERSION);
+            return true;
+        }
         std::unique_lock<std::mutex> lk(mu_);
         cv_.wait(lk, [this] { return started_ || ended_.load(); });
         if (!started_) {
@@ -488,7 +535,7 @@ public:
 
     void dump_at(uint32_t, const char *) { logf("--dump-block: only with the game core alone"); }
 
-    bool running() const { return !ended_.load() && !mission_over_; }
+    bool running() const { return !ended_.load() && (full_game_ || !mission_over_); }
 
     void stop()
     {
@@ -510,11 +557,58 @@ private:
         std::vector<SwvFxEvent> fx_events;
     };
 
+    struct MouseAct {
+        int action;
+        float u, v;
+    };
+
+    static DesktopGameWorld *&instance()
+    {
+        static DesktopGameWorld *inst = nullptr;
+        return inst;
+    }
+    // bflib's swap, on the game's thread: the frame for the screen panel
+    static void swap_hook(const unsigned char *pixels, int32_t pitch, int32_t width, int32_t height,
+                          const unsigned char *pal)
+    {
+        DesktopGameWorld *g = instance();
+        if (!g || width <= 0 || height <= 0)
+            return;
+        std::lock_guard<std::mutex> lk(g->screen_mu_);
+        g->screen_px_.resize((size_t)width * height);
+        for (int y = 0; y < height; y++)
+            memcpy(&g->screen_px_[(size_t)y * width], pixels + (size_t)y * pitch, width);
+        g->screen_w_ = width;
+        g->screen_h_ = height;
+        memcpy(g->screen_pal_, pal, sizeof(g->screen_pal_));
+        g->screen_frame_++;
+    }
+    // bflib's event loop, on the game's thread (also in the intro's and
+    // the menus' own loops): the headset's mouse actions
+    static unsigned char idle_hook()
+    {
+        DesktopGameWorld *g = instance();
+        if (!g)
+            return 1;
+        std::vector<MouseAct> q;
+        {
+            std::lock_guard<std::mutex> lk(g->mouse_mu_);
+            q.swap(g->mouse_q_);
+        }
+        for (const MouseAct &m : q)
+            LbMouseVirtualEvent(m.action, m.u, m.v);
+        return 1;
+    }
+
     void game_thread()
     {
         char arg0[] = "syndwarsfx", q[] = "-q", w[] = "-W", m[] = "-m";
-        char *argv[] = {arg0, q, w, m, mission_arg_, nullptr};
-        if (swcore_init(5, argv) != 0) {
+        char *argv_mission[] = {arg0, q, w, m, mission_arg_, nullptr};
+        char *argv_full[] = {arg0, w, nullptr};
+        instance() = this;
+        lbScreenSwapHook = &DesktopGameWorld::swap_hook;
+        LbRegisterIdleHandler(&DesktopGameWorld::idle_hook);
+        if (full_game_ ? swcore_init(2, argv_full) != 0 : swcore_init(5, argv_mission) != 0) {
             logf("the desktop game could not be set up");
             finish();
             return;
@@ -660,6 +754,13 @@ private:
     int held_turns_ = 0;
     bool look_ = false;
     int32_t look_x_ = 0, look_z_ = 0, look_angle_ = -1, zoom_ = -1;
+    bool full_game_ = false;
+    std::mutex screen_mu_, mouse_mu_;
+    std::vector<uint8_t> screen_px_;
+    int screen_w_ = 0, screen_h_ = 0;
+    uint8_t screen_pal_[768] = {};
+    uint32_t screen_frame_ = 0;
+    std::vector<MouseAct> mouse_q_;
     std::vector<uint8_t> scanner_; // the game's thread's copy
     uint32_t scanner_rev_ = 0;
     bool scanner_built_ = false;

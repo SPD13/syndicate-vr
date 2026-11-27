@@ -524,6 +524,15 @@ TbResult LbScreenFindVideoModes(void);
  */
 TbResult LbScreenSwap(void);
 
+/** Called at each screen swap, with the cursor drawn, on the thread that
+ * swaps: the frame's pixels (palette indices, rows of pitch bytes), its
+ * size and its palette (256 RGB triplets, 0..255). For an application that
+ * shows the screen elsewhere too (a VR headset); NULL by default.
+ */
+typedef void (*TbScreenSwapHook)(const ubyte *pixels, s32 pitch, s32 width, s32 height,
+  const ubyte *palette_rgb);
+extern TbScreenSwapHook lbScreenSwapHook;
+
 /** Places working screen buffer to the physical screen, then fills working
  * screen with colour.
  *

@@ -107,6 +107,7 @@ uniform sampler2D u_font_game;
 uniform sampler2D u_font_vec;
 uniform sampler2D u_panel_tex;
 uniform sampler2D u_scan_tex;
+uniform sampler2D u_screen_tex;
 out vec4 o_col;
 void main() {
     if (u_clip != 0) {
@@ -115,6 +116,14 @@ void main() {
             discard;
     }
     vec3 col = v_rgb;
+    if (v_textured > 10.95) {
+        // the game's own screen (screen_panel.h)
+        col = texture(u_screen_tex, v_uv).rgb * v_rgb;
+        if (u_linear_out != 0)
+            col = pow(col, vec3(2.2));
+        o_col = vec4(col, 1.0);
+        return;
+    }
     if (v_textured > 9.95) {
         // the scanner's map; dim grey off the map, as the desktop's
         vec3 t = texture(u_scan_tex, v_uv).rgb;
@@ -383,6 +392,10 @@ public:
     }
 
     // model: map units -> world (meters); vp: projection*view
+    // the map and what is on it drawn (off outside missions: the table
+    // alone, the panels)
+    bool world_visible = true;
+
     void draw(const glm::mat4 &vp, const glm::mat4 &table_model, const glm::mat4 &map_model,
               glm::vec3 clip_center, float clip_half, bool linear_out)
     {
@@ -416,6 +429,7 @@ public:
         glUniform1i(u_clip_, 0);
         draw_mesh(table_mesh_);
 
+        if (world_visible) {
         mvp = vp * map_model;
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(mvp));
         glUniform1i(u_clip_, 1);
@@ -475,6 +489,7 @@ public:
         draw_mesh(marker_mesh_);
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
+        } // world_visible
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(vp));
         glUniform1i(u_clip_, 0);
         // panels: opaque, but the edges of the text's letters blend

@@ -1151,6 +1151,39 @@ TbResult LbIScreenDrawSurfaceCheck(void)
 #endif
 }
 
+TbScreenSwapHook lbScreenSwapHook = NULL;
+
+/** Gives the frame about to be shown to lbScreenSwapHook, if set.
+ */
+static void LbI_ScreenSwapNotify(void)
+{
+    SDL_Surface *surf;
+    ubyte pal[3 * 256];
+    int i, n;
+
+    if (lbScreenSwapHook == NULL)
+        return;
+    surf = to_SDLSurf(lbDrawSurface);
+    if ((surf == NULL) || (surf->format->BytesPerPixel != 1) || (surf->format->palette == NULL))
+        return;
+    memset(pal, 0, sizeof(pal));
+    n = surf->format->palette->ncolors;
+    if (n > 256)
+        n = 256;
+    for (i = 0; i < n; i++)
+    {
+        pal[3 * i + 0] = surf->format->palette->colors[i].r;
+        pal[3 * i + 1] = surf->format->palette->colors[i].g;
+        pal[3 * i + 2] = surf->format->palette->colors[i].b;
+    }
+    if (SDL_MUSTLOCK(surf))
+        if (SDL_LockSurface(surf) < 0)
+            return;
+    lbScreenSwapHook((const ubyte *)surf->pixels, surf->pitch, surf->w, surf->h, pal);
+    if (SDL_MUSTLOCK(surf))
+        SDL_UnlockSurface(surf);
+}
+
 TbResult LbScreenSwap(void)
 {
     TbResult ret;
@@ -1163,6 +1196,7 @@ TbResult LbScreenSwap(void)
 
     // Cursor needs to be drawn on WScreen pixels
     LbMouseOnBeginSwap();
+    LbI_ScreenSwapNotify();
     ret = Lb_SUCCESS;
 
     // Put the data from Draw Surface onto Screen Surface
@@ -1201,6 +1235,7 @@ TbResult LbScreenSwapClear(TbPixel colour)
 
     // Cursor needs to be drawn on WScreen pixels
     LbMouseOnBeginSwap();
+    LbI_ScreenSwapNotify();
     ret = Lb_SUCCESS;
 
     // Put the data from Draw Surface onto Screen Surface
@@ -1254,6 +1289,7 @@ TbResult LbScreenSwapBox(ubyte *sourceBuf, s32 sourceX, s32 sourceY,
 
     // Cursor needs to be drawn on WScreen pixels
     LbMouseOnBeginSwap();
+    LbI_ScreenSwapNotify();
     ret = Lb_SUCCESS;
 
     // Put the data from Draw Surface onto Screen Surface
