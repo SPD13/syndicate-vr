@@ -97,6 +97,9 @@ up only the button's state is set, which the videos check).
 
 ## World shown
 
+The map stands in a grey void: the table's slab is not drawn (past the
+map's edges, where the desktop shows black, it showed as a brown floor).
+
 | Option | Default | Impact |
 |---|---|---|
 | (whole world) `--whole-world` | on | The whole map is drawn, around and beyond the table. It costs nothing extra: the whole map is on the GPU anyway. |
@@ -247,7 +250,8 @@ of text.
 | `SWARS_GAMEDATA` | Game data folder when `--data` is not given. |
 | `SWARS_ASSETS3D` | Assets repository when `--assets` is not given. |
 | `SWARS_VR_MOUSE_TEST` | A file: `syndwars-vr.exe` (whole game) presses the headset's mouse button at 12 s (skipping the intro), clicks LOGIN at 17 s, types V and R with the headset's keys at 19 s, moves its pointer to a quarter of the screen at 20 s and saves the game's screen into the file (PPM) at 23 s, to check the pointer without a headset. |
-| `SWARS_VR_NO_HEADSET` | Set to 1: `syndwars-vr.exe` runs the desktop game even without a headset, for tests (instead of the table program). |
+| `SWARS_VR_NO_HEADSET` | Set to 1: `syndwars-vr.exe` runs the desktop game without a headset, even if one is there (tests: `--screenshot` of the 3D view), instead of the table program. |
+| `SWARS_VR_LOOK_TEST` | `X,Z`: `syndwars-vr.exe` sends the desktop's camera to that map point once a mission runs (tests, with `SWARS_VR_NO_HEADSET` and `--screenshot`). |
 | `SWARS_VR_DUMP_PANELS` | A folder: the wrist panels are drawn flat once (turn 100 of a mission), a unit per pixel of the 640x480 layout, into `verts.bin` (triangles: x, y, u, v, r, g, b, kind, 0 as floats) and `page.rgba` (the sprite page, 1024 square), to compare with a capture of the desktop. |
 
 ## Controls

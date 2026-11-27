@@ -285,7 +285,9 @@ int main(int argc, char **argv)
 
     XrApp xr;
     bool use_xr = false;
-    if (!desktop) {
+    // the game build with SWARS_VR_NO_HEADSET: no headset even if one is
+    // there (tests: --screenshot of the 3D view)
+    if (!desktop && !(VR_DESKTOP_GAME && getenv("SWARS_VR_NO_HEADSET"))) {
         use_xr = xr.init() && xr.create_session();
         if (!use_xr)
             logf("no VR headset available, using desktop mode");
@@ -494,6 +496,15 @@ int main(int argc, char **argv)
         // on a panel, the table empty
         bool menus = full_game && !(snap.valid && snap.hdr.in_mission);
 #if VR_DESKTOP_GAME
+        if (getenv("SWARS_VR_LOOK_TEST") && snap.valid && snap.hdr.in_mission) {
+            // test: the desktop's camera to the map point X,Z
+            static int looks = 0;
+            int lx = 0, lz = 0;
+            if (looks < 50 && sscanf(getenv("SWARS_VR_LOOK_TEST"), "%d,%d", &lx, &lz) == 2) {
+                core.look_at(lx, lz, -1);
+                looks++;
+            }
+        }
         if (getenv("SWARS_VR_MOUSE_TEST")) {
             // test: a click (skips the intro), a click on LOGIN, "VR" typed
             // with the headset's keys into its text box, the pointer to a
@@ -1134,7 +1145,9 @@ int main(int argc, char **argv)
         // people colours come from the figures, not the palette
         rend.upload_people(people_verts);
         rend.upload_glows(glow_verts);
-        tv.ground_offset = rend.ground_low - 4.0f;
+        // the table top below the lowest ground, and below the deepest
+        // ripple of water there (the vertex shader's wobble: down to 42)
+        tv.ground_offset = rend.ground_low - 48.0f;
         if (std::fabs(built_half - tv.half_map) > 1.0f) {
             rend.build_table(tv.half_map, 40.0f);
             built_half = tv.half_map;

@@ -395,6 +395,7 @@ public:
     // the table, the map and what is on it drawn (off outside missions:
     // the panels alone, in a black void)
     bool world_visible = true;
+    bool draw_table_slab = false;
 
     void draw(const glm::mat4 &vp, const glm::mat4 &table_model, const glm::mat4 &map_model,
               glm::vec3 clip_center, float clip_half, bool linear_out)
@@ -427,7 +428,10 @@ public:
         glm::mat4 mvp = vp * table_model;
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(mvp));
         glUniform1i(u_clip_, 0);
-        if (world_visible)
+        // the table's slab is not drawn: the map stands in the grey void
+        // (past its edges, where the desktop shows black, the slab showed
+        // as a brown floor beside the water)
+        if (draw_table_slab)
             draw_mesh(table_mesh_);
 
         if (world_visible) {
