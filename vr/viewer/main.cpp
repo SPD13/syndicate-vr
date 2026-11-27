@@ -299,6 +299,10 @@ int main(int argc, char **argv)
     People people;
     std::vector<GpuVert> people_verts, glow_verts;
     bool placed = !use_xr;
+    // where the table goes when placed: along the play area's forward (at
+    // the start and after the runtime's recentring), else along the head's
+    // (the left stick click)
+    bool place_forward = true;
     bool anchor_set = false; // the anchor of the table view, from the head
     XrApp::Input xr_in;
     glm::vec3 eye_world(0, 1.0f, 1.0f); // last known viewer position
@@ -1001,8 +1005,14 @@ int main(int argc, char **argv)
             }
             if (in.follow_pressed)
                 tv.follow = !tv.follow;
-            if (in.recenter_pressed || xr.take_just_focused())
+            if (in.recenter_pressed) {
                 placed = false;
+                place_forward = false;
+            }
+            if (xr.take_just_focused() || xr.take_space_changed()) {
+                placed = false;
+                place_forward = true;
+            }
             XrTime xt = 0;
             xr.frame(draw_scene, xt);
             {
@@ -1011,10 +1021,10 @@ int main(int argc, char **argv)
                 if (xt != 0 && xr.head_pose(xt, hp, ho)) {
                     eye_world = hp;
                     // the point of the table in front of the viewer: along
-                    // the head's heading, where a gaze 40 degrees down meets
-                    // the table top, kept on the table; it follows the head
-                    // slowly, so a glance does not move the map
-                    glm::vec3 fwd = ho * glm::vec3(0, 0, -1);
+                    // the table's forward, where a gaze 40 degrees down
+                    // meets the table top, kept on the table (taken once
+                    // per placement)
+                    glm::vec3 fwd = glm::vec3(tv.table_pose * glm::vec4(0, 0, -1, 0));
                     fwd.y = 0;
                     if (placed && glm::length(fwd) > 0.01f) {
                         fwd = glm::normalize(fwd);
@@ -1044,7 +1054,7 @@ int main(int argc, char **argv)
                 glm::vec3 hp;
                 glm::quat ho;
                 if (xr.head_pose(xt, hp, ho)) {
-                    glm::vec3 fwd = ho * glm::vec3(0, 0, -1);
+                    glm::vec3 fwd = place_forward ? glm::vec3(0, 0, -1) : ho * glm::vec3(0, 0, -1);
                     fwd.y = 0;
                     if (glm::length(fwd) > 0.01f) {
                         fwd = glm::normalize(fwd);

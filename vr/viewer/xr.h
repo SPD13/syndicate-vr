@@ -242,6 +242,12 @@ public:
     {
         XrEventDataBuffer ev{XR_TYPE_EVENT_DATA_BUFFER};
         while (xrPollEvent(instance_, &ev) == XR_SUCCESS) {
+            if (ev.type == XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING) {
+                // the runtime's recentring (SteamVR "reset view"): a new
+                // forward for the play area
+                logf("XR reference space changes (recentred)");
+                space_changed_ = true;
+            }
             if (ev.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
                 auto *sc = (XrEventDataSessionStateChanged *)&ev;
                 state_ = sc->state;
@@ -460,6 +466,12 @@ public:
     Mirror last_left() const { return last_left_; }
     bool running() const { return running_; }
     // True once, when the headset is first put on and the app gets focus.
+    bool take_space_changed()
+    {
+        bool r = space_changed_;
+        space_changed_ = false;
+        return r;
+    }
     bool take_just_focused()
     {
         bool r = just_focused_;
@@ -506,7 +518,7 @@ private:
     std::vector<Eye> eyes_;
     XrSessionState state_ = XR_SESSION_STATE_UNKNOWN;
     bool running_ = false, srgb_ = false;
-    bool was_focused_ = false, just_focused_ = false;
+    bool was_focused_ = false, just_focused_ = false, space_changed_ = false;
     XrActionSet action_set_ = XR_NULL_HANDLE;
     XrAction act_pan_ = XR_NULL_HANDLE, act_zoom_ = XR_NULL_HANDLE, act_follow_ = XR_NULL_HANDLE,
              act_recenter_ = XR_NULL_HANDLE, act_look_ = XR_NULL_HANDLE, act_aim_l_ = XR_NULL_HANDLE,
