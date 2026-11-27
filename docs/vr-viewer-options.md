@@ -79,10 +79,14 @@ you: along your heading, where a gaze 40 degrees down meets the table top
 your heading slowly, so a glance does not move the map. Without a headset
 (the table program's window) it is the table's centre.
 
-- At the start, and whenever the table is placed again (left stick
-  click), the desktop's camera point is put in front of you and the table
-  is turned as the desktop's view: what is at the top of the desktop
-  window is away from you.
+- The desktop's camera looks the way you do: the table is turned so that
+  the top of the desktop window lies along your heading (from your eyes to
+  the point in front of you), wherever you stand around the table. At the
+  start, and whenever the table is placed again (left stick click), the
+  desktop's camera point is put in front of you.
+- Walking round the table or turning your body by more than 20 degrees
+  (glances do not count: the heading follows the head slowly) turns the
+  desktop's camera to look from your side.
 - While the desktop's camera moves (the player scrolls, the camera follows
   an agent) or turns, the table slides and turns with it, so that its
   point stays in front of you and the top of the desktop window away from

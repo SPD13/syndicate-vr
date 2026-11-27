@@ -78,6 +78,20 @@ struct TableView {
     // camera point is the centre of its window. The table's centre without
     // a headset.
     glm::vec3 anchor{0};
+    // The direction the viewer looks at the table from, as a world angle
+    // (atan2(x, -z): 0 along -z): the desktop's "up" lies along it, so the
+    // desktop's camera looks the way the viewer does.
+    float heading = 0;
+
+    // The table's own turn in the room (its placement), radians.
+    float pose_yaw() const { return std::atan2(table_pose[2][0], table_pose[2][2]); }
+
+    // The world angle of the desktop's "up" on the table is cam_angle -
+    // yaw - pose_yaw() (map direction (sin a, cos a), the map's Z flipped,
+    // turned by yaw, then by the table's placement); these put it along
+    // the heading.
+    float yaw_for(float cam_angle) const { return cam_angle - pose_yaw() - heading; }
+    float cam_angle_for() const { return yaw + pose_yaw() + heading; }
     float table_half_m = 0.7f;          // physical half size in meters
     glm::mat4 table_pose{1.0f};         // table top centre in world space
 
@@ -126,7 +140,7 @@ struct TableView {
         if (!follow || !h.in_mission)
             return;
         if (!synced_) {
-            yaw = h.cam_angle;
+            yaw = yaw_for(h.cam_angle);
             center = center_for(glm::vec2(h.cam_x, h.cam_z), anchor);
             synced_ = true;
             return;
@@ -134,7 +148,7 @@ struct TableView {
         // the table turns with the desktop's camera, about the point in
         // front of the viewer, the shorter way
         float k = 1.0f - std::exp(-dt * 4.0f);
-        float da = std::remainder(h.cam_angle - yaw, 6.2831853f);
+        float da = std::remainder(yaw_for(h.cam_angle) - yaw, 6.2831853f);
         if (std::fabs(da) > 1e-4f)
             turn_at_anchor(da * k);
         glm::vec3 target = center_for(glm::vec2(h.cam_x, h.cam_z), anchor);
@@ -145,7 +159,7 @@ struct TableView {
     // The table's turn as a game camera angle, 0..2047.
     int32_t game_angle() const
     {
-        float a = std::remainder(yaw, 6.2831853f);
+        float a = std::remainder(cam_angle_for(), 6.2831853f);
         if (a < 0)
             a += 6.2831853f;
         return (int32_t)std::lround(a / 6.2831853f * 2048.0f) & 2047;

@@ -347,6 +347,8 @@ int main(int argc, char **argv)
     std::vector<People::PropPlace> prop_places;
     double over_at = -1;
     double drive_until = -1, look_sent = -1;
+    double align_logged = -100;
+    bool heading_set = false;
     // the HUD's fonts (text.h): the vector font next to the program, read
     // before the game changes folder; the game's from its data folder
     {
@@ -465,6 +467,24 @@ int main(int argc, char **argv)
         // viewer; else the table follows the desktop's camera
         if (!use_xr)
             tv.anchor = glm::vec3(tv.table_pose[3]);
+        {
+            // the viewer's heading: from their eyes to the point in front of
+            // them (which follows the head slowly); turning by over 20
+            // degrees moves the desktop's camera round to their side
+            glm::vec3 hv = tv.anchor - eye_world;
+            if (hv.x * hv.x + hv.z * hv.z > 1e-6f) {
+                float h = std::atan2(hv.x, -hv.z);
+                if (!heading_set) {
+                    tv.heading = h;
+                    heading_set = true;
+                } else if (std::fabs(std::remainder(h - tv.heading, 6.2831853f)) > glm::radians(20.0f)) {
+                    tv.heading = h;
+                    view_moved = true;
+                } else if (t < drive_until) {
+                    tv.heading = h;
+                }
+            }
+        }
         if (view_moved && tv.follow)
             drive_until = t + 1.2;
         if (tv.follow && t < drive_until && t - look_sent > 0.15 && snap.valid && snap.hdr.in_mission) {
@@ -476,6 +496,25 @@ int main(int argc, char **argv)
             ;
         else if (placed)
             tv.follow_camera(snap.hdr, dt);
+        // check of the alignment: the angle between the viewer's view and
+        // the desktop's "up" on the table (0 when lined up)
+        if (use_xr && placed && snap.valid && snap.hdr.in_mission && t - align_logged > 5.0) {
+            float a = snap.hdr.cam_angle;
+            glm::vec3 c(snap.hdr.cam_x, 0, snap.hdr.cam_z);
+            glm::mat4 mm = tv.map_model();
+            glm::vec3 w0 = glm::vec3(mm * glm::vec4(c, 1.0f));
+            glm::vec3 w1 = glm::vec3(mm * glm::vec4(c + glm::vec3(std::sin(a), 0, std::cos(a)) * 1000.0f, 1.0f));
+            glm::vec3 r1 = glm::vec3(mm * glm::vec4(c + glm::vec3(std::cos(a), 0, -std::sin(a)) * 1000.0f, 1.0f));
+            glm::vec3 up_w = w1 - w0, rt_w = r1 - w0, head = tv.anchor - eye_world;
+            float ang_up = glm::degrees(std::atan2(up_w.x, -up_w.z)), ang_head = glm::degrees(std::atan2(head.x, -head.z));
+            float ang_rt = glm::degrees(std::atan2(rt_w.x, -rt_w.z));
+            // logged when the desktop's "up" is off the viewer's view, as
+            // while the views are unlinked or catching up
+            if (std::fabs(std::remainder(glm::radians(ang_up - ang_head), 6.2831853f)) > glm::radians(15.0f))
+                logf("alignment: desktop up %.0f deg, right %.0f deg, viewer looking %.0f deg, heading used %.0f deg",
+                     ang_up, ang_rt, ang_head, glm::degrees(tv.heading));
+            align_logged = t;
+        }
         {
             static std::vector<SwvVert> moving;
             people.moving_geometry(t, moving);
@@ -841,6 +880,7 @@ int main(int argc, char **argv)
                                                     glm::vec3(0, 1, 0));
                         placed = true;
                         anchor_set = false;
+                        heading_set = false;
                         tv.resync();
                         logf("table placed at %.2f %.2f %.2f", c.x, c.y, c.z);
                     }
