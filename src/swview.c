@@ -2347,7 +2347,30 @@ void swview_panel_info(struct SwvPanelInfo *p_info)
             p_pa->flags |= SwvPAF_SUPERSHIELD;
         if (person_can_toggle_supershield(p_agent->ThingOffset))
             p_pa->flags |= SwvPAF_CAN_SUPERSHIELD;
+        // as draw_new_panel_badge_overlay()
+        if (dcthing > 0)
+        {
+            struct Thing *p_dcagent = &things[dcthing];
+
+            if (((p_dcagent->Flag & TngF_Destroyed) == 0)
+              && !person_is_executing_commands(p_dcagent->ThingOffset)
+              && (i == (p_dcagent->U.UPerson.ComCur & 3)))
+                p_pa->flags |= SwvPAF_BADGE_BLINK;
+        }
+        // as draw_mood_level()
+        if (pixmap.fade_table != NULL)
+        {
+            short fade = p_pa->mood >> 2;
+
+            if (p_pa->mood >= 0)
+                p_info->mood_colour[i] = pixmap.fade_table[PALETTE_8b_COLORS * (63 - fade) + colour_lookup[ColLU_RED]];
+            else
+                p_info->mood_colour[i] = pixmap.fade_table[PALETTE_8b_COLORS * (63 + fade) + colour_lookup[ColLU_BLUE]];
+        }
     }
+    p_info->colour_white = colour_lookup[ColLU_WHITE];
+    p_info->colour_red = colour_lookup[ColLU_RED];
+    p_info->max_shield = PERSON_MAX_SHIELD;
 }
 
 uint32_t swview_scanner_map(uint8_t *p_cells)

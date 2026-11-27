@@ -434,6 +434,9 @@ enum SwvPanelAgentFlags {
     SwvPAF_DISABLED = 0x08,       /**< Panels drawn darkened: busy or subordinate */
     SwvPAF_SUPERSHIELD = 0x10,    /**< Supershield on */
     SwvPAF_CAN_SUPERSHIELD = 0x20,/**< Supershield can be toggled */
+    SwvPAF_BADGE_BLINK = 0x40,    /**< Its badge number blinks (every 4
+                                       turns): the selected agent's group
+                                       slot, while it runs no commands */
 };
 
 /** An agent's panel state beyond SwvHudAgent. */
@@ -475,6 +478,13 @@ struct SwvPanelInfo {
      * grows (the desktop's fade table) */
     uint8_t signal_counter[SWV_SIGNALS_MAX];
     uint8_t signal_colour[SWV_SIGNALS_MAX][32];
+    /* the agents' bars as the desktop colours them (hud_panel.c): the mood
+     * bar's colour (draw_mood_level(): red or blue by the fade table),
+     * the bars' white and red, the shield bar's full value */
+    uint8_t mood_colour[SWV_AGENTS_MAX];
+    uint8_t colour_white;
+    uint8_t colour_red;
+    uint16_t max_shield;
 };
 
 /** The charge of a weapon being charged (laser, electron mace, graviton

@@ -170,7 +170,9 @@ charge or re-fire delay, mods, target; the selected agent; the places the
 scanner points at for the current objective; mission status; objective
 text. `swview_panel_info()` adds what the desktop's panels and scanner
 draw from: mood, stamina, medikit and shield state per agent, weapon
-sprites, the scanner's zoom and dot colours, and per signal its circle's
+sprites, the bars' colours as the desktop picks them (mood colour from
+the fade table, white, red, the shield's full value), when a badge
+blinks, the scanner's zoom and dot colours, and per signal its circle's
 turn (`signal_counter`) and colour at each turn (`signal_colour`, from the
 fade table, as the desktop draws it). `swview_scanner_map()` copies the
 scanner's map. Both need the desktop front end for some fields (it builds

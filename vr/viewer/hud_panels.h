@@ -181,47 +181,65 @@ public:
             // badge: three sprites in a row, the middle stretched
             const P &badge = panel(i);
             sprites_in_line(hud, f, o, badge, bright);
-            if (i == sel && ((int)(now * 6.0) & 1))
+            if ((pa.flags & SwvPAF_BADGE_BLINK) && (snap.hdr.gameturn & 4))
                 sprite(hud, f, o + glm::vec2(badge.dx - badge.x, badge.dy - badge.y), 6 + i, bright, 0.0004f);
-            // health, the shield over it
+            // the bars as the desktop draws them (hud_panel.c
+            // draw_new_panel_{health,mood,energy}_overlay()), in the
+            // panels' dynamic boxes, row by row slanted as AppDrawSlantBox()
+            glm::vec3 wv = pi.colour_white ? pal_rgb(pi.colour_white) : glm::vec3(1.0f);
+            glm::vec3 rv = pi.colour_red ? pal_rgb(pi.colour_red) : glm::vec3(1.0f, 0.1f, 0.05f);
+            const float white[3] = {wv.x, wv.y, wv.z}, red[3] = {rv.x, rv.y, rv.z};
+            // health: white up to the maximum, beyond it red from the
+            // start; the shield over it (full at max_shield)
             const P &hp = panel(8 + i);
-            glm::vec2 h0 = o + rel(hp, badge);
-            float fh = ag.max_health > 0 ? (float)ag.health / ag.max_health : 0;
-            static const float white[3] = {1.0f, 1.0f, 1.0f}, red[3] = {1.0f, 0.2f, 0.15f},
-                               cyan[3] = {0.3f, 0.85f, 1.0f}, blue[3] = {0.25f, 0.45f, 1.0f};
-            slant_box(hud, f, h0, std::min(fh, 1.0f) * hp.w, (float)hp.h, white, bright);
-            if (fh > 1.0f)
-                slant_box(hud, f, h0 + glm::vec2(hp.w, 0), 0, (float)hp.h, red, bright);
-            if (ag.max_shield > 0 && ag.shield > 0) {
-                float fs = std::min(1.0f, (float)ag.shield / ag.max_shield);
-                float pulse = 0.7f + 0.3f * std::sin((float)now * 6.0f);
-                float c[3] = {cyan[0] * pulse, cyan[1] * pulse, cyan[2] * pulse};
-                slant_box(hud, f, h0, fs * hp.w, (float)hp.h, c, bright, 0.0003f);
+            glm::vec2 h0 = o + dyn_rel(hp, badge);
+            int lvmax = ag.max_health;
+            if (lvmax > 0) {
+                if (ag.health <= lvmax) {
+                    if (ag.health > 0)
+                        slant_rows(hud, f, h0, hp.dw * ag.health / lvmax, hp.dh, white, bright);
+                } else {
+                    slant_rows(hud, f, h0, hp.dw, hp.dh, white, bright);
+                    slant_rows(hud, f, h0, hp.dw * (ag.health - lvmax) / lvmax, hp.dh, red, bright, 0.0003f);
+                }
             }
-            // mood: from the middle, red faster, blue slower; the stamina
-            // marks either side
+            int max_sh = pi.max_shield ? pi.max_shield : 1024;
+            if (ag.shield > 0) {
+                int hw = 0;
+                if (lvmax > 0 && ag.health > 0)
+                    hw = hp.dw * std::min<int>(ag.health, lvmax) / lvmax + 1;
+                shield_bar(hud, f, snap, h0, hp.dw * ag.shield / max_sh, hp.dh, hw, wv, bright);
+            }
+            // mood: a slanted bar from the middle, (w / 2) * mood / 88
+            // wide (one pixel at 0: the red mark), coloured by the mood;
+            // the stamina limits: two slanted white lines 3/4 high
             const P &mp = panel(4 + i);
-            glm::vec2 m0 = o + glm::vec2(mp.dx - badge.x, mp.dy - badge.y);
-            float mw = (float)mp.dw, mh = (float)mp.dh, mid = m0.x + mw * 0.5f;
-            float fm = std::clamp(pa.mood / 88.0f, -1.0f, 1.0f);
-            float mc[3];
-            const float *base = fm >= 0 ? red : blue;
-            for (int k = 0; k < 3; k++)
-                mc[k] = base[k] * (0.4f + 0.6f * std::fabs(fm));
-            if (fm >= 0)
-                box(hud, f, glm::vec2(mid, m0.y), fm * mw * 0.5f, mh, mc, bright);
-            else
-                box(hud, f, glm::vec2(mid + fm * mw * 0.5f, m0.y), -fm * mw * 0.5f, mh, mc, bright);
-            if (pa.max_stamina > 0) {
-                float fsx = std::clamp((float)pa.stamina / pa.max_stamina, 0.0f, 1.0f) * mw * 0.5f;
-                box(hud, f, glm::vec2(mid + fsx - 0.5f, m0.y - 1), 1.0f, mh + 2, white, bright, 0.0003f);
-                box(hud, f, glm::vec2(mid - fsx - 0.5f, m0.y - 1), 1.0f, mh + 2, white, bright, 0.0003f);
+            glm::vec2 m0 = o + dyn_rel(mp, badge);
+            {
+                glm::vec3 mv = pi.mood_colour[i] ? pal_rgb(pi.mood_colour[i])
+                                                 : (pa.mood >= 0 ? glm::vec3(1.0f, 0.3f, 0.25f)
+                                                                 : glm::vec3(0.3f, 0.4f, 1.0f));
+                const float mc[3] = {mv.x, mv.y, mv.z};
+                float cx = m0.x + (float)(mp.dw >> 1);
+                int bw = (mp.dw >> 1) * pa.mood / 88;
+                float l = cx + (float)std::min(0, bw), r = cx + (float)std::max(0, bw) + 1.0f;
+                slant_span(hud, f, l, r, m0.y, (float)mp.dh, mc, bright);
+                if (pa.stamina > 0 && pa.max_stamina > 0) {
+                    int lh = mp.dh * 3 / 4;
+                    int sc = (mp.dw * pa.stamina / pa.max_stamina) >> 1;
+                    for (int side = -1; side <= 1; side += 2) {
+                        float lx = cx + (float)(side * sc) + 0.5f;
+                        line_px(hud, f, glm::vec2(lx, m0.y), glm::vec2(lx - lh, m0.y + lh), white, bright,
+                                0.0003f);
+                    }
+                }
             }
-            // energy mini bar, growing up
+            // energy: a slanted white bar growing up from the top of its
+            // box (draw_energy_bar(): a slant box of negative height)
             const P &ep = panel(12 + i);
-            glm::vec2 e0 = o + rel(ep, badge);
-            float fe = ag.max_energy > 0 ? std::clamp((float)ag.energy / ag.max_energy, 0.0f, 1.0f) : 0;
-            box(hud, f, glm::vec2(e0.x, e0.y + ep.h * (1 - fe)), (float)ep.w, ep.h * fe, white, bright);
+            glm::vec2 e0 = o + dyn_rel(ep, badge);
+            if (ag.max_energy > 0)
+                slant_rows(hud, f, e0, ep.dw, -(ep.dh * ag.energy / ag.max_energy), white, bright);
             // medikit
             const P &medp = panel(16 + i);
             sprite(hud, f, o + rel(medp, badge), (pa.flags & SwvPAF_MEDIKIT) ? medp.extra[0] : medp.spr[0], bright);
@@ -247,13 +265,21 @@ public:
             bool sup = sel >= 0 && (pi.agents[sel].flags & SwvPAF_SUPERSHIELD);
             sprites_in_column(hud, f, c0, cp, sup);
             if (sel >= 0) {
+                // draw_weapon_energy_bar(): columns slanting down to the
+                // right, filled from the bottom up (AppDrawVSlantBox), red
+                // every other turn below 50
                 const SwvHudAgent &ag = hi.agents[sel];
-                float fe = ag.max_energy > 0 ? std::clamp((float)ag.energy / ag.max_energy, 0.0f, 1.0f) : 0;
-                static const float ecol[3] = {0.95f, 0.95f, 1.0f}, low[3] = {1.0f, 0.15f, 0.1f};
-                bool blink = ag.energy < 50 && ((int)(now * 4.0) & 1);
+                glm::vec3 wv = pi.colour_white ? pal_rgb(pi.colour_white) : glm::vec3(1.0f);
+                glm::vec3 rv = pi.colour_red ? pal_rgb(pi.colour_red) : glm::vec3(1.0f, 0.1f, 0.05f);
+                glm::vec3 cv = (ag.energy < 50 && (snap.hdr.gameturn & 1)) ? rv : wv;
+                const float ecol[3] = {cv.x, cv.y, cv.z};
                 glm::vec2 d0 = c0 + glm::vec2(cp.dx - cp.x, cp.dy - cp.y);
-                box(hud, f, glm::vec2(d0.x, d0.y + cp.dh * (1 - fe)), (float)cp.dw, cp.dh * fe, blink ? low : ecol,
-                    1.0f, 0.0002f);
+                if (ag.max_energy > 0 && ag.energy > 0) {
+                    float ch = (float)(cp.dh * ag.energy / ag.max_energy), w = (float)cp.dw;
+                    float yb = d0.y + cp.dh + 1;
+                    hud.quad(f.at(d0.x, yb - 1 - ch, 0.0002f), f.at(d0.x + w, yb - 1 - ch + w, 0.0002f),
+                             f.at(d0.x + w, yb + w, 0.0002f), f.at(d0.x, yb, 0.0002f), ecol);
+                }
             }
         }
         // grouping pane: an icon per agent protecting the selected one;
@@ -648,6 +674,94 @@ private:
         float c[3] = {rgb[0] * bright, rgb[1] * bright, rgb[2] * bright};
         hud.quad(f.at(o.x + h, o.y, lift), f.at(o.x + w + h, o.y, lift), f.at(o.x + w, o.y + h, lift),
                  f.at(o.x, o.y + h, lift), c);
+    }
+    // The shield over the health bar, as AppDrawTexturedFlowSlantBox()
+    // draws it (vec mode 18, texture page 2 at 0, 2 tiles, flowing): the
+    // texture stretched over the box (64 texels across at most), slanted
+    // by 3 pixels, each pixel half texture, half what is under it (the
+    // ghost table): the white health bar up to hw pixels, else the panel.
+    void shield_bar(HudBuilder &hud, const Frame &f, const WorldSnapshot &snap, glm::vec2 o, int w, int h, int hw,
+                    glm::vec3 under_bar, float bright) const
+    {
+        static const int waft[33] = {-28, -24, -21, -17, -14, -10, -7, -3, 0,  4,  7,   11,  14,  18,  21,  24, 28,
+                                     24,  21,  18,  14,  11,  7,  4,  0, -3, -7, -10, -14, -17, -21, -24, -28};
+        if (w <= 0 || h <= 0)
+            return;
+        const size_t page = (size_t)SWV_TMAP_DIM * SWV_TMAP_DIM;
+        bool tex = snap.tmap.size() >= 3 * page && have_pal_;
+        int turn = (int)snap.hdr.gameturn;
+        int su = (waft[(turn >> 3) & 0x1F] + 30) >> 1, sv = (waft[(turn + 16) & 0x1F] + 30) >> 3;
+        int u0 = 32 * 0 + su, v0 = 32 * 2 + sv;
+        int lu, lv;
+        if (w >= h) {
+            lu = 64;
+            lv = 64 * h / w;
+            if (lv > 24) {
+                lv = 24;
+                lu = 24 * w / h;
+            }
+        } else {
+            lv = 24;
+            lu = 24 * w / h;
+            if (lu > 64) {
+                lu = 64;
+                lv = 64 * h / w;
+            }
+        }
+        const glm::vec3 under_panel(0.10f, 0.08f, 0.30f);
+        const float sh = 3.0f;
+        for (int r = 0; r < h; r++) {
+            float off = sh * (float)r / (float)h;
+            int v = v0 + r * lv / h;
+            for (int x = 0; x < w; x++) {
+                int u = u0 + x * lu / w;
+                glm::vec3 tc(0.35f, 0.8f, 1.0f);
+                if (tex)
+                    tc = pal_rgb(snap.tmap[2 * page + (size_t)(v & 0xFF) * SWV_TMAP_DIM + (u & 0xFF)]);
+                glm::vec3 c = 0.5f * tc + 0.5f * (x < hw ? under_bar : under_panel);
+                float cc[3] = {c.x * bright, c.y * bright, c.z * bright};
+                float px = o.x + x - off, py = o.y + r;
+                hud.quad(f.at(px, py, 0.00035f), f.at(px + 1, py, 0.00035f), f.at(px + 1 - sh / h, py + 1, 0.00035f),
+                         f.at(px - sh / h, py + 1, 0.00035f), cc);
+            }
+        }
+    }
+    static glm::vec2 dyn_rel(const P &p, const P &badge) { return glm::vec2(p.dx - badge.x, p.dy - badge.y); }
+    // AppDrawSlantBox(x, y, w, h): rows of w + 1 pixels, each one a pixel
+    // left of the one above (h > 0, down from y) or right of the one below
+    // (h < 0, up from y)
+    void slant_rows(HudBuilder &hud, const Frame &f, glm::vec2 o, int w, int h, const float *rgb, float bright,
+                    float lift = 0.0002f) const
+    {
+        if (h == 0 || w < 0)
+            return;
+        if (h > 0)
+            slant_span(hud, f, o.x, o.x + w + 1, o.y, (float)h, rgb, bright, lift);
+        else
+            slant_span(hud, f, o.x - h - 1, o.x - h + w, o.y + h + 1, (float)-h, rgb, bright, lift);
+    }
+    // a parallelogram: top row from l to r at y, h rows, shifting left by
+    // a pixel a row
+    void slant_span(HudBuilder &hud, const Frame &f, float l, float r, float y, float h, const float *rgb,
+                    float bright, float lift = 0.0002f) const
+    {
+        if (r <= l || h <= 0)
+            return;
+        float c[3] = {rgb[0] * bright, rgb[1] * bright, rgb[2] * bright};
+        hud.quad(f.at(l, y, lift), f.at(r, y, lift), f.at(r - h, y + h, lift), f.at(l - h, y + h, lift), c);
+    }
+    // a line a pixel thick
+    void line_px(HudBuilder &hud, const Frame &f, glm::vec2 a, glm::vec2 b, const float *rgb, float bright,
+                 float lift = 0.0002f) const
+    {
+        glm::vec2 d = b - a;
+        float len = glm::length(d);
+        if (len < 1e-3f)
+            return;
+        glm::vec2 n = glm::vec2(-d.y, d.x) / len * 0.5f;
+        float c[3] = {rgb[0] * bright, rgb[1] * bright, rgb[2] * bright};
+        hud.quad(f.at(a.x - n.x, a.y - n.y, lift), f.at(b.x - n.x, b.y - n.y, lift),
+                 f.at(b.x + n.x, b.y + n.y, lift), f.at(a.x + n.x, a.y + n.y, lift), c);
     }
     // the uses left of a four-pack weapon: small boxes on its button
     void fourpack_boxes(HudBuilder &hud, const Frame &f, glm::vec2 o, int w, const SwvPanelAgent &pa,
