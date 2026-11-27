@@ -121,8 +121,11 @@ lack clobber lists and break under optimisation.
   symbols") and links with the core alone; check with
   `coreturn_compare.py harness --jobs 2 --core-only --view` (50/0).
   Keep it portable: no threads, shared memory or OS calls. The VR viewer
-  (`vr/viewer`, `vr/viewer/build.sh` after `build.sh --x64`) runs the core
-  in its own process and reads the world through it.
+  (`vr/viewer`, `vr/viewer/build.sh` after `build.sh --x64`) reads the
+  world through it: `syndwars-vr.exe` runs the whole desktop game on a
+  thread (its window is the original game), `syndwars-vr-table.exe` the
+  core alone with a 3D table window. Options: `docs/vr-viewer-options.md`
+  (keep it up to date).
 - The direction: one C core, front ends per target (SDL desktop, VR,
   mobile), solo play only. Keep `swcore.h` free of game headers
   (`<stdint.h>` types only) and add to it, don't change it

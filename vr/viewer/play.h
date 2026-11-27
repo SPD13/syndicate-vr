@@ -7,9 +7,12 @@
 // Playing from the table: pointers, commands to the game, rings and panels
 
 
-// Sends commands to the game core of this process (swcore_command()).
+// Sends commands to the game of this process: through sink (the world
+// source's command()), or swcore_command() without one.
 class CommandSender {
 public:
+    std::function<void(const SwcCommand &)> sink;
+
     void send(uint16_t type, int16_t thing = 0, int32_t x = 0, int32_t z = 0, uint32_t arg = 0)
     {
         struct SwcCommand c{};
@@ -18,7 +21,10 @@ public:
         c.x = x;
         c.z = z;
         c.arg = arg;
-        swcore_command(&c);
+        if (sink)
+            sink(c);
+        else
+            swcore_command(&c);
         logf("command %u thing %d at %d,%d arg %u", type, thing, x, z, arg);
     }
 };

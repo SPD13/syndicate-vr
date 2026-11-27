@@ -16,6 +16,17 @@ process, layout `vrshare.h`, the same as the block's).
 
 ## The VR viewer with the game inside (`--mission`)
 
+`syndwars-vr.exe` runs the whole desktop game on a thread of its own: its
+window is the original game (layout, panels, mouse and keyboard play).
+After each of its turns `swview_update()` fills the block, marked as being
+written (odd `seq`) for the headset's thread, which reads it with
+`BlockReader`; the headset's commands are queued and given to the game on
+its thread (`DesktopGameWorld` in `vr/viewer/world_source.h`).
+`syndwars-vr-table.exe` runs the game core alone (`CoreWorld`), with the
+3D table in its window; `syndwars-vr.exe` starts it for `--desktop`,
+`--companion table` or without a headset. The rest of this section
+describes the latter; all options: `docs/vr-viewer-options.md`.
+
 `vr/viewer/main.cpp` (`vr\run_vr.cmd C,M`) runs the game core of
 mission `--mission C,M` (default 0,1) in its own process (`CoreWorld`): `swcore_core_init()`,
 `swview_load_assets()`, then `swcore_core_step()` on a fixed clock

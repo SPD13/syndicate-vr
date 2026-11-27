@@ -1,11 +1,25 @@
 # VR viewer: configuration options
 
-The VR viewer (`vr/viewer`, built by `vr/viewer/build.sh` into
-`build/vr-viewer/syndwars-vr.exe`) runs the game core in its own process
-and shows the mission as a miniature city on a table, in a headset through
-OpenXR or in a desktop window. This document lists every option, its
-default and what it changes. See `docs/swview.md` for how the viewer reads
-the world.
+The VR viewer (`vr/viewer`, built by `vr/viewer/build.sh`) shows the
+mission as a miniature city on a table, in a headset through OpenXR. This
+document lists every option, its default and what it changes. See
+`docs/swview.md` for how the viewer reads the world.
+
+## The two programs
+
+`vr/viewer/build.sh` builds two programs into `build/vr-viewer`:
+
+| Program | Game | Desktop window |
+|---|---|---|
+| `syndwars-vr.exe` | The whole desktop game, as `syndwarsfx`, on a thread of its own | The original game: its layout, panels, scanner, sound and mouse and keyboard play |
+| `syndwars-vr-table.exe` | The game core alone (no renderer, no sound) | The 3D table, with an orbit camera, or a copy of the headset's left eye |
+
+`syndwars-vr.exe` is the one to start (`run_vr.cmd` does). With a
+headset, the mission can be played from the desktop window and watched
+in VR, played in VR and watched on the desktop, or played from both at
+once: the headset's commands go to the same game. It runs the table
+program instead, with the same options, for `--desktop`, for
+`--companion table`, and when no headset can be used.
 
 ## Starting the viewer
 
@@ -34,9 +48,10 @@ Units used below:
 
 | Option | Default | Impact |
 |---|---|---|
+| (mission end) | | When the mission is over (the desktop game leaves it, or its outcome is confirmed), the viewer quits 3 s later. Menus in VR are for later. |
 | `--mission C,M` | `0,1` | Campaign and mission the game core plays. `run_vr.cmd` takes it as its first argument. |
 | `--data DIR` | `$SWARS_GAMEDATA`; `run_vr.cmd`: `gamedata` next to the repository | Game data folder (levels, textures, sprites, sounds). The viewer does not start without it. |
-| `--turn-ms MS` | `50` (20 turns a second, the game's speed) | Real time per game turn. Lower values play faster. The game itself is the same: it does not depend on time, only on turns. |
+| `--turn-ms MS` | `50` (20 turns a second) | Table program only: real time per game turn of the game core. Lower values play faster. The game itself is the same: it does not depend on time, only on turns. The desktop game keeps its own pace. |
 
 ## Look
 
@@ -99,7 +114,8 @@ most-zoomed-out desktop view does. The value comes from the game
 
 | Option | Default | Impact |
 |---|---|---|
-| `--desktop` | off | Desktop window with an orbit camera instead of the headset. The viewer also falls back to it when no headset or OpenXR runtime is available. |
+| `--companion game\|table` | `game` | With a headset: what the desktop window shows. `game`: the original desktop game (`syndwars-vr.exe`). `table`: the 3D table program (`syndwars-vr-table.exe`) mirroring the headset's left eye, with the game core alone. |
+| `--desktop` | off | No headset: the 3D table in a desktop window with an orbit camera (`syndwars-vr-table.exe`). Also used when no headset or OpenXR runtime is available. |
 | `--orbit YAW PITCH DIST` | `0.6 0.75 1.6` | Desktop camera: angle around the table (radians), height angle (radians), distance (metres). The mouse drag and wheel change it at runtime. |
 | `--screenshot FILE SECONDS` | off | Desktop: saves the window as a PPM image after that many seconds, then quits. |
 | `--click X Y SECONDS BUTTON` | off | Desktop: simulates a mouse click at window pixel X, Y (button 1 left, 2 right). Can be repeated. |
@@ -113,6 +129,7 @@ most-zoomed-out desktop view does. The value comes from the game
 |---|---|
 | `SWARS_GAMEDATA` | Game data folder when `--data` is not given. |
 | `SWARS_ASSETS3D` | Assets repository when `--assets` is not given. |
+| `SWARS_VR_NO_HEADSET` | Set to 1: `syndwars-vr.exe` runs the desktop game even without a headset, for tests (instead of the table program). |
 
 ## Controls
 
@@ -131,7 +148,9 @@ VR (Valve Index, Oculus Touch):
 | Right B | Classic / upgraded look |
 | Right grip | Fog of war on/off |
 
-Desktop:
+Desktop window of `syndwars-vr.exe`: the original game's own controls.
+
+Desktop window of `syndwars-vr-table.exe`:
 
 | Control | Action |
 |---|---|

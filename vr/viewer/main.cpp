@@ -18,8 +18,10 @@
 //                 shows the whole world or only the table's square, the
 //                 right grip switches the fog of war,
 //                 left stick click recentres the table in front of you.
-// Options: --no-fog (the fog of war of fog.h is on by default; switch with
-//          G), --fog-scale F (times the default radius), --fog-radius R
+// Options: --companion game|table (with VR_DESKTOP_GAME: the desktop
+//          window is the desktop game, or the table program), --no-fog
+//          (the fog of war of fog.h is on by default; switch with G),
+//          --fog-scale F (times the default radius), --fog-radius R
 //          (map units; default half the desktop window at its furthest
 //          zoom), --desktop, --table-only (draw only the map square on the table;
 //          the default draws the whole world around it; switch with C),
@@ -39,6 +41,10 @@
 // game core and its world), render_classic.h, play.h (commands,
 // picking), hud.h, people.h, table_view.h, hud_vr.h (the VR HUD: wrist
 // panel, objective board, world markers), xr.h; main.cpp is the loop.
+
+#ifndef VR_DESKTOP_GAME
+#define VR_DESKTOP_GAME 0
+#endif
 
 #include "common.h"
 #include "world_source.h"
@@ -80,9 +86,44 @@ static void save_screenshot(const char *fname, int w, int h)
     logf("screenshot saved to %s", fname);
 }
 
+#if VR_DESKTOP_GAME
+// Runs the table build (syndwars-vr-table.exe, the game core alone, next to
+// this program) with the same options and returns its exit code: for the
+// 3D table in a window (--desktop, no headset) or with the headset
+// (--companion table).
+static int run_table_build(int argc, char **argv)
+{
+    char exe[MAX_PATH];
+    DWORD n = GetModuleFileNameA(nullptr, exe, MAX_PATH);
+    std::string path(exe, n);
+    size_t slash = path.find_last_of("\\/");
+    path = path.substr(0, slash + 1) + "syndwars-vr-table.exe";
+    std::string cmd = "\"" + path + "\"";
+    for (int i = 1; i < argc; i++)
+        cmd += std::string(" \"") + argv[i] + "\"";
+    logf("running the table build: %s", cmd.c_str());
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+    if (!CreateProcessA(path.c_str(), &cmd[0], nullptr, nullptr, TRUE, 0, nullptr, nullptr, &si, &pi)) {
+        logf("cannot run %s", path.c_str());
+        return 1;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD code = 1;
+    GetExitCodeProcess(pi.hProcess, &code);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return (int)code;
+}
+#endif
+
 int main(int argc, char **argv)
 {
     bool desktop = false;
+    // with the headset, the desktop window shows the desktop game (the
+    // program built with VR_DESKTOP_GAME) or the 3D table (--companion table)
+    bool companion_table = false;
     const char *screenshot = nullptr;
     double screenshot_after = 0;
     float orbit_yaw = 0.6f, orbit_pitch = 0.75f, orbit_dist = 1.6f;
@@ -146,6 +187,8 @@ int main(int argc, char **argv)
             whole_world = true;
         else if (!strcmp(argv[i], "--desktop"))
             desktop = true;
+        else if (!strcmp(argv[i], "--companion") && i + 1 < argc)
+            companion_table = !strcmp(argv[++i], "table");
         else if (!strcmp(argv[i], "--click") && i + 4 < argc) {
             SimClick c;
             c.x = atoi(argv[++i]);
@@ -183,6 +226,12 @@ int main(int argc, char **argv)
     }
 
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+#if VR_DESKTOP_GAME
+    if (desktop || companion_table)
+        return run_table_build(argc, argv);
+#else
+    (void)companion_table;
+#endif
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         logf("SDL_Init failed: %s", SDL_GetError());
         return 1;
@@ -195,7 +244,9 @@ int main(int argc, char **argv)
     int win_w = 1280, win_h = 800;
     SDL_Window *win = SDL_CreateWindow("Syndicate Wars VR Spectator", SDL_WINDOWPOS_CENTERED,
                                        SDL_WINDOWPOS_CENTERED, win_w, win_h,
-                                       SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+                                       SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
+                                           // the desktop game has its own window
+                                           (VR_DESKTOP_GAME ? SDL_WINDOW_HIDDEN : 0));
     SDL_GLContext ctx = SDL_GL_CreateContext(win);
     SDL_GL_MakeCurrent(win, ctx);
     glewExperimental = GL_TRUE;
@@ -225,6 +276,16 @@ int main(int argc, char **argv)
         if (!use_xr)
             logf("no VR headset available, using desktop mode");
     }
+#if VR_DESKTOP_GAME
+    // SWARS_VR_NO_HEADSET=1: the desktop game without a headset, for tests
+    if (!use_xr && getenv("SWARS_VR_NO_HEADSET") == nullptr) {
+        // no headset: the 3D table in a window, from the table build
+        SDL_GL_DeleteContext(ctx);
+        SDL_DestroyWindow(win);
+        SDL_Quit();
+        return run_table_build(argc, argv);
+    }
+#endif
     SDL_GL_SetSwapInterval(use_xr ? 0 : 1);
 
     WorldSnapshot snap;
@@ -245,7 +306,12 @@ int main(int argc, char **argv)
     std::vector<Picker::Person> people_now;
     glm::mat4 desk_view(1.0f), desk_proj(1.0f);
     double t_prev = now_seconds(), t_start = t_prev;
+#if VR_DESKTOP_GAME
+    DesktopGameWorld core;
+#else
     CoreWorld core;
+#endif
+    cmds.sink = [&](const SwcCommand &c) { core.command(c); };
     VrHud vrhud;
     UpgradedLook look;
     {
@@ -279,9 +345,9 @@ int main(int argc, char **argv)
         g_text.load_vector(std::string(base ? base : "./") + "fonts/ShareTechMono-Regular.ttf");
         SDL_free(base);
     }
-    if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev))
+    // the game font is read on the game's thread, once it is set up
+    if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev, [] { g_text.load_game(); }))
         return 1;
-    g_text.load_game();
     if (dump_file != nullptr)
         core.dump_at(dump_turn, dump_file);
     while (!quit) {
@@ -299,7 +365,8 @@ int main(int argc, char **argv)
                 SDL_PushEvent(&e);
                 logf("simulated key %s", SDL_GetKeyName(k.key));
             }
-        while (SDL_PollEvent(&ev)) {
+        // with the desktop game, SDL's events are its own: it reads them
+        while (!VR_DESKTOP_GAME && SDL_PollEvent(&ev)) {
             if (ev.type == SDL_QUIT)
                 quit = true;
             else if (ev.type == SDL_MOUSEBUTTONDOWN) {
@@ -714,9 +781,10 @@ int main(int argc, char **argv)
                     }
                 }
             }
-            // mirror left eye to the desktop window
+            // mirror left eye to the desktop window (hidden with the desktop
+            // game, which has the desktop)
             XrApp::Mirror m = xr.last_left();
-            if (m.fbo) {
+            if (m.fbo && !VR_DESKTOP_GAME) {
                 glBindFramebuffer(GL_READ_FRAMEBUFFER, m.fbo);
                 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
                 int sw = win_w, sh = (int)((float)win_w * m.h / m.w);
@@ -729,7 +797,8 @@ int main(int argc, char **argv)
                                   (win_w + sw) / 2, (win_h + sh) / 2, GL_COLOR_BUFFER_BIT, GL_LINEAR);
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
             }
-            SDL_GL_SwapWindow(win);
+            if (!VR_DESKTOP_GAME)
+                SDL_GL_SwapWindow(win);
         } else {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glViewport(0, 0, win_w, win_h);
@@ -740,6 +809,10 @@ int main(int argc, char **argv)
                 quit = true;
             }
             SDL_GL_SwapWindow(win);
+            // the desktop game without a headset (a test): its window is
+            // the one shown, ours hidden and unpaced
+            if (VR_DESKTOP_GAME)
+                SDL_Delay(10);
         }
     }
     core.stop();

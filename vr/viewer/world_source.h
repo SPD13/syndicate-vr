@@ -178,7 +178,8 @@ class CoreWorld {
 public:
     /** Starts the mission with the game data in data_dir (the core reads
      * its files relative to the current directory). */
-    bool start(const char *data_dir, unsigned campaign, unsigned mission, double turn_seconds, double now)
+    bool start(const char *data_dir, unsigned campaign, unsigned mission, double turn_seconds, double now,
+               const std::function<void()> &on_ready = nullptr)
     {
         if (data_dir && !SetCurrentDirectoryA(data_dir)) {
             logf("cannot use game data folder %s", data_dir);
@@ -188,6 +189,8 @@ public:
             logf("cannot start mission %u,%u", campaign, mission);
             return false;
         }
+        if (on_ready)
+            on_ready();
         int missing = swview_load_assets();
         if (missing != 0)
             logf("%d asset files missing", missing);
@@ -280,6 +283,9 @@ public:
         }
     }
 
+    /** A command of the player (swcore_command()). */
+    void command(const SwcCommand &c) { swcore_command(&c); }
+
     /** The player confirms the end of a decided mission. */
     void conclude()
     {
@@ -332,3 +338,244 @@ private:
     double turn_seconds_ = 0.05, last_turn_ = 0;
     bool running_ = false, fresh_ = false;
 };
+
+#if VR_DESKTOP_GAME
+/******************************************************************************/
+// The desktop game in this process: the whole game (libswarsfe: its window,
+// panels, sound and mouse and keyboard play, as syndwarsfx) runs on a thread
+// of its own, at its own pace; after each of its turns the world export
+// fills the block, which the headset's thread reads. Commands of the
+// headset are queued and given to the game on its thread, before its next
+// turn. Only the game's thread uses the game and SDL's events.
+
+class DesktopGameWorld {
+public:
+    /** Starts the desktop game on the mission, in the game data folder;
+     * on_ready runs on the game's thread once the game is set up. Returns
+     * when the game has played its first turn, or failed. */
+    bool start(const char *data_dir, unsigned campaign, unsigned mission, double, double,
+               const std::function<void()> &on_ready = nullptr)
+    {
+        if (data_dir && !SetCurrentDirectoryA(data_dir)) {
+            logf("cannot use game data folder %s", data_dir);
+            return false;
+        }
+        block_.assign(swview_block_size(), 0);
+        reader_.attach(block_.data());
+        snprintf(mission_arg_, sizeof(mission_arg_), "%u,%u", campaign, mission);
+        on_ready_ = on_ready;
+        thread_ = std::thread([this] { game_thread(); });
+        std::unique_lock<std::mutex> lk(mu_);
+        cv_.wait(lk, [this] { return started_ || ended_.load(); });
+        if (!started_) {
+            logf("the desktop game did not start");
+            return false;
+        }
+        logf("desktop game: mission %s, API %u, view API %u", mission_arg_, (unsigned)SWCORE_API_VERSION,
+             (unsigned)SWVIEW_API_VERSION);
+        return true;
+    }
+
+    /** Reads the world when the game played a turn since the last call. */
+    bool poll(WorldSnapshot &snap, double)
+    {
+        uint32_t turns = turns_.load();
+        if (turns == seen_turns_)
+            return false;
+        if (!reader_.poll(snap))
+            return false; // the game is writing it: next frame
+        seen_turns_ = turns;
+        if (snap.hdr.gameturn / 200 != logged_turn_ / 200) {
+            logf("desktop game turn %u, %s, %u things", snap.hdr.gameturn,
+                 snap.hdr.in_mission ? "in mission" : "not in a mission", snap.hdr.n_things);
+            logged_turn_ = snap.hdr.gameturn;
+        }
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            snap.hud_info = extra_.hud_info;
+            snap.persons = extra_.persons;
+            snap.props = extra_.props;
+            snap.charges = extra_.charges;
+            snap.fx_events.swap(extra_.fx_events);
+            extra_.fx_events.clear();
+        }
+        if (snap.hdr.in_mission) {
+            seen_mission_ = true;
+        } else if (seen_mission_ && !mission_over_) {
+            mission_over_ = true;
+            logf("the mission is over: the desktop game left it");
+        }
+        return true;
+    }
+
+    void command(const SwcCommand &c)
+    {
+        std::lock_guard<std::mutex> lk(mu_);
+        queue_.push_back(c);
+    }
+
+    // As CoreWorld::hold(), applied on the game's thread every turn.
+    void hold(const SwcCommand *c)
+    {
+        std::lock_guard<std::mutex> lk(mu_);
+        if (c != nullptr) {
+            if (!held_on_)
+                held_turns_ = 0;
+            held_ = *c;
+            held_on_ = true;
+            release_after_ = false;
+        } else if (held_on_) {
+            if (held_turns_ > 0)
+                held_on_ = false;
+            else
+                release_after_ = true;
+        }
+    }
+
+    void conclude()
+    {
+        std::lock_guard<std::mutex> lk(mu_);
+        conclude_ = true;
+    }
+
+    void dump_at(uint32_t, const char *) { logf("--dump-block: only with the game core alone"); }
+
+    bool running() const { return !ended_.load() && !mission_over_; }
+
+    void stop()
+    {
+        quit_ = true;
+        if (thread_.joinable())
+            thread_.join();
+    }
+
+private:
+    struct Extra {
+        SwvHudInfo hud_info{};
+        std::vector<SwvPersonRender> persons;
+        std::vector<SwvProp> props;
+        std::vector<SwvCharge> charges;
+        std::vector<SwvFxEvent> fx_events;
+    };
+
+    void game_thread()
+    {
+        char arg0[] = "syndwarsfx", q[] = "-q", w[] = "-W", m[] = "-m";
+        char *argv[] = {arg0, q, w, m, mission_arg_, nullptr};
+        if (swcore_init(5, argv) != 0) {
+            logf("the desktop game could not be set up");
+            finish();
+            return;
+        }
+        if (on_ready_)
+            on_ready_();
+        update_world();
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            started_ = true;
+        }
+        cv_.notify_all();
+        while (!quit_) {
+            apply_commands();
+            if (!swcore_step()) {
+                logf("the desktop game ended");
+                break;
+            }
+            update_world();
+        }
+        swcore_shutdown();
+        finish();
+    }
+
+    void finish()
+    {
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            ended_ = true;
+        }
+        cv_.notify_all();
+    }
+
+    // The headset's commands, before the game's turn.
+    void apply_commands()
+    {
+        std::vector<SwcCommand> q;
+        bool conclude = false;
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            q.swap(queue_);
+            conclude = conclude_;
+            conclude_ = false;
+            if (held_on_) {
+                // a held trigger: the shot again every turn
+                q.push_back(held_);
+                held_turns_++;
+                if (release_after_) {
+                    held_on_ = false;
+                    release_after_ = false;
+                }
+            }
+        }
+        for (const SwcCommand &c : q)
+            swcore_command(&c);
+        if (conclude) {
+            struct SwcWorldInfo info;
+            swcore_world_info(&info);
+            if ((info.mission_status == SwcMS_WON) || (info.mission_status == SwcMS_LOST))
+                swcore_mission_conclude();
+        }
+    }
+
+    // The world export of the turn: the block, marked as being written
+    // (odd seq) for the reader on the other thread, and the rest.
+    void update_world()
+    {
+        volatile SwvHeader *h = reinterpret_cast<volatile SwvHeader *>(block_.data());
+        uint32_t seq = h->seq;
+        h->seq = seq + 1;
+        MemoryBarrier();
+        swview_update(block_.data());
+        MemoryBarrier();
+        h->seq = seq + 2;
+        Extra ex;
+        bool in_mission = h->in_mission != 0;
+        if (in_mission) {
+            swview_hud_info(&ex.hud_info);
+            ex.persons.resize(2048);
+            ex.persons.resize(swview_persons_render(ex.persons.data(), 2048));
+            ex.props.resize(8192);
+            ex.props.resize(swview_props(ex.props.data(), 8192));
+            ex.charges.resize(SWV_AGENTS_MAX);
+            ex.charges.resize(swview_charges(ex.charges.data(), SWV_AGENTS_MAX));
+        }
+        static SwvFxEvent ev[SWV_FX_EVENTS_MAX];
+        uint32_t ne = in_mission ? swview_fx_events(ev, SWV_FX_EVENTS_MAX) : 0;
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            ex.fx_events.swap(extra_.fx_events);
+            ex.fx_events.insert(ex.fx_events.end(), ev, ev + ne);
+            extra_ = std::move(ex);
+        }
+        turns_++;
+    }
+
+    std::thread thread_;
+    std::mutex mu_;
+    std::condition_variable cv_;
+    bool started_ = false;
+    std::atomic<bool> ended_{false}, quit_{false};
+    std::function<void()> on_ready_;
+    char mission_arg_[32] = "0,1";
+    std::vector<uint8_t> block_;
+    BlockReader reader_;
+    std::atomic<uint32_t> turns_{0};
+    uint32_t seen_turns_ = 0, logged_turn_ = 0;
+    bool seen_mission_ = false, mission_over_ = false;
+    Extra extra_;
+    std::vector<SwcCommand> queue_;
+    SwcCommand held_{};
+    bool held_on_ = false, release_after_ = false, conclude_ = false;
+    int held_turns_ = 0;
+};
+#endif
+
