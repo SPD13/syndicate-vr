@@ -178,6 +178,20 @@ struct TableView {
         clamp_center();
     }
 
+    // Slides the map as seen by the viewer: right and away along their
+    // heading, whatever the table's turn; by sx, sy of the table's half
+    // size.
+    void slide(float sx, float sy)
+    {
+        glm::vec3 away(std::sin(heading), 0, -std::cos(heading));
+        glm::vec3 right(std::cos(heading), 0, std::sin(heading));
+        glm::vec3 d = (right * sx + away * sy) * table_half_m;
+        glm::vec2 m0 = map_at(anchor), m1 = map_at(anchor + d);
+        center.x -= m1.x - m0.x;
+        center.z -= m1.y - m0.y;
+        clamp_center();
+    }
+
     void zoom(float f) { half_map = std::clamp(half_map * f, 1024.0f, 17000.0f); }
 
     // Zooming and turning about the anchor: the point in front of the

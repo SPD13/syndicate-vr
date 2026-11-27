@@ -434,10 +434,11 @@ int main(int argc, char **argv)
                 case SDLK_MINUS: case SDLK_KP_MINUS: tv.zoom_at_anchor(1.25f); view_moved = true; break;
                 case SDLK_q: tv.turn_at_anchor(0.2f); view_moved = true; break;
                 case SDLK_e: tv.turn_at_anchor(-0.2f); view_moved = true; break;
-                case SDLK_LEFT: tv.pan(-0.1f, 0); view_moved = true; break;
-                case SDLK_RIGHT: tv.pan(0.1f, 0); view_moved = true; break;
-                case SDLK_UP: tv.pan(0, -0.1f); view_moved = true; break;
-                case SDLK_DOWN: tv.pan(0, 0.1f); view_moved = true; break;
+                // the arrows move the view: the map slides the other way
+                case SDLK_LEFT: tv.slide(0.1f, 0); view_moved = true; break;
+                case SDLK_RIGHT: tv.slide(-0.1f, 0); view_moved = true; break;
+                case SDLK_UP: tv.slide(0, -0.1f); view_moved = true; break;
+                case SDLK_DOWN: tv.slide(0, 0.1f); view_moved = true; break;
                 default: break;
                 }
             } else if (ev.type == SDL_WINDOWEVENT && ev.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
@@ -844,9 +845,10 @@ int main(int argc, char **argv)
                 break;
             XrApp::Input in = xr_in;
             if (std::fabs(in.pan.x) > 0.15f || std::fabs(in.pan.y) > 0.15f) {
-                // the stick moves the map, not the view point: the table
-                // slides the way the stick is pushed
-                tv.pan(-in.pan.x * dt * 0.8f, in.pan.y * dt * 0.8f);
+                // the stick moves the map, not the view point: it slides
+                // the way the stick is pushed, as the viewer sees it (up:
+                // away from them), whatever the table's turn
+                tv.slide(in.pan.x * dt * 0.8f, in.pan.y * dt * 0.8f);
                 view_moved = true;
             }
             if (std::fabs(in.zoom.y) > 0.2f) {
