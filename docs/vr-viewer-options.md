@@ -223,7 +223,7 @@ screen, which keeps its proportions (black bars around it).
 | Option | Default | Impact |
 |---|---|---|
 | `--look classic\|upgraded` | `syndwars-hd.exe`: the look chosen last time (kept in SDL's settings folder, `SyndWarsFX/hd/look.txt`), else `classic` | `syndwars-hd.exe`: the starting look. |
-| `--desktop-look classic\|upgraded` | the headset's look (`--look`) | `syndwars-vr.exe`: the desktop window's starting look. In it the models are those of the headset's look (L / B switches that). |
+| `--desktop-look classic\|upgraded` | the headset's look (`--look`) | `syndwars-vr.exe`: the desktop window's starting look. Switching the headset's look (L / B) switches the desktop window to the same look; F7 then switches the desktop window alone. In it the models are those of the headset's look. |
 | `--desktop-window hd\|game` | `hd` | `syndwars-vr.exe` with a headset: `hd` the viewer's window as above, `game` the game's own window (the old look only). |
 | `--mission C,M`, `--data DIR`, `--assets DIR` | as above | `syndwars-hd.exe`: as for `syndwars-vr.exe`; without `--mission` the whole game. |
 | `--window WxH` | `1280x960` | `syndwars-hd.exe`: the window's size (resizable). |

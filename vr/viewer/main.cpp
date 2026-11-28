@@ -425,6 +425,18 @@ int main(int argc, char **argv)
     (void)desk_hd;
     (void)desk_look;
 #endif
+    // the headset's look switched (L, B): the desktop window follows it,
+    // so the upgraded models show on both (F7 still switches the desktop
+    // window alone)
+    auto look_switched = [&]() {
+        logf("look: %s", look.enabled ? "upgraded" : "classic");
+#if VR_DESKTOP_GAME
+        if (desk_hd && g_hd.upgraded != look.enabled) {
+            g_hd.upgraded = look.enabled;
+            logf("desktop window: %s look", look.enabled ? "upgraded" : "classic");
+        }
+#endif
+    };
     if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev, [] {
             g_text.load_game();
             g_panels.load();
@@ -498,7 +510,7 @@ int main(int argc, char **argv)
                     break;
                 case SDLK_l:
                     look.enabled = !look.enabled;
-                    logf("look: %s", look.enabled ? "upgraded" : "classic");
+                    look_switched();
                     break;
                 case SDLK_LEFTBRACKET: key_wep_prev = true; break;
                 case SDLK_RIGHTBRACKET: key_wep_next = true; break;
@@ -1286,7 +1298,7 @@ int main(int argc, char **argv)
                 drive_until = t + 1.2;
             if (in.look_pressed) {
                 look.enabled = !look.enabled;
-                logf("look: %s", look.enabled ? "upgraded" : "classic");
+                look_switched();
             }
             if (in.fog_pressed) {
                 g_fog.enabled = !g_fog.enabled;
