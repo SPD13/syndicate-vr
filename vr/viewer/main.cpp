@@ -58,6 +58,9 @@
 #include "screen_panel.h"
 #include "vkeyboard.h"
 #include "look_upgraded.h"
+#if VR_DESKTOP_GAME
+#include "desk_window.h"
+#endif
 #include "xr.h"
 
 /******************************************************************************/
@@ -153,6 +156,12 @@ int main(int argc, char **argv)
     bool mission_given = false;
     const char *data_dir = getenv("SWARS_GAMEDATA");
     bool upgraded = false;
+    // the desktop window with the headset: the viewer's (the game's frames,
+    // or its world in GL under them: desk_window.h), or the game's own
+    // (--desktop-window game); its look: --desktop-look, else the
+    // headset's; F7 in it switches
+    bool desk_hd = true;
+    int desk_look = -1;
     // the whole map drawn around the table, or only the square on it
     bool whole_world = true;
     // the fog of war (fog.h): on unless --no-fog; G, the right grip
@@ -174,6 +183,10 @@ int main(int argc, char **argv)
             g_screen.width = std::clamp((float)atof(argv[++i]), 0.5f, 5.0f);
         } else if (!strcmp(argv[i], "--data") && i + 1 < argc) {
             data_dir = argv[++i];
+        } else if (!strcmp(argv[i], "--desktop-look") && i + 1 < argc) {
+            desk_look = !strcmp(argv[++i], "upgraded") ? 1 : 0;
+        } else if (!strcmp(argv[i], "--desktop-window") && i + 1 < argc) {
+            desk_hd = strcmp(argv[++i], "game") != 0;
         } else if (!strcmp(argv[i], "--look") && i + 1 < argc) {
             upgraded = !strcmp(argv[++i], "upgraded");
         } else if (!strcmp(argv[i], "--assets") && i + 1 < argc) {
@@ -391,6 +404,27 @@ int main(int argc, char **argv)
     // the game's screen on its panel (outside missions): pointer, buttons
     glm::vec2 scr_uv_sent(-1.0f);
     bool scr_l = false, scr_r = false, was_in_mission = false;
+#if VR_DESKTOP_GAME
+    // the desktop window: the viewer's, in place of the game's own
+    DeskWindow desk;
+    desk_hd = desk_hd && use_xr;
+    if (desk_hd) {
+        if (!desk.init(win, core))
+            return 1;
+        g_hd.upgraded = desk_look >= 0 ? desk_look == 1 : upgraded;
+        SDL_SetWindowTitle(win, "Syndicate Wars");
+        SDL_SetWindowSize(win, 1280, 960);
+        SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_ShowWindow(win);
+        logf("desktop window: %s look (F7 switches)", g_hd.upgraded ? "upgraded" : "classic");
+    }
+    std::vector<GpuVert> desk_people, desk_glows;
+    std::vector<People::ModelPlace> desk_places;
+    std::vector<People::PropPlace> desk_props;
+#else
+    (void)desk_hd;
+    (void)desk_look;
+#endif
     if (!core.start(data_dir, campaign, mission, turn_ms / 1000.0, t_prev, [] {
             g_text.load_game();
             g_panels.load();
@@ -487,6 +521,16 @@ int main(int argc, char **argv)
 
         if (use_xr)
             xr_in = xr.read_input();
+#if VR_DESKTOP_GAME
+        if (desk_hd) {
+            // the desktop window's messages come to this thread: into
+            // SDL's queue, where the game's thread reads them
+            SDL_PumpEvents();
+            if (desk_take_toggle())
+                logf("desktop window: %s look", g_hd.upgraded ? "upgraded" : "classic");
+            desk.take_frames(core);
+        }
+#endif
 #if VR_DESKTOP_GAME
         {
             static std::vector<uint8_t> spx;
@@ -1342,6 +1386,25 @@ int main(int argc, char **argv)
             }
             if (!VR_DESKTOP_GAME)
                 SDL_GL_SwapWindow(win);
+#if VR_DESKTOP_GAME
+            if (desk_hd) {
+                // the desktop window: the world as the desktop's camera
+                // sees it (people's sprites facing it, no fog), the models
+                // as placed for the headset
+                desk.draw(rend, snap, [&](glm::vec3 desk_eye) {
+                    auto fog_state = people.fog_state;
+                    people.fog_state = nullptr;
+                    people.build(desk_people, desk_glows, t, snap, desk_eye, rend,
+                                 [&](uint16_t thing) { return look.draws(thing); }, &desk_places,
+                                 [&](const SwvEffect &e) { return look.effect_mode(e); }, &desk_props);
+                    people.fog_state = fog_state;
+                    rend.upload_people(desk_people);
+                    rend.upload_glows(desk_glows);
+                    look.eye_map = desk_eye;
+                });
+                SDL_GL_SwapWindow(win);
+            }
+#endif
         } else {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glViewport(0, 0, win_w, win_h);

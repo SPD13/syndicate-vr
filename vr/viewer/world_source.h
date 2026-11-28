@@ -430,6 +430,37 @@ public:
         key_q_.push_back(KeyAct{2, code, t + 0.12});
     }
 
+    /** The game's 2D layer (syndwars-hd.exe): in each mission frame the
+     * world as the game drew it is kept (swcore_set_world_drawn_hook()),
+     * and at the swap the pixels that changed since, the overlays and the
+     * panels, are marked. Before start(). */
+    void set_world_layer(bool on) { world_layer_ = on; }
+
+    /** The game's last frame with its 2D layer: mask[i] is 1 where the
+     * frame shows the overlays or panels, 0 where it shows the world, all
+     * 1 when no world was drawn (menus); turn: the count of turns the game
+     * had played when it drew it (turns_seen() reaches it once its world
+     * is read). */
+    bool screen_layer(std::vector<uint8_t> &px, std::vector<uint8_t> &mask, int &w, int &h, uint8_t *pal_rgb,
+                      uint32_t &frame, bool &has_world, uint32_t &turn)
+    {
+        std::lock_guard<std::mutex> lk(screen_mu_);
+        if (screen_frame_ == frame || screen_w_ <= 0)
+            return false;
+        px = screen_px_;
+        mask = screen_mask_;
+        w = screen_w_;
+        h = screen_h_;
+        memcpy(pal_rgb, screen_pal_, sizeof(screen_pal_));
+        frame = screen_frame_;
+        has_world = screen_has_world_;
+        turn = screen_turn_;
+        return true;
+    }
+
+    /** Turns whose world poll() has read. */
+    uint32_t turns_seen() const { return seen_turns_; }
+
     /** Whether a text box of the game has the focus. */
     bool text_focus() const { return edit_flag != 0; }
 
@@ -590,6 +621,24 @@ private:
         static DesktopGameWorld *inst = nullptr;
         return inst;
     }
+    // The world drawn into the frame (game's thread), before the overlays
+    // and panels: kept for the swap, which finds the 2D layer with it.
+    static void world_drawn_hook(const unsigned char *pixels, int32_t pitch, int32_t width, int32_t height)
+    {
+        DesktopGameWorld *g = instance();
+        if (!g || width <= 0 || height <= 0)
+            return;
+        g->world_px_.resize((size_t)width * height);
+        for (int y = 0; y < height; y++)
+            memcpy(&g->world_px_[(size_t)y * width], pixels + (size_t)y * pitch, width);
+        g->world_w_ = width;
+        g->world_h_ = height;
+        g->world_drawn_ = true;
+        g->world_age_ = 0;
+        // drawn within the turn being played: one more than played
+        g->world_turn_ = g->turns_.load() + 1;
+    }
+
     // bflib's swap, on the game's thread: the frame for the screen panel
     static void swap_hook(const unsigned char *pixels, int32_t pitch, int32_t width, int32_t height,
                           const unsigned char *pal)
@@ -610,6 +659,27 @@ private:
         g->screen_w_ = width;
         g->screen_h_ = height;
         memcpy(g->screen_pal_, pal, sizeof(g->screen_pal_));
+        if (g->world_layer_) {
+            // the 2D layer: what changed since the world was drawn (the
+            // world is the top left of the frame, the engine's window)
+            g->screen_mask_.assign((size_t)width * height, 1);
+            // the game swaps more often than it draws the world (between
+            // turns, the same frame again): the last world is still under
+            // the overlays, until something else is drawn
+            g->screen_has_world_ = g->world_age_ < 12 && g->world_w_ <= width && g->world_h_ <= height;
+            if (g->screen_has_world_)
+                for (int y = 0; y < g->world_h_; y++) {
+                    const uint8_t *a = &g->screen_px_[(size_t)y * width];
+                    const uint8_t *b = &g->world_px_[(size_t)y * g->world_w_];
+                    uint8_t *m = &g->screen_mask_[(size_t)y * width];
+                    for (int x = 0; x < g->world_w_; x++)
+                        m[x] = a[x] != b[x];
+                }
+            g->world_drawn_ = false;
+            if (g->world_age_ < 1000)
+                g->world_age_++;
+            g->screen_turn_ = g->screen_has_world_ ? g->world_turn_ : g->turns_.load() + 1;
+        }
         g->screen_frame_++;
     }
     // bflib's event loop, on the game's thread (also in the intro's and
@@ -646,6 +716,8 @@ private:
         char *argv_full[] = {arg0, w, nullptr};
         instance() = this;
         lbScreenSwapHook = &DesktopGameWorld::swap_hook;
+        if (world_layer_)
+            swcore_set_world_drawn_hook(&DesktopGameWorld::world_drawn_hook);
         if (full_game_ ? swcore_init(2, argv_full) != 0 : swcore_init(5, argv_mission) != 0) {
             logf("the desktop game could not be set up");
             finish();
@@ -797,6 +869,13 @@ private:
     std::mutex screen_mu_, mouse_mu_;
     std::vector<uint8_t> screen_px_;
     int screen_w_ = 0, screen_h_ = 0;
+    // the 2D layer (set_world_layer()): the world as drawn this frame (the
+    // game's thread), the mask of the last frame
+    bool world_layer_ = false, world_drawn_ = false, screen_has_world_ = false;
+    std::vector<uint8_t> world_px_, screen_mask_;
+    int world_w_ = 0, world_h_ = 0;
+    int world_age_ = 1000; // swaps since the world was drawn
+    uint32_t screen_turn_ = 0, world_turn_ = 0;
     uint8_t screen_pal_[768] = {};
     uint32_t screen_frame_ = 0;
     std::vector<MouseAct> mouse_q_;

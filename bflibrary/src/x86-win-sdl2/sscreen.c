@@ -73,6 +73,8 @@ extern SDL_Color lbPaletteColors[256];
  */
 SDL_Window *lbWindow = NULL;
 
+TbBool lbScreenWindowHidden = false;
+
 volatile TbBool lbScreenDirectAccessActive = false;
 
 /** @internal
@@ -393,6 +395,11 @@ static void LbIGetSDLFlagsForMode(u32 *sdlFlags, u32 *sdlPxFormat, TbScreenModeI
     }
     if ((mdinfo->VideoMode & Lb_VF_WINDOWED) == 0) {
         Flags |= SDL_WINDOW_FULLSCREEN;
+    }
+    if (lbScreenWindowHidden) {
+        // shown by the application in a window of its own
+        Flags &= ~SDL_WINDOW_FULLSCREEN;
+        Flags |= SDL_WINDOW_HIDDEN;
     }
     *sdlFlags = Flags;
     *sdlPxFormat = PxFormat;

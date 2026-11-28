@@ -5,14 +5,15 @@ mission as a miniature city on a table, in a headset through OpenXR. This
 document lists every option, its default and what it changes. See
 `docs/swview.md` for how the viewer reads the world.
 
-## The two programs
+## The programs
 
-`vr/viewer/build.sh` builds two programs into `build/vr-viewer`:
+`vr/viewer/build.sh` builds three programs into `build/vr-viewer`:
 
 | Program | Game | Desktop window |
 |---|---|---|
-| `syndwars-vr.exe` | The whole desktop game, as `syndwarsfx`, on a thread of its own | The original game: its layout, panels, scanner, sound and mouse and keyboard play |
+| `syndwars-vr.exe` | The whole desktop game, as `syndwarsfx`, on a thread of its own | The game with its layout, panels, scanner, sound and mouse and keyboard play, in either look (see "The desktop window" below) |
 | `syndwars-vr-table.exe` | The game core alone (no renderer, no sound) | The 3D table, with an orbit camera, or a copy of the headset's left eye |
+| `syndwars-hd.exe` | The whole desktop game, no headset | The desktop game in either look (see "The desktop window"); `vr\run_hd.cmd` starts it |
 
 `syndwars-vr.exe` is the one to start (`run_vr.cmd` does). With a
 headset, the mission can be played from the desktop window and watched
@@ -197,6 +198,38 @@ most-zoomed-out desktop view does. The value comes from the game
 - A vehicle partly inside a circle is cut at the circle's edge.
 - With the fog off, the white dashes outline the most the desktop game's
   window can show (the same furthest zoom), around the game camera.
+
+## The desktop window
+
+`syndwars-hd.exe`, and `syndwars-vr.exe` with a headset, show the desktop
+game in a window of their own (the game's own window is hidden):
+
+- **Old look**: the game's frames exactly as `syndwarsfx` draws them.
+- **Upgraded look**: in missions, the world is drawn by the viewer's
+  renderers (the 3D models of the assets repository, anything without a
+  model as its original mesh or sprite) at the window's resolution,
+  projected with the game's own camera (`desk_proj.h`, the engine's
+  `transform_shpoint()`), and the game's 2D layer goes over it: the
+  pixels the game drew after its world (target circles, pointer, text,
+  panels, scanner). Outside missions (intro, menus, briefings) the
+  frames as they are.
+
+The game still draws its world in software every frame, so it plays
+exactly as the desktop game and the pointer targets what it targets
+there. **F7** switches the look at any moment (the game uses no F7).
+Keys go to the game; the mouse is mapped from the window to the game's
+screen, which keeps its proportions (black bars around it).
+
+| Option | Default | Impact |
+|---|---|---|
+| `--look classic\|upgraded` | `syndwars-hd.exe`: the look chosen last time (kept in SDL's settings folder, `SyndWarsFX/hd/look.txt`), else `classic` | `syndwars-hd.exe`: the starting look. |
+| `--desktop-look classic\|upgraded` | the headset's look (`--look`) | `syndwars-vr.exe`: the desktop window's starting look. In it the models are those of the headset's look (L / B switches that). |
+| `--desktop-window hd\|game` | `hd` | `syndwars-vr.exe` with a headset: `hd` the viewer's window as above, `game` the game's own window (the old look only). |
+| `--mission C,M`, `--data DIR`, `--assets DIR` | as above | `syndwars-hd.exe`: as for `syndwars-vr.exe`; without `--mission` the whole game. |
+| `--window WxH` | `1280x960` | `syndwars-hd.exe`: the window's size (resizable). |
+| `--screenshot FILE SECONDS` | off | `syndwars-hd.exe`: saves the window as a PPM image, and the game's own frame of that turn as `FILE.game.ppm`, then quits. |
+| `--click X Y SECONDS BUTTON` | off | `syndwars-hd.exe`: a click at window point X, Y (button 1 left, 3 right), through the game's own input. |
+| `SWARS_HD_GL_CLASSIC=1` | off | `syndwars-hd.exe`, upgraded look: the world in GL without the models, to compare with the game's frame. |
 
 ## Display and testing
 

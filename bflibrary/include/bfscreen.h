@@ -533,6 +533,13 @@ typedef void (*TbScreenSwapHook)(const ubyte *pixels, s32 pitch, s32 width, s32 
   const ubyte *palette_rgb);
 extern TbScreenSwapHook lbScreenSwapHook;
 
+/** The graphics window is created hidden (and never full screen), and the
+ * mouse is neither grabbed nor warped into it: for an application that
+ * shows the frames in a window of its own (lbScreenSwapHook) and gives the
+ * mouse through LbMouseVirtualEvent(). Set before the screen is set up.
+ */
+extern TbBool lbScreenWindowHidden;
+
 /** Places working screen buffer to the physical screen, then fills working
  * screen with colour.
  *

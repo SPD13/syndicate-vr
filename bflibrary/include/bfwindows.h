@@ -30,6 +30,14 @@ extern "C" {
 
 typedef TbBool (*TbIdleControl)(void);
 
+/** Sees each event (an SDL_Event) before the library does, on the thread
+ * that reads the events; returns true when it took the event, which the
+ * library then ignores. For an application whose own window shows the
+ * game (its mouse mapped there); NULL by default.
+ */
+typedef TbBool (*TbEventFilter)(const void *sdl_event);
+extern TbEventFilter lbEventFilterHook;
+
 
 /**
  * Informs if the library general preinitialization was called.

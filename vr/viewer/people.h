@@ -58,9 +58,15 @@ public:
             out.push_back({kv.first, kv.second.flags, position(kv.first, kv.second, a)});
     }
 
+    // Things glide from one turn to the next; off, they stand where the
+    // last turn put them (as the desktop draws them).
+    bool gliding = true;
+
     // Fraction of the current turn passed, 0..1.
     float turn_fraction(double now) const
     {
+        if (!gliding)
+            return 1.0f;
         return (float)std::clamp((now - turn_time_) / std::max(turn_dt_, 0.01), 0.0, 1.0);
     }
 

@@ -147,7 +147,8 @@ TbResult LbMouseChangeCapture(TbBool enable)
         return Lb_SUCCESS;
 
     // SDL releases the grab on focus loss by itself, so Alt-Tab still works
-    SDL_SetWindowGrab(lbWindow, enable ? SDL_TRUE : SDL_FALSE);
+    if (!lbScreenWindowHidden)
+        SDL_SetWindowGrab(lbWindow, enable ? SDL_TRUE : SDL_FALSE);
 
     return Lb_SUCCESS;
 }
@@ -305,7 +306,8 @@ void MouseToScreen(struct TbPoint *pos)
       {
           mx = (clip.right - clip.left) / 2 + clip.left;
           my = (clip.bottom - clip.top) / 2 + clip.top;
-          SDL_WarpMouseInWindow(lbWindow, mx, my);
+          if (!lbScreenWindowHidden)
+              SDL_WarpMouseInWindow(lbWindow, mx, my);
       }
     } else
     {

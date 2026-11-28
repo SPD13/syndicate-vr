@@ -237,6 +237,7 @@ public:
         glUniform1i(u_linear_, linear_out ? 1 : 0);
         // particles positions are in metres
         g_fog.bind(prog_, kMetre);
+        g_desk.bind(prog_, kMetre);
         g_fog.kind(prog_, FogK_MOVING);
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D_ARRAY, tex_);
@@ -595,7 +596,7 @@ private:
 
     bool init_gl()
     {
-        static const char *vs = R"(#version 330 core
+        static const char *vs = "#version 330 core\n" DESK_PROJ_GLSL R"(
 layout(location=0) in vec3 a_pos;
 layout(location=1) in vec2 a_uv;
 layout(location=2) in float a_layer;
@@ -610,7 +611,7 @@ void main() {
     v_uv = a_uv;
     v_layer = a_layer;
     v_col = a_col;
-    gl_Position = u_mvp * vec4(a_pos, 1.0);
+    gl_Position = u_desk != 0 ? desk_project(a_pos) : u_mvp * vec4(a_pos, 1.0);
 }
 )";
         static const char *fs = R"(#version 330 core

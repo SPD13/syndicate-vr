@@ -31,7 +31,7 @@ extern "C" {
 /******************************************************************************/
 
 /** Version of this interface; grows when functions are added. */
-#define SWCORE_API_VERSION 6
+#define SWCORE_API_VERSION 7
 
 /** Sets the game up as the executable would: reads the command line options
  * (the same as syndwarsfx, e.g. "-m 1,2" to start a mission), the config
@@ -88,6 +88,14 @@ void swcore_core_shutdown(void);
  * swcore_things() switches it off.
  */
 void swcore_set_world_drawing(int enabled);
+
+/** Called in each mission frame once the world is drawn, before the
+ * overlays (target circles, pointer) and the panels: the 8-bit frame then,
+ * width x height pixels, pitch bytes per row. With the frame at the swap,
+ * a front end that draws the world its own way finds the game's 2D layer
+ * (the pixels that changed since). Only reads; NULL removes it. */
+typedef void (*SwcWorldDrawnHook)(const unsigned char *pixels, int32_t pitch, int32_t width, int32_t height);
+void swcore_set_world_drawn_hook(SwcWorldDrawnHook hook);
 
 /** Fixes of original bugs that change how the game plays. They are on by
  * default (SWCORE_FIXES_DEFAULT); swcore_set_fixes(0), or the command line

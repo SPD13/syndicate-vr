@@ -1249,6 +1249,8 @@ void engine_draw_whole_screen_top_down(void)
     {
         draw_explode();
         draw_screen();
+        if (lvdraw_world_drawn_hook != NULL)
+            lvdraw_world_drawn_hook(vec_screen, vec_screen_width, vec_window_width, vec_window_height);
         draw_hud(p_locplayer->DirectControl[0]);
         if (in_network_game)
             draw_netplayer_name_text_over_thing();
@@ -1260,6 +1262,8 @@ void engine_draw_whole_screen_top_down(void)
         draw_hud(p_locplayer->DirectControl[0]);
     }
 }
+
+LvWorldDrawnHook lvdraw_world_drawn_hook = NULL;
 
 void draw_explode(void)
 {

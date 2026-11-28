@@ -42,6 +42,7 @@ out of scope for now: the library is for solo play.
 | `swcore_core_init(campaign, mission)` | Instead of `swcore_init()`: sets up the game core alone (data in the current directory, default settings) and starts the mission (API 3) |
 | `swcore_core_shutdown()` | Frees what `swcore_core_init()` set up (API 3) |
 | `swcore_set_world_drawing(on)` | Draws the world in missions or not; the game plays the same |
+| `swcore_set_world_drawn_hook(fn)` | Called in each mission frame once the world is drawn, before the overlays and panels, with the 8-bit frame then; only reads it. A front end that draws the world itself finds the game's 2D layer by comparing with the frame at the swap (`syndwars-hd.exe`) (API 7) |
 | `swcore_game_turn()`, `swcore_state_hash()` | Turn number and the hash the state traces compare |
 | `swcore_world_info()` | Mission status, map, selected agent, camera, objective |
 | `swcore_things()` | People, vehicles, buildings and effects: position, type, health, group, flags |

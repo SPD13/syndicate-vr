@@ -21,6 +21,7 @@
 #include "game_speed.h"
 #include "game_turn.h"
 #include "keyboard.h"
+#include "lvdraw3d.h"
 #include "lvfiles.h"
 #include "lvobjctv.h"
 #include "network.h"
@@ -657,6 +658,11 @@ void swcore_shutdown(void)
 void swcore_set_world_drawing(int enabled)
 {
     game_draw_world = (enabled != 0);
+}
+
+void swcore_set_world_drawn_hook(SwcWorldDrawnHook hook)
+{
+    lvdraw_world_drawn_hook = (LvWorldDrawnHook)hook;
 }
 
 /******************************************************************************/

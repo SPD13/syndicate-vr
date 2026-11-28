@@ -2,6 +2,7 @@
 #pragma once
 
 #include "world_source.h"
+#include "desk_proj.h"
 #include "fog.h"
 #include "text.h"
 
@@ -38,7 +39,7 @@ static GLuint compile_shader(GLenum type, const char *src)
     return sh;
 }
 
-static const char *kVertSrc = R"(#version 330 core
+static const char *kVertSrc = "#version 330 core\n" DESK_PROJ_GLSL R"(
 layout(location=0) in vec3 a_pos;
 layout(location=1) in vec2 a_uv;
 layout(location=2) in float a_layer;
@@ -80,7 +81,7 @@ void main() {
     v_layer = a_layer;
     v_rgb = a_rgb;
     v_textured = a_textured;
-    gl_Position = u_mvp * m;
+    gl_Position = u_desk != 0 ? desk_project(m.xyz) : u_mvp * m;
 }
 )";
 
@@ -396,6 +397,9 @@ public:
     // the panels alone, in a black void)
     bool world_visible = true;
     bool draw_table_slab = false;
+    // the viewer's own markers and panels (off for the desktop's window,
+    // which has the game's)
+    bool draw_overlays = true;
 
     void draw(const glm::mat4 &vp, const glm::mat4 &table_model, const glm::mat4 &map_model,
               glm::vec3 clip_center, float clip_half, bool linear_out)
@@ -420,6 +424,7 @@ public:
         glUniform1f(u_turn_, turn);
         g_fog.bind(prog_);
         g_text.bind(prog_);
+        g_desk.bind(prog_);
         if (bind_extra)
             bind_extra(prog_);
         GLint u_terrain = glGetUniformLocation(prog_, "u_terrain_verts");
@@ -488,11 +493,13 @@ public:
         // markers: hidden by what is in front, then a faint copy over
         // everything, so agents behind buildings stay in sight
         glUniform1f(u_marker_alpha_, 1.0f);
-        draw_mesh(marker_mesh_);
-        glDisable(GL_DEPTH_TEST);
-        glUniform1f(u_marker_alpha_, 0.25f);
-        draw_mesh(marker_mesh_);
-        glEnable(GL_DEPTH_TEST);
+        if (draw_overlays) {
+            draw_mesh(marker_mesh_);
+            glDisable(GL_DEPTH_TEST);
+            glUniform1f(u_marker_alpha_, 0.25f);
+            draw_mesh(marker_mesh_);
+            glEnable(GL_DEPTH_TEST);
+        }
         glDepthMask(GL_TRUE);
         } // world_visible
         glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(vp));
@@ -501,7 +508,8 @@ public:
         glUniform1f(u_marker_alpha_, 1.0f);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        draw_mesh(hud_mesh_);
+        if (draw_overlays)
+            draw_mesh(hud_mesh_);
         glDisable(GL_BLEND);
     }
 

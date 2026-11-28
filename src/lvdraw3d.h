@@ -42,6 +42,13 @@ void engine_draw_whole_screen_flyby(void);
 void engine_draw_whole_screen_top_down(void);
 
 void prepare_drawlist(void);
+
+/** Called once the world is drawn into the frame, before the overlays and
+ * the panels: the frame as it is then (vec_screen), for a front end that
+ * draws the world its own way and keeps the game's 2D layer on top. It only
+ * reads the frame. */
+typedef void (*LvWorldDrawnHook)(const ubyte *pixels, s32 pitch, s32 width, s32 height);
+extern LvWorldDrawnHook lvdraw_world_drawn_hook;
 /******************************************************************************/
 #ifdef __cplusplus
 }

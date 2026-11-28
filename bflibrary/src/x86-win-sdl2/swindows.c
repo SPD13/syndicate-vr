@@ -37,6 +37,7 @@
 
 volatile TbBool lbLibInitialised = false;
 volatile TbBool lbUserQuit = false;
+TbEventFilter lbEventFilterHook = NULL;
 volatile TbBool lbAppActive;
 
 TbIdleControl lbIdleHandlers[LB_IDLE_HANDLERS_MAX] = {0};
@@ -183,6 +184,8 @@ TbBool LbWindowsControl(void)
     {
         if (SDL_PollEvent(&ev) == 0)
             break;
+        if ((lbEventFilterHook != NULL) && lbEventFilterHook(&ev))
+            continue;
         LbI_ProcessEvent(&ev);
     }
     for (n=0; n < LB_IDLE_HANDLERS_MAX; n++) {

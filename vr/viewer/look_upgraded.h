@@ -97,7 +97,7 @@ private:
     bool quit_ = false;
 };
 
-static const char *kModelVertSrc = R"(#version 330 core
+static const char *kModelVertSrc = "#version 330 core\n" DESK_PROJ_GLSL R"(
 layout(location=0) in vec3 a_pos;
 layout(location=1) in vec3 a_nrm;
 layout(location=2) in vec2 a_uv;
@@ -129,7 +129,7 @@ void main() {
     v_map = m.xyz;
     v_nrm = mat3(u_model) * sn;
     v_uv = a_uv;
-    gl_Position = u_mvp * m;
+    gl_Position = u_desk != 0 ? desk_project(m.xyz) : u_mvp * m;
 }
 )";
 
@@ -428,6 +428,7 @@ public:
         // people here are only those the fog lets show; props stay grey
         // where seen before
         g_fog.bind(prog_);
+        g_desk.bind(prog_);
         g_fog.kind(prog_, FogK_THINGS);
         glActiveTexture(GL_TEXTURE2);
         glUniform1f(u_bright_, 1.0f);

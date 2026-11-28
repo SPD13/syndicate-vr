@@ -47,6 +47,15 @@ g++ -std=c++17 -O2 -g -Wall -Wno-unused-function -mconsole -DVR_DESKTOP_GAME=1 \
     -Wl,--start-group "$GAME/lib/libswrender.a" "$GAME/lib/libswworld.a" "$GAME/lib/libbullfrog.a" \
     "$GAME/lib/libbfsound.a" -Wl,--end-group \
     $SYSLIBS
+# the desktop game with its world drawn by the viewer's renderers, in
+# either look, under the game's 2D layer (F7 switches)
+g++ -std=c++17 -O2 -g -Wall -Wno-unused-function -mconsole -DVR_DESKTOP_GAME=1 \
+    -I"$REPO/src" -o "$OUT/syndwars-hd.exe" "$HERE/hd_main.cpp" "$OUT/third_party.o" \
+    -Wl,--whole-archive "$GAME/src/libswarscore.a" "$GAME/src/libswarsfe.a" "$GAME/src/libswarstest.a" \
+    "$GAME/src/libswarsview.a" -Wl,--no-whole-archive \
+    -Wl,--start-group "$GAME/lib/libswrender.a" "$GAME/lib/libswworld.a" "$GAME/lib/libbullfrog.a" \
+    "$GAME/lib/libbfsound.a" -Wl,--end-group \
+    $SYSLIBS
 # the upgraded look's font (text.h), next to the program
 mkdir -p "$OUT/fonts"
 cp -u "$HERE/fonts/ShareTechMono-Regular.ttf" "$HERE/fonts/OFL.txt" "$OUT/fonts/"
@@ -54,4 +63,4 @@ cp -u "$HERE/fonts/ShareTechMono-Regular.ttf" "$HERE/fonts/OFL.txt" "$OUT/fonts/
 for dll in $(ldd "$OUT/syndwars-vr.exe" | awk '/mingw64/ {print $3}'); do
     cp -u "$dll" "$OUT/"
 done
-echo "BUILD OK: $OUT/syndwars-vr.exe, $OUT/syndwars-vr-table.exe"
+echo "BUILD OK: $OUT/syndwars-vr.exe, $OUT/syndwars-vr-table.exe, $OUT/syndwars-hd.exe"

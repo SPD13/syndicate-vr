@@ -123,9 +123,14 @@ lack clobber lists and break under optimisation.
   Keep it portable: no threads, shared memory or OS calls. The VR viewer
   (`vr/viewer`, `vr/viewer/build.sh` after `build.sh --x64`) reads the
   world through it: `syndwars-vr.exe` runs the whole desktop game on a
-  thread (its window is the original game), `syndwars-vr-table.exe` the
-  core alone with a 3D table window. Options: `docs/vr-viewer-options.md`
-  (keep it up to date).
+  thread, `syndwars-vr-table.exe` the core alone with a 3D table window,
+  `syndwars-hd.exe` the desktop game without a headset. The desktop
+  window of `syndwars-vr.exe` and `syndwars-hd.exe` is the viewer's
+  (`desk_window.h`): the game's frames, or (upgraded look, F7) the world
+  drawn by the GL renderers with the game's camera (`desk_proj.h`) under
+  the game's 2D layer (`swcore_set_world_drawn_hook()`); the game still
+  draws its world, so it plays the same. Options:
+  `docs/vr-viewer-options.md` (keep it up to date).
 - The direction: one C core, front ends per target (SDL desktop, VR,
   mobile), solo play only. Keep `swcore.h` free of game headers
   (`<stdint.h>` types only) and add to it, don't change it
